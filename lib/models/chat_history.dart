@@ -5,6 +5,7 @@ class ChatHistoryItem {
   final DateTime timestamp;
   final String assistantType; // "ai", "character", "developer"
   final int messageCount;
+  final String? assistantId; // 关联的助手ID
 
   const ChatHistoryItem({
     required this.id,
@@ -13,6 +14,7 @@ class ChatHistoryItem {
     required this.timestamp,
     required this.assistantType,
     required this.messageCount,
+    this.assistantId,
   });
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'debug_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -45,6 +46,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildProviderItem(),
               _buildSearchServiceItem(),
               _buildMCPItem(),
+
+              const SizedBox(height: 24),
+
+              // 开发者选项
+              _buildSectionHeader("开发者选项"),
+              _buildDebugItem(),
 
               const SizedBox(height: 24),
 
@@ -274,6 +281,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
         // TODO: 实现分享功能
+      },
+    );
+  }
+
+  Widget _buildDebugItem() {
+    return ListTile(
+      leading: const Icon(Icons.bug_report_outlined),
+      title: const Text("调试"),
+      subtitle: const Text("进入调试页面"),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DebugScreen()),
+        );
       },
     );
   }

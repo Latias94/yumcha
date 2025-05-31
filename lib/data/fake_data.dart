@@ -5,15 +5,12 @@ import '../models/chat_history.dart';
 
 // 表情符号常量
 class Emojis {
-  static const String pinkHeart = "💕";
-  static const String melting = "🫠";
-  static const String clouds = "😶‍🌫️";
-  static const String flamingo = "🦩";
-  static const String points = "👉";
-  static const String robot = "🤖";
+  static const String wave = "👋";
   static const String sparkles = "✨";
   static const String thinking = "🤔";
-  static const String wave = "👋";
+  static const String pinkHeart = "💖";
+  static const String melting = "🫠";
+  static const String points = "👉";
 }
 
 // 示例消息数据
@@ -68,7 +65,7 @@ final List<Message> initialAIMessages = [
     author: "AI助手",
     content:
         "太棒了！${Emojis.sparkles} 建议你从Flutter官方文档开始，"
-        "然后可以尝试一些简单的项目。如果在学习过程中遇到问题，随时可以问我！祝你学习愉快${Emojis.robot}",
+        "然后可以尝试一些简单的项目。如果在学习过程中遇到问题，随时可以问我！祝你学习愉快${Emojis.wave}",
     timestamp: DateTime.now().subtract(const Duration(minutes: 8)),
     isFromUser: false,
   ),
@@ -113,52 +110,48 @@ final List<Message> initialCharacterMessages = [
 
 // 对话UI状态
 final ConversationUiState aiChatState = ConversationUiState(
-  channelName: "AI助手",
+  id: 'conv-1',
+  channelName: "小萌的AI聊天室",
   channelMembers: 1,
-  initialMessages: initialAIMessages,
-);
-
-final ConversationUiState characterChatState = ConversationUiState(
-  channelName: "角色聊天 - 小萌",
-  channelMembers: 1,
-  initialMessages: initialCharacterMessages,
-);
-
-final ConversationUiState developerChatState = ConversationUiState(
-  channelName: "开发者讨论",
-  channelMembers: 15,
-  initialMessages: [
+  messages: [
     Message(
-      author: "张小明",
-      content: "大家好！有人用过Flutter的状态管理库Riverpod吗？",
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      isFromUser: false,
-    ),
-    Message(
-      author: "李开发",
-      content: "用过！Riverpod比Provider更现代化，推荐试试${Emojis.points}",
-      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 55)),
-      isFromUser: false,
-    ),
-    Message(
-      author: "王程序员",
-      content: "是的，Riverpod的编译时安全性很棒，而且支持自动销毁",
-      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 50)),
+      author: "小萌",
+      content: "主人～${Emojis.wave} 小萌很高兴见到你呢！今天过得怎么样呀？",
+      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
       isFromUser: false,
     ),
     Message(
       author: "用户",
-      content: "听起来不错！有推荐的学习资源吗？",
-      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 45)),
+      content: "你好小萌！今天工作有点累，想找你聊聊天",
+      timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
       isFromUser: true,
     ),
+  ],
+  assistantId: 'assistant-general', // 关联到通用助手
+);
+
+final ConversationUiState characterChatState = ConversationUiState(
+  id: 'conv-2',
+  channelName: "开发者社区",
+  channelMembers: 3,
+  messages: [
     Message(
       author: "张小明",
-      content: "官方文档很详细，还有Andrea Bizzotto的YouTube教程系列很不错${Emojis.sparkles}",
-      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 40)),
+      content:
+          "Flutter开发的话，我推荐先掌握Dart基础，然后学习Widget系统。${Emojis.points} 有什么具体问题吗？",
+      timestamp: DateTime.now().subtract(const Duration(hours: 1)),
       isFromUser: false,
     ),
   ],
+  assistantId: 'assistant-developer', // 关联到开发助手
+);
+
+final ConversationUiState developerChatState = ConversationUiState(
+  id: 'conv-3',
+  channelName: "AI助手",
+  channelMembers: 1,
+  messages: [],
+  assistantId: 'assistant-general',
 );
 
 // 用户资料数据
@@ -270,82 +263,56 @@ const List<AssistantType> assistantTypes = [
 final List<ChatHistoryItem> chatHistory = [
   // 今天的记录
   ChatHistoryItem(
-    id: "chat_001",
-    title: "Flutter状态管理讨论",
-    preview: "我们今天聊了关于Provider和Riverpod的区别...",
+    id: "chat-1",
+    title: "Flutter开发问题讨论",
+    preview: "关于状态管理的最佳实践...",
     timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-    assistantType: "ai",
+    assistantType: "developer",
     messageCount: 15,
   ),
   ChatHistoryItem(
-    id: "chat_002",
+    id: "chat-2",
     title: "小萌的日常聊天",
-    preview: "主人～今天过得怎么样呀？小萌想听你的故事...",
+    preview: "主人今天心情怎么样呀～",
     timestamp: DateTime.now().subtract(const Duration(hours: 4)),
     assistantType: "character",
     messageCount: 8,
   ),
-  ChatHistoryItem(
-    id: "chat_003",
-    title: "代码优化建议",
-    preview: "关于这段代码的性能优化，我觉得可以从以下几个方面...",
-    timestamp: DateTime.now().subtract(const Duration(hours: 6)),
-    assistantType: "developer",
-    messageCount: 12,
-  ),
 
   // 昨天的记录
   ChatHistoryItem(
-    id: "chat_004",
-    title: "UI设计讨论",
-    preview: "Material Design 3的新特性真的很棒，特别是动态颜色...",
-    timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
-    assistantType: "ai",
-    messageCount: 22,
+    id: "chat-3",
+    title: "创意写作助手",
+    preview: "让我帮你写一个有趣的故事...",
+    timestamp: DateTime.now().subtract(const Duration(days: 1)),
+    assistantType: "creative",
+    messageCount: 23,
   ),
   ChatHistoryItem(
-    id: "chat_005",
-    title: "小萌的睡前故事",
-    preview: "主人要睡觉了吗？小萌给你讲个温馨的小故事吧...",
-    timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 8)),
-    assistantType: "character",
-    messageCount: 6,
+    id: "chat-4",
+    title: "技术答疑",
+    preview: "关于算法优化的建议",
+    timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
+    assistantType: "ai",
+    messageCount: 12,
   ),
 
   // 前天的记录
   ChatHistoryItem(
-    id: "chat_006",
-    title: "数据库设计方案",
-    preview: "对于这个项目的数据库架构，我建议使用关系型数据库...",
-    timestamp: DateTime.now().subtract(const Duration(days: 2, hours: 5)),
-    assistantType: "developer",
+    id: "chat-5",
+    title: "数据分析讨论",
+    preview: "这个数据趋势很有意思...",
+    timestamp: DateTime.now().subtract(const Duration(days: 3)),
+    assistantType: "analyst",
+    messageCount: 7,
+  ),
+  ChatHistoryItem(
+    id: "chat-6",
+    title: "语言学习",
+    preview: "今天我们来学习一些新单词",
+    timestamp: DateTime.now().subtract(const Duration(days: 4)),
+    assistantType: "teacher",
     messageCount: 18,
-  ),
-  ChatHistoryItem(
-    id: "chat_007",
-    title: "学习计划制定",
-    preview: "一个好的学习计划应该包含明确的目标和时间安排...",
-    timestamp: DateTime.now().subtract(const Duration(days: 2, hours: 10)),
-    assistantType: "ai",
-    messageCount: 25,
-  ),
-
-  // 上周的记录
-  ChatHistoryItem(
-    id: "chat_008",
-    title: "小萌的游戏时间",
-    preview: "主人想和小萌一起玩游戏吗？我们可以玩文字游戏...",
-    timestamp: DateTime.now().subtract(const Duration(days: 5, hours: 2)),
-    assistantType: "character",
-    messageCount: 14,
-  ),
-  ChatHistoryItem(
-    id: "chat_009",
-    title: "API设计最佳实践",
-    preview: "RESTful API的设计需要考虑资源的合理划分和HTTP方法的正确使用...",
-    timestamp: DateTime.now().subtract(const Duration(days: 6, hours: 7)),
-    assistantType: "developer",
-    messageCount: 31,
   ),
 ];
 
@@ -422,4 +389,126 @@ List<ChatHistoryGroup> getChatHistoryGroups([String? assistantFilter]) {
   }
 
   return groups;
+}
+
+class FakeData {
+  static List<ConversationUiState> get fakeConversations => [
+    ConversationUiState(
+      id: 'conv-1',
+      channelName: "小萌的AI聊天室",
+      channelMembers: 1,
+      messages: [
+        Message(
+          author: "小萌",
+          content: "主人～${Emojis.wave} 小萌很高兴见到你呢！今天过得怎么样呀？",
+          timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+          isFromUser: false,
+        ),
+        Message(
+          author: "用户",
+          content: "你好小萌！今天工作有点累，想找你聊聊天",
+          timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
+          isFromUser: true,
+        ),
+      ],
+      assistantId: 'assistant-general', // 关联到通用助手
+    ),
+    ConversationUiState(
+      id: 'conv-2',
+      channelName: "开发者社区",
+      channelMembers: 3,
+      messages: [
+        Message(
+          author: "张小明",
+          content:
+              "Flutter开发的话，我推荐先掌握Dart基础，然后学习Widget系统。${Emojis.points} 有什么具体问题吗？",
+          timestamp: DateTime.now().subtract(const Duration(hours: 1)),
+          isFromUser: false,
+        ),
+      ],
+      assistantId: 'assistant-developer', // 关联到开发助手
+    ),
+    ConversationUiState(
+      id: 'conv-3',
+      channelName: "AI助手",
+      channelMembers: 1,
+      messages: [],
+      assistantId: 'assistant-general',
+    ),
+  ];
+
+  static List<ChatHistoryGroup> get fakeChatHistory => [
+    ChatHistoryGroup(
+      title: "今天",
+      items: [
+        ChatHistoryItem(
+          id: "chat-1",
+          title: "Flutter开发问题讨论",
+          preview: "关于状态管理的最佳实践...",
+          timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+          assistantType: "developer",
+          messageCount: 15,
+        ),
+        ChatHistoryItem(
+          id: "chat-2",
+          title: "小萌的日常聊天",
+          preview: "主人今天心情怎么样呀～",
+          timestamp: DateTime.now().subtract(const Duration(hours: 4)),
+          assistantType: "character",
+          messageCount: 8,
+        ),
+      ],
+    ),
+    ChatHistoryGroup(
+      title: "昨天",
+      items: [
+        ChatHistoryItem(
+          id: "chat-3",
+          title: "创意写作助手",
+          preview: "让我帮你写一个有趣的故事...",
+          timestamp: DateTime.now().subtract(const Duration(days: 1)),
+          assistantType: "creative",
+          messageCount: 23,
+        ),
+        ChatHistoryItem(
+          id: "chat-4",
+          title: "技术答疑",
+          preview: "关于算法优化的建议",
+          timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
+          assistantType: "ai",
+          messageCount: 12,
+        ),
+      ],
+    ),
+    ChatHistoryGroup(
+      title: "本周早些时候",
+      items: [
+        ChatHistoryItem(
+          id: "chat-5",
+          title: "数据分析讨论",
+          preview: "这个数据趋势很有意思...",
+          timestamp: DateTime.now().subtract(const Duration(days: 3)),
+          assistantType: "analyst",
+          messageCount: 7,
+        ),
+        ChatHistoryItem(
+          id: "chat-6",
+          title: "语言学习",
+          preview: "今天我们来学习一些新单词",
+          timestamp: DateTime.now().subtract(const Duration(days: 4)),
+          assistantType: "teacher",
+          messageCount: 18,
+        ),
+      ],
+    ),
+  ];
+
+  static List<AssistantType> get availableAssistants => [
+    AssistantType(id: "general", name: "通用助手", icon: "🤖"),
+    AssistantType(id: "developer", name: "开发助手", icon: "👨‍💻"),
+    AssistantType(id: "creative", name: "创意助手", icon: "🎨"),
+    AssistantType(id: "analyst", name: "分析助手", icon: "📊"),
+    AssistantType(id: "translator", name: "翻译助手", icon: "🌍"),
+    AssistantType(id: "teacher", name: "教学助手", icon: "👩‍🏫"),
+  ];
 }

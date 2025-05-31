@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 
 class ChatInput extends StatefulWidget {
   final Function(String) onSendMessage;
+  final bool isLoading;
+  final VoidCallback? onStopGeneration;
+  final bool canStop;
 
-  const ChatInput({super.key, required this.onSendMessage});
+  const ChatInput({
+    super.key,
+    required this.onSendMessage,
+    this.isLoading = false,
+    this.onStopGeneration,
+    this.canStop = false,
+  });
 
   @override
   State<ChatInput> createState() => _ChatInputState();
@@ -32,6 +41,11 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
         curve: Curves.easeOutCubic,
       ),
     );
+    _textController.addListener(() {
+      setState(() {
+        _isComposing = _textController.text.isNotEmpty;
+      });
+    });
   }
 
   @override
@@ -105,6 +119,12 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
     );
   }
 
+  void _stopGeneration() {
+    if (widget.onStopGeneration != null && widget.canStop) {
+      widget.onStopGeneration!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -152,10 +172,17 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
                                 });
                               },
                               onSubmitted: _handleSubmitted,
-                              decoration: const InputDecoration(
-                                hintText: "输入消息与AI聊天",
+                              decoration: InputDecoration(
+                                hintText: widget.isLoading
+                                    ? (widget.canStop ? 'AI正在思考中...' : '发送中...')
+                                    : '输入消息...',
+                                hintStyle: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
+                                contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20,
                                   vertical: 12,
                                 ),
@@ -350,36 +377,82 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
 
                               const Spacer(),
 
-                              // 发送按钮
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: _isComposing
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceContainerHighest,
-                                  shape: BoxShape.circle,
+                              // 根据状态显示不同的按钮
+                              if (widget.canStop && widget.isLoading) ...[
+                                // 停止按钮
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.errorContainer,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    onPressed: _stopGeneration,
+                                    icon: Icon(
+                                      Icons.stop,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onErrorContainer,
+                                    ),
+                                    tooltip: '停止生成',
+                                  ),
                                 ),
-                                child: IconButton(
-                                  icon: Icon(
-                                    _isComposing
-                                        ? Icons.send
-                                        : Icons.keyboard_arrow_up,
+                              ] else if (widget.isLoading) ...[
+                                // 加载指示器
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ] else ...[
+                                // 发送按钮
+                                Container(
+                                  decoration: BoxDecoration(
                                     color: _isComposing
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimary
+                                        ? Theme.of(context).colorScheme.primary
                                         : Theme.of(
                                             context,
-                                          ).colorScheme.onSurface,
+                                          ).colorScheme.surfaceContainerHighest,
+                                    shape: BoxShape.circle,
                                   ),
-                                  onPressed: _isComposing
-                                      ? () => _handleSubmitted(
-                                          _textController.text,
-                                        )
-                                      : null,
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.send,
+                                      color: _isComposing
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimary
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                    ),
+                                    onPressed: _isComposing
+                                        ? () => _handleSubmitted(
+                                            _textController.text,
+                                          )
+                                        : null,
+                                    tooltip: '发送消息',
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                         ),
@@ -409,10 +482,17 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
                               });
                             },
                             onSubmitted: _handleSubmitted,
-                            decoration: const InputDecoration(
-                              hintText: "输入消息与AI聊天",
+                            decoration: InputDecoration(
+                              hintText: widget.isLoading
+                                  ? (widget.canStop ? 'AI正在思考中...' : '发送中...')
+                                  : '输入消息...',
+                              hintStyle: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
+                              contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 12,
                               ),
@@ -596,31 +676,82 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
 
                             const Spacer(),
 
-                            // 发送按钮
-                            Container(
-                              decoration: BoxDecoration(
-                                color: _isComposing
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHighest,
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: Icon(
-                                  _isComposing
-                                      ? Icons.send
-                                      : Icons.keyboard_arrow_up,
-                                  color: _isComposing
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context).colorScheme.onSurface,
+                            // 根据状态显示不同的按钮
+                            if (widget.canStop && widget.isLoading) ...[
+                              // 停止按钮
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.errorContainer,
+                                  shape: BoxShape.circle,
                                 ),
-                                onPressed: _isComposing
-                                    ? () =>
-                                          _handleSubmitted(_textController.text)
-                                    : null,
+                                child: IconButton(
+                                  onPressed: _stopGeneration,
+                                  icon: Icon(
+                                    Icons.stop,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
+                                  ),
+                                  tooltip: '停止生成',
+                                ),
                               ),
-                            ),
+                            ] else if (widget.isLoading) ...[
+                              // 加载指示器
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              // 发送按钮
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: _isComposing
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.send,
+                                    color: _isComposing
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimary
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                  ),
+                                  onPressed: _isComposing
+                                      ? () => _handleSubmitted(
+                                          _textController.text,
+                                        )
+                                      : null,
+                                  tooltip: '发送消息',
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

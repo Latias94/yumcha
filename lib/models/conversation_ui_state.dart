@@ -1,37 +1,41 @@
-import 'package:flutter/foundation.dart';
 import 'message.dart';
 
 class ConversationUiState {
+  final String id;
   final String channelName;
   final int channelMembers;
-  final List<Message> _messages;
+  final List<Message> messages;
+  final String? assistantId;
 
   const ConversationUiState({
+    required this.id,
     required this.channelName,
     required this.channelMembers,
-    required List<Message> initialMessages,
-  }) : _messages = initialMessages;
-
-  List<Message> get messages => List.unmodifiable(_messages);
-
-  ConversationUiState addMessage(Message message) {
-    final newMessages = [message, ..._messages];
-    return ConversationUiState(
-      channelName: channelName,
-      channelMembers: channelMembers,
-      initialMessages: newMessages,
-    );
-  }
+    this.messages = const [],
+    this.assistantId,
+  });
 
   ConversationUiState copyWith({
+    String? id,
     String? channelName,
     int? channelMembers,
     List<Message>? messages,
+    String? assistantId,
   }) {
     return ConversationUiState(
+      id: id ?? this.id,
       channelName: channelName ?? this.channelName,
       channelMembers: channelMembers ?? this.channelMembers,
-      initialMessages: messages ?? _messages,
+      messages: messages ?? this.messages,
+      assistantId: assistantId ?? this.assistantId,
     );
+  }
+
+  ConversationUiState addMessage(Message message) {
+    return copyWith(messages: [message, ...messages]);
+  }
+
+  ConversationUiState clearMessages() {
+    return copyWith(messages: []);
   }
 }

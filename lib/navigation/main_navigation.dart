@@ -62,33 +62,70 @@ class _MainNavigationState extends State<MainNavigation> {
 
   Widget _getCurrentScreen() {
     if (selectedUserId != null) {
-      return ProfileScreen(userId: selectedUserId!, showAppBar: false);
+      return ProfileScreen(userId: selectedUserId!);
     }
+
+    final conversations = FakeData.fakeConversations;
 
     switch (selectedMenu) {
       case "ai_chat":
-        return ChatScreen(conversationState: aiChatState, showAppBar: false);
+        return ChatScreen(
+          conversationState: conversations.isNotEmpty
+              ? conversations[0]
+              : ConversationUiState(
+                  id: 'default-ai',
+                  channelName: "AI助手",
+                  channelMembers: 1,
+                  assistantId: 'assistant-general',
+                ),
+          showAppBar: false,
+        );
       case "character_chat":
         return ChatScreen(
-          conversationState: characterChatState,
+          conversationState: conversations.length > 1
+              ? conversations[1]
+              : ConversationUiState(
+                  id: 'default-character',
+                  channelName: "角色聊天 - 小萌",
+                  channelMembers: 1,
+                  assistantId: 'assistant-general',
+                ),
           showAppBar: false,
         );
       case "developer_chat":
         return ChatScreen(
-          conversationState: developerChatState,
+          conversationState: conversations.length > 2
+              ? conversations[2]
+              : ConversationUiState(
+                  id: 'default-developer',
+                  channelName: "开发者讨论",
+                  channelMembers: 15,
+                  assistantId: 'assistant-developer',
+                ),
           showAppBar: false,
         );
       case "random_chat":
-        return const ChatScreen(
+        return ChatScreen(
           conversationState: ConversationUiState(
+            id: 'random-chat',
             channelName: "随机聊天",
             channelMembers: 8,
-            initialMessages: [],
+            assistantId: 'assistant-general',
           ),
           showAppBar: false,
         );
       default:
-        return ChatScreen(conversationState: aiChatState, showAppBar: false);
+        return ChatScreen(
+          conversationState: conversations.isNotEmpty
+              ? conversations[0]
+              : ConversationUiState(
+                  id: 'default-ai',
+                  channelName: "AI助手",
+                  channelMembers: 1,
+                  assistantId: 'assistant-general',
+                ),
+          showAppBar: false,
+        );
     }
   }
 

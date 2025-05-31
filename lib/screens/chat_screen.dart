@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
-import '../models/conversation_ui_state.dart';
-import '../models/message.dart';
 import '../components/message_bubble.dart';
 import '../components/chat_input.dart';
-import '../data/fake_data.dart';
+import '../models/conversation_ui_state.dart';
+import '../models/message.dart';
+import '../services/ai_service.dart';
+import '../services/notification_service.dart';
+
+// 简单的会话包装类
+class Conversation {
+  final ConversationUiState uiState;
+  final List<Message> messages;
+
+  Conversation({required this.uiState, List<Message>? messages})
+    : messages = messages ?? [];
+}
 
 class ChatScreen extends StatefulWidget {
   final ConversationUiState conversationState;
@@ -20,135 +30,40 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late ConversationUiState _conversationState;
   final ScrollController _scrollController = ScrollController();
+  final AiService _aiService = AiService();
+
+  bool _isLoading = false;
+  bool _isStreaming = false;
+  String? _currentRequestId;
+  late Conversation _conversation;
 
   @override
   void initState() {
     super.initState();
-    _conversationState = widget.conversationState;
+    _conversation = Conversation(
+      uiState: widget.conversationState,
+      messages: List.from(widget.conversationState.messages),
+    );
+    // 初始化AI服务
+    _aiService.initialize();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    // 如果页面销毁时还在生成，停止生成
+    if (_currentRequestId != null) {
+      _aiService.stopGeneration(_currentRequestId!);
+    }
     super.dispose();
-  }
-
-  void _sendMessage(String content) {
-    if (content.trim().isEmpty) return;
-
-    final message = Message(
-      author: "用户",
-      content: content,
-      timestamp: DateTime.now(),
-      isFromUser: true,
-    );
-
-    setState(() {
-      _conversationState = _conversationState.addMessage(message);
-    });
-
-    // Auto scroll to bottom
-    _scrollToBottom();
-
-    // Simulate AI response after a delay
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      _addAIResponse(content);
-    });
-  }
-
-  void _addAIResponse(String userMessage) {
-    String aiResponse;
-    String aiAuthor;
-
-    // Determine response based on channel name
-    if (_conversationState.channelName.contains("小萌")) {
-      aiAuthor = "小萌";
-      aiResponse = _getCharacterResponse(userMessage);
-    } else if (_conversationState.channelName.contains("开发者")) {
-      aiAuthor = "张小明";
-      aiResponse = _getDeveloperResponse(userMessage);
-    } else {
-      aiAuthor = "AI助手";
-      aiResponse = _getAIResponse(userMessage);
-    }
-
-    final aiMessage = Message(
-      author: aiAuthor,
-      content: aiResponse,
-      timestamp: DateTime.now(),
-      isFromUser: false,
-    );
-
-    setState(() {
-      _conversationState = _conversationState.addMessage(aiMessage);
-    });
-
-    _scrollToBottom();
-  }
-
-  String _getAIResponse(String userMessage) {
-    final message = userMessage.toLowerCase();
-
-    if (message.contains("你好") ||
-        message.contains("hello") ||
-        message.contains("hi")) {
-      return "你好！${Emojis.wave} 我是你的AI助手，有什么可以帮助你的吗？";
-    } else if (message.contains("再见") || message.contains("bye")) {
-      return "再见！${Emojis.wave} 很高兴为你服务，有需要随时找我。";
-    } else if (message.contains("flutter")) {
-      return "Flutter是Google开发的优秀UI框架！${Emojis.sparkles} 它可以让你用一套代码构建多平台应用。你想了解Flutter的哪个方面呢？";
-    } else if (message.contains("编程") ||
-        message.contains("代码") ||
-        message.contains("开发")) {
-      return "编程是一门很有趣的技能！${Emojis.thinking} 我可以帮你解答各种编程问题，从基础概念到高级技巧都可以。你遇到什么具体问题了吗？";
-    } else if (message.contains("谢谢") || message.contains("感谢")) {
-      return "不客气！${Emojis.pinkHeart} 我很乐意帮助你。还有其他问题吗？";
-    } else {
-      return "我理解了你说的「${userMessage}」。${Emojis.thinking} 这是一个很有趣的话题！让我想想如何更好地帮助你...";
-    }
-  }
-
-  String _getCharacterResponse(String userMessage) {
-    final message = userMessage.toLowerCase();
-
-    if (message.contains("你好") ||
-        message.contains("hello") ||
-        message.contains("hi")) {
-      return "主人～${Emojis.wave} 小萌很高兴见到你呢！今天过得怎么样呀？";
-    } else if (message.contains("再见") || message.contains("bye")) {
-      return "主人要走了吗？${Emojis.melting} 小萌会想你的～记得常来找小萌聊天哦！";
-    } else if (message.contains("可爱") || message.contains("萌")) {
-      return "嘿嘿～主人夸小萌可爱呢！${Emojis.pinkHeart} 小萌超开心的！主人也很棒哦～";
-    } else if (message.contains("笑话")) {
-      return "好哦！小萌来讲个笑话～${Emojis.sparkles}\n\n为什么程序员喜欢黑暗？\n\n因为光明会带来bug！${Emojis.thinking} 怎么样，好笑吗？";
-    } else if (message.contains("知识") || message.contains("学习")) {
-      return "小萌最喜欢分享知识了！${Emojis.sparkles} 你知道吗？蜂鸟是唯一能够倒着飞的鸟类呢～还想听其他有趣的知识吗？";
-    } else {
-      return "哇～主人说的是「${userMessage}」呢！${Emojis.thinking} 小萌觉得好有趣！要不要小萌给你讲个相关的小故事呀？";
-    }
-  }
-
-  String _getDeveloperResponse(String userMessage) {
-    final message = userMessage.toLowerCase();
-
-    if (message.contains("flutter") || message.contains("dart")) {
-      return "Flutter开发的话，我推荐先掌握Dart基础，然后学习Widget系统。${Emojis.points} 有什么具体问题吗？";
-    } else if (message.contains("状态管理")) {
-      return "状态管理确实是Flutter的重点！现在比较流行的有Provider、Riverpod、Bloc等。${Emojis.sparkles} 你倾向于哪种？";
-    } else if (message.contains("问题") || message.contains("bug")) {
-      return "遇到技术问题很正常，关键是要善于调试。${Emojis.thinking} 可以详细描述下你的问题吗？我们一起看看。";
-    } else {
-      return "嗯，关于「${userMessage}」这个话题，在开发中确实会遇到。${Emojis.points} 大家有什么经验可以分享的吗？";
-    }
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          0.0,
+          _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -156,35 +71,235 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _sendMessage(String content) async {
+    if (content.trim().isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _isStreaming = false;
+      _currentRequestId = 'req_${DateTime.now().millisecondsSinceEpoch}';
+    });
+
+    // 添加用户消息
+    final userMessage = Message(
+      content: content,
+      timestamp: DateTime.now(),
+      isFromUser: true,
+      author: "你",
+    );
+
+    setState(() {
+      _conversation.messages.add(userMessage);
+    });
+
+    _scrollToBottom();
+
+    try {
+      // 获取当前助手
+      final assistants = _aiService.assistants;
+      final currentAssistant = assistants.isNotEmpty
+          ? assistants.firstWhere(
+              (a) => a.id == _conversation.uiState.assistantId,
+              orElse: () => assistants.first,
+            )
+          : null;
+
+      if (currentAssistant == null) {
+        throw Exception('没有可用的AI助手，请先在设置中配置');
+      }
+
+      // 创建AI消息（用于流式更新）
+      var aiMessageContent = '';
+      final aiMessage = Message(
+        content: aiMessageContent,
+        timestamp: DateTime.now(),
+        isFromUser: false,
+        author: currentAssistant.name,
+      );
+
+      setState(() {
+        _conversation.messages.add(aiMessage);
+        _isStreaming = true;
+      });
+
+      _scrollToBottom();
+
+      // 发送流式请求
+      final stream = _aiService.sendMessageStream(
+        assistantId: currentAssistant.id,
+        chatHistory: _conversation.messages
+            .where((m) => m != aiMessage) // 排除当前AI消息
+            .toList(),
+        userMessage: content,
+      );
+
+      await for (final chunk in stream) {
+        // 检查是否被停止
+        if (_currentRequestId == null) {
+          break;
+        }
+
+        setState(() {
+          aiMessageContent += chunk;
+          // 更新AI消息内容
+          final index = _conversation.messages.indexOf(aiMessage);
+          if (index != -1) {
+            _conversation.messages[index] = aiMessage.copyWith(
+              content: aiMessageContent,
+            );
+          }
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      // 错误处理
+      String errorMessage = '发送消息失败';
+      if (e.toString().contains('cancelled')) {
+        errorMessage = '消息发送已取消';
+      } else if (e.toString().contains('timeout')) {
+        errorMessage = '请求超时，请检查网络连接';
+      }
+
+      NotificationService().showError(errorMessage);
+
+      // 添加错误消息到聊天
+      final errorMsg = Message(
+        content: '[错误] $errorMessage',
+        timestamp: DateTime.now(),
+        isFromUser: false,
+        author: "系统",
+      );
+
+      setState(() {
+        _conversation.messages.add(errorMsg);
+      });
+
+      _scrollToBottom();
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _isStreaming = false;
+        _currentRequestId = null;
+      });
+    }
+  }
+
+  void _stopGeneration() {
+    if (_currentRequestId != null) {
+      _aiService.stopGeneration(_currentRequestId!);
+      setState(() {
+        _isLoading = false;
+        _isStreaming = false;
+        _currentRequestId = null;
+      });
+      NotificationService().showInfo('已停止生成');
+    }
+  }
+
+  void _showAssistantSelector() {
+    final assistants = _aiService.assistants;
+    if (assistants.isEmpty) {
+      NotificationService().showWarning('没有可用的AI助手，请先在设置中配置');
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('选择AI助手', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              ...assistants.map((assistant) {
+                final isSelected =
+                    assistant.id == _conversation.uiState.assistantId;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: NetworkImage(assistant.avatar),
+                    onBackgroundImageError: (_, __) {},
+                    child: assistant.avatar.isEmpty
+                        ? const Icon(Icons.smart_toy)
+                        : null,
+                  ),
+                  title: Text(assistant.name),
+                  subtitle: Text(assistant.description),
+                  trailing: isSelected ? const Icon(Icons.check) : null,
+                  onTap: () {
+                    setState(() {
+                      _conversation.uiState.copyWith(assistantId: assistant.id);
+                    });
+                    Navigator.pop(context);
+                    NotificationService().showSuccess('已切换到${assistant.name}');
+                  },
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.smart_toy),
+                title: const Text('选择助手'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAssistantSelector();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.clear_all),
+                title: const Text('清空对话'),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _conversation.messages.clear();
+                  });
+                  NotificationService().showSuccess('对话已清空');
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 获取当前助手信息
+    final assistants = _aiService.assistants;
+    final currentAssistant = assistants.isNotEmpty
+        ? assistants.firstWhere(
+            (a) => a.id == _conversation.uiState.assistantId,
+            orElse: () => assistants.first,
+          )
+        : null;
+
     return Scaffold(
       appBar: widget.showAppBar
           ? AppBar(
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_conversationState.channelName),
-                  Text(
-                    "${_conversationState.channelMembers} 成员",
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+              title: Text(currentAssistant?.name ?? '聊天'),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () {
-                    // TODO: Implement search
-                  },
-                ),
-                IconButton(
                   icon: const Icon(Icons.more_vert),
-                  onPressed: () {
-                    // TODO: Implement menu
-                  },
+                  onPressed: _showMenu,
                 ),
               ],
             )
@@ -192,26 +307,40 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _conversationState.messages.isEmpty
-                ? _buildEmptyState(context)
+            child: _conversation.messages.isEmpty
+                ? _buildEmptyState()
                 : ListView.builder(
                     controller: _scrollController,
-                    reverse: true,
-                    padding: const EdgeInsets.all(8.0),
-                    itemCount: _conversationState.messages.length,
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: _conversation.messages.length,
                     itemBuilder: (context, index) {
-                      final message = _conversationState.messages[index];
-                      return MessageBubble(message: message);
+                      final message = _conversation.messages[index];
+                      final isLastMessage =
+                          index == _conversation.messages.length - 1;
+                      final showStreaming =
+                          isLastMessage && !message.isFromUser && _isStreaming;
+
+                      return MessageBubble(
+                        message: message,
+                        isStreaming: showStreaming,
+                        showAvatar: false, // 默认不显示头像
+                        showAuthor: false, // 默认不显示作者名
+                      );
                     },
                   ),
           ),
-          ChatInput(onSendMessage: _sendMessage),
+          ChatInput(
+            onSendMessage: _sendMessage,
+            isLoading: _isLoading,
+            onStopGeneration: _stopGeneration,
+            canStop: _isStreaming && _currentRequestId != null,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -219,21 +348,22 @@ class _ChatScreenState extends State<ChatScreen> {
           Icon(
             Icons.chat_bubble_outline,
             size: 64,
-            color: Theme.of(context).colorScheme.outline,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
-            "开始对话吧！",
+            '开始对话',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            "发送消息开始与AI助手的对话",
+            '在下方输入框中输入消息开始与AI聊天',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
