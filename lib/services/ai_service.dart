@@ -1,6 +1,5 @@
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:langchain/langchain.dart';
-import 'package:openai_dart/openai_dart.dart';
 import 'dart:async';
 import '../models/ai_provider.dart';
 import '../models/ai_assistant.dart';
@@ -10,7 +9,7 @@ import 'notification_service.dart';
 import 'logger_service.dart';
 import 'provider_repository.dart';
 import 'assistant_repository.dart';
-import 'database_service.dart'; 
+import 'database_service.dart';
 
 // 调试信息类
 class DebugInfo {

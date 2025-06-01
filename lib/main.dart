@@ -12,7 +12,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // 确保绑定已初始化
 
   // 初始化数据库服务 (通过访问 getter 隐式初始化)
-  DatabaseService.instance.database; // 请根据您的实际 DatabaseService 实现调整
+  DatabaseService.instance.database;
 
   // 初始化服务
   LoggerService().initialize();
@@ -95,3 +95,30 @@ class MyHomePage extends StatelessWidget {
     );
   }
 }
+
+// import 'package:flutter/material.dart';
+// import 'package:yumcha/src/rust/api/simple.dart';
+// import 'package:yumcha/src/rust/frb_generated.dart';
+
+// Future<void> main() async {
+//   await RustLib.init();
+//   runApp(const MyApp());
+// }
+
+// class MyApp extends StatelessWidget {
+//   const MyApp({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: Scaffold(
+//         appBar: AppBar(title: const Text('flutter_rust_bridge quickstart')),
+//         body: Center(
+//           child: Text(
+//             'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`',
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

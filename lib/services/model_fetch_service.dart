@@ -53,25 +53,27 @@ class ModelFetchService {
       for (final modelData in data['data']) {
         if (modelData is Map<String, dynamic> && modelData.containsKey('id')) {
           final modelId = modelData['id'] as String;
-          
+
           // 过滤掉一些不是聊天模型的模型
           if (_shouldIncludeModel(modelId)) {
-            models.add(AiModel(
-              id: modelId,
-              name: modelId,
-              displayName: _getDisplayName(modelId),
-              capabilities: _getCapabilities(modelId),
-              metadata: _getMetadata(modelData),
-              createdAt: now,
-              updatedAt: now,
-            ));
+            models.add(
+              AiModel(
+                id: modelId,
+                name: modelId,
+                displayName: _getDisplayName(modelId),
+                capabilities: _getCapabilities(modelId),
+                metadata: _getMetadata(modelData),
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
           }
         }
       }
 
       // 按模型名称排序
       models.sort((a, b) => a.name.compareTo(b.name));
-      
+
       return models;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
@@ -130,25 +132,25 @@ class ModelFetchService {
   /// 获取模型能力
   List<ModelCapability> _getCapabilities(String modelId) {
     final lowerModelId = modelId.toLowerCase();
-    
-    if (lowerModelId.contains('vision') || 
+
+    if (lowerModelId.contains('vision') ||
         lowerModelId.contains('gpt-4o') ||
         lowerModelId.contains('gpt-4-turbo')) {
       return [ModelCapability.chat, ModelCapability.imageAnalysis];
     }
-    
+
     return [ModelCapability.chat];
   }
 
   /// 获取模型元数据
   Map<String, dynamic> _getMetadata(Map<String, dynamic> modelData) {
     final metadata = <String, dynamic>{};
-    
+
     // 从API响应中提取有用信息
     if (modelData.containsKey('created')) {
       metadata['created'] = modelData['created'];
     }
-    
+
     if (modelData.containsKey('owned_by')) {
       metadata['ownedBy'] = modelData['owned_by'];
     }
@@ -156,7 +158,7 @@ class ModelFetchService {
     // 根据模型名称设置上下文长度
     final modelId = modelData['id'] as String;
     metadata['contextLength'] = _getContextLength(modelId);
-    
+
     return metadata;
   }
 

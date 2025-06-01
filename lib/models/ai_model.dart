@@ -74,12 +74,16 @@ class AiModel {
       id: json['id'] as String,
       name: json['name'] as String,
       displayName: json['displayName'] as String? ?? '',
-      capabilities: (json['capabilities'] as List<dynamic>?)
-          ?.map((c) => ModelCapability.values.firstWhere(
-                (cap) => cap.id == c,
-                orElse: () => ModelCapability.chat,
-              ))
-          .toList() ?? [ModelCapability.chat],
+      capabilities:
+          (json['capabilities'] as List<dynamic>?)
+              ?.map(
+                (c) => ModelCapability.values.firstWhere(
+                  (cap) => cap.id == c,
+                  orElse: () => ModelCapability.chat,
+                ),
+              )
+              .toList() ??
+          [ModelCapability.chat],
       metadata: json['metadata'] as Map<String, dynamic>? ?? {},
       isEnabled: json['isEnabled'] as bool? ?? true,
       createdAt: DateTime.parse(json['createdAt'] as String),

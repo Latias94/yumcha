@@ -23,7 +23,7 @@ void main() {
 
     test('should handle context length 1-256', () {
       final now = DateTime.now();
-      
+
       // 测试最小值
       final assistant1 = AiAssistant(
         id: 'test1',
@@ -72,7 +72,7 @@ void main() {
 
     test('should reject invalid context lengths', () {
       final now = DateTime.now();
-      
+
       // 测试负值
       final assistantNegative = AiAssistant(
         id: 'test-neg',
