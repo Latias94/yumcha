@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'debug_screen.dart';
-import 'config_screen.dart';
 import 'providers_screen.dart';
 import 'assistants_screen.dart';
 import '../services/assistant_repository.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
+import '../services/theme_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,15 +15,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _dynamicColor = true;
-  String _colorMode = "跟随系统";
-
   // 添加检测状态
   bool _hasProviders = false;
   bool _hasAssistants = false;
   bool _isLoading = true;
   late final AssistantRepository _assistantRepository;
   late final ProviderRepository _providerRepository;
+  late final ThemeService _themeService;
 
   @override
   void initState() {
@@ -32,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       DatabaseService.instance.database,
     );
     _providerRepository = ProviderRepository(DatabaseService.instance.database);
+    _themeService = ThemeService();
     _checkConfiguration();
   }
 
@@ -223,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _colorMode,
+            _themeService.colorModeDisplayName,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -242,13 +241,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ListTile(
       leading: const Icon(Icons.color_lens_outlined),
       title: const Text("动态颜色"),
-      subtitle: const Text("是否使用动态颜色"),
+      subtitle: Text(_themeService.dynamicColor ? "跟随系统壁纸颜色" : "使用应用默认颜色"),
       trailing: Switch(
-        value: _dynamicColor,
-        onChanged: (value) {
-          setState(() {
-            _dynamicColor = value;
-          });
+        value: _themeService.dynamicColor,
+        onChanged: (value) async {
+          await _themeService.setDynamicColor(value);
+          setState(() {});
         },
       ),
     );
@@ -391,37 +389,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text("跟随系统"),
-              value: "跟随系统",
-              groupValue: _colorMode,
-              onChanged: (value) {
-                setState(() {
-                  _colorMode = value!;
-                });
-                Navigator.of(context).pop();
+              value: ColorMode.system,
+              groupValue: _themeService.colorMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await _themeService.setColorMode(value);
+                  setState(() {});
+                  Navigator.of(context).pop();
+                }
               },
             ),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text("浅色模式"),
-              value: "浅色模式",
-              groupValue: _colorMode,
-              onChanged: (value) {
-                setState(() {
-                  _colorMode = value!;
-                });
-                Navigator.of(context).pop();
+              value: ColorMode.light,
+              groupValue: _themeService.colorMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await _themeService.setColorMode(value);
+                  setState(() {});
+                  Navigator.of(context).pop();
+                }
               },
             ),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text("深色模式"),
-              value: "深色模式",
-              groupValue: _colorMode,
-              onChanged: (value) {
-                setState(() {
-                  _colorMode = value!;
-                });
-                Navigator.of(context).pop();
+              value: ColorMode.dark,
+              groupValue: _themeService.colorMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await _themeService.setColorMode(value);
+                  setState(() {});
+                  Navigator.of(context).pop();
+                }
               },
             ),
           ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/provider_repository.dart';
 import '../services/favorite_model_repository.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 import '../models/ai_provider.dart';
 
 class ChatInput extends StatefulWidget {
@@ -158,9 +159,7 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('加载模型失败: $e')));
+        NotificationService().showError('加载模型失败: $e');
       }
     }
   }
@@ -321,12 +320,7 @@ class _ChatInputState extends State<ChatInput> with TickerProviderStateMixin {
         }
 
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已切换到 $modelName'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        NotificationService().showSuccess('已切换到 $modelName');
       },
     );
   }

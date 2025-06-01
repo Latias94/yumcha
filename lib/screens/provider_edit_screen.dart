@@ -4,6 +4,7 @@ import '../models/ai_provider.dart';
 import '../models/ai_model.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 import '../components/model_list_manager.dart';
 
 class ProviderEditScreen extends StatefulWidget {
@@ -92,15 +93,11 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
 
       if (mounted) {
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isEditing ? '提供商已更新' : '提供商已添加')),
-        );
+        NotificationService().showSuccess(_isEditing ? '提供商已更新' : '提供商已添加');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
+        NotificationService().showError('保存失败: $e');
       }
     } finally {
       if (mounted) {
@@ -193,11 +190,12 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
               ),
             )
           else
-            TextButton(
-              onPressed: _saveProvider,
-              child: Text(
-                _isEditing ? '更新' : '保存',
-                style: const TextStyle(color: Colors.white),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: IconButton(
+                onPressed: _saveProvider,
+                icon: const Icon(Icons.save),
+                tooltip: _isEditing ? '更新' : '保存',
               ),
             ),
         ],
@@ -351,20 +349,18 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
                     _models = models;
                   });
                 },
-                provider: _isEditing
-                    ? null
-                    : AiProvider(
-                        id: 'temp',
-                        name: _nameController.text.trim(),
-                        type: _selectedType,
-                        apiKey: _apiKeyController.text.trim(),
-                        baseUrl: _baseUrlController.text.trim().isEmpty
-                            ? null
-                            : _baseUrlController.text.trim(),
-                        models: [],
-                        createdAt: DateTime.now(),
-                        updatedAt: DateTime.now(),
-                      ),
+                provider: AiProvider(
+                  id: widget.provider?.id ?? 'temp',
+                  name: _nameController.text.trim(),
+                  type: _selectedType,
+                  apiKey: _apiKeyController.text.trim(),
+                  baseUrl: _baseUrlController.text.trim().isEmpty
+                      ? null
+                      : _baseUrlController.text.trim(),
+                  models: _models,
+                  createdAt: widget.provider?.createdAt ?? DateTime.now(),
+                  updatedAt: DateTime.now(),
+                ),
               ),
             ),
           ],

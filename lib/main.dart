@@ -5,6 +5,7 @@ import 'services/ai_service.dart';
 import 'services/notification_service.dart';
 import 'services/logger_service.dart';
 import 'services/database_service.dart';
+import 'services/theme_service.dart';
 import 'screens/config_screen.dart';
 
 void main() async {
@@ -17,6 +18,8 @@ void main() async {
   LoggerService().initialize();
   // 初始化AI服务 (它依赖于数据库服务)
   await AiService().initialize();
+  // 初始化主题服务
+  await ThemeService().initialize();
 
   runApp(const YumchaApp());
 }
@@ -26,14 +29,20 @@ class YumchaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Yumcha',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
-      home: const MainNavigation(),
-      debugShowCheckedModeBanner: false,
+    return ListenableBuilder(
+      listenable: ThemeService(),
+      builder: (context, child) {
+        final themeService = ThemeService();
+        return MaterialApp(
+          title: 'Yumcha',
+          theme: AppTheme.getLightTheme(themeService.getLightColorScheme()),
+          darkTheme: AppTheme.getDarkTheme(themeService.getDarkColorScheme()),
+          themeMode: themeService.themeMode,
+          scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
+          home: const MainNavigation(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

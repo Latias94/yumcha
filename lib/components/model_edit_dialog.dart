@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/ai_model.dart';
+import '../services/notification_service.dart';
 
 class ModelEditDialog extends StatefulWidget {
   final AiModel? model;
   final Function(AiModel) onSave;
 
-  const ModelEditDialog({
-    super.key,
-    this.model,
-    required this.onSave,
-  });
+  const ModelEditDialog({super.key, this.model, required this.onSave});
 
   @override
   State<ModelEditDialog> createState() => _ModelEditDialogState();
@@ -29,11 +26,15 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
     super.initState();
     final model = widget.model;
     _nameController = TextEditingController(text: model?.name ?? '');
-    _displayNameController = TextEditingController(text: model?.displayName ?? '');
+    _displayNameController = TextEditingController(
+      text: model?.displayName ?? '',
+    );
     _contextLengthController = TextEditingController(
       text: model?.metadata['contextLength']?.toString() ?? '',
     );
-    _selectedCapabilities = Set.from(model?.capabilities ?? [ModelCapability.chat]);
+    _selectedCapabilities = Set.from(
+      model?.capabilities ?? [ModelCapability.chat],
+    );
     _isEnabled = model?.isEnabled ?? true;
   }
 
@@ -47,9 +48,7 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
 
   void _save() {
     if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入模型名称')),
-      );
+      NotificationService().showWarning('请输入模型名称');
       return;
     }
 
@@ -169,10 +168,7 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
-        FilledButton(
-          onPressed: _save,
-          child: Text(_isEditing ? '更新' : '添加'),
-        ),
+        FilledButton(onPressed: _save, child: Text(_isEditing ? '更新' : '添加')),
       ],
     );
   }

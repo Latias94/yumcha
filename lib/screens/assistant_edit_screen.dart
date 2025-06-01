@@ -4,6 +4,7 @@ import '../models/ai_assistant.dart';
 import '../models/ai_provider.dart';
 import '../services/assistant_repository.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 
 class AssistantEditScreen extends StatefulWidget {
   final AiAssistant? assistant;
@@ -256,15 +257,11 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
 
       if (mounted) {
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_isEditing ? '助手已更新' : '助手已添加')));
+        NotificationService().showSuccess(_isEditing ? '助手已更新' : '助手已添加');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
+        NotificationService().showError('保存失败: $e');
       }
     } finally {
       if (mounted) {

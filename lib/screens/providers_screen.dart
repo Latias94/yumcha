@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/ai_provider.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 import 'provider_edit_screen.dart';
 
 class ProvidersScreen extends StatefulWidget {
@@ -34,9 +35,7 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('加载提供商失败: $e')));
+        NotificationService().showError('加载提供商失败: $e');
       }
     }
   }
@@ -46,15 +45,11 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
       await _repository.deleteProvider(id);
       _loadProviders();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('提供商已删除')));
+        NotificationService().showSuccess('提供商已删除');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('删除失败: $e')));
+        NotificationService().showError('删除失败: $e');
       }
     }
   }
@@ -65,9 +60,7 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
       _loadProviders();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('切换状态失败: $e')));
+        NotificationService().showError('切换状态失败: $e');
       }
     }
   }
@@ -137,30 +130,6 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
     }
   }
 
-  String? _isTestingProviderId;
-
-  Future<void> _testProviderConnection(String providerId) async {
-    setState(() {
-      _isTestingProviderId = providerId;
-    });
-    // TODO: Implement actual connection test logic using _repository
-    // For now, simulating a delay and a mock result
-    await Future.delayed(const Duration(seconds: 2));
-    final success = true; // Mock result
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? '连接成功!' : '连接失败。'),
-          backgroundColor: success ? Colors.green : Theme.of(context).colorScheme.error,
-        ),
-      );
-      setState(() {
-        _isTestingProviderId = null;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -175,7 +144,8 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.add),
-                onPressed: () => _navigateAndRefresh(const ProviderEditScreen()),
+                onPressed: () =>
+                    _navigateAndRefresh(const ProviderEditScreen()),
               ),
             ],
           ),
@@ -187,21 +157,39 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
                   )
                 : _providers.isEmpty
                 ? SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.6, // Adjust height
+                    height:
+                        MediaQuery.of(context).size.height *
+                        0.6, // Adjust height
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.cloud_off_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          Icon(
+                            Icons.cloud_off_outlined,
+                            size: 64,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             '暂无提供商',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             '点击右上角的 + 按钮添加一个',
-                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ),
@@ -218,7 +206,10 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
                 return Card(
                   elevation: 1,
                   color: colorScheme.surfaceContainerHighest,
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -226,20 +217,37 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(_getProviderIcon(provider.type), size: 32, color: colorScheme.primary),
+                            Icon(
+                              _getProviderIcon(provider.type),
+                              size: 32,
+                              color: colorScheme.primary,
+                            ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(provider.name, style: Theme.of(context).textTheme.titleMedium),
+                                  Text(
+                                    provider.name,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
                                   Text(
                                     '类型: ${_getProviderTypeDisplayName(provider.type)}',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                   Text(
                                     '模型: ${provider.supportedModels.length} 个',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -257,31 +265,24 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
                             TextButton.icon(
                               icon: const Icon(Icons.edit_outlined),
                               label: const Text('编辑'),
-                              onPressed: () => _navigateAndRefresh(ProviderEditScreen(provider: provider)),
+                              onPressed: () => _navigateAndRefresh(
+                                ProviderEditScreen(provider: provider),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             TextButton.icon(
-                              icon: Icon(Icons.delete_outline, color: colorScheme.error),
-                              label: Text('删除', style: TextStyle(color: colorScheme.error)),
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: colorScheme.error,
+                              ),
+                              label: Text(
+                                '删除',
+                                style: TextStyle(color: colorScheme.error),
+                              ),
                               onPressed: () => _showDeleteDialog(provider),
                             ),
                           ],
                         ),
-                        if (provider.isEnabled) ...[
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.tonalIcon(
-                              icon: _isTestingProviderId == provider.id
-                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Icon(Icons.link_outlined),
-                              label: Text(_isTestingProviderId == provider.id ? '测试中...' : '测试连接'),
-                              onPressed: _isTestingProviderId == provider.id || !provider.isEnabled
-                                  ? null
-                                  : () => _testProviderConnection(provider.id),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),

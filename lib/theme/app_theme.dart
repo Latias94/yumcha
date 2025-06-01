@@ -4,10 +4,12 @@ import 'colors.dart';
 import 'typography.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme {
+  static ThemeData getLightTheme([ColorScheme? colorScheme]) {
+    final effectiveColorScheme = colorScheme ?? AppColors.lightColorScheme;
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: AppColors.lightColorScheme,
+      colorScheme: effectiveColorScheme,
       typography: AppTypography.typography,
       textTheme: AppTypography.textTheme,
       appBarTheme: const AppBarTheme(
@@ -21,7 +23,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: AppColors.lightColorScheme.outline.withOpacity(0.12),
+            color: effectiveColorScheme.outline.withOpacity(0.12),
           ),
         ),
       ),
@@ -33,15 +35,17 @@ class AppTheme {
         ),
       ),
       navigationDrawerTheme: NavigationDrawerThemeData(
-        backgroundColor: AppColors.lightColorScheme.surface,
+        backgroundColor: effectiveColorScheme.surface,
       ),
     );
   }
 
-  static ThemeData get darkTheme {
+  static ThemeData getDarkTheme([ColorScheme? colorScheme]) {
+    final effectiveColorScheme = colorScheme ?? AppColors.darkColorScheme;
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: AppColors.darkColorScheme,
+      colorScheme: effectiveColorScheme,
       typography: AppTypography.typography,
       textTheme: AppTypography.textTheme,
       appBarTheme: const AppBarTheme(
@@ -55,7 +59,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: AppColors.darkColorScheme.outline.withOpacity(0.12),
+            color: effectiveColorScheme.outline.withOpacity(0.12),
           ),
         ),
       ),
@@ -67,8 +71,12 @@ class AppTheme {
         ),
       ),
       navigationDrawerTheme: NavigationDrawerThemeData(
-        backgroundColor: AppColors.darkColorScheme.surface,
+        backgroundColor: effectiveColorScheme.surface,
       ),
     );
   }
+
+  // 为了向后兼容性
+  static ThemeData get lightTheme => getLightTheme();
+  static ThemeData get darkTheme => getDarkTheme();
 }

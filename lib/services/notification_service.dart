@@ -17,6 +17,7 @@ class NotificationService {
     Duration duration = const Duration(seconds: 4),
     String? actionLabel,
     VoidCallback? onActionPressed,
+    bool showCloseButton = true,
   }) {
     final context = scaffoldMessengerKey.currentContext;
     if (context == null) return;
@@ -29,8 +30,8 @@ class NotificationService {
 
     switch (type) {
       case NotificationType.success:
-        backgroundColor = colorScheme.primaryContainer;
-        textColor = colorScheme.onPrimaryContainer;
+        backgroundColor = Colors.green.shade100;
+        textColor = Colors.green.shade800;
         icon = Icons.check_circle_outline;
         break;
       case NotificationType.error:
@@ -57,15 +58,41 @@ class NotificationService {
             Icon(icon, color: textColor, size: 20),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(message, style: TextStyle(color: textColor)),
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
+            if (showCloseButton) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: textColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.close, color: textColor, size: 16),
+                ),
+              ),
+            ],
           ],
         ),
         backgroundColor: backgroundColor,
         duration: duration,
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.fromLTRB(16, 16, 16, 40), // 降低底部间距从80到40
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12), // 增加圆角
+        ),
+        elevation: 6, // 增加阴影
         action: actionLabel != null && onActionPressed != null
             ? SnackBarAction(
                 label: actionLabel,
@@ -82,12 +109,14 @@ class NotificationService {
     String message, {
     String? actionLabel,
     VoidCallback? onActionPressed,
+    bool showCloseButton = true,
   }) {
     showSnackBar(
       message: message,
       type: NotificationType.success,
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      showCloseButton: showCloseButton,
     );
   }
 
@@ -96,6 +125,7 @@ class NotificationService {
     String message, {
     String? actionLabel,
     VoidCallback? onActionPressed,
+    bool showCloseButton = true,
   }) {
     showSnackBar(
       message: message,
@@ -103,6 +133,7 @@ class NotificationService {
       duration: const Duration(seconds: 6),
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      showCloseButton: showCloseButton,
     );
   }
 
@@ -111,12 +142,14 @@ class NotificationService {
     String message, {
     String? actionLabel,
     VoidCallback? onActionPressed,
+    bool showCloseButton = true,
   }) {
     showSnackBar(
       message: message,
       type: NotificationType.warning,
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      showCloseButton: showCloseButton,
     );
   }
 
@@ -125,12 +158,14 @@ class NotificationService {
     String message, {
     String? actionLabel,
     VoidCallback? onActionPressed,
+    bool showCloseButton = true,
   }) {
     showSnackBar(
       message: message,
       type: NotificationType.info,
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      showCloseButton: showCloseButton,
     );
   }
 

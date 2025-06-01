@@ -4,6 +4,7 @@ import '../models/ai_provider.dart';
 import '../services/assistant_repository.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 import 'assistant_edit_screen.dart';
 
 class AssistantsScreen extends StatefulWidget {
@@ -42,9 +43,7 @@ class _AssistantsScreenState extends State<AssistantsScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('加载助手失败: $e')));
+        NotificationService().showError('加载助手失败: $e');
       }
     }
   }
@@ -54,15 +53,11 @@ class _AssistantsScreenState extends State<AssistantsScreen> {
       await _assistantRepository.deleteAssistant(id);
       _loadData();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('助手已删除')));
+        NotificationService().showSuccess('助手已删除');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('删除失败: $e')));
+        NotificationService().showError('删除失败: $e');
       }
     }
   }
@@ -73,9 +68,7 @@ class _AssistantsScreenState extends State<AssistantsScreen> {
       _loadData();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('切换状态失败: $e')));
+        NotificationService().showError('切换状态失败: $e');
       }
     }
   }
@@ -173,7 +166,10 @@ class _AssistantsScreenState extends State<AssistantsScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -184,49 +180,66 @@ class _AssistantsScreenState extends State<AssistantsScreen> {
                           children: [
                             // Assistant Avatar
                             Container(
-                              padding: const EdgeInsets.all(8), // Optional padding for the avatar container
+                              padding: const EdgeInsets.all(
+                                8,
+                              ), // Optional padding for the avatar container
                               // decoration: BoxDecoration( // Optional background for avatar if not using CircleAvatar
                               //   color: Theme.of(context).colorScheme.primaryContainer,
                               //   shape: BoxShape.circle,
                               // ),
                               child: Text(
                                 assistant.avatar,
-                                style: const TextStyle(fontSize: 32), // Increased font size
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                ), // Increased font size
                               ),
                             ),
                             const SizedBox(width: 12),
                             // Assistant Name
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.only(top: 4.0), // Adjust top padding for alignment
+                                padding: const EdgeInsets.only(
+                                  top: 4.0,
+                                ), // Adjust top padding for alignment
                                 child: Text(
                                   assistant.name,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                 ),
                               ),
                             ),
                             // Enable/Disable Switch
                             Switch(
                               value: assistant.isEnabled,
-                              onChanged: (value) => _toggleAssistant(assistant.id),
+                              onChanged: (value) =>
+                                  _toggleAssistant(assistant.id),
                             ),
                           ],
                         ),
                         // System Prompt (Optional)
                         if (assistant.systemPrompt.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                            padding: const EdgeInsets.only(
+                              top: 8.0,
+                              bottom: 8.0,
+                            ),
                             child: Text(
                               assistant.systemPrompt,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                           ),
                         if (assistant.systemPrompt.isEmpty)
-                          const SizedBox(height: 8), // Add space if prompt is empty before buttons
+                          const SizedBox(
+                            height: 8,
+                          ), // Add space if prompt is empty before buttons
                         // Action Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -240,7 +253,8 @@ class _AssistantsScreenState extends State<AssistantsScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => AssistantEditScreen(
                                       assistant: assistant,
-                                      providers: _providers, // Passing existing _providers
+                                      providers:
+                                          _providers, // Passing existing _providers
                                     ),
                                   ),
                                 ).then((result) {
@@ -252,9 +266,19 @@ class _AssistantsScreenState extends State<AssistantsScreen> {
                             ),
                             const SizedBox(width: 8),
                             TextButton.icon(
-                              icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
-                              label: Text('删除', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                              onPressed: () => _showDeleteDialog(assistant), // Reusing existing delete dialog
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              label: Text(
+                                '删除',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                              onPressed: () => _showDeleteDialog(
+                                assistant,
+                              ), // Reusing existing delete dialog
                             ),
                           ],
                         ),

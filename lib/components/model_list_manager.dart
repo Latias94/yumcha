@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/ai_model.dart';
 import '../models/ai_provider.dart';
+import '../services/model_fetch_service.dart';
+import '../services/notification_service.dart';
 import 'model_edit_dialog.dart';
+import 'model_selection_dialog.dart';
 
 class ModelListManager extends StatefulWidget {
   final List<AiModel> models;
@@ -87,28 +90,37 @@ class _ModelListManagerState extends State<ModelListManager> {
 
   Future<void> _fetchModelsFromProvider() async {
     if (widget.provider == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先保存提供商配置')),
-      );
+      NotificationService().showWarning('请先填写提供商配置信息');
+      return;
+    }
+
+    // 检查是否为 OpenAI 类型
+    if (widget.provider!.type != ProviderType.openai) {
+      NotificationService().showWarning('只有 OpenAI 类型的提供商支持获取模型列表');
+      return;
+    }
+
+    // 检查 API Key 是否已填写
+    if (widget.provider!.apiKey.isEmpty) {
+      NotificationService().showWarning('请先填写 API Key');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // TODO: 实现从提供商API获取模型列表的逻辑
-      // 这里先模拟一些常见模型
-      final fetchedModels = _getDefaultModelsForProvider(widget.provider!.type);
-      
+      final modelFetchService = ModelFetchService();
+      final fetchedModels = await modelFetchService.fetchModelsFromProvider(
+        widget.provider!,
+      );
+
       // 显示选择对话框
       if (mounted) {
         _showModelSelectionDialog(fetchedModels);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('获取模型列表失败: $e')),
-        );
+        NotificationService().showError('获取模型列表失败: $e');
       }
     } finally {
       if (mounted) {
@@ -117,124 +129,18 @@ class _ModelListManagerState extends State<ModelListManager> {
     }
   }
 
-  List<AiModel> _getDefaultModelsForProvider(ProviderType type) {
-    final now = DateTime.now();
-    switch (type) {
-      case ProviderType.openai:
-        return [
-          AiModel(
-            id: 'gpt-4',
-            name: 'gpt-4',
-            displayName: 'GPT-4',
-            capabilities: [ModelCapability.chat, ModelCapability.imageAnalysis],
-            metadata: {'contextLength': 8192},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-4-turbo',
-            name: 'gpt-4-turbo',
-            displayName: 'GPT-4 Turbo',
-            capabilities: [ModelCapability.chat, ModelCapability.imageAnalysis],
-            metadata: {'contextLength': 128000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-3.5-turbo',
-            name: 'gpt-3.5-turbo',
-            displayName: 'GPT-3.5 Turbo',
-            capabilities: [ModelCapability.chat],
-            metadata: {'contextLength': 16385},
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ];
-      case ProviderType.anthropic:
-        return [
-          AiModel(
-            id: 'claude-3-opus',
-            name: 'claude-3-opus-20240229',
-            displayName: 'Claude 3 Opus',
-            capabilities: [ModelCapability.chat, ModelCapability.imageAnalysis],
-            metadata: {'contextLength': 200000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'claude-3-sonnet',
-            name: 'claude-3-sonnet-20240229',
-            displayName: 'Claude 3 Sonnet',
-            capabilities: [ModelCapability.chat, ModelCapability.imageAnalysis],
-            metadata: {'contextLength': 200000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ];
-      case ProviderType.google:
-        return [
-          AiModel(
-            id: 'gemini-pro',
-            name: 'gemini-pro',
-            displayName: 'Gemini Pro',
-            capabilities: [ModelCapability.chat],
-            metadata: {'contextLength': 32768},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gemini-pro-vision',
-            name: 'gemini-pro-vision',
-            displayName: 'Gemini Pro Vision',
-            capabilities: [ModelCapability.chat, ModelCapability.imageAnalysis],
-            metadata: {'contextLength': 16384},
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ];
-      default:
-        return [];
-    }
-  }
-
   void _showModelSelectionDialog(List<AiModel> availableModels) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择要添加的模型'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: availableModels.length,
-            itemBuilder: (context, index) {
-              final model = availableModels[index];
-              final isAlreadyAdded = _models.any((m) => m.name == model.name);
-              
-              return ListTile(
-                title: Text(model.effectiveDisplayName),
-                subtitle: Text(model.name),
-                trailing: isAlreadyAdded
-                    ? const Icon(Icons.check, color: Colors.green)
-                    : null,
-                onTap: isAlreadyAdded
-                    ? null
-                    : () {
-                        setState(() {
-                          _models.add(model);
-                        });
-                        widget.onModelsChanged(_models);
-                      },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('关闭'),
-          ),
-        ],
+      builder: (context) => ModelSelectionDialog(
+        availableModels: availableModels,
+        currentModels: _models,
+        onConfirm: (selectedModels) {
+          setState(() {
+            _models = selectedModels;
+          });
+          widget.onModelsChanged(_models);
+        },
       ),
     );
   }
@@ -252,7 +158,8 @@ class _ModelListManagerState extends State<ModelListManager> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Spacer(),
-            if (widget.provider != null)
+            if (widget.provider != null &&
+                widget.provider!.type == ProviderType.openai)
               TextButton.icon(
                 onPressed: _isLoading ? null : _fetchModelsFromProvider,
                 icon: _isLoading
@@ -272,7 +179,7 @@ class _ModelListManagerState extends State<ModelListManager> {
           ],
         ),
         const SizedBox(height: 8),
-        
+
         // 模型列表
         if (_models.isEmpty)
           Container(
