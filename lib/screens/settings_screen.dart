@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'debug_screen.dart';
+import 'config_screen.dart';
+import 'providers_screen.dart';
+import 'assistants_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -41,9 +44,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // 模型与服务
               _buildSectionHeader("模型与服务"),
-              _buildAssistantItem(),
+              _buildProvidersItem(),
+              _buildAssistantsItem(),
               _buildDefaultModelItem(),
-              _buildProviderItem(),
               _buildSearchServiceItem(),
               _buildMCPItem(),
 
@@ -108,7 +111,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 12),
               TextButton(
                 onPressed: () {
-                  // TODO: 跳转到API配置页面
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ConfigScreen(),
+                    ),
+                  );
                 },
                 child: Text(
                   "配置",
@@ -189,14 +197,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAssistantItem() {
+  Widget _buildProvidersItem() {
+    return ListTile(
+      leading: const Icon(Icons.cloud_outlined),
+      title: const Text("提供商"),
+      subtitle: const Text("配置AI服务提供商和API密钥"),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProvidersScreen()),
+        );
+      },
+    );
+  }
+
+  Widget _buildAssistantsItem() {
     return ListTile(
       leading: const Icon(Icons.smart_toy_outlined),
       title: const Text("助手"),
-      subtitle: const Text("设置个性化助手（智能体）"),
+      subtitle: const Text("创建和管理AI助手（智能体）"),
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
-        // TODO: 跳转到助手设置页面
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AssistantsScreen()),
+        );
       },
     );
   }
@@ -209,18 +235,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
         // TODO: 跳转到默认模型设置页面
-      },
-    );
-  }
-
-  Widget _buildProviderItem() {
-    return ListTile(
-      leading: const Icon(Icons.hub_outlined),
-      title: const Text("提供商"),
-      subtitle: const Text("配置AI提供商"),
-      trailing: const Icon(Icons.keyboard_arrow_right),
-      onTap: () {
-        // TODO: 跳转到提供商配置页面
       },
     );
   }

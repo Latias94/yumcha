@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/fake_data.dart';
 import '../models/chat_history.dart';
+import '../models/ai_assistant.dart';
+import '../services/assistant_repository.dart';
+import '../services/database_service.dart';
 import '../screens/settings_screen.dart';
 
 class AppDrawer extends StatefulWidget {
@@ -21,14 +24,93 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _assistantSearchController =
+      TextEditingController();
+  late final AssistantRepository _assistantRepository;
+
   String _selectedAssistant = "ai";
   String _searchQuery = "";
+  String _assistantSearchQuery = "";
   bool _isAssistantDropdownExpanded = false;
+  List<AiAssistant> _assistants = [];
+  bool _isLoadingAssistants = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _assistantRepository = AssistantRepository(
+      DatabaseService.instance.database,
+    );
+    _loadAssistants();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _assistantSearchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAssistants() async {
+    try {
+      final assistants = await _assistantRepository.getEnabledAssistants();
+      setState(() {
+        _assistants = assistants;
+        _isLoadingAssistants = false;
+        // 如果有助手，设置第一个为默认选中
+        if (assistants.isNotEmpty && _selectedAssistant == "ai") {
+          _selectedAssistant = assistants.first.id;
+        }
+      });
+    } catch (e) {
+      setState(() => _isLoadingAssistants = false);
+    }
+  }
+
+  List<AiAssistant> get _filteredAssistants {
+    if (_assistantSearchQuery.isEmpty) {
+      return _assistants;
+    }
+    return _assistants
+        .where(
+          (assistant) =>
+              assistant.name.toLowerCase().contains(
+                _assistantSearchQuery.toLowerCase(),
+              ) ||
+              assistant.description.toLowerCase().contains(
+                _assistantSearchQuery.toLowerCase(),
+              ),
+        )
+        .toList();
+  }
+
+  AiAssistant? get _selectedAssistantData {
+    return _assistants.firstWhere(
+      (assistant) => assistant.id == _selectedAssistant,
+      orElse: () => AiAssistant(
+        id: 'default',
+        name: 'AI助手',
+        description: '通用AI助手',
+        avatar: '🤖',
+        systemPrompt: '',
+        providerId: '',
+        modelName: '',
+        temperature: 0.7,
+        topP: 1.0,
+        maxTokens: 2048,
+        contextLength: 10,
+        streamOutput: true,
+        customHeaders: {},
+        customBody: {},
+        stopSequences: [],
+        enableWebSearch: false,
+        enableCodeExecution: false,
+        enableImageGeneration: false,
+        isEnabled: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    );
   }
 
   List<ChatHistoryGroup> get _filteredChatHistory {
@@ -209,10 +291,7 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Widget _buildAssistantSelector() {
-    final selectedType = assistantTypes.firstWhere(
-      (type) => type.id == _selectedAssistant,
-      orElse: () => assistantTypes.first,
-    );
+    final selectedAssistant = _selectedAssistantData;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -231,19 +310,32 @@ class _AppDrawerState extends State<AppDrawer> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
+                // 当前选中的助手
                 Row(
                   children: [
                     Text(
-                      selectedType.icon,
+                      selectedAssistant?.avatar ?? '🤖',
                       style: const TextStyle(fontSize: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        selectedType.name,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            selectedAssistant?.name ?? 'AI助手',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w500),
+                          ),
+                          if (selectedAssistant != null)
+                            Text(
+                              selectedAssistant.description,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey[600]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
                       ),
                     ),
                     AnimatedRotation(
@@ -254,44 +346,143 @@ class _AppDrawerState extends State<AppDrawer> {
                   ],
                 ),
 
+                // 展开的助手列表
                 if (_isAssistantDropdownExpanded) ...[
                   const SizedBox(height: 12),
                   const Divider(height: 1),
                   const SizedBox(height: 8),
 
-                  ...assistantTypes.map((type) {
-                    if (type.id == _selectedAssistant)
-                      return const SizedBox.shrink();
-
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () {
+                  // 搜索框
+                  if (_assistants.length > 5) ...[
+                    TextField(
+                      controller: _assistantSearchController,
+                      decoration: InputDecoration(
+                        hintText: "搜索助手...",
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        suffixIcon: _assistantSearchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  _assistantSearchController.clear();
+                                  setState(() {
+                                    _assistantSearchQuery = "";
+                                  });
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12,
+                        ),
+                        isDense: true,
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall,
+                      onChanged: (value) {
                         setState(() {
-                          _selectedAssistant = type.id;
-                          _isAssistantDropdownExpanded = false;
+                          _assistantSearchQuery = value;
                         });
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              type.icon,
-                              style: const TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // 助手列表
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: _assistants.length > 10
+                          ? 200
+                          : double.infinity,
+                    ),
+                    child: _isLoadingAssistants
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(),
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              type.name,
-                              style: Theme.of(context).textTheme.bodyMedium,
+                          )
+                        : _filteredAssistants.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              _assistantSearchQuery.isNotEmpty
+                                  ? '未找到匹配的助手'
+                                  : '暂无可用助手',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey[600]),
+                              textAlign: TextAlign.center,
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _filteredAssistants.length,
+                            itemBuilder: (context, index) {
+                              final assistant = _filteredAssistants[index];
+                              if (assistant.id == _selectedAssistant) {
+                                return const SizedBox.shrink();
+                              }
+
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () {
+                                  setState(() {
+                                    _selectedAssistant = assistant.id;
+                                    _isAssistantDropdownExpanded = false;
+                                    _assistantSearchController.clear();
+                                    _assistantSearchQuery = "";
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 8,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        assistant.avatar,
+                                        style: const TextStyle(fontSize: 18),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              assistant.name,
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.bodyMedium,
+                                            ),
+                                            Text(
+                                              assistant.description,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: Colors.grey[600],
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
                 ],
               ],
             ),
@@ -304,80 +495,61 @@ class _AppDrawerState extends State<AppDrawer> {
   Widget _buildBottomButtons() {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
         children: [
-          // 聊天历史按钮
-          Expanded(
-            child: FilledButton.tonal(
-              onPressed: () {
-                // TODO: 打开完整的聊天历史页面
-                _showChatHistoryDialog();
-              },
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+          // 聊天历史和设置按钮
+          Row(
+            children: [
+              // 聊天历史按钮
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: () {
+                    // TODO: 打开完整的聊天历史页面
+                    _showChatHistoryDialog();
+                  },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.history, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        "聊天历史",
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.history, size: 18),
-                  const SizedBox(width: 8),
-                  Text("聊天历史", style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-            ),
-          ),
 
-          const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-          // 设置按钮
-          Expanded(
-            child: FilledButton.tonal(
-              onPressed: () {
-                // TODO: 打开设置页面
-                _showSettingsDialog();
-              },
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              // 设置按钮
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: () {
+                    _showSettingsDialog();
+                  },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.settings, size: 18),
+                      const SizedBox(width: 8),
+                      Text("设置", style: Theme.of(context).textTheme.bodyMedium),
+                    ],
+                  ),
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.settings, size: 18),
-                  const SizedBox(width: 8),
-                  Text("设置", style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-            ),
+            ],
           ),
         ],
       ),
     );
-  }
-
-  String _getAssistantIcon(String assistantType) {
-    switch (assistantType) {
-      case "ai":
-        return "🤖";
-      case "character":
-        return "😊";
-      case "developer":
-        return "💻";
-      default:
-        return "🤖";
-    }
-  }
-
-  String _formatTime(DateTime timestamp) {
-    final now = DateTime.now();
-    final diff = now.difference(timestamp);
-
-    if (diff.inMinutes < 60) {
-      return "${diff.inMinutes}分钟前";
-    } else if (diff.inHours < 24) {
-      return "${diff.inHours}小时前";
-    } else {
-      return "${diff.inDays}天前";
-    }
   }
 
   void _showChatHistoryDialog() {
