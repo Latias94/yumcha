@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../data/database.dart';
 import '../models/ai_assistant.dart';
 import 'package:drift/drift.dart';
@@ -45,12 +44,28 @@ class AssistantRepository {
     return allAssistants.where((a) => a.isEnabled).toList();
   }
 
-  // 根据提供商ID获取助手
+  // 获取指定提供商的助手
   Future<List<AiAssistant>> getAssistantsByProvider(String providerId) async {
     final assistantDataList = await _database.getAssistantsByProvider(
       providerId,
     );
     return assistantDataList.map(_dataToModel).toList();
+  }
+
+  // 根据提供商分组获取助手
+  Future<Map<String, List<AiAssistant>>>
+  getAssistantsByProviderGrouped() async {
+    final assistants = await getAllAssistants();
+    final Map<String, List<AiAssistant>> groupedAssistants = {};
+
+    for (final assistant in assistants) {
+      if (!groupedAssistants.containsKey(assistant.providerId)) {
+        groupedAssistants[assistant.providerId] = [];
+      }
+      groupedAssistants[assistant.providerId]!.add(assistant);
+    }
+
+    return groupedAssistants;
   }
 
   // 切换助手启用状态

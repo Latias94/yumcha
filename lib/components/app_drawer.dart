@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../data/fake_data.dart';
 import '../models/chat_history.dart';
 import '../models/ai_assistant.dart';
+import '../models/conversation_ui_state.dart';
 import '../services/assistant_repository.dart';
+import '../services/conversation_repository.dart';
 import '../services/database_service.dart';
 import '../screens/settings_screen.dart';
 
@@ -27,18 +28,24 @@ class _AppDrawerState extends State<AppDrawer> {
   final TextEditingController _assistantSearchController =
       TextEditingController();
   late final AssistantRepository _assistantRepository;
+  late final ConversationRepository _conversationRepository;
 
   String _selectedAssistant = "ai";
   String _searchQuery = "";
   String _assistantSearchQuery = "";
   bool _isAssistantDropdownExpanded = false;
   List<AiAssistant> _assistants = [];
+  List<ConversationUiState> _conversations = [];
   bool _isLoadingAssistants = true;
+  bool _isLoadingConversations = true;
 
   @override
   void initState() {
     super.initState();
     _assistantRepository = AssistantRepository(
+      DatabaseService.instance.database,
+    );
+    _conversationRepository = ConversationRepository(
       DatabaseService.instance.database,
     );
     _loadAssistants();
@@ -62,8 +69,26 @@ class _AppDrawerState extends State<AppDrawer> {
           _selectedAssistant = assistants.first.id;
         }
       });
+      // 加载助手后，加载对应的对话
+      _loadConversations();
     } catch (e) {
       setState(() => _isLoadingAssistants = false);
+    }
+  }
+
+  Future<void> _loadConversations() async {
+    if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) return;
+
+    try {
+      setState(() => _isLoadingConversations = true);
+      final conversations = await _conversationRepository
+          .getConversationsByAssistant(_selectedAssistant);
+      setState(() {
+        _conversations = conversations;
+        _isLoadingConversations = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingConversations = false);
     }
   }
 
@@ -114,12 +139,37 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   List<ChatHistoryGroup> get _filteredChatHistory {
-    final groups = getChatHistoryGroups(_selectedAssistant);
+    if (_isLoadingConversations) {
+      return [];
+    }
+
+    // 将对话转换为ChatHistoryItem
+    final items = _conversations.map((conversation) {
+      final lastMessage = conversation.messages.isNotEmpty
+          ? conversation.messages.first.content
+          : '暂无消息';
+
+      return ChatHistoryItem(
+        id: conversation.id,
+        title: conversation.channelName,
+        preview: lastMessage,
+        timestamp: conversation.messages.isNotEmpty
+            ? conversation.messages.first.timestamp
+            : DateTime.now(),
+        assistantType: "ai", // 默认为AI类型，可以根据助手类型调整
+        messageCount: conversation.messages.length,
+        assistantId: conversation.assistantId,
+      );
+    }).toList();
+
+    // 按时间分组
+    final groups = _groupConversationsByTime(items);
 
     if (_searchQuery.isEmpty) {
       return groups;
     }
 
+    // 过滤搜索结果
     final filteredGroups = <ChatHistoryGroup>[];
     for (final group in groups) {
       final filteredItems = group.items
@@ -138,6 +188,57 @@ class _AppDrawerState extends State<AppDrawer> {
     }
 
     return filteredGroups;
+  }
+
+  List<ChatHistoryGroup> _groupConversationsByTime(
+    List<ChatHistoryItem> items,
+  ) {
+    if (items.isEmpty) return [];
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final thisWeek = today.subtract(const Duration(days: 7));
+
+    final todayItems = <ChatHistoryItem>[];
+    final yesterdayItems = <ChatHistoryItem>[];
+    final thisWeekItems = <ChatHistoryItem>[];
+    final earlierItems = <ChatHistoryItem>[];
+
+    for (final item in items) {
+      final itemDate = DateTime(
+        item.timestamp.year,
+        item.timestamp.month,
+        item.timestamp.day,
+      );
+
+      if (itemDate.isAtSameMomentAs(today)) {
+        todayItems.add(item);
+      } else if (itemDate.isAtSameMomentAs(yesterday)) {
+        yesterdayItems.add(item);
+      } else if (itemDate.isAfter(thisWeek)) {
+        thisWeekItems.add(item);
+      } else {
+        earlierItems.add(item);
+      }
+    }
+
+    final groups = <ChatHistoryGroup>[];
+
+    if (todayItems.isNotEmpty) {
+      groups.add(ChatHistoryGroup(title: "今天", items: todayItems));
+    }
+    if (yesterdayItems.isNotEmpty) {
+      groups.add(ChatHistoryGroup(title: "昨天", items: yesterdayItems));
+    }
+    if (thisWeekItems.isNotEmpty) {
+      groups.add(ChatHistoryGroup(title: "本周", items: thisWeekItems));
+    }
+    if (earlierItems.isNotEmpty) {
+      groups.add(ChatHistoryGroup(title: "更早", items: earlierItems));
+    }
+
+    return groups;
   }
 
   @override
@@ -206,6 +307,10 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Widget _buildChatHistoryList() {
+    if (_isLoadingConversations) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final groups = _filteredChatHistory;
 
     if (groups.isEmpty) {
@@ -214,7 +319,9 @@ class _AppDrawerState extends State<AppDrawer> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.search_off,
+              _searchQuery.isEmpty
+                  ? Icons.chat_bubble_outline
+                  : Icons.search_off,
               size: 48,
               color: Theme.of(context).colorScheme.outline,
             ),
@@ -225,6 +332,15 @@ class _AppDrawerState extends State<AppDrawer> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
+            if (_searchQuery.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                "开始与${_selectedAssistantData?.name ?? 'AI助手'}聊天吧！",
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -270,19 +386,35 @@ class _AppDrawerState extends State<AppDrawer> {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () {
-            // TODO: 打开特定的聊天记录
-            Navigator.of(context).pop();
+            // 打开特定的聊天记录
+            widget.onChatClicked(item.id);
           },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              item.title,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w400),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (item.preview.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    item.preview,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
             ),
           ),
         ),
@@ -438,6 +570,8 @@ class _AppDrawerState extends State<AppDrawer> {
                                     _assistantSearchController.clear();
                                     _assistantSearchQuery = "";
                                   });
+                                  // 切换助手后重新加载对话
+                                  _loadConversations();
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(

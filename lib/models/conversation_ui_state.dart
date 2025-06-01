@@ -6,6 +6,8 @@ class ConversationUiState {
   final int channelMembers;
   final List<Message> messages;
   final String? assistantId;
+  final String selectedProviderId;
+  final String? selectedModelId;
 
   const ConversationUiState({
     required this.id,
@@ -13,6 +15,8 @@ class ConversationUiState {
     required this.channelMembers,
     this.messages = const [],
     this.assistantId,
+    required this.selectedProviderId,
+    this.selectedModelId,
   });
 
   ConversationUiState copyWith({
@@ -21,6 +25,8 @@ class ConversationUiState {
     int? channelMembers,
     List<Message>? messages,
     String? assistantId,
+    String? selectedProviderId,
+    String? selectedModelId,
   }) {
     return ConversationUiState(
       id: id ?? this.id,
@@ -28,6 +34,8 @@ class ConversationUiState {
       channelMembers: channelMembers ?? this.channelMembers,
       messages: messages ?? this.messages,
       assistantId: assistantId ?? this.assistantId,
+      selectedProviderId: selectedProviderId ?? this.selectedProviderId,
+      selectedModelId: selectedModelId ?? this.selectedModelId,
     );
   }
 

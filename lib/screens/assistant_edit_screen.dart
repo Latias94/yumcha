@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import '../models/ai_assistant.dart';
 import '../models/ai_provider.dart';
@@ -24,41 +25,34 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
   late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
 
+  final _uuid = Uuid();
   // 基本信息控制器
   late final TextEditingController _nameController;
-  late final TextEditingController _descriptionController;
   late final TextEditingController _systemPromptController;
 
   // 选择的值
   late String _selectedAvatar;
-  late String _selectedProviderId;
-  late String _selectedModelName;
   bool _isEnabled = true;
 
   // AI参数
   late double _temperature;
   late double _topP;
-  late int _maxTokens;
-  late int _contextLength;
+  late double _contextLength; // 改为double以支持滑动条
   bool _streamOutput = true;
-  double? _frequencyPenalty;
-  double? _presencePenalty;
-
-  // 功能设置
-  bool _enableWebSearch = false;
-  bool _enableCodeExecution = false;
-  bool _enableImageGeneration = false;
+  bool _injectTimestamp = false; // 注入消息时间
 
   bool _isLoading = false;
   bool get _isEditing => widget.assistant != null;
 
-  // 头像选项
-  final List<String> _avatarOptions = [
+  // Emoji选项 - 更多AI相关的emoji
+  final List<String> _emojiOptions = [
     '🤖',
     '👨‍💻',
+    '👩‍💻',
     '🎨',
     '📊',
     '🌍',
+    '👨‍🏫',
     '👩‍🏫',
     '🔬',
     '💡',
@@ -74,61 +68,146 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
     '✈️',
     '🌱',
     '🔧',
+    '💰',
+    '🏃‍♂️',
+    '🏃‍♀️',
+    '🎭',
+    '🎪',
+    '🎨',
+    '🎬',
+    '📝',
+    '📖',
+    '📰',
+    '📺',
+    '📻',
+    '📢',
+    '📣',
+    '📯',
+    '🔍',
+    '🔎',
+    '💻',
+    '⌚',
+    '📱',
+    '💾',
+    '💿',
+    '📀',
+    '🖥️',
+    '🖨️',
+    '⌨️',
+    '🖱️',
+    '🖲️',
+    '💡',
+    '🔋',
+    '🔌',
+    '💵',
+    '💴',
+    '💶',
+    '💷',
+    '💸',
+    '💳',
+    '💎',
   ];
 
   @override
   void initState() {
     super.initState();
     _repository = AssistantRepository(DatabaseService.instance.database);
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 2, vsync: this); // 只有两个tab
 
     final assistant = widget.assistant;
     _nameController = TextEditingController(text: assistant?.name ?? '');
-    _descriptionController = TextEditingController(
-      text: assistant?.description ?? '',
-    );
     _systemPromptController = TextEditingController(
       text: assistant?.systemPrompt ?? '',
     );
 
     _selectedAvatar = assistant?.avatar ?? '🤖';
-    _selectedProviderId =
-        assistant?.providerId ??
-        (widget.providers.isNotEmpty ? widget.providers.first.id : '');
-    _selectedModelName = assistant?.modelName ?? '';
     _isEnabled = assistant?.isEnabled ?? true;
 
     // AI参数
     _temperature = assistant?.temperature ?? 0.7;
     _topP = assistant?.topP ?? 1.0;
-    _maxTokens = assistant?.maxTokens ?? 2048;
-    _contextLength = assistant?.contextLength ?? 10;
+    // 处理上下文长度：0表示无限制，显示为257；其他值需要确保在1-256范围内
+    final contextLength = assistant?.contextLength ?? 32;
+    if (contextLength == 0) {
+      _contextLength = 257.0; // 无限制
+    } else if (contextLength < 1) {
+      _contextLength = 1.0; // 最小值
+    } else if (contextLength > 256) {
+      _contextLength = 256.0; // 最大值
+    } else {
+      _contextLength = contextLength.toDouble();
+    }
     _streamOutput = assistant?.streamOutput ?? true;
-    _frequencyPenalty = assistant?.frequencyPenalty;
-    _presencePenalty = assistant?.presencePenalty;
-
-    // 功能设置
-    _enableWebSearch = assistant?.enableWebSearch ?? false;
-    _enableCodeExecution = assistant?.enableCodeExecution ?? false;
-    _enableImageGeneration = assistant?.enableImageGeneration ?? false;
+    _injectTimestamp = false; // 新参数，默认false
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     _systemPromptController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  List<String> _getAvailableModels() {
-    if (_selectedProviderId.isEmpty) return [];
-    final provider = widget.providers.firstWhere(
-      (p) => p.id == _selectedProviderId,
-      orElse: () => widget.providers.first,
+  void _showEmojiPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择头像'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 8,
+              childAspectRatio: 1,
+            ),
+            itemCount: _emojiOptions.length,
+            itemBuilder: (context, index) {
+              final emoji = _emojiOptions[index];
+              return InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedAvatar = emoji;
+                  });
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: _selectedAvatar == emoji
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+        ],
+      ),
     );
-    return provider.supportedModels;
+  }
+
+  String _getTemperatureLabel(double temperature) {
+    if (temperature <= 0.3) {
+      return '严谨';
+    } else if (temperature <= 0.7) {
+      return '平衡';
+    } else if (temperature <= 1.0) {
+      return '创造';
+    } else {
+      return '混乱';
+    }
   }
 
   Future<void> _saveAssistant() async {
@@ -139,29 +218,31 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
     try {
       final now = DateTime.now();
 
+      // 处理上下文长度：257表示无限制，存储为0
+      final contextLength = _contextLength == 257 ? 0 : _contextLength.toInt();
+      final assistantName = _nameController.text.trim().isEmpty
+          ? '默认助手'
+          : _nameController.text.trim();
+
       final assistant = AiAssistant(
-        id:
-            widget.assistant?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
+        id: widget.assistant?.id ?? _uuid.v4(),
+        name: assistantName,
+        description: '', // 移除描述字段
         avatar: _selectedAvatar,
         systemPrompt: _systemPromptController.text.trim(),
-        providerId: _selectedProviderId,
-        modelName: _selectedModelName,
+        providerId: '', // 移除提供商选择
+        modelName: '', // 移除模型选择
         temperature: _temperature,
         topP: _topP,
-        maxTokens: _maxTokens,
-        contextLength: _contextLength,
+        maxTokens: 4096, // 固定值，不再让用户设置
+        contextLength: contextLength,
         streamOutput: _streamOutput,
-        frequencyPenalty: _frequencyPenalty,
-        presencePenalty: _presencePenalty,
         customHeaders: widget.assistant?.customHeaders ?? {},
         customBody: widget.assistant?.customBody ?? {},
         stopSequences: widget.assistant?.stopSequences ?? [],
-        enableWebSearch: _enableWebSearch,
-        enableCodeExecution: _enableCodeExecution,
-        enableImageGeneration: _enableImageGeneration,
+        enableWebSearch: false, // 移除功能设置
+        enableCodeExecution: false,
+        enableImageGeneration: false,
         isEnabled: _isEnabled,
         createdAt: widget.assistant?.createdAt ?? now,
         updatedAt: now,
@@ -192,449 +273,464 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
     }
   }
 
-  void _loadPresetAssistant(AssistantType type) {
-    setState(() {
-      _nameController.text = type.displayName;
-      _descriptionController.text = type.defaultPrompt;
-      _systemPromptController.text = type.defaultPrompt;
-      _selectedAvatar = type.avatar;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? '编辑助手' : '添加助手'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: '基本信息'),
-            Tab(text: 'AI参数'),
-            Tab(text: '功能设置'),
-            Tab(text: '预设模板'),
-          ],
-        ),
+        title: Text(_isEditing ? '编辑助手' : '创建助手'),
         actions: [
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: _saveAssistant,
-              child: Text(
-                _isEditing ? '更新' : '保存',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
+          TextButton(
+            onPressed: _isLoading ? null : _saveAssistant,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('保存'),
+          ),
         ],
       ),
       body: Form(
         key: _formKey,
-        child: TabBarView(
-          controller: _tabController,
+        child: Column(
           children: [
-            _buildBasicInfoTab(),
-            _buildAiParametersTab(),
-            _buildFeaturesTab(),
-            _buildPresetsTab(),
+            // Tab栏
+            Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                dividerColor: Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicator: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                labelColor: Theme.of(context).colorScheme.onPrimary,
+                unselectedLabelColor: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant,
+                tabs: const [
+                  Tab(text: '基础设置'),
+                  Tab(text: '提示词'),
+                ],
+              ),
+            ),
+
+            // Tab内容 - 使用Expanded让内容可滚动
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [_buildBasicSettingsTab(), _buildPromptTab()],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBasicInfoTab() {
-    return ListView(
+  Widget _buildBasicSettingsTab() {
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      children: [
-        // 头像选择
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 助手名称和头像
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24.0), // 控制与下一组的间距
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '头像',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  '助手名称与头像', // 修改标题以更准确描述内容
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    // 使用 titleLarge
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _avatarOptions.map((avatar) {
-                    final isSelected = avatar == _selectedAvatar;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedAvatar = avatar),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    // 头像选择器
+                    InkWell(
+                      onTap: _showEmojiPicker,
+                      borderRadius: BorderRadius.circular(8), // 保持原有交互和样式
                       child: Container(
-                        width: 50,
-                        height: 50,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          color: isSelected ? Colors.blue : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(25),
-                          border: Border.all(
-                            color: isSelected ? Colors.blue : Colors.grey,
-                            width: 2,
-                          ),
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
                           child: Text(
-                            avatar,
+                            _selectedAvatar,
                             style: const TextStyle(fontSize: 24),
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                    const SizedBox(width: 16), // 调整头像和输入框之间的间距
+                    // 名称输入框
+                    Expanded(
+                      child: TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '输入助手名称',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return '请输入助手名称';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 16),
 
-        // 基本信息
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '基本信息',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          // AI参数设置
+          Column(
+            // 移除 Card，直接使用 Column
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'AI参数',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  // 使用 titleLarge
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: '名称',
-                    hintText: '输入助手名称',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '请输入助手名称';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: '描述',
-                    hintText: '输入助手描述',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '请输入助手描述';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                SwitchListTile(
-                  title: const Text('启用'),
-                  subtitle: const Text('是否启用此助手'),
-                  value: _isEnabled,
-                  onChanged: (value) => setState(() => _isEnabled = value),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 提供商和模型
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '提供商和模型',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                DropdownButtonFormField<String>(
-                  value: _selectedProviderId.isEmpty
-                      ? null
-                      : _selectedProviderId,
-                  decoration: const InputDecoration(
-                    labelText: '提供商',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: widget.providers.map((provider) {
-                    return DropdownMenuItem(
-                      value: provider.id,
-                      child: Text(provider.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedProviderId = value;
-                        _selectedModelName = '';
-                      });
-                    }
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return '请选择提供商';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                DropdownButtonFormField<String>(
-                  value: _selectedModelName.isEmpty ? null : _selectedModelName,
-                  decoration: const InputDecoration(
-                    labelText: '模型',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _getAvailableModels().map((model) {
-                    return DropdownMenuItem(value: model, child: Text(model));
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedModelName = value);
-                    }
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return '请选择模型';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 系统提示词
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '系统提示词',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _systemPromptController,
-                  decoration: const InputDecoration(
-                    labelText: '系统提示词',
-                    hintText: '输入系统提示词，定义助手的行为和角色',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 6,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '请输入系统提示词';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAiParametersTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'AI 参数配置',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                // 温度
-                Text('温度: ${_temperature.toStringAsFixed(1)}'),
-                Slider(
-                  value: _temperature,
-                  min: 0.0,
-                  max: 2.0,
-                  divisions: 20,
-                  onChanged: (value) => setState(() => _temperature = value),
-                ),
-                const Text(
-                  '控制输出的随机性。较低的值使输出更确定，较高的值使输出更随机。',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-
-                // Top P
-                Text('Top P: ${_topP.toStringAsFixed(1)}'),
-                Slider(
-                  value: _topP,
-                  min: 0.0,
-                  max: 1.0,
-                  divisions: 10,
-                  onChanged: (value) => setState(() => _topP = value),
-                ),
-                const Text(
-                  '控制词汇选择的多样性。较低的值使输出更集中，较高的值使输出更多样。',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-
-                // 最大Token数
-                TextFormField(
-                  initialValue: _maxTokens.toString(),
-                  decoration: const InputDecoration(
-                    labelText: '最大Token数',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    final tokens = int.tryParse(value);
-                    if (tokens != null && tokens > 0) {
-                      _maxTokens = tokens;
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // 上下文长度
-                TextFormField(
-                  initialValue: _contextLength.toString(),
-                  decoration: const InputDecoration(
-                    labelText: '上下文长度（消息数量）',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    final length = int.tryParse(value);
-                    if (length != null && length > 0) {
-                      _contextLength = length;
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // 流式输出
-                SwitchListTile(
-                  title: const Text('流式输出'),
-                  subtitle: const Text('是否启用流式输出'),
-                  value: _streamOutput,
-                  onChanged: (value) => setState(() => _streamOutput = value),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeaturesTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '功能设置',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                SwitchListTile(
-                  title: const Text('网络搜索'),
-                  subtitle: const Text('允许助手进行网络搜索'),
-                  value: _enableWebSearch,
-                  onChanged: (value) =>
-                      setState(() => _enableWebSearch = value),
-                ),
-
-                SwitchListTile(
-                  title: const Text('代码执行'),
-                  subtitle: const Text('允许助手执行代码'),
-                  value: _enableCodeExecution,
-                  onChanged: (value) =>
-                      setState(() => _enableCodeExecution = value),
-                ),
-
-                SwitchListTile(
-                  title: const Text('图像生成'),
-                  subtitle: const Text('允许助手生成图像'),
-                  value: _enableImageGeneration,
-                  onChanged: (value) =>
-                      setState(() => _enableImageGeneration = value),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPresetsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text(
-          '选择预设模板',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        ...AssistantType.values.map((type) {
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                child: Text(type.avatar, style: const TextStyle(fontSize: 20)),
               ),
-              title: Text(type.displayName),
-              subtitle: Text(
-                type.defaultPrompt,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 16), // 调整标题和第一个参数组的间距
+              // 温度设置
+              _buildParameterItem(
+                context: context,
+                title: '温度',
+                description: '''控制AI回复的随机性和创造性。
+- 0.0-0.3 (严谨): 更可预测和事实性的回答。
+- 0.4-0.7 (平衡): 兼顾准确性和创造性。
+- 0.8-1.0 (创造): 更具想象力和多样性的回答。
+- 1.1-2.0 (混乱): 非常规和实验性的回答，可能不连贯。''',
+                control: Row(
+                  children: [
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(year2023: false),
+                        child: Slider(
+                          value: _temperature,
+                          min: 0.0,
+                          max: 2.0,
+                          divisions: 20,
+                          onChanged: (value) {
+                            setState(() {
+                              _temperature = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _temperature.toStringAsFixed(1),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Chip(
+                      label: Text(
+                        _getTemperatureLabel(_temperature),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.secondaryContainer,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 0,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              onTap: () => _loadPresetAssistant(type),
+
+              const SizedBox(height: 24), // 参数组之间的间距
+              // Top P设置
+              _buildParameterItem(
+                context: context,
+                title: 'Top P',
+                description: '核采样参数，控制词汇选择范围。建议保持1.0，除非你了解其作用',
+                control: Row(
+                  children: [
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(year2023: false),
+                        child: Slider(
+                          value: _topP,
+                          min: 0.0,
+                          max: 1.0,
+                          divisions: 20,
+                          onChanged: (value) {
+                            setState(() {
+                              _topP = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _topP.toStringAsFixed(2),
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24), // 参数组之间的间距
+              // 上下文消息数量
+              _buildParameterItem(
+                context: context,
+                title: '上下文消息数量',
+                description:
+                    '控制多少条历史消息会被发送给模型，超过此数量的消息会被忽略，只有最近的N条消息会被保留，可以节省token。范围：1-256条消息或无限制',
+                additionalInfo:
+                    '当前设置: ${_contextLength == 257 ? "无限制" : _contextLength.toInt().toString()}',
+                control: Row(
+                  children: [
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(year2023: false),
+                        child: Slider(
+                          value: _contextLength,
+                          min: 1,
+                          max: 257, // 1-256=具体数量, 257=无限制
+                          divisions: 32,
+                          onChanged: (value) {
+                            setState(() {
+                              _contextLength = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 60, // 设置固定宽度
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _contextLength == 257
+                              ? '无限制'
+                              : _contextLength.toInt().toString(),
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24), // 参数组之间的间距
+              // 流式输出
+              SwitchListTile(
+                title: Text(
+                  '流式输出',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                subtitle: const Text('启用后AI回复会逐字显示，提供更好的交互体验，但可能会增加网络请求频率'),
+                value: _streamOutput,
+                onChanged: (value) {
+                  setState(() {
+                    _streamOutput = value;
+                  });
+                },
+                contentPadding:
+                    EdgeInsets.zero, // 移除 SwitchListTile 的默认 padding
+              ),
+
+              const SizedBox(height: 16),
+
+              // 注入消息时间
+              SwitchListTile(
+                title: Text(
+                  '注入消息时间',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                subtitle: const Text(
+                  '是否把每条消息的发送时间注入到上下文中，以便模型理解消息发送时间，注意开启会消耗更多token',
+                ),
+                value: _injectTimestamp,
+                onChanged: (value) {
+                  setState(() {
+                    _injectTimestamp = value;
+                  });
+                },
+                contentPadding:
+                    EdgeInsets.zero, // 移除 SwitchListTile 的默认 padding
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 辅助方法用于构建每个AI参数项，以减少重复代码
+  Widget _buildParameterItem({
+    required BuildContext context,
+    required String title,
+    required String description,
+    String? additionalInfo,
+    required Widget control,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium, // M3 推荐使用 titleMedium
+        ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (additionalInfo != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            additionalInfo,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-          );
-        }).toList(),
+          ),
+        ],
+        const SizedBox(height: 8),
+        control,
       ],
+    );
+  }
+
+  Widget _buildPromptTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 移除 Card，直接使用 Column
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '系统提示词',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  // 使用 titleLarge
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _systemPromptController,
+                maxLines: 10,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '输入系统提示词...',
+                  alignLabelWithHint: true, // 改善多行输入框标签对齐
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  // 使用 surfaceContainerHighest 或类似颜色作为背景，而不是半透明的tertiaryContainer
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12), // 统一圆角
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '可用变量：',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall // 使用 titleSmall
+                          ?.copyWith(
+                            // fontWeight: FontWeight.w600, // titleSmall 默认有合适的weight
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant, // 使用 onSurfaceVariant 强调
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '日期: {cur_date}, 时间: {cur_time}, 日期和时间: {cur_datetime}, 模型ID: {model_id}, 模型名称: {model_name}, 语言环境: {locale}, 时区: {timezone}, 系统版本: {system_version}, 设备信息: {device_info}, 电池电量: {battery_level}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant, // 保持 onSurfaceVariant
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

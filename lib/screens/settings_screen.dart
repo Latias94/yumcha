@@ -3,6 +3,9 @@ import 'debug_screen.dart';
 import 'config_screen.dart';
 import 'providers_screen.dart';
 import 'assistants_screen.dart';
+import '../services/assistant_repository.dart';
+import '../services/provider_repository.dart';
+import '../services/database_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,6 +17,40 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _dynamicColor = true;
   String _colorMode = "跟随系统";
+
+  // 添加检测状态
+  bool _hasProviders = false;
+  bool _hasAssistants = false;
+  bool _isLoading = true;
+  late final AssistantRepository _assistantRepository;
+  late final ProviderRepository _providerRepository;
+
+  @override
+  void initState() {
+    super.initState();
+    _assistantRepository = AssistantRepository(
+      DatabaseService.instance.database,
+    );
+    _providerRepository = ProviderRepository(DatabaseService.instance.database);
+    _checkConfiguration();
+  }
+
+  Future<void> _checkConfiguration() async {
+    try {
+      final providers = await _providerRepository.getAllProviders();
+      final assistants = await _assistantRepository.getAllAssistants();
+
+      setState(() {
+        _hasProviders = providers.isNotEmpty;
+        _hasAssistants = assistants.isNotEmpty;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +110,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildApiConfigCard() {
+    // 如果正在加载或者都已配置，则不显示提醒卡片
+    if (_isLoading || (_hasProviders && _hasAssistants)) {
+      return const SizedBox.shrink();
+    }
+
+    String title = "需要配置";
+    String subtitle = "";
+    VoidCallback onPressed;
+
+    if (!_hasProviders && !_hasAssistants) {
+      title = "请配置API和助手";
+      subtitle = "您还没有配置API提供商和助手，请先配置";
+      onPressed = () {
+        // 优先引导到提供商配置
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProvidersScreen()),
+        ).then((_) => _checkConfiguration());
+      };
+    } else if (!_hasProviders) {
+      title = "请配置API提供商";
+      subtitle = "您还没有配置API提供商，请先配置";
+      onPressed = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProvidersScreen()),
+        ).then((_) => _checkConfiguration());
+      };
+    } else {
+      title = "请配置助手";
+      subtitle = "您还没有配置助手，请先配置";
+      onPressed = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AssistantsScreen()),
+        ).then((_) => _checkConfiguration());
+      };
+    }
+
     return Container(
       margin: const EdgeInsets.all(16),
       child: Card(
@@ -92,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "请配置API和模型",
+                      title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onErrorContainer,
                         fontWeight: FontWeight.w600,
@@ -100,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "你还没有配置API和模型，请先配置",
+                      subtitle,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onErrorContainer,
                       ),
@@ -110,14 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ConfigScreen(),
-                    ),
-                  );
-                },
+                onPressed: onPressed,
                 child: Text(
                   "配置",
                   style: TextStyle(
@@ -207,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ProvidersScreen()),
-        );
+        ).then((_) => _checkConfiguration()); // 返回时重新检查配置
       },
     );
   }
@@ -222,7 +291,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AssistantsScreen()),
-        );
+        ).then((_) => _checkConfiguration()); // 返回时重新检查配置
       },
     );
   }

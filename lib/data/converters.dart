@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import '../models/ai_provider.dart' as models;
+import '../models/ai_model.dart';
 import 'database.dart';
 
 // 将模型枚举转换为数据库枚举
@@ -100,5 +101,24 @@ class DynamicMapConverter extends TypeConverter<Map<String, dynamic>, String> {
   @override
   String toSql(Map<String, dynamic> value) {
     return json.encode(value);
+  }
+}
+
+// AiModel 列表转换器
+class ModelListConverter extends TypeConverter<List<AiModel>, String> {
+  const ModelListConverter();
+
+  @override
+  List<AiModel> fromSql(String fromDb) {
+    if (fromDb.isEmpty || fromDb == '[]') return [];
+    final List<dynamic> decoded = json.decode(fromDb) as List<dynamic>;
+    return decoded
+        .map((item) => AiModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  String toSql(List<AiModel> value) {
+    return json.encode(value.map((model) => model.toJson()).toList());
   }
 }

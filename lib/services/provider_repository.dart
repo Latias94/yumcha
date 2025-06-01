@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../data/database.dart';
 import '../data/converters.dart';
 import '../models/ai_provider.dart';
@@ -67,7 +66,7 @@ class ProviderRepository {
       type: dbToModelProviderType(data.type),
       apiKey: data.apiKey,
       baseUrl: data.baseUrl,
-      supportedModels: data.supportedModels,
+      models: data.models,
       customHeaders: data.customHeaders,
       isEnabled: data.isEnabled,
       createdAt: data.createdAt,
@@ -83,7 +82,7 @@ class ProviderRepository {
       type: Value(modelToDbProviderType(provider.type)),
       apiKey: Value(provider.apiKey),
       baseUrl: Value(provider.baseUrl),
-      supportedModels: Value(provider.supportedModels),
+      models: Value(provider.models),
       customHeaders: Value(provider.customHeaders),
       isEnabled: Value(provider.isEnabled),
       createdAt: Value(provider.createdAt),

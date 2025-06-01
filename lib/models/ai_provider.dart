@@ -1,3 +1,5 @@
+import 'ai_model.dart';
+
 enum ProviderType {
   openai('OpenAI', 'openai'),
   anthropic('Anthropic (Claude)', 'anthropic'),
@@ -16,7 +18,7 @@ class AiProvider {
   final ProviderType type;
   final String apiKey;
   final String? baseUrl; // 只有OpenAI和Ollama支持自定义URL
-  final List<String> supportedModels;
+  final List<AiModel> models; // 模型列表
   final Map<String, String> customHeaders;
   final bool isEnabled;
   final DateTime createdAt;
@@ -28,7 +30,7 @@ class AiProvider {
     required this.type,
     required this.apiKey,
     this.baseUrl,
-    required this.supportedModels,
+    this.models = const [],
     this.customHeaders = const {},
     this.isEnabled = true,
     required this.createdAt,
@@ -41,7 +43,7 @@ class AiProvider {
     ProviderType? type,
     String? apiKey,
     String? baseUrl,
-    List<String>? supportedModels,
+    List<AiModel>? models,
     Map<String, String>? customHeaders,
     bool? isEnabled,
     DateTime? createdAt,
@@ -53,7 +55,7 @@ class AiProvider {
       type: type ?? this.type,
       apiKey: apiKey ?? this.apiKey,
       baseUrl: baseUrl ?? this.baseUrl,
-      supportedModels: supportedModels ?? this.supportedModels,
+      models: models ?? this.models,
       customHeaders: customHeaders ?? this.customHeaders,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
@@ -64,6 +66,10 @@ class AiProvider {
   // 检查是否支持自定义URL
   bool get supportsCustomUrl =>
       type == ProviderType.openai || type == ProviderType.ollama;
+
+  // 获取模型名称列表（向后兼容）
+  List<String> get supportedModels =>
+      models.map((model) => model.name).toList();
 
   // 获取有效的基础URL
   String get effectiveBaseUrl {

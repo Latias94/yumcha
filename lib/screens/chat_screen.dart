@@ -18,11 +18,16 @@ class Conversation {
 class ChatScreen extends StatefulWidget {
   final ConversationUiState conversationState;
   final bool showAppBar;
+  final Function(String assistantId, String providerId, String modelName)?
+  onAssistantConfigChanged;
+  final Function(ConversationUiState conversation)? onConversationUpdated;
 
   const ChatScreen({
     super.key,
     required this.conversationState,
     this.showAppBar = true,
+    this.onAssistantConfigChanged,
+    this.onConversationUpdated,
   });
 
   @override
@@ -72,14 +77,23 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage(String content) async {
-    if (content.trim().isEmpty) return;
+    print('📨 ChatScreen._sendMessage 被调用');
+    print('📝 消息内容: "$content"');
+    print('📏 消息长度: ${content.length}');
 
+    if (content.trim().isEmpty) {
+      print('❌ 消息内容为空，取消发送');
+      return;
+    }
+
+    print('🔄 设置加载状态');
     setState(() {
       _isLoading = true;
       _isStreaming = false;
       _currentRequestId = 'req_${DateTime.now().millisecondsSinceEpoch}';
     });
 
+    print('👤 创建用户消息');
     // 添加用户消息
     final userMessage = Message(
       content: content,
@@ -88,15 +102,19 @@ class _ChatScreenState extends State<ChatScreen> {
       author: "你",
     );
 
+    print('➕ 添加用户消息到对话列表');
     setState(() {
       _conversation.messages.add(userMessage);
     });
 
+    print('📜 滚动到底部');
     _scrollToBottom();
 
     try {
+      print('🤖 获取当前助手');
       // 获取当前助手
       final assistants = _aiService.assistants;
+      print('📊 可用助手数量: ${assistants.length}');
       final currentAssistant = assistants.isNotEmpty
           ? assistants.firstWhere(
               (a) => a.id == _conversation.uiState.assistantId,
@@ -105,8 +123,12 @@ class _ChatScreenState extends State<ChatScreen> {
           : null;
 
       if (currentAssistant == null) {
+        print('❌ 没有可用的助手');
         throw Exception('没有可用的AI助手，请先在设置中配置');
       }
+
+      print('✅ 当前助手: ${currentAssistant.name}');
+      print('🚀 开始AI回复流程');
 
       // 创建AI消息（用于流式更新）
       var aiMessageContent = '';
@@ -124,6 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _scrollToBottom();
 
+      print('📡 发送流式请求');
       // 发送流式请求
       final stream = _aiService.sendMessageStream(
         assistantId: currentAssistant.id,
@@ -131,11 +154,18 @@ class _ChatScreenState extends State<ChatScreen> {
             .where((m) => m != aiMessage) // 排除当前AI消息
             .toList(),
         userMessage: content,
+        selectedProviderId: _conversation.uiState.selectedProviderId,
+        selectedModelName:
+            _conversation.uiState.selectedModelId ??
+            currentAssistant
+                .modelName, // Fallback to assistant's model if not selected
       );
 
+      print('📥 开始接收流式响应');
       await for (final chunk in stream) {
         // 检查是否被停止
         if (_currentRequestId == null) {
+          print('🛑 生成被停止');
           break;
         }
 
@@ -151,7 +181,9 @@ class _ChatScreenState extends State<ChatScreen> {
         });
         _scrollToBottom();
       }
+      print('✅ 流式响应接收完成');
     } catch (e) {
+      print('❌ 发送消息出错: $e');
       // 错误处理
       String errorMessage = '发送消息失败';
       if (e.toString().contains('cancelled')) {
@@ -176,11 +208,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _scrollToBottom();
     } finally {
+      print('🔄 重置状态');
       setState(() {
         _isLoading = false;
         _isStreaming = false;
         _currentRequestId = null;
       });
+
+      // 通知对话已更新（有新消息）
+      if (widget.onConversationUpdated != null) {
+        print('📢 通知对话已更新');
+        widget.onConversationUpdated!(
+          _conversation.uiState.copyWith(messages: _conversation.messages),
+        );
+      }
+      print('✅ _sendMessage 执行完成');
     }
   }
 
@@ -230,8 +272,25 @@ class _ChatScreenState extends State<ChatScreen> {
                   trailing: isSelected ? const Icon(Icons.check) : null,
                   onTap: () {
                     setState(() {
-                      _conversation.uiState.copyWith(assistantId: assistant.id);
+                      _conversation = Conversation(
+                        uiState: _conversation.uiState.copyWith(
+                          assistantId: assistant.id,
+                          selectedProviderId: assistant.providerId,
+                          selectedModelId: assistant.modelName,
+                        ),
+                        messages: _conversation.messages,
+                      );
                     });
+
+                    // 通知配置已改变
+                    if (widget.onAssistantConfigChanged != null) {
+                      widget.onAssistantConfigChanged!(
+                        assistant.id,
+                        assistant.providerId,
+                        assistant.modelName,
+                      );
+                    }
+
                     Navigator.pop(context);
                     NotificationService().showSuccess('已切换到${assistant.name}');
                   },
@@ -334,6 +393,30 @@ class _ChatScreenState extends State<ChatScreen> {
             isLoading: _isLoading,
             onStopGeneration: _stopGeneration,
             canStop: _isStreaming && _currentRequestId != null,
+            onProviderChanged: (providerId, modelName) {
+              // 更新当前对话的配置
+              setState(() {
+                _conversation = Conversation(
+                  uiState: _conversation.uiState.copyWith(
+                    selectedProviderId: providerId,
+                    selectedModelId: modelName,
+                  ),
+                  messages: _conversation.messages,
+                );
+              });
+
+              // 通知配置已改变 - 需要找到对应的助手
+              if (widget.onAssistantConfigChanged != null) {
+                // 暂时使用当前助手ID，未来可以根据providerId和modelName查找对应助手
+                final assistantId =
+                    _conversation.uiState.assistantId ?? 'default';
+                widget.onAssistantConfigChanged!(
+                  assistantId,
+                  providerId,
+                  modelName,
+                );
+              }
+            },
           ),
         ],
       ),

@@ -111,189 +111,185 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
     }
   }
 
+  IconData _getProviderIcon(ProviderType type) {
+    switch (type) {
+      case ProviderType.openai:
+        return Icons.flash_on_outlined;
+      case ProviderType.anthropic:
+        return Icons.ac_unit_outlined;
+      case ProviderType.google:
+        return Icons.g_mobiledata_outlined;
+      case ProviderType.ollama:
+        return Icons.memory_outlined;
+      case ProviderType.custom:
+      default:
+        return Icons.settings_input_component_outlined;
+    }
+  }
+
+  Future<void> _navigateAndRefresh(Widget screen) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+    if (result == true && mounted) {
+      _loadProviders();
+    }
+  }
+
+  String? _isTestingProviderId;
+
+  Future<void> _testProviderConnection(String providerId) async {
+    setState(() {
+      _isTestingProviderId = providerId;
+    });
+    // TODO: Implement actual connection test logic using _repository
+    // For now, simulating a delay and a mock result
+    await Future.delayed(const Duration(seconds: 2));
+    final success = true; // Mock result
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? '连接成功!' : '连接失败。'),
+          backgroundColor: success ? Colors.green : Theme.of(context).colorScheme.error,
+        ),
+      );
+      setState(() {
+        _isTestingProviderId = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('提供商'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              final result = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProviderEditScreen(),
-                ),
-              );
-              if (result == true) {
-                _loadProviders();
-              }
-            },
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar.large(
+            title: const Text('提供商'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () => _navigateAndRefresh(const ProviderEditScreen()),
+              ),
+            ],
           ),
+          SliverToBoxAdapter(
+            child: _isLoading
+                ? const SizedBox(
+                    height: 400,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _providers.isEmpty
+                ? SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6, // Adjust height
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.cloud_off_outlined, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          const SizedBox(height: 16),
+                          Text(
+                            '暂无提供商',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '点击右上角的 + 按钮添加一个',
+                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          if (!_isLoading && _providers.isNotEmpty)
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final provider = _providers[index];
+                final colorScheme = Theme.of(context).colorScheme;
+
+                return Card(
+                  elevation: 1,
+                  color: colorScheme.surfaceContainerHighest,
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(_getProviderIcon(provider.type), size: 32, color: colorScheme.primary),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(provider.name, style: Theme.of(context).textTheme.titleMedium),
+                                  Text(
+                                    '类型: ${_getProviderTypeDisplayName(provider.type)}',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                  ),
+                                  Text(
+                                    '模型: ${provider.supportedModels.length} 个',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: provider.isEnabled,
+                              onChanged: (_) => _toggleProvider(provider.id),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton.icon(
+                              icon: const Icon(Icons.edit_outlined),
+                              label: const Text('编辑'),
+                              onPressed: () => _navigateAndRefresh(ProviderEditScreen(provider: provider)),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton.icon(
+                              icon: Icon(Icons.delete_outline, color: colorScheme.error),
+                              label: Text('删除', style: TextStyle(color: colorScheme.error)),
+                              onPressed: () => _showDeleteDialog(provider),
+                            ),
+                          ],
+                        ),
+                        if (provider.isEnabled) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.tonalIcon(
+                              icon: _isTestingProviderId == provider.id
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Icon(Icons.link_outlined),
+                              label: Text(_isTestingProviderId == provider.id ? '测试中...' : '测试连接'),
+                              onPressed: _isTestingProviderId == provider.id || !provider.isEnabled
+                                  ? null
+                                  : () => _testProviderConnection(provider.id),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }, childCount: _providers.length),
+            ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _providers.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.cloud_off, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    '暂无提供商',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '点击右上角的 + 按钮添加提供商',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _loadProviders,
-              child: ListView.builder(
-                itemCount: _providers.length,
-                itemBuilder: (context, index) {
-                  final provider = _providers[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: provider.isEnabled
-                            ? Colors.green
-                            : Colors.grey,
-                        child: Text(
-                          provider.name.isNotEmpty
-                              ? provider.name[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        provider.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: provider.isEnabled ? null : Colors.grey,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getProviderTypeDisplayName(provider.type),
-                            style: TextStyle(
-                              color: provider.isEnabled
-                                  ? Colors.blue
-                                  : Colors.grey,
-                            ),
-                          ),
-                          if (provider.baseUrl != null)
-                            Text(
-                              provider.baseUrl!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: provider.isEnabled
-                                    ? Colors.grey[600]
-                                    : Colors.grey,
-                              ),
-                            ),
-                          Text(
-                            '支持 ${provider.supportedModels.length} 个模型',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: provider.isEnabled
-                                  ? Colors.grey[600]
-                                  : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Switch(
-                            value: provider.isEnabled,
-                            onChanged: (_) => _toggleProvider(provider.id),
-                          ),
-                          PopupMenuButton<String>(
-                            onSelected: (value) {
-                              switch (value) {
-                                case 'edit':
-                                  Navigator.push<bool>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ProviderEditScreen(
-                                        provider: provider,
-                                      ),
-                                    ),
-                                  ).then((result) {
-                                    if (result == true) {
-                                      _loadProviders();
-                                    }
-                                  });
-                                  break;
-                                case 'delete':
-                                  _showDeleteDialog(provider);
-                                  break;
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit),
-                                    SizedBox(width: 8),
-                                    Text('编辑'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      '删除',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        Navigator.push<bool>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ProviderEditScreen(provider: provider),
-                          ),
-                        ).then((result) {
-                          if (result == true) {
-                            _loadProviders();
-                          }
-                        });
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
     );
   }
 }

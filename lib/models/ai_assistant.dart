@@ -114,7 +114,9 @@ class AiAssistant {
   bool get isTemperatureValid => temperature >= 0.0 && temperature <= 2.0;
   bool get isTopPValid => topP >= 0.0 && topP <= 1.0;
   bool get isMaxTokensValid => maxTokens > 0 && maxTokens <= 8192;
-  bool get isContextLengthValid => contextLength > 0 && contextLength <= 100;
+  bool get isContextLengthValid =>
+      contextLength == 0 || // 0表示无限制
+      (contextLength >= 1 && contextLength <= 256); // 1-256表示具体数量
 
   bool get isFrequencyPenaltyValid =>
       frequencyPenalty == null ||
@@ -132,19 +134,4 @@ class AiAssistant {
       isContextLengthValid &&
       isFrequencyPenaltyValid &&
       isPresencePenaltyValid;
-}
-
-// 预设的助手类型
-enum AssistantType {
-  general('通用助手', '🤖', '我是一个通用的AI助手，可以帮你解答各种问题。'),
-  developer('开发助手', '👨‍💻', '我是一个专业的开发助手，擅长编程、代码优化和技术问题解答。'),
-  creative('创意助手', '🎨', '我是一个创意助手，可以帮你进行创意写作、头脑风暴和艺术创作。'),
-  analyst('分析助手', '📊', '我是一个数据分析助手，可以帮你分析数据、制作图表和生成报告。'),
-  translator('翻译助手', '🌍', '我是一个多语言翻译助手，可以帮你翻译各种语言。'),
-  teacher('教学助手', '👩‍🏫', '我是一个教学助手，可以帮你学习各种知识和技能。');
-
-  const AssistantType(this.displayName, this.avatar, this.defaultPrompt);
-  final String displayName;
-  final String avatar;
-  final String defaultPrompt;
 }

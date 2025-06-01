@@ -1,11 +1,16 @@
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:langchain/langchain.dart';
+import 'package:openai_dart/openai_dart.dart';
 import 'dart:async';
 import '../models/ai_provider.dart';
 import '../models/ai_assistant.dart';
+import '../models/ai_model.dart';
 import '../models/message.dart';
 import 'notification_service.dart';
 import 'logger_service.dart';
+import 'provider_repository.dart';
+import 'assistant_repository.dart';
+import 'database_service.dart'; 
 
 // 调试信息类
 class DebugInfo {
@@ -228,10 +233,88 @@ class AiService {
   }
 
   // 初始化默认数据
-  void initialize() {
+  Future<void> initialize() async {
+    final providerRepository = ProviderRepository(
+      DatabaseService.instance.database,
+    );
+    final assistantRepository = AssistantRepository(
+      DatabaseService.instance.database,
+    );
     _logger.info('初始化AI服务');
-    _loadDefaultProviders();
-    _loadDefaultAssistants();
+
+    // 处理默认提供商
+    final allDbProviders = await providerRepository.getAllProviders();
+    for (final p in allDbProviders) {
+      _providers[p.id] = p;
+    }
+
+    const defaultProviderId = 'openai-default';
+    if (!_providers.containsKey(defaultProviderId)) {
+      final defaultOpenAiProvider = AiProvider(
+        id: defaultProviderId,
+        name: 'OpenAI (默认)',
+        type: ProviderType.openai,
+        apiKey: 'sk-', // 用户需要替换
+        baseUrl: 'https://api.openai.com/v1',
+        models: [
+          AiModel(
+            id: 'gpt-3.5-turbo',
+            name: 'gpt-3.5-turbo',
+            displayName: 'GPT-3.5 Turbo',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isEnabled: true,
+      );
+      _providers[defaultOpenAiProvider.id] = defaultOpenAiProvider;
+      await providerRepository.insertProvider(defaultOpenAiProvider);
+      _logger.info('已创建并保存默认OpenAI提供商: ${defaultOpenAiProvider.name}');
+    }
+
+    // 处理默认助手
+    final allDbAssistants = await assistantRepository.getAllAssistants();
+    for (final a in allDbAssistants) {
+      _assistants[a.id] = a;
+    }
+
+    const defaultAssistantId = 'default-assistant';
+    if (!_assistants.containsKey(defaultAssistantId)) {
+      if (_providers.containsKey('openai-default')) {
+        final defaultAssistant = AiAssistant(
+          id: defaultAssistantId,
+          name: '默认助手',
+          avatar: '🤖',
+          systemPrompt: '你是一个乐于助人的AI助手。',
+          providerId: 'openai-default', // 关联默认提供商
+          modelName: 'gpt-3.5-turbo', // 默认模型
+          temperature: 0.7,
+          topP: 1.0,
+          maxTokens: 4096,
+          contextLength: 32,
+          streamOutput: true,
+          isEnabled: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          description: '',
+          customHeaders: {},
+          customBody: {},
+          stopSequences: [],
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+          enableWebSearch: false,
+          enableCodeExecution: false,
+          enableImageGeneration: false,
+        );
+        _assistants[defaultAssistant.id] = defaultAssistant;
+        await assistantRepository.insertAssistant(defaultAssistant);
+        _logger.info('已创建并保存默认助手: ${defaultAssistant.name}');
+      } else {
+        _logger.warning('无法创建默认助手，因为默认OpenAI提供商不存在。');
+      }
+    }
   }
 
   // === 提供商管理 ===
@@ -413,12 +496,16 @@ class AiService {
     required String assistantId,
     required List<Message> chatHistory,
     required String userMessage,
+    required String selectedProviderId,
+    required String selectedModelName,
   }) async {
     final startTime = DateTime.now();
     final requestId = '${assistantId}_${startTime.millisecondsSinceEpoch}';
 
     _logger.info('开始发送AI消息', {
       'assistantId': assistantId,
+      'selectedProviderId': selectedProviderId,
+      'selectedModelName': selectedModelName,
       'requestId': requestId,
     });
 
@@ -429,8 +516,8 @@ class AiService {
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: 'unknown',
-          modelName: 'unknown',
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'assistant_not_found'},
           error: error,
           timestamp: startTime,
@@ -440,15 +527,15 @@ class AiService {
       return null;
     }
 
-    final provider = _providers[assistant.providerId];
+    final provider = _providers[selectedProviderId];
     if (provider == null) {
       const error = '找不到指定的AI提供商配置';
-      _logger.error('提供商不存在', {'providerId': assistant.providerId});
+      _logger.error('提供商不存在', {'providerId': selectedProviderId});
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'provider_not_found'},
           error: error,
           timestamp: startTime,
@@ -460,12 +547,12 @@ class AiService {
 
     if (!provider.isEnabled) {
       const error = 'AI提供商未启用，请先在设置中配置';
-      _logger.warning('提供商未启用', {'providerId': assistant.providerId});
+      _logger.warning('提供商未启用', {'providerId': selectedProviderId});
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'provider_disabled'},
           error: error,
           timestamp: startTime,
@@ -475,15 +562,15 @@ class AiService {
       return null;
     }
 
-    final client = _getClient(assistant.providerId);
+    final client = _getClient(selectedProviderId);
     if (client == null) {
       const error = '无法创建AI客户端，请检查配置';
-      _logger.error('客户端创建失败', {'providerId': assistant.providerId});
+      _logger.error('客户端创建失败', {'providerId': selectedProviderId});
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'client_creation_failed'},
           error: error,
           timestamp: startTime,
@@ -499,7 +586,7 @@ class AiService {
 
       // 构建请求体用于调试
       final requestBody = {
-        'model': assistant.modelName,
+        'model': selectedModelName,
         'messages': messages
             .map(
               (m) => {
@@ -509,16 +596,18 @@ class AiService {
             )
             .toList(),
         'temperature': assistant.temperature,
+        'top_p': assistant.topP,
         'max_tokens': assistant.maxTokens,
       };
 
-      _logger.aiRequest(assistantId, assistant.modelName, requestBody);
+      _logger.aiRequest(assistantId, selectedModelName, requestBody);
 
       // 设置模型参数并发送请求
       final modelClient = client.bind(
         ChatOpenAIOptions(
-          model: assistant.modelName,
+          model: selectedModelName,
           temperature: assistant.temperature,
+          topP: assistant.topP,
           maxTokens: assistant.maxTokens,
         ),
       );
@@ -536,8 +625,8 @@ class AiService {
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: requestBody,
           statusCode: 200,
           response: responseContent,
@@ -560,11 +649,12 @@ class AiService {
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {
-            'model': assistant.modelName,
+            'model': selectedModelName,
             'temperature': assistant.temperature,
+            'top_p': assistant.topP,
             'user_message': userMessage,
           },
           error: aiError.technicalDetails,
@@ -594,12 +684,16 @@ class AiService {
     required String assistantId,
     required List<Message> chatHistory,
     required String userMessage,
+    required String selectedProviderId,
+    required String selectedModelName,
   }) async* {
     final startTime = DateTime.now();
     final requestId = '${assistantId}_${startTime.millisecondsSinceEpoch}';
 
     _logger.info('开始发送AI流式消息', {
       'assistantId': assistantId,
+      'selectedProviderId': selectedProviderId,
+      'selectedModelName': selectedModelName,
       'requestId': requestId,
     });
 
@@ -610,8 +704,8 @@ class AiService {
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: 'unknown',
-          modelName: 'unknown',
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'assistant_not_found', 'stream': true},
           error: error,
           timestamp: startTime,
@@ -622,15 +716,15 @@ class AiService {
       return;
     }
 
-    final provider = _providers[assistant.providerId];
+    final provider = _providers[selectedProviderId];
     if (provider == null) {
       const error = '找不到指定的AI提供商配置';
-      _logger.error('提供商不存在', {'providerId': assistant.providerId});
+      _logger.error('提供商不存在', {'providerId': selectedProviderId});
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'provider_not_found', 'stream': true},
           error: error,
           timestamp: startTime,
@@ -643,12 +737,12 @@ class AiService {
 
     if (!provider.isEnabled) {
       const error = 'AI提供商未启用，请先在设置中配置';
-      _logger.warning('提供商未启用', {'providerId': assistant.providerId});
+      _logger.warning('提供商未启用', {'providerId': selectedProviderId});
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'provider_disabled', 'stream': true},
           error: error,
           timestamp: startTime,
@@ -659,15 +753,15 @@ class AiService {
       return;
     }
 
-    final client = _getClient(assistant.providerId);
+    final client = _getClient(selectedProviderId);
     if (client == null) {
       const error = '无法创建AI客户端，请检查配置';
-      _logger.error('客户端创建失败', {'providerId': assistant.providerId});
+      _logger.error('客户端创建失败', {'providerId': selectedProviderId});
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {'error': 'client_creation_failed', 'stream': true},
           error: error,
           timestamp: startTime,
@@ -688,7 +782,7 @@ class AiService {
 
       // 构建请求体用于调试
       final requestBody = {
-        'model': assistant.modelName,
+        'model': selectedModelName,
         'messages': messages
             .map(
               (m) => {
@@ -698,17 +792,19 @@ class AiService {
             )
             .toList(),
         'temperature': assistant.temperature,
+        'top_p': assistant.topP,
         'max_tokens': assistant.maxTokens,
         'stream': true,
       };
 
-      _logger.aiStreamStart(assistantId, assistant.modelName);
+      _logger.aiStreamStart(assistantId, selectedModelName);
 
       // 设置模型参数
       final modelClient = client.bind(
         ChatOpenAIOptions(
-          model: assistant.modelName,
+          model: selectedModelName,
           temperature: assistant.temperature,
+          topP: assistant.topP,
           maxTokens: assistant.maxTokens,
         ),
       );
@@ -769,8 +865,8 @@ class AiService {
           _addDebugLog(
             DebugInfo(
               assistantId: assistantId,
-              providerId: assistant.providerId,
-              modelName: assistant.modelName,
+              providerId: selectedProviderId,
+              modelName: selectedModelName,
               requestBody: requestBody,
               statusCode: 200,
               response: fullResponse,
@@ -802,11 +898,12 @@ class AiService {
       _addDebugLog(
         DebugInfo(
           assistantId: assistantId,
-          providerId: assistant.providerId,
-          modelName: assistant.modelName,
+          providerId: selectedProviderId,
+          modelName: selectedModelName,
           requestBody: {
-            'model': assistant.modelName,
+            'model': selectedModelName,
             'temperature': assistant.temperature,
+            'top_p': assistant.topP,
             'user_message': userMessage,
             'stream': true,
           },
@@ -870,75 +967,6 @@ class AiService {
     messages.add(ChatMessage.humanText(userMessage));
 
     return messages;
-  }
-
-  // === 初始化默认数据 ===
-
-  void _loadDefaultProviders() {
-    final now = DateTime.now();
-
-    // 创建一个示例OpenAI提供商（带有示例API key用于测试）
-    final openaiProvider = AiProvider(
-      id: 'openai-default',
-      name: 'OpenAI (示例)',
-      type: ProviderType.openai,
-      apiKey: 'sk-test-example-key', // 示例key，用户需要替换为真实key
-      supportedModels: AiProvider.getDefaultModels(ProviderType.openai),
-      createdAt: now,
-      updatedAt: now,
-      isEnabled: true, // 启用以便测试（用户需要替换真实API key）
-    );
-
-    _providers[openaiProvider.id] = openaiProvider;
-
-    // 创建一个示例Ollama提供商
-    final ollamaProvider = AiProvider(
-      id: 'ollama-default',
-      name: 'Ollama 本地',
-      type: ProviderType.ollama,
-      apiKey: 'ollama',
-      baseUrl: 'http://localhost:11434/v1',
-      supportedModels: AiProvider.getDefaultModels(ProviderType.ollama),
-      createdAt: now,
-      updatedAt: now,
-      isEnabled: false, // 默认禁用，需要用户启动Ollama服务
-    );
-
-    _providers[ollamaProvider.id] = ollamaProvider;
-  }
-
-  void _loadDefaultAssistants() {
-    final now = DateTime.now();
-
-    // 创建默认助手（如果有可用的提供商）
-    if (_providers.isNotEmpty) {
-      final defaultProvider = _providers.values.first;
-      final defaultModel = defaultProvider.supportedModels.isNotEmpty
-          ? defaultProvider.supportedModels.first
-          : 'gpt-3.5-turbo';
-
-      for (final type in AssistantType.values) {
-        final assistant = AiAssistant(
-          id: 'assistant-${type.name}',
-          name: type.displayName,
-          description: '预设的${type.displayName}',
-          avatar: type.avatar,
-          systemPrompt: type.defaultPrompt,
-          providerId: defaultProvider.id,
-          modelName: defaultModel,
-          createdAt: now,
-          updatedAt: now,
-          isEnabled: true, // 启用默认助手
-          temperature: 0.7,
-          topP: 1.0,
-          maxTokens: 2048,
-          contextLength: 10,
-          streamOutput: true,
-        );
-
-        _assistants[assistant.id] = assistant;
-      }
-    }
   }
 
   // === 验证和测试 ===

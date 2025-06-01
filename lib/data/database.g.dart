@@ -57,14 +57,15 @@ class $ProvidersTable extends Providers
     requiredDuringInsert: false,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<List<String>, String>
-  supportedModels = GeneratedColumn<String>(
-    'supported_models',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  ).withConverter<List<String>>($ProvidersTable.$convertersupportedModels);
+  late final GeneratedColumnWithTypeConverter<List<AiModel>, String> models =
+      GeneratedColumn<String>(
+        'models',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      ).withConverter<List<AiModel>>($ProvidersTable.$convertermodels);
   @override
   late final GeneratedColumnWithTypeConverter<Map<String, String>, String>
   customHeaders = GeneratedColumn<String>(
@@ -118,7 +119,7 @@ class $ProvidersTable extends Providers
     type,
     apiKey,
     baseUrl,
-    supportedModels,
+    models,
     customHeaders,
     isEnabled,
     createdAt,
@@ -216,10 +217,10 @@ class $ProvidersTable extends Providers
         DriftSqlType.string,
         data['${effectivePrefix}base_url'],
       ),
-      supportedModels: $ProvidersTable.$convertersupportedModels.fromSql(
+      models: $ProvidersTable.$convertermodels.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
-          data['${effectivePrefix}supported_models'],
+          data['${effectivePrefix}models'],
         )!,
       ),
       customHeaders: $ProvidersTable.$convertercustomHeaders.fromSql(
@@ -250,8 +251,8 @@ class $ProvidersTable extends Providers
 
   static JsonTypeConverter2<ProviderType, int, int> $convertertype =
       const EnumIndexConverter<ProviderType>(ProviderType.values);
-  static TypeConverter<List<String>, String> $convertersupportedModels =
-      const StringListConverter();
+  static TypeConverter<List<AiModel>, String> $convertermodels =
+      const ModelListConverter();
   static TypeConverter<Map<String, String>, String> $convertercustomHeaders =
       const StringMapConverter();
 }
@@ -262,7 +263,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
   final ProviderType type;
   final String apiKey;
   final String? baseUrl;
-  final List<String> supportedModels;
+  final List<AiModel> models;
   final Map<String, String> customHeaders;
   final bool isEnabled;
   final DateTime createdAt;
@@ -273,7 +274,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
     required this.type,
     required this.apiKey,
     this.baseUrl,
-    required this.supportedModels,
+    required this.models,
     required this.customHeaders,
     required this.isEnabled,
     required this.createdAt,
@@ -292,8 +293,8 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
       map['base_url'] = Variable<String>(baseUrl);
     }
     {
-      map['supported_models'] = Variable<String>(
-        $ProvidersTable.$convertersupportedModels.toSql(supportedModels),
+      map['models'] = Variable<String>(
+        $ProvidersTable.$convertermodels.toSql(models),
       );
     }
     {
@@ -316,7 +317,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
       baseUrl: baseUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(baseUrl),
-      supportedModels: Value(supportedModels),
+      models: Value(models),
       customHeaders: Value(customHeaders),
       isEnabled: Value(isEnabled),
       createdAt: Value(createdAt),
@@ -337,9 +338,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
       ),
       apiKey: serializer.fromJson<String>(json['apiKey']),
       baseUrl: serializer.fromJson<String?>(json['baseUrl']),
-      supportedModels: serializer.fromJson<List<String>>(
-        json['supportedModels'],
-      ),
+      models: serializer.fromJson<List<AiModel>>(json['models']),
       customHeaders: serializer.fromJson<Map<String, String>>(
         json['customHeaders'],
       ),
@@ -359,7 +358,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
       ),
       'apiKey': serializer.toJson<String>(apiKey),
       'baseUrl': serializer.toJson<String?>(baseUrl),
-      'supportedModels': serializer.toJson<List<String>>(supportedModels),
+      'models': serializer.toJson<List<AiModel>>(models),
       'customHeaders': serializer.toJson<Map<String, String>>(customHeaders),
       'isEnabled': serializer.toJson<bool>(isEnabled),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -373,7 +372,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
     ProviderType? type,
     String? apiKey,
     Value<String?> baseUrl = const Value.absent(),
-    List<String>? supportedModels,
+    List<AiModel>? models,
     Map<String, String>? customHeaders,
     bool? isEnabled,
     DateTime? createdAt,
@@ -384,7 +383,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
     type: type ?? this.type,
     apiKey: apiKey ?? this.apiKey,
     baseUrl: baseUrl.present ? baseUrl.value : this.baseUrl,
-    supportedModels: supportedModels ?? this.supportedModels,
+    models: models ?? this.models,
     customHeaders: customHeaders ?? this.customHeaders,
     isEnabled: isEnabled ?? this.isEnabled,
     createdAt: createdAt ?? this.createdAt,
@@ -397,9 +396,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
       type: data.type.present ? data.type.value : this.type,
       apiKey: data.apiKey.present ? data.apiKey.value : this.apiKey,
       baseUrl: data.baseUrl.present ? data.baseUrl.value : this.baseUrl,
-      supportedModels: data.supportedModels.present
-          ? data.supportedModels.value
-          : this.supportedModels,
+      models: data.models.present ? data.models.value : this.models,
       customHeaders: data.customHeaders.present
           ? data.customHeaders.value
           : this.customHeaders,
@@ -417,7 +414,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
           ..write('type: $type, ')
           ..write('apiKey: $apiKey, ')
           ..write('baseUrl: $baseUrl, ')
-          ..write('supportedModels: $supportedModels, ')
+          ..write('models: $models, ')
           ..write('customHeaders: $customHeaders, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
@@ -433,7 +430,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
     type,
     apiKey,
     baseUrl,
-    supportedModels,
+    models,
     customHeaders,
     isEnabled,
     createdAt,
@@ -448,7 +445,7 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
           other.type == this.type &&
           other.apiKey == this.apiKey &&
           other.baseUrl == this.baseUrl &&
-          other.supportedModels == this.supportedModels &&
+          other.models == this.models &&
           other.customHeaders == this.customHeaders &&
           other.isEnabled == this.isEnabled &&
           other.createdAt == this.createdAt &&
@@ -461,7 +458,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
   final Value<ProviderType> type;
   final Value<String> apiKey;
   final Value<String?> baseUrl;
-  final Value<List<String>> supportedModels;
+  final Value<List<AiModel>> models;
   final Value<Map<String, String>> customHeaders;
   final Value<bool> isEnabled;
   final Value<DateTime> createdAt;
@@ -473,7 +470,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     this.type = const Value.absent(),
     this.apiKey = const Value.absent(),
     this.baseUrl = const Value.absent(),
-    this.supportedModels = const Value.absent(),
+    this.models = const Value.absent(),
     this.customHeaders = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -486,7 +483,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     required ProviderType type,
     required String apiKey,
     this.baseUrl = const Value.absent(),
-    required List<String> supportedModels,
+    this.models = const Value.absent(),
     required Map<String, String> customHeaders,
     this.isEnabled = const Value.absent(),
     required DateTime createdAt,
@@ -496,7 +493,6 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
        name = Value(name),
        type = Value(type),
        apiKey = Value(apiKey),
-       supportedModels = Value(supportedModels),
        customHeaders = Value(customHeaders),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
@@ -506,7 +502,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     Expression<int>? type,
     Expression<String>? apiKey,
     Expression<String>? baseUrl,
-    Expression<String>? supportedModels,
+    Expression<String>? models,
     Expression<String>? customHeaders,
     Expression<bool>? isEnabled,
     Expression<DateTime>? createdAt,
@@ -519,7 +515,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
       if (type != null) 'type': type,
       if (apiKey != null) 'api_key': apiKey,
       if (baseUrl != null) 'base_url': baseUrl,
-      if (supportedModels != null) 'supported_models': supportedModels,
+      if (models != null) 'models': models,
       if (customHeaders != null) 'custom_headers': customHeaders,
       if (isEnabled != null) 'is_enabled': isEnabled,
       if (createdAt != null) 'created_at': createdAt,
@@ -534,7 +530,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     Value<ProviderType>? type,
     Value<String>? apiKey,
     Value<String?>? baseUrl,
-    Value<List<String>>? supportedModels,
+    Value<List<AiModel>>? models,
     Value<Map<String, String>>? customHeaders,
     Value<bool>? isEnabled,
     Value<DateTime>? createdAt,
@@ -547,7 +543,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
       type: type ?? this.type,
       apiKey: apiKey ?? this.apiKey,
       baseUrl: baseUrl ?? this.baseUrl,
-      supportedModels: supportedModels ?? this.supportedModels,
+      models: models ?? this.models,
       customHeaders: customHeaders ?? this.customHeaders,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
@@ -576,9 +572,9 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     if (baseUrl.present) {
       map['base_url'] = Variable<String>(baseUrl.value);
     }
-    if (supportedModels.present) {
-      map['supported_models'] = Variable<String>(
-        $ProvidersTable.$convertersupportedModels.toSql(supportedModels.value),
+    if (models.present) {
+      map['models'] = Variable<String>(
+        $ProvidersTable.$convertermodels.toSql(models.value),
       );
     }
     if (customHeaders.present) {
@@ -609,7 +605,7 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
           ..write('type: $type, ')
           ..write('apiKey: $apiKey, ')
           ..write('baseUrl: $baseUrl, ')
-          ..write('supportedModels: $supportedModels, ')
+          ..write('models: $models, ')
           ..write('customHeaders: $customHeaders, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
@@ -882,7 +878,8 @@ class $AssistantsTable extends Assistants
     aliasedName,
     false,
     type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
   );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
@@ -893,7 +890,8 @@ class $AssistantsTable extends Assistants
     aliasedName,
     false,
     type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -1085,16 +1083,12 @@ class $AssistantsTable extends Assistants
         _createdAtMeta,
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
     }
     return context;
   }
@@ -1679,17 +1673,15 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     this.enableCodeExecution = const Value.absent(),
     this.enableImageGeneration = const Value.absent(),
     this.isEnabled = const Value.absent(),
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
        description = Value(description),
        systemPrompt = Value(systemPrompt),
        providerId = Value(providerId),
-       modelName = Value(modelName),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt);
+       modelName = Value(modelName);
   static Insertable<AssistantData> custom({
     Expression<String>? id,
     Expression<String>? name,
@@ -1919,16 +1911,1434 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
   }
 }
 
+class $ConversationsTable extends Conversations
+    with TableInfo<$ConversationsTable, ConversationData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ConversationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assistantIdMeta = const VerificationMeta(
+    'assistantId',
+  );
+  @override
+  late final GeneratedColumn<String> assistantId = GeneratedColumn<String>(
+    'assistant_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _providerIdMeta = const VerificationMeta(
+    'providerId',
+  );
+  @override
+  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
+    'provider_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelIdMeta = const VerificationMeta(
+    'modelId',
+  );
+  @override
+  late final GeneratedColumn<String> modelId = GeneratedColumn<String>(
+    'model_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastMessageAtMeta = const VerificationMeta(
+    'lastMessageAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastMessageAt =
+      GeneratedColumn<DateTime>(
+        'last_message_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    assistantId,
+    providerId,
+    modelId,
+    lastMessageAt,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'conversations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ConversationData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('assistant_id')) {
+      context.handle(
+        _assistantIdMeta,
+        assistantId.isAcceptableOrUnknown(
+          data['assistant_id']!,
+          _assistantIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_assistantIdMeta);
+    }
+    if (data.containsKey('provider_id')) {
+      context.handle(
+        _providerIdMeta,
+        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerIdMeta);
+    }
+    if (data.containsKey('model_id')) {
+      context.handle(
+        _modelIdMeta,
+        modelId.isAcceptableOrUnknown(data['model_id']!, _modelIdMeta),
+      );
+    }
+    if (data.containsKey('last_message_at')) {
+      context.handle(
+        _lastMessageAtMeta,
+        lastMessageAt.isAcceptableOrUnknown(
+          data['last_message_at']!,
+          _lastMessageAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastMessageAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ConversationData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ConversationData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      assistantId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assistant_id'],
+      )!,
+      providerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_id'],
+      )!,
+      modelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_id'],
+      ),
+      lastMessageAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_message_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ConversationsTable createAlias(String alias) {
+    return $ConversationsTable(attachedDatabase, alias);
+  }
+}
+
+class ConversationData extends DataClass
+    implements Insertable<ConversationData> {
+  final String id;
+  final String title;
+  final String assistantId;
+  final String providerId;
+  final String? modelId;
+  final DateTime lastMessageAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ConversationData({
+    required this.id,
+    required this.title,
+    required this.assistantId,
+    required this.providerId,
+    this.modelId,
+    required this.lastMessageAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['assistant_id'] = Variable<String>(assistantId);
+    map['provider_id'] = Variable<String>(providerId);
+    if (!nullToAbsent || modelId != null) {
+      map['model_id'] = Variable<String>(modelId);
+    }
+    map['last_message_at'] = Variable<DateTime>(lastMessageAt);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ConversationsCompanion toCompanion(bool nullToAbsent) {
+    return ConversationsCompanion(
+      id: Value(id),
+      title: Value(title),
+      assistantId: Value(assistantId),
+      providerId: Value(providerId),
+      modelId: modelId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelId),
+      lastMessageAt: Value(lastMessageAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ConversationData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ConversationData(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      assistantId: serializer.fromJson<String>(json['assistantId']),
+      providerId: serializer.fromJson<String>(json['providerId']),
+      modelId: serializer.fromJson<String?>(json['modelId']),
+      lastMessageAt: serializer.fromJson<DateTime>(json['lastMessageAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'assistantId': serializer.toJson<String>(assistantId),
+      'providerId': serializer.toJson<String>(providerId),
+      'modelId': serializer.toJson<String?>(modelId),
+      'lastMessageAt': serializer.toJson<DateTime>(lastMessageAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ConversationData copyWith({
+    String? id,
+    String? title,
+    String? assistantId,
+    String? providerId,
+    Value<String?> modelId = const Value.absent(),
+    DateTime? lastMessageAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ConversationData(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    assistantId: assistantId ?? this.assistantId,
+    providerId: providerId ?? this.providerId,
+    modelId: modelId.present ? modelId.value : this.modelId,
+    lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ConversationData copyWithCompanion(ConversationsCompanion data) {
+    return ConversationData(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      assistantId: data.assistantId.present
+          ? data.assistantId.value
+          : this.assistantId,
+      providerId: data.providerId.present
+          ? data.providerId.value
+          : this.providerId,
+      modelId: data.modelId.present ? data.modelId.value : this.modelId,
+      lastMessageAt: data.lastMessageAt.present
+          ? data.lastMessageAt.value
+          : this.lastMessageAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConversationData(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('assistantId: $assistantId, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelId: $modelId, ')
+          ..write('lastMessageAt: $lastMessageAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    assistantId,
+    providerId,
+    modelId,
+    lastMessageAt,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ConversationData &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.assistantId == this.assistantId &&
+          other.providerId == this.providerId &&
+          other.modelId == this.modelId &&
+          other.lastMessageAt == this.lastMessageAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ConversationsCompanion extends UpdateCompanion<ConversationData> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> assistantId;
+  final Value<String> providerId;
+  final Value<String?> modelId;
+  final Value<DateTime> lastMessageAt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ConversationsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.assistantId = const Value.absent(),
+    this.providerId = const Value.absent(),
+    this.modelId = const Value.absent(),
+    this.lastMessageAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ConversationsCompanion.insert({
+    required String id,
+    required String title,
+    required String assistantId,
+    required String providerId,
+    this.modelId = const Value.absent(),
+    required DateTime lastMessageAt,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       assistantId = Value(assistantId),
+       providerId = Value(providerId),
+       lastMessageAt = Value(lastMessageAt),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ConversationData> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? assistantId,
+    Expression<String>? providerId,
+    Expression<String>? modelId,
+    Expression<DateTime>? lastMessageAt,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (assistantId != null) 'assistant_id': assistantId,
+      if (providerId != null) 'provider_id': providerId,
+      if (modelId != null) 'model_id': modelId,
+      if (lastMessageAt != null) 'last_message_at': lastMessageAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ConversationsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? assistantId,
+    Value<String>? providerId,
+    Value<String?>? modelId,
+    Value<DateTime>? lastMessageAt,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ConversationsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      assistantId: assistantId ?? this.assistantId,
+      providerId: providerId ?? this.providerId,
+      modelId: modelId ?? this.modelId,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (assistantId.present) {
+      map['assistant_id'] = Variable<String>(assistantId.value);
+    }
+    if (providerId.present) {
+      map['provider_id'] = Variable<String>(providerId.value);
+    }
+    if (modelId.present) {
+      map['model_id'] = Variable<String>(modelId.value);
+    }
+    if (lastMessageAt.present) {
+      map['last_message_at'] = Variable<DateTime>(lastMessageAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ConversationsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('assistantId: $assistantId, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelId: $modelId, ')
+          ..write('lastMessageAt: $lastMessageAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MessagesTable extends Messages
+    with TableInfo<$MessagesTable, MessageData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MessagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _conversationIdMeta = const VerificationMeta(
+    'conversationId',
+  );
+  @override
+  late final GeneratedColumn<String> conversationId = GeneratedColumn<String>(
+    'conversation_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  @override
+  late final GeneratedColumn<String> author = GeneratedColumn<String>(
+    'author',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isFromUserMeta = const VerificationMeta(
+    'isFromUser',
+  );
+  @override
+  late final GeneratedColumn<bool> isFromUser = GeneratedColumn<bool>(
+    'is_from_user',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_from_user" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
+    'imageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+    'image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _avatarUrlMeta = const VerificationMeta(
+    'avatarUrl',
+  );
+  @override
+  late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
+    'avatar_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    conversationId,
+    content,
+    author,
+    isFromUser,
+    imageUrl,
+    avatarUrl,
+    timestamp,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'messages';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MessageData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('conversation_id')) {
+      context.handle(
+        _conversationIdMeta,
+        conversationId.isAcceptableOrUnknown(
+          data['conversation_id']!,
+          _conversationIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_conversationIdMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('author')) {
+      context.handle(
+        _authorMeta,
+        author.isAcceptableOrUnknown(data['author']!, _authorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_authorMeta);
+    }
+    if (data.containsKey('is_from_user')) {
+      context.handle(
+        _isFromUserMeta,
+        isFromUser.isAcceptableOrUnknown(
+          data['is_from_user']!,
+          _isFromUserMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_isFromUserMeta);
+    }
+    if (data.containsKey('image_url')) {
+      context.handle(
+        _imageUrlMeta,
+        imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta),
+      );
+    }
+    if (data.containsKey('avatar_url')) {
+      context.handle(
+        _avatarUrlMeta,
+        avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta),
+      );
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MessageData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MessageData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      conversationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conversation_id'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      author: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author'],
+      )!,
+      isFromUser: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_from_user'],
+      )!,
+      imageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_url'],
+      ),
+      avatarUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_url'],
+      ),
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MessagesTable createAlias(String alias) {
+    return $MessagesTable(attachedDatabase, alias);
+  }
+}
+
+class MessageData extends DataClass implements Insertable<MessageData> {
+  final String id;
+  final String conversationId;
+  final String content;
+  final String author;
+  final bool isFromUser;
+  final String? imageUrl;
+  final String? avatarUrl;
+  final DateTime timestamp;
+  final DateTime createdAt;
+  const MessageData({
+    required this.id,
+    required this.conversationId,
+    required this.content,
+    required this.author,
+    required this.isFromUser,
+    this.imageUrl,
+    this.avatarUrl,
+    required this.timestamp,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['conversation_id'] = Variable<String>(conversationId);
+    map['content'] = Variable<String>(content);
+    map['author'] = Variable<String>(author);
+    map['is_from_user'] = Variable<bool>(isFromUser);
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || avatarUrl != null) {
+      map['avatar_url'] = Variable<String>(avatarUrl);
+    }
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  MessagesCompanion toCompanion(bool nullToAbsent) {
+    return MessagesCompanion(
+      id: Value(id),
+      conversationId: Value(conversationId),
+      content: Value(content),
+      author: Value(author),
+      isFromUser: Value(isFromUser),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      avatarUrl: avatarUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avatarUrl),
+      timestamp: Value(timestamp),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory MessageData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MessageData(
+      id: serializer.fromJson<String>(json['id']),
+      conversationId: serializer.fromJson<String>(json['conversationId']),
+      content: serializer.fromJson<String>(json['content']),
+      author: serializer.fromJson<String>(json['author']),
+      isFromUser: serializer.fromJson<bool>(json['isFromUser']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      avatarUrl: serializer.fromJson<String?>(json['avatarUrl']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'conversationId': serializer.toJson<String>(conversationId),
+      'content': serializer.toJson<String>(content),
+      'author': serializer.toJson<String>(author),
+      'isFromUser': serializer.toJson<bool>(isFromUser),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'avatarUrl': serializer.toJson<String?>(avatarUrl),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  MessageData copyWith({
+    String? id,
+    String? conversationId,
+    String? content,
+    String? author,
+    bool? isFromUser,
+    Value<String?> imageUrl = const Value.absent(),
+    Value<String?> avatarUrl = const Value.absent(),
+    DateTime? timestamp,
+    DateTime? createdAt,
+  }) => MessageData(
+    id: id ?? this.id,
+    conversationId: conversationId ?? this.conversationId,
+    content: content ?? this.content,
+    author: author ?? this.author,
+    isFromUser: isFromUser ?? this.isFromUser,
+    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+    avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
+    timestamp: timestamp ?? this.timestamp,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  MessageData copyWithCompanion(MessagesCompanion data) {
+    return MessageData(
+      id: data.id.present ? data.id.value : this.id,
+      conversationId: data.conversationId.present
+          ? data.conversationId.value
+          : this.conversationId,
+      content: data.content.present ? data.content.value : this.content,
+      author: data.author.present ? data.author.value : this.author,
+      isFromUser: data.isFromUser.present
+          ? data.isFromUser.value
+          : this.isFromUser,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MessageData(')
+          ..write('id: $id, ')
+          ..write('conversationId: $conversationId, ')
+          ..write('content: $content, ')
+          ..write('author: $author, ')
+          ..write('isFromUser: $isFromUser, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    conversationId,
+    content,
+    author,
+    isFromUser,
+    imageUrl,
+    avatarUrl,
+    timestamp,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MessageData &&
+          other.id == this.id &&
+          other.conversationId == this.conversationId &&
+          other.content == this.content &&
+          other.author == this.author &&
+          other.isFromUser == this.isFromUser &&
+          other.imageUrl == this.imageUrl &&
+          other.avatarUrl == this.avatarUrl &&
+          other.timestamp == this.timestamp &&
+          other.createdAt == this.createdAt);
+}
+
+class MessagesCompanion extends UpdateCompanion<MessageData> {
+  final Value<String> id;
+  final Value<String> conversationId;
+  final Value<String> content;
+  final Value<String> author;
+  final Value<bool> isFromUser;
+  final Value<String?> imageUrl;
+  final Value<String?> avatarUrl;
+  final Value<DateTime> timestamp;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const MessagesCompanion({
+    this.id = const Value.absent(),
+    this.conversationId = const Value.absent(),
+    this.content = const Value.absent(),
+    this.author = const Value.absent(),
+    this.isFromUser = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MessagesCompanion.insert({
+    required String id,
+    required String conversationId,
+    required String content,
+    required String author,
+    required bool isFromUser,
+    this.imageUrl = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    required DateTime timestamp,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       conversationId = Value(conversationId),
+       content = Value(content),
+       author = Value(author),
+       isFromUser = Value(isFromUser),
+       timestamp = Value(timestamp),
+       createdAt = Value(createdAt);
+  static Insertable<MessageData> custom({
+    Expression<String>? id,
+    Expression<String>? conversationId,
+    Expression<String>? content,
+    Expression<String>? author,
+    Expression<bool>? isFromUser,
+    Expression<String>? imageUrl,
+    Expression<String>? avatarUrl,
+    Expression<DateTime>? timestamp,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (conversationId != null) 'conversation_id': conversationId,
+      if (content != null) 'content': content,
+      if (author != null) 'author': author,
+      if (isFromUser != null) 'is_from_user': isFromUser,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MessagesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? conversationId,
+    Value<String>? content,
+    Value<String>? author,
+    Value<bool>? isFromUser,
+    Value<String?>? imageUrl,
+    Value<String?>? avatarUrl,
+    Value<DateTime>? timestamp,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return MessagesCompanion(
+      id: id ?? this.id,
+      conversationId: conversationId ?? this.conversationId,
+      content: content ?? this.content,
+      author: author ?? this.author,
+      isFromUser: isFromUser ?? this.isFromUser,
+      imageUrl: imageUrl ?? this.imageUrl,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      timestamp: timestamp ?? this.timestamp,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (conversationId.present) {
+      map['conversation_id'] = Variable<String>(conversationId.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (author.present) {
+      map['author'] = Variable<String>(author.value);
+    }
+    if (isFromUser.present) {
+      map['is_from_user'] = Variable<bool>(isFromUser.value);
+    }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (avatarUrl.present) {
+      map['avatar_url'] = Variable<String>(avatarUrl.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MessagesCompanion(')
+          ..write('id: $id, ')
+          ..write('conversationId: $conversationId, ')
+          ..write('content: $content, ')
+          ..write('author: $author, ')
+          ..write('isFromUser: $isFromUser, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FavoriteModelsTable extends FavoriteModels
+    with TableInfo<$FavoriteModelsTable, FavoriteModelData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FavoriteModelsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _providerIdMeta = const VerificationMeta(
+    'providerId',
+  );
+  @override
+  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
+    'provider_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelNameMeta = const VerificationMeta(
+    'modelName',
+  );
+  @override
+  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
+    'model_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, providerId, modelName, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'favorite_models';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FavoriteModelData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('provider_id')) {
+      context.handle(
+        _providerIdMeta,
+        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_providerIdMeta);
+    }
+    if (data.containsKey('model_name')) {
+      context.handle(
+        _modelNameMeta,
+        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelNameMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FavoriteModelData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FavoriteModelData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      providerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_id'],
+      )!,
+      modelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_name'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $FavoriteModelsTable createAlias(String alias) {
+    return $FavoriteModelsTable(attachedDatabase, alias);
+  }
+}
+
+class FavoriteModelData extends DataClass
+    implements Insertable<FavoriteModelData> {
+  final String id;
+  final String providerId;
+  final String modelName;
+  final DateTime createdAt;
+  const FavoriteModelData({
+    required this.id,
+    required this.providerId,
+    required this.modelName,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['provider_id'] = Variable<String>(providerId);
+    map['model_name'] = Variable<String>(modelName);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  FavoriteModelsCompanion toCompanion(bool nullToAbsent) {
+    return FavoriteModelsCompanion(
+      id: Value(id),
+      providerId: Value(providerId),
+      modelName: Value(modelName),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory FavoriteModelData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FavoriteModelData(
+      id: serializer.fromJson<String>(json['id']),
+      providerId: serializer.fromJson<String>(json['providerId']),
+      modelName: serializer.fromJson<String>(json['modelName']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'providerId': serializer.toJson<String>(providerId),
+      'modelName': serializer.toJson<String>(modelName),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  FavoriteModelData copyWith({
+    String? id,
+    String? providerId,
+    String? modelName,
+    DateTime? createdAt,
+  }) => FavoriteModelData(
+    id: id ?? this.id,
+    providerId: providerId ?? this.providerId,
+    modelName: modelName ?? this.modelName,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  FavoriteModelData copyWithCompanion(FavoriteModelsCompanion data) {
+    return FavoriteModelData(
+      id: data.id.present ? data.id.value : this.id,
+      providerId: data.providerId.present
+          ? data.providerId.value
+          : this.providerId,
+      modelName: data.modelName.present ? data.modelName.value : this.modelName,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteModelData(')
+          ..write('id: $id, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, providerId, modelName, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FavoriteModelData &&
+          other.id == this.id &&
+          other.providerId == this.providerId &&
+          other.modelName == this.modelName &&
+          other.createdAt == this.createdAt);
+}
+
+class FavoriteModelsCompanion extends UpdateCompanion<FavoriteModelData> {
+  final Value<String> id;
+  final Value<String> providerId;
+  final Value<String> modelName;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const FavoriteModelsCompanion({
+    this.id = const Value.absent(),
+    this.providerId = const Value.absent(),
+    this.modelName = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FavoriteModelsCompanion.insert({
+    required String id,
+    required String providerId,
+    required String modelName,
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       providerId = Value(providerId),
+       modelName = Value(modelName);
+  static Insertable<FavoriteModelData> custom({
+    Expression<String>? id,
+    Expression<String>? providerId,
+    Expression<String>? modelName,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (providerId != null) 'provider_id': providerId,
+      if (modelName != null) 'model_name': modelName,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FavoriteModelsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? providerId,
+    Value<String>? modelName,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return FavoriteModelsCompanion(
+      id: id ?? this.id,
+      providerId: providerId ?? this.providerId,
+      modelName: modelName ?? this.modelName,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (providerId.present) {
+      map['provider_id'] = Variable<String>(providerId.value);
+    }
+    if (modelName.present) {
+      map['model_name'] = Variable<String>(modelName.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteModelsCompanion(')
+          ..write('id: $id, ')
+          ..write('providerId: $providerId, ')
+          ..write('modelName: $modelName, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ProvidersTable providers = $ProvidersTable(this);
   late final $AssistantsTable assistants = $AssistantsTable(this);
+  late final $ConversationsTable conversations = $ConversationsTable(this);
+  late final $MessagesTable messages = $MessagesTable(this);
+  late final $FavoriteModelsTable favoriteModels = $FavoriteModelsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [providers, assistants];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    providers,
+    assistants,
+    conversations,
+    messages,
+    favoriteModels,
+  ];
 }
 
 typedef $$ProvidersTableCreateCompanionBuilder =
@@ -1938,7 +3348,7 @@ typedef $$ProvidersTableCreateCompanionBuilder =
       required ProviderType type,
       required String apiKey,
       Value<String?> baseUrl,
-      required List<String> supportedModels,
+      Value<List<AiModel>> models,
       required Map<String, String> customHeaders,
       Value<bool> isEnabled,
       required DateTime createdAt,
@@ -1952,7 +3362,7 @@ typedef $$ProvidersTableUpdateCompanionBuilder =
       Value<ProviderType> type,
       Value<String> apiKey,
       Value<String?> baseUrl,
-      Value<List<String>> supportedModels,
+      Value<List<AiModel>> models,
       Value<Map<String, String>> customHeaders,
       Value<bool> isEnabled,
       Value<DateTime> createdAt,
@@ -1995,9 +3405,9 @@ class $$ProvidersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
-  get supportedModels => $composableBuilder(
-    column: $table.supportedModels,
+  ColumnWithTypeConverterFilters<List<AiModel>, List<AiModel>, String>
+  get models => $composableBuilder(
+    column: $table.models,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
@@ -2061,8 +3471,8 @@ class $$ProvidersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get supportedModels => $composableBuilder(
-    column: $table.supportedModels,
+  ColumnOrderings<String> get models => $composableBuilder(
+    column: $table.models,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2111,11 +3521,8 @@ class $$ProvidersTableAnnotationComposer
   GeneratedColumn<String> get baseUrl =>
       $composableBuilder(column: $table.baseUrl, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<List<String>, String> get supportedModels =>
-      $composableBuilder(
-        column: $table.supportedModels,
-        builder: (column) => column,
-      );
+  GeneratedColumnWithTypeConverter<List<AiModel>, String> get models =>
+      $composableBuilder(column: $table.models, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<Map<String, String>, String>
   get customHeaders => $composableBuilder(
@@ -2169,7 +3576,7 @@ class $$ProvidersTableTableManager
                 Value<ProviderType> type = const Value.absent(),
                 Value<String> apiKey = const Value.absent(),
                 Value<String?> baseUrl = const Value.absent(),
-                Value<List<String>> supportedModels = const Value.absent(),
+                Value<List<AiModel>> models = const Value.absent(),
                 Value<Map<String, String>> customHeaders = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -2181,7 +3588,7 @@ class $$ProvidersTableTableManager
                 type: type,
                 apiKey: apiKey,
                 baseUrl: baseUrl,
-                supportedModels: supportedModels,
+                models: models,
                 customHeaders: customHeaders,
                 isEnabled: isEnabled,
                 createdAt: createdAt,
@@ -2195,7 +3602,7 @@ class $$ProvidersTableTableManager
                 required ProviderType type,
                 required String apiKey,
                 Value<String?> baseUrl = const Value.absent(),
-                required List<String> supportedModels,
+                Value<List<AiModel>> models = const Value.absent(),
                 required Map<String, String> customHeaders,
                 Value<bool> isEnabled = const Value.absent(),
                 required DateTime createdAt,
@@ -2207,7 +3614,7 @@ class $$ProvidersTableTableManager
                 type: type,
                 apiKey: apiKey,
                 baseUrl: baseUrl,
-                supportedModels: supportedModels,
+                models: models,
                 customHeaders: customHeaders,
                 isEnabled: isEnabled,
                 createdAt: createdAt,
@@ -2262,8 +3669,8 @@ typedef $$AssistantsTableCreateCompanionBuilder =
       Value<bool> enableCodeExecution,
       Value<bool> enableImageGeneration,
       Value<bool> isEnabled,
-      required DateTime createdAt,
-      required DateTime updatedAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
       Value<int> rowid,
     });
 typedef $$AssistantsTableUpdateCompanionBuilder =
@@ -2769,8 +4176,8 @@ class $$AssistantsTableTableManager
                 Value<bool> enableCodeExecution = const Value.absent(),
                 Value<bool> enableImageGeneration = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
-                required DateTime createdAt,
-                required DateTime updatedAt,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AssistantsCompanion.insert(
                 id: id,
@@ -2823,6 +4230,739 @@ typedef $$AssistantsTableProcessedTableManager =
       AssistantData,
       PrefetchHooks Function()
     >;
+typedef $$ConversationsTableCreateCompanionBuilder =
+    ConversationsCompanion Function({
+      required String id,
+      required String title,
+      required String assistantId,
+      required String providerId,
+      Value<String?> modelId,
+      required DateTime lastMessageAt,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ConversationsTableUpdateCompanionBuilder =
+    ConversationsCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String> assistantId,
+      Value<String> providerId,
+      Value<String?> modelId,
+      Value<DateTime> lastMessageAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$ConversationsTableFilterComposer
+    extends Composer<_$AppDatabase, $ConversationsTable> {
+  $$ConversationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assistantId => $composableBuilder(
+    column: $table.assistantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastMessageAt => $composableBuilder(
+    column: $table.lastMessageAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ConversationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ConversationsTable> {
+  $$ConversationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assistantId => $composableBuilder(
+    column: $table.assistantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastMessageAt => $composableBuilder(
+    column: $table.lastMessageAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ConversationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ConversationsTable> {
+  $$ConversationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get assistantId => $composableBuilder(
+    column: $table.assistantId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelId =>
+      $composableBuilder(column: $table.modelId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastMessageAt => $composableBuilder(
+    column: $table.lastMessageAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ConversationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ConversationsTable,
+          ConversationData,
+          $$ConversationsTableFilterComposer,
+          $$ConversationsTableOrderingComposer,
+          $$ConversationsTableAnnotationComposer,
+          $$ConversationsTableCreateCompanionBuilder,
+          $$ConversationsTableUpdateCompanionBuilder,
+          (
+            ConversationData,
+            BaseReferences<
+              _$AppDatabase,
+              $ConversationsTable,
+              ConversationData
+            >,
+          ),
+          ConversationData,
+          PrefetchHooks Function()
+        > {
+  $$ConversationsTableTableManager(_$AppDatabase db, $ConversationsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ConversationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ConversationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ConversationsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> assistantId = const Value.absent(),
+                Value<String> providerId = const Value.absent(),
+                Value<String?> modelId = const Value.absent(),
+                Value<DateTime> lastMessageAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ConversationsCompanion(
+                id: id,
+                title: title,
+                assistantId: assistantId,
+                providerId: providerId,
+                modelId: modelId,
+                lastMessageAt: lastMessageAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                required String assistantId,
+                required String providerId,
+                Value<String?> modelId = const Value.absent(),
+                required DateTime lastMessageAt,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ConversationsCompanion.insert(
+                id: id,
+                title: title,
+                assistantId: assistantId,
+                providerId: providerId,
+                modelId: modelId,
+                lastMessageAt: lastMessageAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ConversationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ConversationsTable,
+      ConversationData,
+      $$ConversationsTableFilterComposer,
+      $$ConversationsTableOrderingComposer,
+      $$ConversationsTableAnnotationComposer,
+      $$ConversationsTableCreateCompanionBuilder,
+      $$ConversationsTableUpdateCompanionBuilder,
+      (
+        ConversationData,
+        BaseReferences<_$AppDatabase, $ConversationsTable, ConversationData>,
+      ),
+      ConversationData,
+      PrefetchHooks Function()
+    >;
+typedef $$MessagesTableCreateCompanionBuilder =
+    MessagesCompanion Function({
+      required String id,
+      required String conversationId,
+      required String content,
+      required String author,
+      required bool isFromUser,
+      Value<String?> imageUrl,
+      Value<String?> avatarUrl,
+      required DateTime timestamp,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$MessagesTableUpdateCompanionBuilder =
+    MessagesCompanion Function({
+      Value<String> id,
+      Value<String> conversationId,
+      Value<String> content,
+      Value<String> author,
+      Value<bool> isFromUser,
+      Value<String?> imageUrl,
+      Value<String?> avatarUrl,
+      Value<DateTime> timestamp,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$MessagesTableFilterComposer
+    extends Composer<_$AppDatabase, $MessagesTable> {
+  $$MessagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conversationId => $composableBuilder(
+    column: $table.conversationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isFromUser => $composableBuilder(
+    column: $table.isFromUser,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MessagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $MessagesTable> {
+  $$MessagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conversationId => $composableBuilder(
+    column: $table.conversationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isFromUser => $composableBuilder(
+    column: $table.isFromUser,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MessagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MessagesTable> {
+  $$MessagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get conversationId => $composableBuilder(
+    column: $table.conversationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get author =>
+      $composableBuilder(column: $table.author, builder: (column) => column);
+
+  GeneratedColumn<bool> get isFromUser => $composableBuilder(
+    column: $table.isFromUser,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarUrl =>
+      $composableBuilder(column: $table.avatarUrl, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$MessagesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MessagesTable,
+          MessageData,
+          $$MessagesTableFilterComposer,
+          $$MessagesTableOrderingComposer,
+          $$MessagesTableAnnotationComposer,
+          $$MessagesTableCreateCompanionBuilder,
+          $$MessagesTableUpdateCompanionBuilder,
+          (
+            MessageData,
+            BaseReferences<_$AppDatabase, $MessagesTable, MessageData>,
+          ),
+          MessageData,
+          PrefetchHooks Function()
+        > {
+  $$MessagesTableTableManager(_$AppDatabase db, $MessagesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MessagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MessagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MessagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> conversationId = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<String> author = const Value.absent(),
+                Value<bool> isFromUser = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MessagesCompanion(
+                id: id,
+                conversationId: conversationId,
+                content: content,
+                author: author,
+                isFromUser: isFromUser,
+                imageUrl: imageUrl,
+                avatarUrl: avatarUrl,
+                timestamp: timestamp,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String conversationId,
+                required String content,
+                required String author,
+                required bool isFromUser,
+                Value<String?> imageUrl = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                required DateTime timestamp,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => MessagesCompanion.insert(
+                id: id,
+                conversationId: conversationId,
+                content: content,
+                author: author,
+                isFromUser: isFromUser,
+                imageUrl: imageUrl,
+                avatarUrl: avatarUrl,
+                timestamp: timestamp,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MessagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MessagesTable,
+      MessageData,
+      $$MessagesTableFilterComposer,
+      $$MessagesTableOrderingComposer,
+      $$MessagesTableAnnotationComposer,
+      $$MessagesTableCreateCompanionBuilder,
+      $$MessagesTableUpdateCompanionBuilder,
+      (MessageData, BaseReferences<_$AppDatabase, $MessagesTable, MessageData>),
+      MessageData,
+      PrefetchHooks Function()
+    >;
+typedef $$FavoriteModelsTableCreateCompanionBuilder =
+    FavoriteModelsCompanion Function({
+      required String id,
+      required String providerId,
+      required String modelName,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$FavoriteModelsTableUpdateCompanionBuilder =
+    FavoriteModelsCompanion Function({
+      Value<String> id,
+      Value<String> providerId,
+      Value<String> modelName,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$FavoriteModelsTableFilterComposer
+    extends Composer<_$AppDatabase, $FavoriteModelsTable> {
+  $$FavoriteModelsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FavoriteModelsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FavoriteModelsTable> {
+  $$FavoriteModelsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelName => $composableBuilder(
+    column: $table.modelName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FavoriteModelsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FavoriteModelsTable> {
+  $$FavoriteModelsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get providerId => $composableBuilder(
+    column: $table.providerId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelName =>
+      $composableBuilder(column: $table.modelName, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$FavoriteModelsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FavoriteModelsTable,
+          FavoriteModelData,
+          $$FavoriteModelsTableFilterComposer,
+          $$FavoriteModelsTableOrderingComposer,
+          $$FavoriteModelsTableAnnotationComposer,
+          $$FavoriteModelsTableCreateCompanionBuilder,
+          $$FavoriteModelsTableUpdateCompanionBuilder,
+          (
+            FavoriteModelData,
+            BaseReferences<
+              _$AppDatabase,
+              $FavoriteModelsTable,
+              FavoriteModelData
+            >,
+          ),
+          FavoriteModelData,
+          PrefetchHooks Function()
+        > {
+  $$FavoriteModelsTableTableManager(
+    _$AppDatabase db,
+    $FavoriteModelsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FavoriteModelsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FavoriteModelsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FavoriteModelsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> providerId = const Value.absent(),
+                Value<String> modelName = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FavoriteModelsCompanion(
+                id: id,
+                providerId: providerId,
+                modelName: modelName,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String providerId,
+                required String modelName,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FavoriteModelsCompanion.insert(
+                id: id,
+                providerId: providerId,
+                modelName: modelName,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FavoriteModelsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FavoriteModelsTable,
+      FavoriteModelData,
+      $$FavoriteModelsTableFilterComposer,
+      $$FavoriteModelsTableOrderingComposer,
+      $$FavoriteModelsTableAnnotationComposer,
+      $$FavoriteModelsTableCreateCompanionBuilder,
+      $$FavoriteModelsTableUpdateCompanionBuilder,
+      (
+        FavoriteModelData,
+        BaseReferences<_$AppDatabase, $FavoriteModelsTable, FavoriteModelData>,
+      ),
+      FavoriteModelData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2831,4 +4971,10 @@ class $AppDatabaseManager {
       $$ProvidersTableTableManager(_db, _db.providers);
   $$AssistantsTableTableManager get assistants =>
       $$AssistantsTableTableManager(_db, _db.assistants);
+  $$ConversationsTableTableManager get conversations =>
+      $$ConversationsTableTableManager(_db, _db.conversations);
+  $$MessagesTableTableManager get messages =>
+      $$MessagesTableTableManager(_db, _db.messages);
+  $$FavoriteModelsTableTableManager get favoriteModels =>
+      $$FavoriteModelsTableTableManager(_db, _db.favoriteModels);
 }

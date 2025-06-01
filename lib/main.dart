@@ -4,12 +4,19 @@ import 'navigation/main_navigation.dart';
 import 'services/ai_service.dart';
 import 'services/notification_service.dart';
 import 'services/logger_service.dart';
+import 'services/database_service.dart';
 import 'screens/config_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // 确保绑定已初始化
+
+  // 初始化数据库服务 (通过访问 getter 隐式初始化)
+  DatabaseService.instance.database; // 请根据您的实际 DatabaseService 实现调整
+
   // 初始化服务
   LoggerService().initialize();
-  AiService().initialize();
+  // 初始化AI服务 (它依赖于数据库服务)
+  await AiService().initialize();
 
   runApp(const YumchaApp());
 }

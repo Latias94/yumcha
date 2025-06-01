@@ -1,7 +1,10 @@
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import '../models/ai_provider.dart';
+import '../models/ai_model.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
+import '../components/model_list_manager.dart';
 
 class ProviderEditScreen extends StatefulWidget {
   final AiProvider? provider;
@@ -16,12 +19,14 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
   late final ProviderRepository _repository;
   final _formKey = GlobalKey<FormState>();
 
+  final _uuid = Uuid();
   late final TextEditingController _nameController;
   late final TextEditingController _apiKeyController;
   late final TextEditingController _baseUrlController;
   late final TextEditingController _modelsController;
 
   late ProviderType _selectedType;
+  late List<AiModel> _models;
   bool _isEnabled = true;
   bool _isLoading = false;
 
@@ -36,12 +41,15 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
     _nameController = TextEditingController(text: provider?.name ?? '');
     _apiKeyController = TextEditingController(text: provider?.apiKey ?? '');
     _baseUrlController = TextEditingController(text: provider?.baseUrl ?? '');
-    _modelsController = TextEditingController(
-      text: provider?.supportedModels.join(', ') ?? '',
-    );
+    _modelsController = TextEditingController();
 
     _selectedType = provider?.type ?? ProviderType.openai;
     _isEnabled = provider?.isEnabled ?? true;
+
+    // 初始化模型列表
+    _models = provider?.models.isNotEmpty == true
+        ? List.from(provider!.models)
+        : [];
   }
 
   @override
@@ -60,23 +68,16 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
 
     try {
       final now = DateTime.now();
-      final models = _modelsController.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
 
       final provider = AiProvider(
-        id:
-            widget.provider?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.provider?.id ?? _uuid.v4(),
         name: _nameController.text.trim(),
         type: _selectedType,
         apiKey: _apiKeyController.text.trim(),
         baseUrl: _baseUrlController.text.trim().isEmpty
             ? null
             : _baseUrlController.text.trim(),
-        supportedModels: models,
+        models: _models,
         customHeaders: widget.provider?.customHeaders ?? {},
         isEnabled: _isEnabled,
         createdAt: widget.provider?.createdAt ?? now,
@@ -204,157 +205,166 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           children: [
             // 基本信息
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '基本信息',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 名称
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: '名称',
-                        hintText: '输入提供商名称',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return '请输入提供商名称';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 类型
-                    DropdownButtonFormField<ProviderType>(
-                      value: _selectedType,
-                      decoration: const InputDecoration(
-                        labelText: '类型',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ProviderType.values.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(_getProviderTypeDisplayName(type)),
-                        );
-                      }).toList(),
-                      onChanged: _onTypeChanged,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 启用状态
-                    SwitchListTile(
-                      title: const Text('启用'),
-                      subtitle: const Text('是否启用此提供商'),
-                      value: _isEnabled,
-                      onChanged: (value) {
-                        setState(() => _isEnabled = value);
-                      },
-                    ),
-                  ],
+            Padding(
+              padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+              child: Text(
+                '基本信息',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.only(
+                bottom: 16.0,
+              ), //保持原有Column的padding逻辑，但只在底部
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 名称
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: '名称',
+                      hintText: '输入提供商名称',
+                      border: OutlineInputBorder(),
+                      helperText: '为此提供商配置设置一个易于识别的名称',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '请输入提供商名称';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 类型
+                  DropdownButtonFormField<ProviderType>(
+                    value: _selectedType,
+                    decoration: const InputDecoration(
+                      labelText: '类型',
+                      border: OutlineInputBorder(),
+                      helperText: '选择AI提供商类型，不同类型支持不同的功能和模型',
+                    ),
+                    items: ProviderType.values.map((type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(_getProviderTypeDisplayName(type)),
+                      );
+                    }).toList(),
+                    onChanged: _onTypeChanged,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 启用状态
+                  SwitchListTile(
+                    title: const Text('启用'),
+                    subtitle: const Text('禁用后此提供商将不会出现在聊天时的提供商选择列表中'),
+                    value: _isEnabled,
+                    onChanged: (value) {
+                      setState(() => _isEnabled = value);
+                    },
+                    contentPadding:
+                        EdgeInsets.zero, // 移除SwitchListTile的默认padding
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24.0),
 
             // API 配置
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'API 配置',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // API Key
-                    TextFormField(
-                      controller: _apiKeyController,
-                      decoration: const InputDecoration(
-                        labelText: 'API Key',
-                        hintText: '输入 API 密钥',
-                        border: OutlineInputBorder(),
-                      ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return '请输入 API Key';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Base URL
-                    TextFormField(
-                      controller: _baseUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Base URL',
-                        hintText: '输入 API 基础地址',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ],
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, bottom: 8.0), // 调整间距
+              child: Text(
+                'API 配置',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // API Key
+                  TextFormField(
+                    controller: _apiKeyController,
+                    decoration: const InputDecoration(
+                      labelText: 'API Key',
+                      hintText: '输入 API 密钥',
+                      border: OutlineInputBorder(),
+                      helperText: '从AI提供商官网获取的API密钥，用于身份验证和计费',
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '请输入 API Key';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Base URL
+                  TextFormField(
+                    controller: _baseUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Base URL',
+                      hintText: '输入 API 基础地址',
+                      border: const OutlineInputBorder(),
+                      helperText:
+                          _selectedType == ProviderType.openai ||
+                              _selectedType == ProviderType.ollama
+                          ? '可自定义API服务器地址，支持代理服务器或本地部署'
+                          : '此提供商类型使用固定的官方API地址',
+                    ),
+                    enabled:
+                        _selectedType == ProviderType.openai ||
+                        _selectedType == ProviderType.ollama,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24.0),
 
             // 模型配置
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '模型配置',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 支持的模型
-                    TextFormField(
-                      controller: _modelsController,
-                      decoration: const InputDecoration(
-                        labelText: '支持的模型',
-                        hintText: '输入模型名称，用逗号分隔',
-                        border: OutlineInputBorder(),
-                        helperText: '例如: gpt-4, gpt-3.5-turbo',
-                      ),
-                      maxLines: 3,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return '请输入至少一个模型名称';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, bottom: 8.0), // 调整间距
+              child: Text(
+                '模型配置',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
                 ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: ModelListManager(
+                models: _models,
+                onModelsChanged: (models) {
+                  setState(() {
+                    _models = models;
+                  });
+                },
+                provider: _isEditing
+                    ? null
+                    : AiProvider(
+                        id: 'temp',
+                        name: _nameController.text.trim(),
+                        type: _selectedType,
+                        apiKey: _apiKeyController.text.trim(),
+                        baseUrl: _baseUrlController.text.trim().isEmpty
+                            ? null
+                            : _baseUrlController.text.trim(),
+                        models: [],
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                      ),
               ),
             ),
           ],
