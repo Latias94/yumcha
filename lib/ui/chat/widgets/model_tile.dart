@@ -4,30 +4,24 @@ import '../../../models/ai_assistant.dart';
 
 /// 模型能力枚举
 enum ModelCapability {
-  chat('聊天'),
-  tools('工具'),
-  reasoning('思考'),
   vision('视觉'),
-  imageGeneration('画图'),
-  embedding('嵌入');
+  embedding('嵌入'),
+  reasoning('推理'),
+  tools('工具');
 
   const ModelCapability(this.label);
   final String label;
 
   IconData get icon {
     switch (this) {
-      case ModelCapability.chat:
-        return Icons.chat_bubble_outline;
-      case ModelCapability.tools:
-        return Icons.build_outlined;
-      case ModelCapability.reasoning:
-        return Icons.psychology_outlined;
       case ModelCapability.vision:
         return Icons.visibility_outlined;
-      case ModelCapability.imageGeneration:
-        return Icons.image_outlined;
       case ModelCapability.embedding:
         return Icons.storage_outlined;
+      case ModelCapability.reasoning:
+        return Icons.psychology_outlined;
+      case ModelCapability.tools:
+        return Icons.build_outlined;
     }
   }
 }
@@ -175,27 +169,7 @@ class ModelTile extends StatelessWidget {
       spacing: 6,
       runSpacing: 4,
       children: capabilities.map((capability) {
-        // 聊天能力用文字显示
-        if (capability == ModelCapability.chat) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.8,
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              capability.label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 9,
-              ),
-            ),
-          );
-        }
-
-        // 其他能力用图标显示
+        // 所有能力都用图标显示
         return Tooltip(
           message: capability.label,
           child: Container(
@@ -221,24 +195,16 @@ class ModelTile extends StatelessWidget {
   List<ModelCapability> _getAssistantCapabilities(AiAssistant assistant) {
     final capabilities = <ModelCapability>[];
 
-    // 所有助手都支持聊天
-    capabilities.add(ModelCapability.chat);
+    // 所有助手都支持推理
+    capabilities.add(ModelCapability.reasoning);
 
     // 根据助手配置添加能力
     if (assistant.enableTools) {
       capabilities.add(ModelCapability.tools);
     }
 
-    if (assistant.enableReasoning) {
-      capabilities.add(ModelCapability.reasoning);
-    }
-
     if (assistant.enableVision) {
       capabilities.add(ModelCapability.vision);
-    }
-
-    if (assistant.enableImageGeneration) {
-      capabilities.add(ModelCapability.imageGeneration);
     }
 
     if (assistant.enableEmbedding) {

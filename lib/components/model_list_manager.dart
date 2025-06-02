@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/ai_model.dart';
 import '../models/ai_provider.dart';
-import '../services/model_fetch_service.dart';
 import '../services/notification_service.dart';
+import '../src/rust/api/ai_chat.dart' as genai;
 import 'model_edit_dialog.dart';
 import 'model_selection_dialog.dart';
 
@@ -88,15 +88,54 @@ class _ModelListManagerState extends State<ModelListManager> {
     );
   }
 
+  /// 将本地提供商类型转换为 GenAI 提供商类型
+  genai.AiProvider _convertToGenaiProvider(AiProvider provider) {
+    switch (provider.type) {
+      case ProviderType.openai:
+        return const genai.AiProvider.openAi();
+      case ProviderType.anthropic:
+        return const genai.AiProvider.anthropic();
+      case ProviderType.google:
+        return const genai.AiProvider.gemini();
+      case ProviderType.ollama:
+        return const genai.AiProvider.ollama();
+      case ProviderType.custom:
+        return genai.AiProvider.custom(name: provider.name);
+    }
+  }
+
+  /// 检查是否支持 OpenAI 兼容 API
+  bool _supportsOpenAiCompatibleApi(ProviderType type) {
+    switch (type) {
+      case ProviderType.openai:
+      case ProviderType.custom:
+        return true;
+      case ProviderType.anthropic:
+      case ProviderType.google:
+      case ProviderType.ollama:
+        return false;
+    }
+  }
+
+  /// 获取默认的 Base URL
+  String? _getDefaultBaseUrl(ProviderType type) {
+    switch (type) {
+      case ProviderType.openai:
+        return 'https://api.openai.com/v1';
+      case ProviderType.anthropic:
+        return 'https://api.anthropic.com';
+      case ProviderType.google:
+        return 'https://generativelanguage.googleapis.com/v1';
+      case ProviderType.ollama:
+        return 'http://localhost:11434';
+      case ProviderType.custom:
+        return null;
+    }
+  }
+
   Future<void> _fetchModelsFromProvider() async {
     if (widget.provider == null) {
       NotificationService().showWarning('请先填写提供商配置信息');
-      return;
-    }
-
-    // 检查是否为 OpenAI 类型
-    if (widget.provider!.type != ProviderType.openai) {
-      NotificationService().showWarning('只有 OpenAI 类型的提供商支持获取模型列表');
       return;
     }
 
@@ -106,13 +145,59 @@ class _ModelListManagerState extends State<ModelListManager> {
       return;
     }
 
+    final genaiProvider = _convertToGenaiProvider(widget.provider!);
+
+    // 检查提供商是否支持列出模型
+    if (!genai.checkProviderSupportsListModels(provider: genaiProvider)) {
+      final capabilities = genai.getProviderCapabilitiesInfo(
+        provider: genaiProvider,
+      );
+      NotificationService().showWarning(
+        '${capabilities.description}\n不支持动态获取模型列表，请手动添加模型',
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      final modelFetchService = ModelFetchService();
-      final fetchedModels = await modelFetchService.fetchModelsFromProvider(
-        widget.provider!,
-      );
+      late genai.ModelListResponse response;
+
+      // 对于支持 OpenAI 兼容接口的提供商，直接调用 API
+      if (_supportsOpenAiCompatibleApi(widget.provider!.type)) {
+        final baseUrl =
+            widget.provider!.baseUrl ??
+            _getDefaultBaseUrl(widget.provider!.type)!;
+        response = await genai.fetchOpenaiCompatibleModels(
+          apiKey: widget.provider!.apiKey,
+          baseUrl: baseUrl,
+        );
+      } else {
+        // 使用 GenAI 后端获取模型列表
+        response = await genai.getModelsFromProvider(
+          provider: genaiProvider,
+          apiKey: widget.provider!.apiKey,
+          baseUrl: widget.provider!.baseUrl,
+        );
+      }
+
+      if (!response.success) {
+        throw Exception(response.errorMessage ?? '未知错误');
+      }
+
+      // 将字符串模型列表转换为 AiModel 对象
+      final fetchedModels = response.models.map((modelName) {
+        final now = DateTime.now();
+        return AiModel(
+          id: modelName,
+          name: modelName,
+          displayName: modelName, // 直接使用模型名称，不进行转换
+          capabilities: _getCapabilities(modelName),
+          metadata: _getMetadata(modelName),
+          createdAt: now,
+          updatedAt: now,
+        );
+      }).toList();
 
       // 显示选择对话框
       if (mounted) {
@@ -127,6 +212,69 @@ class _ModelListManagerState extends State<ModelListManager> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// 获取模型能力
+  List<ModelCapability> _getCapabilities(String modelId) {
+    final lowerModelId = modelId.toLowerCase();
+    final capabilities = <ModelCapability>[];
+
+    // 默认所有模型都支持推理
+    capabilities.add(ModelCapability.reasoning);
+
+    // 检查是否支持视觉
+    if (lowerModelId.contains('vision') ||
+        lowerModelId.contains('gpt-4o') ||
+        lowerModelId.contains('gpt-4-turbo') ||
+        lowerModelId.contains('claude-3')) {
+      capabilities.add(ModelCapability.vision);
+    }
+
+    // 检查是否支持工具
+    if (lowerModelId.contains('gpt-4') ||
+        lowerModelId.contains('claude') ||
+        lowerModelId.contains('gemini')) {
+      capabilities.add(ModelCapability.tools);
+    }
+
+    // 检查是否支持嵌入
+    if (lowerModelId.contains('embedding') ||
+        lowerModelId.contains('text-embedding')) {
+      capabilities.add(ModelCapability.embedding);
+    }
+
+    return capabilities;
+  }
+
+  /// 获取模型元数据
+  Map<String, dynamic> _getMetadata(String modelId) {
+    final metadata = <String, dynamic>{};
+
+    // 根据模型名称设置上下文长度
+    metadata['contextLength'] = _getContextLength(modelId);
+
+    return metadata;
+  }
+
+  /// 获取模型上下文长度
+  int _getContextLength(String modelId) {
+    final contextLengths = {
+      'gpt-4o': 128000,
+      'gpt-4o-mini': 128000,
+      'gpt-4-turbo': 128000,
+      'gpt-4': 8192,
+      'gpt-3.5-turbo': 16385,
+      'gpt-3.5-turbo-16k': 16385,
+      'claude-3-opus': 200000,
+      'claude-3-sonnet': 200000,
+      'claude-3-haiku': 200000,
+      'gemini-pro': 32768,
+      'gemini-pro-vision': 16384,
+      'deepseek-chat': 32768,
+      'deepseek-coder': 16384,
+    };
+
+    return contextLengths[modelId] ?? 4096;
   }
 
   void _showModelSelectionDialog(List<AiModel> availableModels) {
@@ -158,18 +306,38 @@ class _ModelListManagerState extends State<ModelListManager> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Spacer(),
-            if (widget.provider != null &&
-                widget.provider!.type == ProviderType.openai)
-              TextButton.icon(
-                onPressed: _isLoading ? null : _fetchModelsFromProvider,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.cloud_download),
-                label: const Text('获取模型'),
+            if (widget.provider != null)
+              Builder(
+                builder: (context) {
+                  final genaiProvider = _convertToGenaiProvider(
+                    widget.provider!,
+                  );
+                  final supportsListModels = genai
+                      .checkProviderSupportsListModels(provider: genaiProvider);
+
+                  return TextButton.icon(
+                    onPressed: _isLoading ? null : _fetchModelsFromProvider,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            supportsListModels
+                                ? Icons.cloud_download
+                                : Icons.info_outline,
+                          ),
+                    label: Text(supportsListModels ? '获取模型' : '查看说明'),
+                    style: supportsListModels
+                        ? null
+                        : TextButton.styleFrom(
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.secondary,
+                          ),
+                  );
+                },
               ),
             TextButton.icon(
               onPressed: _addModel,

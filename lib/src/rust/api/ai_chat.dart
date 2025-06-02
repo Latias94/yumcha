@@ -8,8 +8,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'ai_chat.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_chat_options_for_stream`, `build_chat_options`, `build_chat_request`, `create_genai_client`, `get_adapter_kind`, `normalize_base_url`, `set_env_api_key`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `build_chat_options_for_stream`, `build_chat_options`, `build_chat_request`, `create_genai_client`, `fetch_models_from_openai_api`, `get_adapter_kind`, `get_default_base_url`, `normalize_base_url`, `normalize_base_url`, `set_env_api_key`, `should_include_model`, `supports_openai_compatible_api`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `OpenAiModel`, `OpenAiModelsResponse`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 创建AI聊天客户端
 AiChatClient createAiChatClient({
@@ -46,6 +47,39 @@ Stream<ChatStreamEvent> quickChatStream({
   message: message,
 );
 
+/// 检查提供商是否支持列出模型
+bool checkProviderSupportsListModels({required AiProvider provider}) => RustLib
+    .instance
+    .api
+    .crateApiAiChatCheckProviderSupportsListModels(provider: provider);
+
+/// 获取提供商能力信息
+ProviderCapabilities getProviderCapabilitiesInfo({
+  required AiProvider provider,
+}) => RustLib.instance.api.crateApiAiChatGetProviderCapabilitiesInfo(
+  provider: provider,
+);
+
+/// 快速获取模型列表（带错误处理）
+Future<ModelListResponse> getModelsFromProvider({
+  required AiProvider provider,
+  required String apiKey,
+  String? baseUrl,
+}) => RustLib.instance.api.crateApiAiChatGetModelsFromProvider(
+  provider: provider,
+  apiKey: apiKey,
+  baseUrl: baseUrl,
+);
+
+/// 直接从 OpenAI 兼容 API 获取模型列表
+Future<ModelListResponse> fetchOpenaiCompatibleModels({
+  required String apiKey,
+  required String baseUrl,
+}) => RustLib.instance.api.crateApiAiChatFetchOpenaiCompatibleModels(
+  apiKey: apiKey,
+  baseUrl: baseUrl,
+);
+
 /// 简单的流式测试函数 - 发送一些测试数据
 Stream<ChatStreamEvent> testStream() =>
     RustLib.instance.api.crateApiAiChatTestStream();
@@ -74,6 +108,14 @@ class AiChatClient {
   Future<List<String>> getAvailableModels() => RustLib.instance.api
       .crateApiAiChatAiChatClientGetAvailableModels(that: this);
 
+  /// 获取支持的模型列表（带错误处理）
+  Future<ModelListResponse> getAvailableModelsSafe() => RustLib.instance.api
+      .crateApiAiChatAiChatClientGetAvailableModelsSafe(that: this);
+
+  /// 获取提供商能力信息
+  ProviderCapabilities getProviderCapabilities() => RustLib.instance.api
+      .crateApiAiChatAiChatClientGetProviderCapabilities(that: this);
+
   /// 创建新的AI聊天客户端
   factory AiChatClient({
     required AiProvider provider,
@@ -82,6 +124,10 @@ class AiChatClient {
     provider: provider,
     options: options,
   );
+
+  /// 检查提供商是否支持列出模型
+  bool supportsListModels() => RustLib.instance.api
+      .crateApiAiChatAiChatClientSupportsListModels(that: this);
 
   @override
   int get hashCode => provider.hashCode ^ options.hashCode;
@@ -236,6 +282,70 @@ sealed class ChatStreamEvent with _$ChatStreamEvent {
   /// 错误
   const factory ChatStreamEvent.error({required String message}) =
       ChatStreamEvent_Error;
+}
+
+/// 模型列表响应
+class ModelListResponse {
+  /// 模型列表
+  final List<String> models;
+
+  /// 是否成功
+  final bool success;
+
+  /// 错误信息（如果有）
+  final String? errorMessage;
+
+  const ModelListResponse({
+    required this.models,
+    required this.success,
+    this.errorMessage,
+  });
+
+  @override
+  int get hashCode =>
+      models.hashCode ^ success.hashCode ^ errorMessage.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ModelListResponse &&
+          runtimeType == other.runtimeType &&
+          models == other.models &&
+          success == other.success &&
+          errorMessage == other.errorMessage;
+}
+
+/// 提供商能力信息
+class ProviderCapabilities {
+  /// 是否支持列出模型
+  final bool supportsListModels;
+
+  /// 是否支持自定义服务器地址
+  final bool supportsCustomBaseUrl;
+
+  /// 提供商描述
+  final String description;
+
+  const ProviderCapabilities({
+    required this.supportsListModels,
+    required this.supportsCustomBaseUrl,
+    required this.description,
+  });
+
+  @override
+  int get hashCode =>
+      supportsListModels.hashCode ^
+      supportsCustomBaseUrl.hashCode ^
+      description.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProviderCapabilities &&
+          runtimeType == other.runtimeType &&
+          supportsListModels == other.supportsListModels &&
+          supportsCustomBaseUrl == other.supportsCustomBaseUrl &&
+          description == other.description;
 }
 
 /// Token使用情况

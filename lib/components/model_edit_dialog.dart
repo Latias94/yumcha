@@ -15,7 +15,6 @@ class ModelEditDialog extends StatefulWidget {
 class _ModelEditDialogState extends State<ModelEditDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _displayNameController;
-  late final TextEditingController _contextLengthController;
   late Set<ModelCapability> _selectedCapabilities;
   bool _isEnabled = true;
 
@@ -29,11 +28,8 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
     _displayNameController = TextEditingController(
       text: model?.displayName ?? '',
     );
-    _contextLengthController = TextEditingController(
-      text: model?.metadata['contextLength']?.toString() ?? '',
-    );
     _selectedCapabilities = Set.from(
-      model?.capabilities ?? [ModelCapability.chat],
+      model?.capabilities ?? [ModelCapability.reasoning],
     );
     _isEnabled = model?.isEnabled ?? true;
   }
@@ -42,7 +38,6 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
   void dispose() {
     _nameController.dispose();
     _displayNameController.dispose();
-    _contextLengthController.dispose();
     super.dispose();
   }
 
@@ -53,12 +48,6 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
     }
 
     final metadata = <String, dynamic>{};
-    if (_contextLengthController.text.trim().isNotEmpty) {
-      final contextLength = int.tryParse(_contextLengthController.text.trim());
-      if (contextLength != null && contextLength > 0) {
-        metadata['contextLength'] = contextLength;
-      }
-    }
 
     final now = DateTime.now();
     final model = AiModel(
@@ -106,18 +95,6 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
                   hintText: '用户友好的显示名称（可选）',
                   border: OutlineInputBorder(),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              // 上下文长度
-              TextField(
-                controller: _contextLengthController,
-                decoration: const InputDecoration(
-                  labelText: '上下文长度',
-                  hintText: '例如: 4096, 8192',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
 

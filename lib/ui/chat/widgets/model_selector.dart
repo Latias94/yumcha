@@ -1,30 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/favorite_model_repository.dart';
-import '../../../services/assistant_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/preference_service.dart';
-import '../../../models/ai_assistant.dart';
+import '../../../services/assistant_repository.dart';
+import '../../../models/ai_model.dart';
 import '../../../models/ai_provider.dart';
+import '../../../models/ai_assistant.dart';
 import '../../../providers/ai_provider_notifier.dart';
-import 'model_tile.dart';
+
+/// 提供商-模型组合数据类
+class ProviderModelItem {
+  final AiProvider provider;
+  final AiModel model;
+
+  const ProviderModelItem({required this.provider, required this.model});
+
+  String get id => '${provider.id}:${model.name}';
+  String get displayName => '${provider.name} - ${model.effectiveDisplayName}';
+}
 
 /// 模型选择器组件
 class ModelSelector extends ConsumerStatefulWidget {
   const ModelSelector({
     super.key,
-    required this.assistantRepository,
     required this.favoriteModelRepository,
     required this.preferenceService,
-    required this.selectedAssistantId,
-    required this.onAssistantSelected,
+    required this.selectedProviderId,
+    required this.selectedModelName,
+    required this.onModelSelected,
   });
 
-  final AssistantRepository assistantRepository;
   final FavoriteModelRepository favoriteModelRepository;
   final PreferenceService preferenceService;
-  final String selectedAssistantId;
-  final Function(AiAssistant assistant) onAssistantSelected;
+  final String? selectedProviderId;
+  final String? selectedModelName;
+  final Function(AiAssistant assistant) onModelSelected;
 
   @override
   ConsumerState<ModelSelector> createState() => _ModelSelectorState();
@@ -61,7 +72,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
               Expanded(
                 child: providersAsync.when(
                   data: (providers) {
-                    return FutureBuilder<AssistantSelectorData>(
+                    return FutureBuilder<ModelSelectorData>(
                       future: _loadData(providers),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
@@ -90,6 +101,46 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                         }
 
                         final data = snapshot.data!;
+
+                        // 检查是否有可用的模型
+                        if (data.modelItems.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 48,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  '没有可用的AI模型',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '请检查提供商配置或重新加载',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () => setState(() {}),
+                                  child: const Text('重新加载'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
                         return StatefulBuilder(
                           builder: (context, setSheetState) {
                             return FutureBuilder<List<FavoriteModel>>(
@@ -101,10 +152,9 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                                 return ListView(
                                   controller: scrollController,
                                   children: [
-                                    ..._buildAssistantSections(
-                                      data.assistants,
+                                    ..._buildModelSections(
+                                      data.modelItems,
                                       currentFavorites,
-                                      data.providers,
                                       setSheetState,
                                     ),
                                   ],
@@ -143,82 +193,79 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
     );
   }
 
-  Future<AssistantSelectorData> _loadData(List<AiProvider> providers) async {
+  Future<ModelSelectorData> _loadData(List<AiProvider> providers) async {
     try {
-      final assistants = await widget.assistantRepository
-          .getEnabledAssistants();
       final favoriteModels = await widget.favoriteModelRepository
           .getAllFavoriteModels();
 
-      // 将提供商列表转换为映射
-      final providersMap = <String, AiProvider>{};
+      // 获取所有启用提供商的启用模型
+      final modelItems = <ProviderModelItem>[];
+
       for (final provider in providers) {
-        providersMap[provider.id] = provider;
+        if (provider.isEnabled) {
+          for (final model in provider.models) {
+            if (model.isEnabled) {
+              modelItems.add(
+                ProviderModelItem(provider: provider, model: model),
+              );
+            }
+          }
+        }
       }
 
-      return AssistantSelectorData(
-        assistants: assistants,
+      return ModelSelectorData(
+        modelItems: modelItems,
         favoriteModels: favoriteModels,
-        providers: providersMap,
       );
     } catch (e) {
-      throw Exception('加载助手失败: $e');
+      throw Exception('加载模型失败: $e');
     }
   }
 
-  List<Widget> _buildAssistantSections(
-    List<AiAssistant> assistants,
+  List<Widget> _buildModelSections(
+    List<ProviderModelItem> modelItems,
     List<FavoriteModel> favoriteModels,
-    Map<String, AiProvider> providers,
     StateSetter setSheetState,
   ) {
     final List<Widget> sections = [];
 
     // 收藏部分
-    final favoriteAssistants = assistants.where((assistant) {
+    final favoriteItems = modelItems.where((item) {
       return favoriteModels.any(
         (fav) =>
-            fav.providerId == assistant.providerId &&
-            fav.modelName == assistant.modelName,
+            fav.providerId == item.provider.id &&
+            fav.modelName == item.model.name,
       );
     }).toList();
 
-    if (favoriteAssistants.isNotEmpty) {
+    if (favoriteItems.isNotEmpty) {
       sections.add(_buildSectionHeader("收藏夹"));
       sections.addAll(
-        _buildAssistantModels(
-          favoriteAssistants,
-          favoriteModels,
-          setSheetState,
-        ),
+        _buildModelTiles(favoriteItems, favoriteModels, setSheetState),
       );
       sections.add(const SizedBox(height: 16));
     }
 
-    // 按提供商分组显示其他助手
-    final nonFavoriteAssistants = assistants.where((assistant) {
+    // 按提供商分组显示其他模型
+    final nonFavoriteItems = modelItems.where((item) {
       return !favoriteModels.any(
         (fav) =>
-            fav.providerId == assistant.providerId &&
-            fav.modelName == assistant.modelName,
+            fav.providerId == item.provider.id &&
+            fav.modelName == item.model.name,
       );
     }).toList();
 
-    final groupedAssistants = <String, List<AiAssistant>>{};
-    for (final assistant in nonFavoriteAssistants) {
-      groupedAssistants
-          .putIfAbsent(assistant.providerId, () => [])
-          .add(assistant);
+    final groupedItems = <String, List<ProviderModelItem>>{};
+    for (final item in nonFavoriteItems) {
+      groupedItems.putIfAbsent(item.provider.id, () => []).add(item);
     }
 
-    for (final entry in groupedAssistants.entries) {
+    for (final entry in groupedItems.entries) {
       if (entry.value.isNotEmpty) {
-        final provider = providers[entry.key];
-        final providerDisplayName =
-            provider?.name ?? _getProviderDisplayName(entry.key);
-        sections.add(_buildSectionHeader(providerDisplayName));
+        final provider = entry.value.first.provider;
+        sections.add(_buildSectionHeader(provider.name));
         sections.addAll(
-          _buildAssistantModels(entry.value, favoriteModels, setSheetState),
+          _buildModelTiles(entry.value, favoriteModels, setSheetState),
         );
         sections.add(const SizedBox(height: 16));
       }
@@ -240,83 +287,188 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
     );
   }
 
-  List<Widget> _buildAssistantModels(
-    List<AiAssistant> assistants,
+  List<Widget> _buildModelTiles(
+    List<ProviderModelItem> modelItems,
     List<FavoriteModel> favoriteModels,
     StateSetter setSheetState,
   ) {
-    return assistants.map((assistant) {
+    return modelItems.map((item) {
       final isFavorite = favoriteModels.any(
         (fav) =>
-            fav.providerId == assistant.providerId &&
-            fav.modelName == assistant.modelName,
+            fav.providerId == item.provider.id &&
+            fav.modelName == item.model.name,
       );
-      return ModelTile(
-        assistant: assistant,
-        isSelected: widget.selectedAssistantId == assistant.id,
+
+      final isSelected =
+          widget.selectedProviderId == item.provider.id &&
+          widget.selectedModelName == item.model.name;
+
+      return _buildModelTile(
+        item: item,
+        isSelected: isSelected,
         isFavorite: isFavorite,
-        favoriteModelRepository: widget.favoriteModelRepository,
-        onTap: () => _selectAssistant(assistant),
+        onTap: () => _selectModel(item),
         onFavoriteChanged: () => setSheetState(() {}),
       );
     }).toList();
   }
 
-  void _selectAssistant(AiAssistant assistant) {
+  Widget _buildModelTile({
+    required ProviderModelItem item,
+    required bool isSelected,
+    required bool isFavorite,
+    required VoidCallback onTap,
+    required VoidCallback onFavoriteChanged,
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected
+              ? theme.colorScheme.primary.withValues(alpha: 0.5)
+              : theme.colorScheme.outline.withValues(alpha: 0.2),
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Text(
+            item.provider.name.substring(0, 1).toUpperCase(),
+            style: TextStyle(
+              color: theme.colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        title: Text(
+          item.model.effectiveDisplayName,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.provider.name,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (item.model.capabilities.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 4,
+                children: item.model.capabilities.map((capability) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer.withValues(
+                        alpha: 0.7,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      capability.displayName,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: isFavorite ? Colors.red : theme.colorScheme.onSurfaceVariant,
+          ),
+          onPressed: () async {
+            if (isFavorite) {
+              await widget.favoriteModelRepository.removeFavoriteModel(
+                item.provider.id,
+                item.model.name,
+              );
+            } else {
+              await widget.favoriteModelRepository.addFavoriteModel(
+                item.provider.id,
+                item.model.name,
+              );
+            }
+            onFavoriteChanged();
+          },
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  void _selectModel(ProviderModelItem item) {
     // 保存最后使用的模型到偏好设置
     widget.preferenceService.saveLastUsedModel(
-      assistant.providerId,
-      assistant.modelName,
+      item.provider.id,
+      item.model.name,
+    );
+
+    // 创建基于选择模型的临时助手对象
+    // 注意：这里我们创建一个临时助手，包含默认的AI参数
+    // 在未来的重构中，应该将助手配置和模型选择分离
+    final tempAssistant = AiAssistant(
+      id: 'temp_${item.provider.id}_${item.model.name}',
+      name: item.model.effectiveDisplayName,
+      description:
+          '基于 ${item.provider.name} 的 ${item.model.effectiveDisplayName} 模型',
+      avatar: '🤖',
+      systemPrompt: '你是一个乐于助人的AI助手。',
+      providerId: item.provider.id,
+      modelName: item.model.name,
+      temperature: 0.7,
+      topP: 1.0,
+      maxTokens: 4096,
+      contextLength: 32,
+      streamOutput: true,
+      isEnabled: true,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
     // 通知父组件
-    widget.onAssistantSelected(assistant);
+    widget.onModelSelected(tempAssistant);
 
     // 关闭底部表单
     Navigator.pop(context);
   }
-
-  /// 根据提供商ID获取显示名称
-  String _getProviderDisplayName(String providerId) {
-    // 根据提供商ID返回对应的显示名称
-    switch (providerId.toLowerCase()) {
-      case 'openai':
-        return 'OpenAI';
-      case 'anthropic':
-        return 'Anthropic (Claude)';
-      case 'google':
-        return 'Google (Gemini)';
-      case 'ollama':
-        return 'Ollama';
-      case 'custom':
-        return '自定义';
-      default:
-        return providerId; // 如果没有匹配，返回原始ID
-    }
-  }
 }
 
-/// 助手选择器数据类
-class AssistantSelectorData {
-  final List<AiAssistant> assistants;
+/// 模型选择器数据类
+class ModelSelectorData {
+  final List<ProviderModelItem> modelItems;
   final List<FavoriteModel> favoriteModels;
-  final Map<String, AiProvider> providers; // 提供商映射
 
-  AssistantSelectorData({
-    required this.assistants,
-    required this.favoriteModels,
-    required this.providers,
-  });
+  ModelSelectorData({required this.modelItems, required this.favoriteModels});
 }
 
-/// 显示助手选择器
-Future<void> showAssistantSelector({
+/// 显示模型选择器
+Future<void> showModelSelector({
   required BuildContext context,
-  required AssistantRepository assistantRepository,
   required FavoriteModelRepository favoriteModelRepository,
   required PreferenceService preferenceService,
-  required String selectedAssistantId,
-  required Function(AiAssistant assistant) onAssistantSelected,
+  required String? selectedProviderId,
+  required String? selectedModelName,
+  required Function(AiAssistant assistant) onModelSelected,
 }) async {
   try {
     await showModalBottomSheet(
@@ -326,14 +478,14 @@ Future<void> showAssistantSelector({
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => ModelSelector(
-        assistantRepository: assistantRepository,
         favoriteModelRepository: favoriteModelRepository,
         preferenceService: preferenceService,
-        selectedAssistantId: selectedAssistantId,
-        onAssistantSelected: onAssistantSelected,
+        selectedProviderId: selectedProviderId,
+        selectedModelName: selectedModelName,
+        onModelSelected: onModelSelected,
       ),
     );
   } catch (e) {
-    NotificationService().showError('加载助手失败: $e');
+    NotificationService().showError('加载模型失败: $e');
   }
 }

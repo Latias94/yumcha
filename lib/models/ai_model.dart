@@ -1,10 +1,8 @@
 enum ModelCapability {
-  chat('聊天', 'chat'),
+  vision('视觉', 'vision'),
   embedding('嵌入', 'embedding'),
-  imageGeneration('图片生成', 'image_generation'),
-  imageAnalysis('图片分析', 'image_analysis'),
-  audioTranscription('音频转录', 'audio_transcription'),
-  audioGeneration('音频生成', 'audio_generation');
+  reasoning('推理', 'reasoning'),
+  tools('工具', 'tools');
 
   const ModelCapability(this.displayName, this.id);
   final String displayName;
@@ -25,7 +23,7 @@ class AiModel {
     required this.id,
     required this.name,
     this.displayName = '',
-    this.capabilities = const [ModelCapability.chat],
+    this.capabilities = const [ModelCapability.reasoning],
     this.metadata = const {},
     this.isEnabled = true,
     required this.createdAt,
@@ -79,11 +77,11 @@ class AiModel {
               ?.map(
                 (c) => ModelCapability.values.firstWhere(
                   (cap) => cap.id == c,
-                  orElse: () => ModelCapability.chat,
+                  orElse: () => ModelCapability.reasoning,
                 ),
               )
               .toList() ??
-          [ModelCapability.chat],
+          [ModelCapability.reasoning],
       metadata: json['metadata'] as Map<String, dynamic>? ?? {},
       isEnabled: json['isEnabled'] as bool? ?? true,
       createdAt: DateTime.parse(json['createdAt'] as String),

@@ -42,6 +42,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AiProvider dco_decode_ai_provider(dynamic raw);
 
   @protected
+  bool dco_decode_bool(dynamic raw);
+
+  @protected
   AiChatClient dco_decode_box_autoadd_ai_chat_client(dynamic raw);
 
   @protected
@@ -90,6 +93,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  ModelListResponse dco_decode_model_list_response(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
@@ -106,6 +112,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String>? dco_decode_opt_list_String(dynamic raw);
+
+  @protected
+  ProviderCapabilities dco_decode_provider_capabilities(dynamic raw);
 
   @protected
   TokenUsage dco_decode_token_usage(dynamic raw);
@@ -138,6 +147,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AiProvider sse_decode_ai_provider(SseDeserializer deserializer);
+
+  @protected
+  bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
   AiChatClient sse_decode_box_autoadd_ai_chat_client(
@@ -192,6 +204,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  ModelListResponse sse_decode_model_list_response(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
@@ -212,6 +229,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
 
   @protected
+  ProviderCapabilities sse_decode_provider_capabilities(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TokenUsage sse_decode_token_usage(SseDeserializer deserializer);
 
   @protected
@@ -222,9 +244,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
-
-  @protected
-  bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
   void sse_encode_AnyhowException(
@@ -249,6 +268,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_ai_provider(AiProvider self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_ai_chat_client(
@@ -320,6 +342,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_model_list_response(
+    ModelListResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
@@ -341,6 +369,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_provider_capabilities(
+    ProviderCapabilities self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_token_usage(TokenUsage self, SseSerializer serializer);
 
   @protected
@@ -351,9 +385,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer);
 }
 
 // Section: wire_class

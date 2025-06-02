@@ -65,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.10.0';
 
   @override
-  int get rustContentHash => 210666046;
+  int get rustContentHash => -2020386691;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -90,14 +90,45 @@ abstract class RustLibApi extends BaseApi {
     required AiChatClient that,
   });
 
+  Future<ModelListResponse> crateApiAiChatAiChatClientGetAvailableModelsSafe({
+    required AiChatClient that,
+  });
+
+  ProviderCapabilities crateApiAiChatAiChatClientGetProviderCapabilities({
+    required AiChatClient that,
+  });
+
   AiChatClient crateApiAiChatAiChatClientNew({
     required AiProvider provider,
     required AiChatOptions options,
   });
 
+  bool crateApiAiChatAiChatClientSupportsListModels({
+    required AiChatClient that,
+  });
+
+  bool crateApiAiChatCheckProviderSupportsListModels({
+    required AiProvider provider,
+  });
+
   AiChatClient crateApiAiChatCreateAiChatClient({
     required AiProvider provider,
     required AiChatOptions options,
+  });
+
+  Future<ModelListResponse> crateApiAiChatFetchOpenaiCompatibleModels({
+    required String apiKey,
+    required String baseUrl,
+  });
+
+  Future<ModelListResponse> crateApiAiChatGetModelsFromProvider({
+    required AiProvider provider,
+    required String apiKey,
+    String? baseUrl,
+  });
+
+  ProviderCapabilities crateApiAiChatGetProviderCapabilitiesInfo({
+    required AiProvider provider,
   });
 
   String crateApiSimpleGreet({required String name});
@@ -238,6 +269,69 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<ModelListResponse> crateApiAiChatAiChatClientGetAvailableModelsSafe({
+    required AiChatClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_chat_client(that, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_model_list_response,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatAiChatClientGetAvailableModelsSafeConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiAiChatAiChatClientGetAvailableModelsSafeConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_get_available_models_safe",
+        argNames: ["that"],
+      );
+
+  @override
+  ProviderCapabilities crateApiAiChatAiChatClientGetProviderCapabilities({
+    required AiChatClient that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_chat_client(that, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_provider_capabilities,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatAiChatClientGetProviderCapabilitiesConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiAiChatAiChatClientGetProviderCapabilitiesConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_get_provider_capabilities",
+        argNames: ["that"],
+      );
+
+  @override
   AiChatClient crateApiAiChatAiChatClientNew({
     required AiProvider provider,
     required AiChatOptions options,
@@ -248,7 +342,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_provider(provider, serializer);
           sse_encode_box_autoadd_ai_chat_options(options, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_ai_chat_client,
@@ -268,6 +362,62 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  bool crateApiAiChatAiChatClientSupportsListModels({
+    required AiChatClient that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_chat_client(that, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatAiChatClientSupportsListModelsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatAiChatClientSupportsListModelsConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_supports_list_models",
+        argNames: ["that"],
+      );
+
+  @override
+  bool crateApiAiChatCheckProviderSupportsListModels({
+    required AiProvider provider,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatCheckProviderSupportsListModelsConstMeta,
+        argValues: [provider],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatCheckProviderSupportsListModelsConstMeta =>
+      const TaskConstMeta(
+        debugName: "check_provider_supports_list_models",
+        argNames: ["provider"],
+      );
+
+  @override
   AiChatClient crateApiAiChatCreateAiChatClient({
     required AiProvider provider,
     required AiChatOptions options,
@@ -278,7 +428,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_provider(provider, serializer);
           sse_encode_box_autoadd_ai_chat_options(options, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_ai_chat_client,
@@ -298,13 +448,113 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<ModelListResponse> crateApiAiChatFetchOpenaiCompatibleModels({
+    required String apiKey,
+    required String baseUrl,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(apiKey, serializer);
+          sse_encode_String(baseUrl, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_model_list_response,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatFetchOpenaiCompatibleModelsConstMeta,
+        argValues: [apiKey, baseUrl],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatFetchOpenaiCompatibleModelsConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_openai_compatible_models",
+        argNames: ["apiKey", "baseUrl"],
+      );
+
+  @override
+  Future<ModelListResponse> crateApiAiChatGetModelsFromProvider({
+    required AiProvider provider,
+    required String apiKey,
+    String? baseUrl,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          sse_encode_String(apiKey, serializer);
+          sse_encode_opt_String(baseUrl, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_model_list_response,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatGetModelsFromProviderConstMeta,
+        argValues: [provider, apiKey, baseUrl],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatGetModelsFromProviderConstMeta =>
+      const TaskConstMeta(
+        debugName: "get_models_from_provider",
+        argNames: ["provider", "apiKey", "baseUrl"],
+      );
+
+  @override
+  ProviderCapabilities crateApiAiChatGetProviderCapabilitiesInfo({
+    required AiProvider provider,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_provider_capabilities,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatGetProviderCapabilitiesInfoConstMeta,
+        argValues: [provider],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatGetProviderCapabilitiesInfoConstMeta =>
+      const TaskConstMeta(
+        debugName: "get_provider_capabilities_info",
+        argNames: ["provider"],
+      );
+
+  @override
   String crateApiSimpleGreet({required String name}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -329,7 +579,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 14,
             port: port_,
           );
         },
@@ -365,7 +615,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 15,
             port: port_,
           );
         },
@@ -406,7 +656,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 9,
+              funcId: 16,
               port: port_,
             );
           },
@@ -441,7 +691,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 10,
+              funcId: 17,
               port: port_,
             );
           },
@@ -536,6 +786,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       default:
         throw Exception("unreachable");
     }
+  }
+
+  @protected
+  bool dco_decode_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
   }
 
   @protected
@@ -662,6 +918,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ModelListResponse dco_decode_model_list_response(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return ModelListResponse(
+      models: dco_decode_list_String(arr[0]),
+      success: dco_decode_bool(arr[1]),
+      errorMessage: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
@@ -695,6 +964,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<String>? dco_decode_opt_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_String(raw);
+  }
+
+  @protected
+  ProviderCapabilities dco_decode_provider_capabilities(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return ProviderCapabilities(
+      supportsListModels: dco_decode_bool(arr[0]),
+      supportsCustomBaseUrl: dco_decode_bool(arr[1]),
+      description: dco_decode_String(arr[2]),
+    );
   }
 
   @protected
@@ -809,6 +1091,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       default:
         throw UnimplementedError('');
     }
+  }
+
+  @protected
+  bool sse_decode_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint8() != 0;
   }
 
   @protected
@@ -955,6 +1243,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ModelListResponse sse_decode_model_list_response(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_models = sse_decode_list_String(deserializer);
+    var var_success = sse_decode_bool(deserializer);
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    return ModelListResponse(
+      models: var_models,
+      success: var_success,
+      errorMessage: var_errorMessage,
+    );
+  }
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -1023,6 +1326,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ProviderCapabilities sse_decode_provider_capabilities(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_supportsListModels = sse_decode_bool(deserializer);
+    var var_supportsCustomBaseUrl = sse_decode_bool(deserializer);
+    var var_description = sse_decode_String(deserializer);
+    return ProviderCapabilities(
+      supportsListModels: var_supportsListModels,
+      supportsCustomBaseUrl: var_supportsCustomBaseUrl,
+      description: var_description,
+    );
+  }
+
+  @protected
   TokenUsage sse_decode_token_usage(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_promptTokens = sse_decode_opt_box_autoadd_i_32(deserializer);
@@ -1050,12 +1368,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_decode_unit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  bool sse_decode_bool(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getUint8() != 0;
   }
 
   @protected
@@ -1137,6 +1449,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_i_32(8, serializer);
         sse_encode_String(name, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint8(self ? 1 : 0);
   }
 
   @protected
@@ -1283,6 +1601,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_model_list_response(
+    ModelListResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_String(self.models, serializer);
+    sse_encode_bool(self.success, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
+  }
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -1349,6 +1678,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_provider_capabilities(
+    ProviderCapabilities self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.supportsListModels, serializer);
+    sse_encode_bool(self.supportsCustomBaseUrl, serializer);
+    sse_encode_String(self.description, serializer);
+  }
+
+  @protected
   void sse_encode_token_usage(TokenUsage self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_box_autoadd_i_32(self.promptTokens, serializer);
@@ -1371,11 +1711,5 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putUint8(self ? 1 : 0);
   }
 }

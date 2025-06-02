@@ -321,14 +321,14 @@ class _ChatInputState extends State<ChatInput>
     return _textController.text.trim().isNotEmpty && !widget.isLoading;
   }
 
-  void _showAssistantSelector() async {
-    await showAssistantSelector(
+  void _showModelSelector() async {
+    await showModelSelector(
       context: context,
-      assistantRepository: _assistantRepository,
       favoriteModelRepository: _favoriteModelRepository,
       preferenceService: _preferenceService,
-      selectedAssistantId: _selectedAssistant?.id ?? '',
-      onAssistantSelected: (assistant) {
+      selectedProviderId: _selectedAssistant?.providerId,
+      selectedModelName: _selectedAssistant?.modelName,
+      onModelSelected: (assistant) {
         setState(() {
           _selectedAssistant = assistant;
         });
@@ -521,8 +521,8 @@ class _ChatInputState extends State<ChatInput>
           size: 20,
           color: theme.colorScheme.primary.withValues(alpha: 0.8),
         ),
-        onPressed: _showAssistantSelector,
-        tooltip: '选择AI助手',
+        onPressed: _showModelSelector,
+        tooltip: '选择AI模型',
       ),
     );
   }

@@ -1,7 +1,6 @@
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
-use std::collections::HashMap;
 
 // Flutter Rust Bridge StreamSink
 use crate::frb_generated::StreamSink;
@@ -74,6 +73,51 @@ pub struct TokenUsage {
     pub total_tokens: Option<i32>,
 }
 
+/// 提供商能力信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderCapabilities {
+    /// 是否支持列出模型
+    pub supports_list_models: bool,
+    /// 是否支持自定义服务器地址
+    pub supports_custom_base_url: bool,
+    /// 提供商描述
+    pub description: String,
+}
+
+/// 模型列表响应
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelListResponse {
+    /// 模型列表
+    pub models: Vec<String>,
+    /// 是否成功
+    pub success: bool,
+    /// 错误信息（如果有）
+    pub error_message: Option<String>,
+}
+
+/// OpenAI API 模型对象（简化版，只关心我们需要的字段）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenAiModel {
+    pub id: String,
+    #[serde(default)]
+    pub object: Option<String>,
+    #[serde(default)]
+    pub created: Option<i64>,
+    #[serde(default)]
+    pub owned_by: Option<String>,
+    // 忽略其他字段
+}
+
+/// OpenAI API 模型列表响应
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenAiModelsResponse {
+    #[serde(default)]
+    pub object: Option<String>,
+    pub data: Vec<OpenAiModel>,
+}
+
+
+
 /// 流式聊天事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ChatStreamEvent {
@@ -109,11 +153,183 @@ impl AiChatClient {
     /// 获取支持的模型列表
     pub async fn get_available_models(&self) -> Result<Vec<String>> {
         let client = self.create_genai_client().await?;
-        
+
         let adapter_kind = self.get_adapter_kind();
         let models = client.all_model_names(adapter_kind).await?;
-        
+
         Ok(models)
+    }
+
+    /// 获取支持的模型列表（带错误处理）
+    pub async fn get_available_models_safe(&self) -> ModelListResponse {
+        // 对于支持 OpenAI 兼容接口的提供商，直接调用 API
+        if self.supports_openai_compatible_api() {
+            match self.fetch_models_from_openai_api().await {
+                Ok(models) => ModelListResponse {
+                    models,
+                    success: true,
+                    error_message: None,
+                },
+                Err(e) => ModelListResponse {
+                    models: vec![],
+                    success: false,
+                    error_message: Some(format!("获取模型列表失败: {}", e)),
+                },
+            }
+        } else {
+            // 对于其他提供商，使用 genai crate 的静态列表
+            match self.get_available_models().await {
+                Ok(models) => ModelListResponse {
+                    models,
+                    success: true,
+                    error_message: None,
+                },
+                Err(e) => ModelListResponse {
+                    models: vec![],
+                    success: false,
+                    error_message: Some(format!("获取模型列表失败: {}", e)),
+                },
+            }
+        }
+    }
+
+    /// 检查是否支持 OpenAI 兼容 API
+    fn supports_openai_compatible_api(&self) -> bool {
+        match self.provider {
+            AiProvider::OpenAI => true,
+            AiProvider::DeepSeek => true,
+            AiProvider::Custom { .. } => true,
+            _ => false,
+        }
+    }
+
+    /// 从 OpenAI 兼容 API 获取模型列表
+    async fn fetch_models_from_openai_api(&self) -> Result<Vec<String>> {
+        let base_url = self.options.base_url
+            .as_ref()
+            .map(|url| Self::normalize_base_url(url))
+            .unwrap_or_else(|| self.get_default_base_url());
+
+        let url = format!("{}models", base_url);
+
+        let client = reqwest::Client::new();
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", self.options.api_key))
+            .header("Content-Type", "application/json")
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!(
+                "HTTP 错误: {} - {}",
+                response.status(),
+                response.text().await.unwrap_or_default()
+            ));
+        }
+
+        let models_response: OpenAiModelsResponse = response.json().await?;
+
+        // 过滤掉非聊天模型
+        let models: Vec<String> = models_response
+            .data
+            .into_iter()
+            .map(|model| model.id)
+            .filter(|model_id| self.should_include_model(model_id))
+            .collect();
+
+        Ok(models)
+    }
+
+    /// 获取默认的 base URL
+    fn get_default_base_url(&self) -> String {
+        match self.provider {
+            AiProvider::OpenAI => "https://api.openai.com/v1/".to_string(),
+            AiProvider::DeepSeek => "https://api.deepseek.com/v1/".to_string(),
+            _ => "https://api.openai.com/v1/".to_string(),
+        }
+    }
+
+
+
+    /// 判断是否应该包含该模型
+    fn should_include_model(&self, model_id: &str) -> bool {
+        let exclude_patterns = [
+            "whisper", "tts", "dall-e", "embedding", "moderation",
+            "babbage", "ada", "curie", "davinci",
+        ];
+
+        let lower_model_id = model_id.to_lowercase();
+        !exclude_patterns.iter().any(|pattern| lower_model_id.contains(pattern))
+    }
+
+    /// 检查提供商是否支持列出模型
+    #[frb(sync)]
+    pub fn supports_list_models(&self) -> bool {
+        match self.provider {
+            AiProvider::OpenAI => true,
+            AiProvider::Ollama => true,
+            AiProvider::Anthropic => false, // Anthropic 不支持动态获取模型列表
+            AiProvider::Cohere => false,
+            AiProvider::Gemini => false,
+            AiProvider::Groq => false,
+            AiProvider::Xai => false,
+            AiProvider::DeepSeek => true, // DeepSeek 使用 OpenAI 兼容接口
+            AiProvider::Custom { .. } => true, // 自定义提供商假设支持 OpenAI 兼容接口
+        }
+    }
+
+    /// 获取提供商能力信息
+    #[frb(sync)]
+    pub fn get_provider_capabilities(&self) -> ProviderCapabilities {
+        match self.provider {
+            AiProvider::OpenAI => ProviderCapabilities {
+                supports_list_models: true,
+                supports_custom_base_url: true,
+                description: "OpenAI 官方 API，支持 GPT 系列模型".to_string(),
+            },
+            AiProvider::Anthropic => ProviderCapabilities {
+                supports_list_models: false,
+                supports_custom_base_url: false,
+                description: "Anthropic Claude 系列模型，需要手动配置模型列表".to_string(),
+            },
+            AiProvider::Cohere => ProviderCapabilities {
+                supports_list_models: false,
+                supports_custom_base_url: false,
+                description: "Cohere Command 系列模型，需要手动配置模型列表".to_string(),
+            },
+            AiProvider::Gemini => ProviderCapabilities {
+                supports_list_models: false,
+                supports_custom_base_url: false,
+                description: "Google Gemini 系列模型，需要手动配置模型列表".to_string(),
+            },
+            AiProvider::Groq => ProviderCapabilities {
+                supports_list_models: false,
+                supports_custom_base_url: false,
+                description: "Groq 高速推理平台，需要手动配置模型列表".to_string(),
+            },
+            AiProvider::Ollama => ProviderCapabilities {
+                supports_list_models: true,
+                supports_custom_base_url: true,
+                description: "Ollama 本地模型服务，支持动态获取已安装的模型".to_string(),
+            },
+            AiProvider::Xai => ProviderCapabilities {
+                supports_list_models: false,
+                supports_custom_base_url: false,
+                description: "xAI Grok 系列模型，需要手动配置模型列表".to_string(),
+            },
+            AiProvider::DeepSeek => ProviderCapabilities {
+                supports_list_models: true,
+                supports_custom_base_url: true,
+                description: "DeepSeek 模型，使用 OpenAI 兼容接口".to_string(),
+            },
+            AiProvider::Custom { ref name } => ProviderCapabilities {
+                supports_list_models: true,
+                supports_custom_base_url: true,
+                description: format!("自定义提供商: {}，假设支持 OpenAI 兼容接口", name),
+            },
+        }
     }
 
     /// 单次聊天 (非流式)
@@ -415,6 +631,186 @@ pub async fn quick_chat_stream(
     }];
 
     client.chat_stream(messages, sink).await
+}
+
+/// 检查提供商是否支持列出模型
+#[frb(sync)]
+pub fn check_provider_supports_list_models(provider: AiProvider) -> bool {
+    match provider {
+        AiProvider::OpenAI => true,
+        AiProvider::Ollama => true,
+        AiProvider::Anthropic => false,
+        AiProvider::Cohere => false,
+        AiProvider::Gemini => false,
+        AiProvider::Groq => false,
+        AiProvider::Xai => false,
+        AiProvider::DeepSeek => true,
+        AiProvider::Custom { .. } => true,
+    }
+}
+
+/// 获取提供商能力信息
+#[frb(sync)]
+pub fn get_provider_capabilities_info(provider: AiProvider) -> ProviderCapabilities {
+    match provider {
+        AiProvider::OpenAI => ProviderCapabilities {
+            supports_list_models: true,
+            supports_custom_base_url: true,
+            description: "OpenAI 官方 API，支持 GPT 系列模型".to_string(),
+        },
+        AiProvider::Anthropic => ProviderCapabilities {
+            supports_list_models: false,
+            supports_custom_base_url: false,
+            description: "Anthropic Claude 系列模型，需要手动配置模型列表".to_string(),
+        },
+        AiProvider::Cohere => ProviderCapabilities {
+            supports_list_models: false,
+            supports_custom_base_url: false,
+            description: "Cohere Command 系列模型，需要手动配置模型列表".to_string(),
+        },
+        AiProvider::Gemini => ProviderCapabilities {
+            supports_list_models: false,
+            supports_custom_base_url: false,
+            description: "Google Gemini 系列模型，需要手动配置模型列表".to_string(),
+        },
+        AiProvider::Groq => ProviderCapabilities {
+            supports_list_models: false,
+            supports_custom_base_url: false,
+            description: "Groq 高速推理平台，需要手动配置模型列表".to_string(),
+        },
+        AiProvider::Ollama => ProviderCapabilities {
+            supports_list_models: true,
+            supports_custom_base_url: true,
+            description: "Ollama 本地模型服务，支持动态获取已安装的模型".to_string(),
+        },
+        AiProvider::Xai => ProviderCapabilities {
+            supports_list_models: false,
+            supports_custom_base_url: false,
+            description: "xAI Grok 系列模型，需要手动配置模型列表".to_string(),
+        },
+        AiProvider::DeepSeek => ProviderCapabilities {
+            supports_list_models: true,
+            supports_custom_base_url: true,
+            description: "DeepSeek 模型，使用 OpenAI 兼容接口".to_string(),
+        },
+        AiProvider::Custom { ref name } => ProviderCapabilities {
+            supports_list_models: true,
+            supports_custom_base_url: true,
+            description: format!("自定义提供商: {}，假设支持 OpenAI 兼容接口", name),
+        },
+    }
+}
+
+/// 快速获取模型列表（带错误处理）
+pub async fn get_models_from_provider(
+    provider: AiProvider,
+    api_key: String,
+    base_url: Option<String>,
+) -> ModelListResponse {
+    // 首先检查是否支持列出模型
+    if !check_provider_supports_list_models(provider.clone()) {
+        return ModelListResponse {
+            models: vec![],
+            success: false,
+            error_message: Some("此提供商不支持动态获取模型列表，请手动添加模型".to_string()),
+        };
+    }
+
+    let options = AiChatOptions {
+        model: "dummy".to_string(), // 临时模型名，不会被使用
+        base_url,
+        api_key,
+        temperature: None,
+        top_p: None,
+        max_tokens: None,
+        system_prompt: None,
+        stop_sequences: None,
+    };
+
+    let client = AiChatClient::new(provider, options);
+    client.get_available_models_safe().await
+}
+
+/// 标准化 base URL，确保以斜杠结尾
+fn normalize_base_url(url: &str) -> String {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return trimmed.to_string();
+    }
+
+    if trimmed.ends_with('/') {
+        trimmed.to_string()
+    } else {
+        format!("{}/", trimmed)
+    }
+}
+
+/// 直接从 OpenAI 兼容 API 获取模型列表
+pub async fn fetch_openai_compatible_models(
+    api_key: String,
+    base_url: String,
+) -> ModelListResponse {
+    // 使用更好的 URL 标准化逻辑
+    let normalized_url = normalize_base_url(&base_url);
+    let url = format!("{}models", normalized_url);
+
+    let client = reqwest::Client::new();
+
+    match client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if !response.status().is_success() {
+                let status = response.status();
+                let error_text = response.text().await.unwrap_or_default();
+                return ModelListResponse {
+                    models: vec![],
+                    success: false,
+                    error_message: Some(format!("HTTP 错误 {}: {}", status, error_text)),
+                };
+            }
+
+            match response.json::<OpenAiModelsResponse>().await {
+                Ok(models_response) => {
+                    let exclude_patterns = [
+                        "whisper", "tts", "dall-e", "embedding", "moderation",
+                        "babbage", "ada", "curie", "davinci",
+                    ];
+
+                    let models: Vec<String> = models_response
+                        .data
+                        .into_iter()
+                        .map(|model| model.id)
+                        .filter(|model_id| {
+                            let lower_model_id = model_id.to_lowercase();
+                            !exclude_patterns.iter().any(|pattern| lower_model_id.contains(pattern))
+                        })
+                        .collect();
+
+                    ModelListResponse {
+                        models,
+                        success: true,
+                        error_message: None,
+                    }
+                }
+                Err(e) => ModelListResponse {
+                    models: vec![],
+                    success: false,
+                    error_message: Some(format!("解析响应失败: {}", e)),
+                },
+            }
+        }
+        Err(e) => ModelListResponse {
+            models: vec![],
+            success: false,
+            error_message: Some(format!("网络请求失败: {}", e)),
+        },
+    }
 }
 
 // ===== 简单的测试函数 =====
