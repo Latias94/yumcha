@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'debug_screen.dart';
 import 'providers_screen.dart';
 import 'assistants_screen.dart';
+import 'ai_debug_screen.dart';
 import '../services/assistant_repository.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
@@ -91,6 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // 开发者选项
               _buildSectionHeader("开发者选项"),
               _buildDebugItem(),
+              _buildAiDebugItem(),
 
               const SizedBox(height: 24),
 
@@ -376,6 +378,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const DebugScreen()),
+        );
+      },
+    );
+  }
+
+  Widget _buildAiDebugItem() {
+    return ListTile(
+      leading: const Icon(Icons.smart_toy_outlined),
+      title: const Text("AI聊天调试"),
+      subtitle: const Text("测试AI聊天API功能"),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AiDebugScreenWrapper()),
         );
       },
     );

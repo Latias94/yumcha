@@ -1,0 +1,70 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+
+/// 流式响应处理器 - 管理AI流式输出
+class StreamResponse {
+  StreamResponse({required this.stream, this.onUpdate, this.onDone}) {
+    _startListening();
+  }
+
+  /// 流式数据源
+  final Stream<String> stream;
+
+  /// 内容更新回调
+  final VoidCallback? onUpdate;
+
+  /// 完成回调（包含错误处理）
+  final void Function(String? error)? onDone;
+
+  String _content = '';
+  StreamSubscription<String>? _subscription;
+  bool _isCanceled = false;
+  bool _isDone = false;
+
+  /// 获取当前累积的内容
+  String get content => _content;
+
+  /// 是否已被取消
+  bool get isCanceled => _isCanceled;
+
+  /// 是否已完成
+  bool get isDone => _isDone;
+
+  void _startListening() {
+    _subscription = stream.listen(
+      (chunk) {
+        if (_isCanceled || _isDone) return;
+
+        _content += chunk;
+        onUpdate?.call();
+      },
+      onError: (error) {
+        if (_isCanceled || _isDone) return;
+
+        _isDone = true;
+        onDone?.call('流式响应错误: $error');
+      },
+      onDone: () {
+        if (_isCanceled || _isDone) return;
+
+        _isDone = true;
+        onDone?.call(null);
+      },
+    );
+  }
+
+  /// 取消流式响应
+  void cancel() {
+    if (_isDone) return;
+
+    _isCanceled = true;
+    _isDone = true;
+    _subscription?.cancel();
+    onDone?.call('已取消');
+  }
+
+  /// 释放资源
+  void dispose() {
+    _subscription?.cancel();
+  }
+}

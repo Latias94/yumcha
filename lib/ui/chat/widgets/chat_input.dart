@@ -1,29 +1,45 @@
 import 'package:flutter/material.dart';
-import '../services/provider_repository.dart';
-import '../services/favorite_model_repository.dart';
-import '../services/database_service.dart';
-import '../services/notification_service.dart';
-import '../models/ai_provider.dart';
+import '../../../models/message.dart';
+import '../../../services/provider_repository.dart';
+import '../../../services/favorite_model_repository.dart';
+import '../../../services/database_service.dart';
+import '../../../services/notification_service.dart';
+import '../../../models/ai_provider.dart';
 
+/// 聊天输入组件 - 增强版UI
 class ChatInput extends StatefulWidget {
-  final Function(String) onSendMessage;
-  final bool isLoading;
-  final VoidCallback? onStopGeneration;
-  final bool canStop;
-  final Function(String providerId, String modelName)? onProviderChanged;
-  final String? initialText;
-  final String? editingMessageId;
-
   const ChatInput({
     super.key,
-    required this.onSendMessage,
+    this.initialMessage,
+    this.autofocus = false,
+    this.onSendMessage,
+    this.onCancelMessage,
+    this.onCancelEdit,
     this.isLoading = false,
-    this.onStopGeneration,
-    this.canStop = false,
-    this.onProviderChanged,
-    this.initialText,
-    this.editingMessageId,
+    this.onProviderModelChanged,
   });
+
+  /// 初始消息（用于编辑）
+  final Message? initialMessage;
+
+  /// 是否自动聚焦
+  final bool autofocus;
+
+  /// 发送消息回调
+  final void Function(String message)? onSendMessage;
+
+  /// 取消消息回调
+  final VoidCallback? onCancelMessage;
+
+  /// 取消编辑回调
+  final VoidCallback? onCancelEdit;
+
+  /// 是否正在加载
+  final bool isLoading;
+
+  /// 提供商模型变化回调
+  final void Function(String providerId, String modelName)?
+  onProviderModelChanged;
 
   @override
   State<ChatInput> createState() => _ChatInputState();
@@ -31,7 +47,7 @@ class ChatInput extends StatefulWidget {
 
 class _ChatInputState extends State<ChatInput>
     with SingleTickerProviderStateMixin {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
   bool _showAttachmentPanel = false;
@@ -60,24 +76,40 @@ class _ChatInputState extends State<ChatInput>
       vsync: this,
     );
 
-    _controller.addListener(_onTextChanged);
+    _textController.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
 
-    if (widget.initialText?.isNotEmpty == true) {
-      _controller.text = widget.initialText!;
+    // 如果有初始消息，设置文本内容
+    if (widget.initialMessage != null) {
+      _textController.text = widget.initialMessage!.content;
+      _isComposing = _textController.text.trim().isNotEmpty;
+    }
+  }
+
+  @override
+  void didUpdateWidget(ChatInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当初始消息改变时更新文本内容
+    if (widget.initialMessage != oldWidget.initialMessage) {
+      if (widget.initialMessage != null) {
+        _textController.text = widget.initialMessage!.content;
+      } else {
+        _textController.clear();
+      }
+      _isComposing = _textController.text.trim().isNotEmpty;
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _textController.dispose();
     _focusNode.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
   void _onTextChanged() {
-    final text = _controller.text.trim();
+    final text = _textController.text.trim();
     final newIsComposing = text.isNotEmpty;
 
     if (newIsComposing != _isComposing) {
@@ -95,18 +127,22 @@ class _ChatInputState extends State<ChatInput>
     }
   }
 
-  void _handleSubmitted(String text) {
-    if (text.trim().isEmpty) {
-      return;
+  void _handleSend() {
+    final text = _textController.text.trim();
+    if (text.isNotEmpty && widget.onSendMessage != null) {
+      widget.onSendMessage!(text);
+      if (widget.initialMessage == null) {
+        // 只有在非编辑模式下才清空输入框
+        _textController.clear();
+        setState(() {
+          _isComposing = false;
+        });
+      }
     }
+  }
 
-    _controller.clear();
-
-    setState(() {
-      _isComposing = false;
-    });
-
-    widget.onSendMessage(text);
+  bool _canSend() {
+    return _textController.text.trim().isNotEmpty && !widget.isLoading;
   }
 
   void _showProviderSelector() async {
@@ -316,13 +352,11 @@ class _ChatInputState extends State<ChatInput>
               size: 20,
             ),
             onPressed: () async {
-              // 直接更新收藏状态，无需重新打开sheet
               await _favoriteModelRepository.toggleFavoriteModel(
                 providerId,
                 modelName,
               );
 
-              // 如果有setSheetState，则刷新sheet内容
               if (setSheetState != null) {
                 setSheetState(() {});
               }
@@ -346,9 +380,7 @@ class _ChatInputState extends State<ChatInput>
         });
 
         // 通知父组件配置已改变
-        if (widget.onProviderChanged != null) {
-          widget.onProviderChanged!(providerId, modelName);
-        }
+        widget.onProviderModelChanged?.call(providerId, modelName);
 
         Navigator.pop(context);
       },
@@ -367,55 +399,52 @@ class _ChatInputState extends State<ChatInput>
     return '高质量AI模型';
   }
 
-  void _stopGeneration() {
-    if (widget.onStopGeneration != null && widget.canStop) {
-      widget.onStopGeneration!();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isEditing = widget.initialMessage != null;
+
     return Container(
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
+      decoration: BoxDecoration(color: theme.colorScheme.surface),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 编辑指示器
+            if (isEditing) _buildEditingIndicator(context, theme),
+
             // 输入框区域
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.8,
+                  ),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.2),
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
                 child: TextField(
-                  controller: _controller,
+                  controller: _textController,
                   focusNode: _focusNode,
+                  autofocus: widget.autofocus,
                   onChanged: (text) {
                     setState(() {
                       _isComposing = text.isNotEmpty;
                     });
                   },
-                  onSubmitted: (text) {
-                    _handleSubmitted(text);
-                  },
+                  onSubmitted: _canSend() ? (_) => _handleSend() : null,
                   decoration: InputDecoration(
                     hintText: widget.isLoading
-                        ? (widget.canStop ? 'AI正在思考中...' : '发送中...')
-                        : '输入消息...',
+                        ? 'AI正在思考中...'
+                        : (isEditing ? '编辑消息...' : '输入消息...'),
                     hintStyle: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -434,310 +463,211 @@ class _ChatInputState extends State<ChatInput>
               padding: const EdgeInsets.all(8),
               child: Row(
                 children: [
-                  // 添加按钮
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _showAttachmentPanel
-                          ? Theme.of(context).colorScheme.primaryContainer
-                                .withValues(alpha: 0.8)
-                          : Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withValues(alpha: 0.1),
-                        width: 1,
-                      ),
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        _showAttachmentPanel ? Icons.close : Icons.add,
-                        color: _showAttachmentPanel
-                            ? Theme.of(context).colorScheme.onPrimaryContainer
-                                  .withValues(alpha: 0.6)
-                            : Theme.of(context).colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.6),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _showAttachmentPanel = !_showAttachmentPanel;
-                        });
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // 提供商选择按钮
-                  InkWell(
-                    onTap: _showProviderSelector,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outline.withValues(alpha: 0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.auto_awesome,
-                        size: 20,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // 网络搜索按钮
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        _isWebSearchEnabled = !_isWebSearchEnabled;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _isWebSearchEnabled
-                            ? Theme.of(context).colorScheme.primaryContainer
-                                  .withValues(alpha: 0.8)
-                            : Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest
-                                  .withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _isWebSearchEnabled
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.3)
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.outline.withValues(alpha: 0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.travel_explore,
-                            size: 16,
-                            color: _isWebSearchEnabled
-                                ? Theme.of(context)
-                                      .colorScheme
-                                      .onPrimaryContainer
-                                      .withValues(alpha: 0.6)
-                                : Theme.of(context).colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.6),
-                          ),
-                          if (_isWebSearchEnabled) ...[
-                            const SizedBox(width: 4),
-                            Text(
-                              "网络搜索",
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimaryContainer
-                                        .withValues(alpha: 0.6),
-                                  ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // 更多选项按钮
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withValues(alpha: 0.1),
-                        width: 1,
-                      ),
-                    ),
-                    child: Builder(
-                      builder: (context) => IconButton(
-                        icon: Icon(
-                          Icons.more_horiz,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                        ),
-                        onPressed: () {
-                          final RenderBox button =
-                              context.findRenderObject() as RenderBox;
-                          final RenderBox overlay =
-                              Overlay.of(context).context.findRenderObject()
-                                  as RenderBox;
-                          final Offset buttonPosition = button.localToGlobal(
-                            Offset.zero,
-                            ancestor: overlay,
-                          );
-
-                          showMenu(
-                            context: context,
-                            position: RelativeRect.fromLTRB(
-                              buttonPosition.dx,
-                              buttonPosition.dy - 150,
-                              buttonPosition.dx + button.size.width,
-                              buttonPosition.dy,
-                            ),
-                            items: [
-                              PopupMenuItem(
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.clear_all, size: 20),
-                                    SizedBox(width: 12),
-                                    Text("清空上下文"),
-                                  ],
-                                ),
-                                onTap: () {},
-                              ),
-                              PopupMenuItem(
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.refresh, size: 20),
-                                    SizedBox(width: 12),
-                                    Text("重新生成"),
-                                  ],
-                                ),
-                                onTap: () {},
-                              ),
-                              PopupMenuItem(
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.copy, size: 20),
-                                    SizedBox(width: 12),
-                                    Text("复制对话"),
-                                  ],
-                                ),
-                                onTap: () {},
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // 根据状态显示不同的按钮
-                  if (widget.canStop && widget.isLoading) ...[
-                    // 停止按钮
+                  // 添加按钮（仅在非编辑模式显示）
+                  if (!isEditing) ...[
                     Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.errorContainer.withValues(alpha: 0.8),
+                        color: _showAttachmentPanel
+                            ? theme.colorScheme.primaryContainer.withValues(
+                                alpha: 0.8,
+                              )
+                            : theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.8),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.error.withValues(alpha: 0.3),
+                          color: theme.colorScheme.outline.withValues(
+                            alpha: 0.1,
+                          ),
                           width: 1,
                         ),
                       ),
                       child: IconButton(
-                        onPressed: _stopGeneration,
                         icon: Icon(
-                          Icons.stop,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onErrorContainer.withValues(alpha: 0.8),
+                          _showAttachmentPanel ? Icons.close : Icons.add,
+                          color: _showAttachmentPanel
+                              ? theme.colorScheme.onPrimaryContainer.withValues(
+                                  alpha: 0.6,
+                                )
+                              : theme.colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
                         ),
-                        tooltip: '停止生成',
+                        onPressed: () {
+                          setState(() {
+                            _showAttachmentPanel = !_showAttachmentPanel;
+                          });
+                        },
                       ),
                     ),
-                  ] else if (widget.isLoading) ...[
-                    // 加载指示器
+                    const SizedBox(width: 8),
+
+                    // 提供商选择按钮
+                    InkWell(
+                      onTap: _showProviderSelector,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.outline.withValues(
+                              alpha: 0.1,
+                            ),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.auto_awesome,
+                          size: 20,
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // 网络搜索按钮
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _isWebSearchEnabled = !_isWebSearchEnabled;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _isWebSearchEnabled
+                              ? theme.colorScheme.primaryContainer.withValues(
+                                  alpha: 0.8,
+                                )
+                              : theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _isWebSearchEnabled
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  )
+                                : theme.colorScheme.outline.withValues(
+                                    alpha: 0.1,
+                                  ),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.travel_explore,
+                              size: 16,
+                              color: _isWebSearchEnabled
+                                  ? theme.colorScheme.onPrimaryContainer
+                                        .withValues(alpha: 0.6)
+                                  : theme.colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.6),
+                            ),
+                            if (_isWebSearchEnabled) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                "网络搜索",
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onPrimaryContainer
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
+                  // 编辑模式下的取消按钮
+                  if (isEditing && widget.onCancelEdit != null) ...[
                     Container(
-                      width: 48,
-                      height: 48,
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
+                        color: theme.colorScheme.surfaceContainerHighest
                             .withValues(alpha: 0.8),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outline.withValues(alpha: 0.1),
+                          color: theme.colorScheme.outline.withValues(
+                            alpha: 0.1,
+                          ),
                           width: 1,
                         ),
                       ),
-                      child: Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.6),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.8,
                           ),
                         ),
+                        onPressed: widget.onCancelEdit,
+                        tooltip: '取消编辑',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
+                  const Spacer(),
+
+                  // 根据状态显示不同的按钮
+                  if (widget.isLoading) ...[
+                    // 停止按钮
+                    Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer.withValues(
+                          alpha: 0.8,
+                        ),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.colorScheme.error.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: IconButton(
+                        onPressed: widget.onCancelMessage,
+                        icon: Icon(
+                          Icons.stop,
+                          color: theme.colorScheme.onErrorContainer.withValues(
+                            alpha: 0.8,
+                          ),
+                        ),
+                        tooltip: '停止生成',
                       ),
                     ),
                   ] else ...[
                     // 发送按钮
                     Container(
                       decoration: BoxDecoration(
-                        color: _isComposing
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.8)
-                            : Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest
+                        color: _canSend()
+                            ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                            : theme.colorScheme.surfaceContainerHighest
                                   .withValues(alpha: 0.8),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: _isComposing
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.3)
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.outline.withValues(alpha: 0.1),
+                          color: _canSend()
+                              ? theme.colorScheme.primary.withValues(alpha: 0.3)
+                              : theme.colorScheme.outline.withValues(
+                                  alpha: 0.1,
+                                ),
                           width: 1,
                         ),
-                        boxShadow: _isComposing
+                        boxShadow: _canSend()
                             ? [
                                 BoxShadow(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.3),
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -746,18 +676,17 @@ class _ChatInputState extends State<ChatInput>
                       ),
                       child: IconButton(
                         icon: Icon(
-                          Icons.send,
-                          color: _isComposing
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary.withValues(alpha: 0.6)
-                              : Theme.of(context).colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.6),
+                          isEditing ? Icons.check : Icons.send,
+                          color: _canSend()
+                              ? theme.colorScheme.onPrimary.withValues(
+                                  alpha: 0.6,
+                                )
+                              : theme.colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
                         ),
-                        onPressed: _isComposing
-                            ? () => _handleSubmitted(_controller.text)
-                            : null,
-                        tooltip: '发送消息',
+                        onPressed: _canSend() ? _handleSend : null,
+                        tooltip: isEditing ? '确认编辑' : '发送消息',
                       ),
                     ),
                   ],
@@ -765,16 +694,46 @@ class _ChatInputState extends State<ChatInput>
               ),
             ),
 
-            // 附件面板
-            AnimatedSize(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              child: _showAttachmentPanel
-                  ? _buildAttachmentPanel()
-                  : const SizedBox.shrink(),
-            ),
+            // 附件面板（仅在非编辑模式显示）
+            if (!isEditing)
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                child: _showAttachmentPanel
+                    ? _buildAttachmentPanel()
+                    : const SizedBox.shrink(),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEditingIndicator(BuildContext context, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.edit,
+            size: 16,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '正在编辑消息',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -847,9 +806,11 @@ class _ChatInputState extends State<ChatInput>
             const SizedBox(height: 8),
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
             ),
           ],
         ),

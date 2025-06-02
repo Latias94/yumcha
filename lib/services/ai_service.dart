@@ -1,5 +1,3 @@
-import 'package:langchain_openai/langchain_openai.dart';
-import 'package:langchain/langchain.dart';
 import 'dart:async';
 import '../models/ai_provider.dart';
 import '../models/ai_assistant.dart';
@@ -10,6 +8,7 @@ import 'logger_service.dart';
 import 'provider_repository.dart';
 import 'assistant_repository.dart';
 import 'database_service.dart';
+import 'ai_request_service.dart';
 
 // 调试信息类
 class DebugInfo {
@@ -38,130 +37,7 @@ class DebugInfo {
   });
 }
 
-// AI错误类型
-enum AiErrorType {
-  invalidApiKey,
-  networkError,
-  modelNotFound,
-  rateLimitExceeded,
-  insufficientQuota,
-  serverError,
-  configError,
-  timeout,
-  cancelled,
-  unknown,
-}
-
-// AI错误信息
-class AiError {
-  final AiErrorType type;
-  final String message;
-  final String? technicalDetails;
-  final String? suggestion;
-
-  const AiError({
-    required this.type,
-    required this.message,
-    this.technicalDetails,
-    this.suggestion,
-  });
-
-  static AiError fromException(dynamic error) {
-    final errorMessage = error.toString().toLowerCase();
-
-    // 检查取消错误
-    if (errorMessage.contains('cancelled') ||
-        errorMessage.contains('operation cancelled')) {
-      return AiError(
-        type: AiErrorType.cancelled,
-        message: '请求已被取消',
-        technicalDetails: error.toString(),
-        suggestion: '用户主动停止了生成',
-      );
-    }
-
-    // 检查超时错误
-    if (errorMessage.contains('timeout') ||
-        errorMessage.contains('timed out')) {
-      return AiError(
-        type: AiErrorType.timeout,
-        message: '请求超时',
-        technicalDetails: error.toString(),
-        suggestion: '网络可能较慢，请检查网络连接或稍后重试',
-      );
-    }
-
-    if (errorMessage.contains('unauthorized') ||
-        errorMessage.contains('invalid api key') ||
-        errorMessage.contains('incorrect api key')) {
-      return AiError(
-        type: AiErrorType.invalidApiKey,
-        message: 'API密钥无效',
-        technicalDetails: error.toString(),
-        suggestion: '请检查API密钥是否正确，或前往设置页面重新配置',
-      );
-    }
-
-    if (errorMessage.contains('rate limit') ||
-        errorMessage.contains('too many requests')) {
-      return AiError(
-        type: AiErrorType.rateLimitExceeded,
-        message: '请求过于频繁',
-        technicalDetails: error.toString(),
-        suggestion: '请稍等片刻后再试',
-      );
-    }
-
-    if (errorMessage.contains('insufficient_quota') ||
-        errorMessage.contains('quota exceeded')) {
-      return AiError(
-        type: AiErrorType.insufficientQuota,
-        message: '账户余额不足',
-        technicalDetails: error.toString(),
-        suggestion: '请检查账户余额或升级订阅计划',
-      );
-    }
-
-    if (errorMessage.contains('model') && errorMessage.contains('not found')) {
-      return AiError(
-        type: AiErrorType.modelNotFound,
-        message: '模型不存在',
-        technicalDetails: error.toString(),
-        suggestion: '请检查模型名称是否正确，或选择其他可用模型',
-      );
-    }
-
-    if (errorMessage.contains('network') ||
-        errorMessage.contains('connection') ||
-        errorMessage.contains('socket')) {
-      return AiError(
-        type: AiErrorType.networkError,
-        message: '网络连接失败',
-        technicalDetails: error.toString(),
-        suggestion: '请检查网络连接是否正常',
-      );
-    }
-
-    if (errorMessage.contains('server error') ||
-        errorMessage.contains('internal error') ||
-        errorMessage.contains('500')) {
-      return AiError(
-        type: AiErrorType.serverError,
-        message: '服务器内部错误',
-        technicalDetails: error.toString(),
-        suggestion: '服务器临时不可用，请稍后重试',
-      );
-    }
-
-    return AiError(
-      type: AiErrorType.unknown,
-      message: '未知错误',
-      technicalDetails: error.toString(),
-      suggestion: '请尝试重新发送消息，或联系技术支持',
-    );
-  }
-}
-
+/// AI 服务主类 - 负责管理提供商、助手和聊天功能
 class AiService {
   static final AiService _instance = AiService._internal();
   factory AiService() => _instance;
@@ -169,15 +45,11 @@ class AiService {
 
   // Logger实例
   final LoggerService _logger = LoggerService();
+  final AiRequestService _requestService = AiRequestService();
 
   // 内存存储
   final Map<String, AiProvider> _providers = {};
   final Map<String, AiAssistant> _assistants = {};
-  final Map<String, ChatOpenAI> _clients = {}; // 缓存客户端
-
-  // 流式请求控制器映射
-  final Map<String, StreamController<String>> _streamControllers = {};
-  final Map<String, StreamSubscription> _streamSubscriptions = {};
 
   // 调试信息存储
   final List<DebugInfo> _debugLogs = [];
@@ -195,29 +67,6 @@ class AiService {
   void clearDebugLogs() {
     _debugLogs.clear();
     _logger.info('调试日志已清空');
-  }
-
-  // 检查是否正在生成
-  bool isGenerating(String requestId) {
-    return _streamControllers.containsKey(requestId);
-  }
-
-  // 停止生成
-  void stopGeneration(String requestId) {
-    final controller = _streamControllers[requestId];
-    final subscription = _streamSubscriptions[requestId];
-
-    if (controller != null || subscription != null) {
-      _logger.warning('停止AI生成', requestId);
-
-      subscription?.cancel();
-      controller?.close();
-
-      _streamControllers.remove(requestId);
-      _streamSubscriptions.remove(requestId);
-
-      NotificationService().showInfo('已停止生成');
-    }
   }
 
   // 添加调试日志
@@ -325,21 +174,21 @@ class AiService {
   void addProvider(AiProvider provider) {
     _providers[provider.id] = provider;
     // 清除相关客户端缓存
-    _clients.remove(provider.id);
+    _requestService.clearClientCache(provider.id);
     _logger.info('添加AI提供商: ${provider.name} (${provider.type.name})');
   }
 
   void updateProvider(AiProvider provider) {
     _providers[provider.id] = provider;
     // 清除相关客户端缓存
-    _clients.remove(provider.id);
+    _requestService.clearClientCache(provider.id);
     _logger.info('更新AI提供商: ${provider.name}');
   }
 
   void removeProvider(String id) {
     final provider = _providers[id];
     _providers.remove(id);
-    _clients.remove(id);
+    _requestService.clearClientCache(id);
     // 移除相关助手
     _assistants.removeWhere((_, assistant) => assistant.providerId == id);
     _logger.info('删除AI提供商: ${provider?.name ?? id}');
@@ -375,120 +224,6 @@ class AiService {
   }
 
   // === 聊天功能 ===
-
-  // 获取或创建ChatOpenAI客户端
-  ChatOpenAI? _getClient(String providerId) {
-    if (_clients.containsKey(providerId)) {
-      return _clients[providerId];
-    }
-
-    final provider = _providers[providerId];
-    if (provider == null || !provider.isEnabled) {
-      _logger.warning('提供商不可用: $providerId');
-      return null;
-    }
-
-    // 验证API密钥格式
-    if (!_isValidApiKey(provider)) {
-      _logger.error('API密钥格式无效: ${provider.name}');
-      NotificationService().showError(
-        'API密钥格式无效',
-        actionLabel: '查看要求',
-        onActionPressed: () {
-          NotificationService().showInfo(_getApiKeyRequirement(provider.type));
-        },
-      );
-      return null;
-    }
-
-    ChatOpenAI client;
-
-    try {
-      switch (provider.type) {
-        case ProviderType.openai:
-        case ProviderType.custom:
-          client = ChatOpenAI(
-            apiKey: provider.apiKey,
-            baseUrl: provider.baseUrl ?? 'https://api.openai.com/v1',
-            defaultOptions: ChatOpenAIOptions(
-              model: 'gpt-3.5-turbo', // 默认模型，会被请求时覆盖
-              temperature: 0.7,
-            ),
-          );
-          break;
-
-        case ProviderType.ollama:
-          client = ChatOpenAI(
-            apiKey: 'ollama', // Ollama不需要真实的API key
-            baseUrl: provider.effectiveBaseUrl,
-            defaultOptions: ChatOpenAIOptions(
-              model: 'llama2', // 默认模型
-              temperature: 0.7,
-            ),
-          );
-          break;
-
-        default:
-          // 其他提供商暂不支持，后续可扩展
-          _logger.warning('不支持的提供商类型: ${provider.type}');
-          return null;
-      }
-
-      _clients[providerId] = client;
-      _logger.info('创建AI客户端: ${provider.name} -> ${provider.effectiveBaseUrl}');
-      return client;
-    } catch (e) {
-      _logger.error('创建客户端失败', e);
-      return null;
-    }
-  }
-
-  // 验证API密钥格式
-  bool _isValidApiKey(AiProvider provider) {
-    switch (provider.type) {
-      case ProviderType.openai:
-      case ProviderType.custom:
-        // OpenAI API密钥应该以sk-开头
-        return provider.apiKey.isNotEmpty &&
-            (provider.apiKey.startsWith('sk-') ||
-                provider.apiKey == 'sk-test-example-key'); // 允许示例密钥
-      case ProviderType.ollama:
-        // Ollama不需要真实的API密钥
-        return true;
-      default:
-        return provider.apiKey.isNotEmpty;
-    }
-  }
-
-  // 获取API密钥要求说明
-  String _getApiKeyRequirement(ProviderType type) {
-    switch (type) {
-      case ProviderType.openai:
-        return 'OpenAI API密钥应该以"sk-"开头，例如：sk-xxxxxxxxxxxxxxxx...';
-      case ProviderType.anthropic:
-        return 'Anthropic API密钥应该以"sk-ant-"开头';
-      case ProviderType.google:
-        return 'Google AI API密钥格式请参考官方文档';
-      case ProviderType.ollama:
-        return 'Ollama运行在本地，不需要API密钥';
-      case ProviderType.custom:
-        return '请根据具体API提供商的要求输入正确格式的API密钥';
-    }
-  }
-
-  // 获取消息角色（用于调试）
-  String _getMessageRole(ChatMessage message) {
-    if (message is SystemChatMessage) return 'system';
-    if (message is HumanChatMessage) return 'user';
-    if (message is AIChatMessage) return 'assistant';
-    return 'unknown';
-  }
-
-  // 获取消息内容（用于调试）
-  String _getMessageContent(ChatMessage message) {
-    // 简化处理，直接转换为字符串用于调试
-    return message.toString();
-  }
 
   // 发送聊天消息
   Future<String?> sendMessage({
@@ -544,106 +279,74 @@ class AiService {
       return null;
     }
 
-    if (!provider.isEnabled) {
-      const error = 'AI提供商未启用，请先在设置中配置';
-      _logger.warning('提供商未启用', {'providerId': selectedProviderId});
-      _addDebugLog(
-        DebugInfo(
-          assistantId: assistantId,
-          providerId: selectedProviderId,
-          modelName: selectedModelName,
-          requestBody: {'error': 'provider_disabled'},
-          error: error,
-          timestamp: startTime,
-        ),
-      );
-      NotificationService().showError(error);
-      return null;
-    }
-
-    final client = _getClient(selectedProviderId);
-    if (client == null) {
-      const error = '无法创建AI客户端，请检查配置';
-      _logger.error('客户端创建失败', {'providerId': selectedProviderId});
-      _addDebugLog(
-        DebugInfo(
-          assistantId: assistantId,
-          providerId: selectedProviderId,
-          modelName: selectedModelName,
-          requestBody: {'error': 'client_creation_failed'},
-          error: error,
-          timestamp: startTime,
-        ),
-      );
-      NotificationService().showError(error);
-      return null;
-    }
-
     try {
-      // 构建消息列表
-      final messages = _buildChatMessages(assistant, chatHistory, userMessage);
-
-      // 构建请求体用于调试
-      final requestBody = {
-        'model': selectedModelName,
-        'messages': messages
-            .map(
-              (m) => {
-                'role': _getMessageRole(m),
-                'content': _getMessageContent(m),
-              },
-            )
-            .toList(),
-        'temperature': assistant.temperature,
-        'top_p': assistant.topP,
-        'max_tokens': assistant.maxTokens,
-      };
-
-      _logger.aiRequest(assistantId, selectedModelName, requestBody);
-
-      // 设置模型参数并发送请求
-      final modelClient = client.bind(
-        ChatOpenAIOptions(
-          model: selectedModelName,
-          temperature: assistant.temperature,
-          topP: assistant.topP,
-          maxTokens: assistant.maxTokens,
-        ),
+      // 使用新的请求服务发送消息
+      final result = await _requestService.sendChatRequest(
+        provider: provider,
+        assistant: assistant,
+        modelName: selectedModelName,
+        chatHistory: chatHistory,
+        userMessage: userMessage,
       );
-
-      // 添加超时处理
-      final response = await modelClient
-          .invoke(PromptValue.chat(messages))
-          .timeout(const Duration(seconds: 15)); // 15秒超时
 
       final duration = DateTime.now().difference(startTime);
-      final responseContent = response.output.content;
 
-      _logger.aiResponse(assistantId, responseContent, duration);
+      if (result.isSuccess) {
+        _logger.info('AI聊天请求成功', {
+          'duration': '${duration.inMilliseconds}ms',
+          'usage': result.usage?.totalTokens,
+        });
 
-      _addDebugLog(
-        DebugInfo(
-          assistantId: assistantId,
-          providerId: selectedProviderId,
-          modelName: selectedModelName,
-          requestBody: requestBody,
-          statusCode: 200,
-          response: responseContent,
-          timestamp: startTime,
-          duration: duration,
-        ),
-      );
+        _addDebugLog(
+          DebugInfo(
+            assistantId: assistantId,
+            providerId: selectedProviderId,
+            modelName: selectedModelName,
+            requestBody: {
+              'model': selectedModelName,
+              'temperature': assistant.temperature,
+              'top_p': assistant.topP,
+              'max_tokens': assistant.maxTokens,
+              'user_message': userMessage,
+            },
+            statusCode: 200,
+            response: result.content,
+            timestamp: startTime,
+            duration: duration,
+          ),
+        );
 
-      return responseContent;
+        return result.content;
+      } else {
+        _logger.error('AI聊天请求失败', {
+          'error': result.error,
+          'duration': '${duration.inMilliseconds}ms',
+        });
+
+        _addDebugLog(
+          DebugInfo(
+            assistantId: assistantId,
+            providerId: selectedProviderId,
+            modelName: selectedModelName,
+            requestBody: {
+              'model': selectedModelName,
+              'user_message': userMessage,
+            },
+            error: result.error,
+            timestamp: startTime,
+            duration: duration,
+          ),
+        );
+
+        NotificationService().showError(result.error ?? '未知错误');
+        return '[错误] ${result.error}';
+      }
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
-      final aiError = AiError.fromException(e);
-
-      _logger.aiError(
-        assistantId,
-        aiError.technicalDetails ?? 'unknown error',
-        duration,
-      );
+      _logger.error('AI聊天请求异常', {
+        'error': e.toString(),
+        'duration': '${duration.inMilliseconds}ms',
+      });
 
       _addDebugLog(
         DebugInfo(
@@ -652,29 +355,16 @@ class AiService {
           modelName: selectedModelName,
           requestBody: {
             'model': selectedModelName,
-            'temperature': assistant.temperature,
-            'top_p': assistant.topP,
             'user_message': userMessage,
           },
-          error: aiError.technicalDetails,
+          error: e.toString(),
           timestamp: startTime,
           duration: duration,
         ),
       );
 
-      // 显示用户友好的错误通知
-      NotificationService().showError(
-        aiError.message,
-        actionLabel: aiError.suggestion != null ? '查看建议' : null,
-        onActionPressed: aiError.suggestion != null
-            ? () {
-                NotificationService().showInfo(aiError.suggestion!);
-              }
-            : null,
-      );
-
-      // 返回错误信息，供聊天界面显示在气泡中
-      return '[错误] ${aiError.message}${aiError.suggestion != null ? "\n💡 ${aiError.suggestion}" : ""}';
+      NotificationService().showError('请求失败: $e');
+      return '[错误] 请求失败: $e';
     }
   }
 
@@ -734,165 +424,82 @@ class AiService {
       return;
     }
 
-    if (!provider.isEnabled) {
-      const error = 'AI提供商未启用，请先在设置中配置';
-      _logger.warning('提供商未启用', {'providerId': selectedProviderId});
-      _addDebugLog(
-        DebugInfo(
-          assistantId: assistantId,
-          providerId: selectedProviderId,
-          modelName: selectedModelName,
-          requestBody: {'error': 'provider_disabled', 'stream': true},
-          error: error,
-          timestamp: startTime,
-        ),
-      );
-      NotificationService().showError(error);
-      yield '[错误] $error';
-      return;
-    }
-
-    final client = _getClient(selectedProviderId);
-    if (client == null) {
-      const error = '无法创建AI客户端，请检查配置';
-      _logger.error('客户端创建失败', {'providerId': selectedProviderId});
-      _addDebugLog(
-        DebugInfo(
-          assistantId: assistantId,
-          providerId: selectedProviderId,
-          modelName: selectedModelName,
-          requestBody: {'error': 'client_creation_failed', 'stream': true},
-          error: error,
-          timestamp: startTime,
-        ),
-      );
-      NotificationService().showError(error);
-      yield '[错误] $error';
-      return;
-    }
-
-    // 创建流控制器
-    final controller = StreamController<String>();
-    _streamControllers[requestId] = controller;
-
     try {
-      // 构建消息列表
-      final messages = _buildChatMessages(assistant, chatHistory, userMessage);
-
-      // 构建请求体用于调试
-      final requestBody = {
+      _logger.info('开始流式聊天请求', {
+        'provider': provider.name,
         'model': selectedModelName,
-        'messages': messages
-            .map(
-              (m) => {
-                'role': _getMessageRole(m),
-                'content': _getMessageContent(m),
-              },
-            )
-            .toList(),
-        'temperature': assistant.temperature,
-        'top_p': assistant.topP,
-        'max_tokens': assistant.maxTokens,
-        'stream': true,
-      };
+        'assistant': assistant.name,
+        'baseUrl': provider.baseUrl ?? '默认端点',
+      });
 
-      _logger.aiStreamStart(assistantId, selectedModelName);
-
-      // 设置模型参数
-      final modelClient = client.bind(
-        ChatOpenAIOptions(
-          model: selectedModelName,
-          temperature: assistant.temperature,
-          topP: assistant.topP,
-          maxTokens: assistant.maxTokens,
-        ),
+      // 使用AiRequestService的流式方法
+      final streamEvents = _requestService.sendChatStreamRequest(
+        provider: provider,
+        assistant: assistant,
+        modelName: selectedModelName,
+        chatHistory: chatHistory,
+        userMessage: userMessage,
       );
-
-      // 发送流式请求并添加超时
-      final stream = modelClient
-          .stream(PromptValue.chat(messages))
-          .timeout(const Duration(seconds: 20)); // 流式请求稍微长一点的超时
 
       var fullResponse = '';
       var chunkCount = 0;
-      bool wasStoppedByUser = false;
+      bool hasError = false;
 
-      // 监听流数据
-      final subscription = stream.listen(
-        (chunk) {
-          // 检查是否已被停止
-          if (!_streamControllers.containsKey(requestId)) {
-            wasStoppedByUser = true;
-            return;
-          }
+      await for (final event in streamEvents) {
+        if (event.content != null) {
+          fullResponse += event.content!;
+          chunkCount++;
+          _logger.debug('收到流式内容块', {
+            'chunk': chunkCount,
+            'content': event.content!,
+            'totalLength': fullResponse.length,
+          });
 
-          final content = chunk.output.content;
-          if (content.isNotEmpty && !controller.isClosed) {
-            fullResponse += content;
-            chunkCount++;
-            _logger.aiStreamChunk(assistantId, chunkCount, fullResponse.length);
-            controller.add(content);
-          }
-        },
-        onError: (error) {
-          if (!controller.isClosed &&
-              _streamControllers.containsKey(requestId)) {
-            final aiError = AiError.fromException(error);
-            _logger.aiError(
-              assistantId,
-              aiError.technicalDetails ?? 'stream error',
-              DateTime.now().difference(startTime),
-            );
-
-            controller.add('[错误] ${aiError.message}');
-            if (aiError.suggestion != null) {
-              controller.add('\n💡 ${aiError.suggestion}');
-            }
-          }
-          controller.close();
-          _cleanup(requestId);
-        },
-        onDone: () {
+          // 立即输出接收到的内容
+          yield event.content!;
+        } else if (event.error != null) {
+          hasError = true;
+          _logger.error('流式聊天错误', {'error': event.error});
+          yield '[错误] ${event.error}';
+        } else if (event.isDone) {
           final duration = DateTime.now().difference(startTime);
 
-          if (wasStoppedByUser) {
-            _logger.aiStreamStopped(assistantId, chunkCount, duration);
-          } else {
-            _logger.aiStreamComplete(assistantId, chunkCount, duration);
-          }
+          _logger.info('流式聊天完成', {
+            'chunks': chunkCount,
+            'duration': duration,
+            'totalLength': fullResponse.length,
+            'usage': event.usage?.totalTokens,
+          });
 
           _addDebugLog(
             DebugInfo(
               assistantId: assistantId,
               providerId: selectedProviderId,
               modelName: selectedModelName,
-              requestBody: requestBody,
-              statusCode: 200,
+              requestBody: {
+                'model': selectedModelName,
+                'temperature': assistant.temperature,
+                'top_p': assistant.topP,
+                'max_tokens': assistant.maxTokens,
+                'user_message': userMessage,
+                'stream': true,
+              },
+              statusCode: hasError ? null : 200,
               response: fullResponse,
               timestamp: startTime,
               duration: duration,
-              wasStopped: wasStoppedByUser,
+              error: hasError ? '流式响应中出现错误' : null,
             ),
           );
-
-          controller.close();
-          _cleanup(requestId);
-        },
-      );
-
-      _streamSubscriptions[requestId] = subscription;
-
-      // 返回controller的stream
-      yield* controller.stream;
+          break;
+        }
+      }
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
-      final aiError = AiError.fromException(e);
-
-      _logger.aiError(
-        assistantId,
-        aiError.technicalDetails ?? 'stream setup error',
-        duration,
-      );
+      _logger.error('流式聊天设置失败', {
+        'error': e.toString(),
+        'duration': '${duration.inMilliseconds}ms',
+      });
 
       _addDebugLog(
         DebugInfo(
@@ -901,104 +508,71 @@ class AiService {
           modelName: selectedModelName,
           requestBody: {
             'model': selectedModelName,
-            'temperature': assistant.temperature,
-            'top_p': assistant.topP,
             'user_message': userMessage,
             'stream': true,
           },
-          error: aiError.technicalDetails,
+          error: e.toString(),
           timestamp: startTime,
           duration: duration,
         ),
       );
 
-      // 显示用户友好的错误通知
-      NotificationService().showError(
-        aiError.message,
-        actionLabel: aiError.suggestion != null ? '查看建议' : null,
-        onActionPressed: aiError.suggestion != null
-            ? () {
-                NotificationService().showInfo(aiError.suggestion!);
-              }
-            : null,
-      );
-
-      // 返回错误信息，供聊天界面显示在气泡中
-      yield '[错误] ${aiError.message}';
-      if (aiError.suggestion != null) {
-        yield '\n💡 ${aiError.suggestion}';
-      }
-
-      _cleanup(requestId);
+      NotificationService().showError('流式聊天失败: $e');
+      yield '[错误] 流式聊天失败: $e';
     }
-  }
-
-  // 清理资源
-  void _cleanup(String requestId) {
-    _streamControllers.remove(requestId);
-    _streamSubscriptions.remove(requestId);
-  }
-
-  // 构建聊天消息列表
-  List<ChatMessage> _buildChatMessages(
-    AiAssistant assistant,
-    List<Message> chatHistory,
-    String userMessage,
-  ) {
-    final messages = <ChatMessage>[];
-
-    // 添加系统提示
-    if (assistant.systemPrompt.isNotEmpty) {
-      messages.add(ChatMessage.system(assistant.systemPrompt));
-    }
-
-    // 添加上下文历史（限制数量）
-    final contextHistory = chatHistory.take(assistant.contextLength).toList();
-    for (final message in contextHistory.reversed) {
-      if (message.isFromUser) {
-        messages.add(ChatMessage.humanText(message.content));
-      } else {
-        messages.add(ChatMessage.ai(message.content));
-      }
-    }
-
-    // 添加当前用户消息
-    messages.add(ChatMessage.humanText(userMessage));
-
-    return messages;
   }
 
   // === 验证和测试 ===
 
   // 测试提供商连接
-  Future<bool> testProvider(String providerId) async {
-    final client = _getClient(providerId);
-    if (client == null) return false;
+  Future<bool> testProvider(String providerId, [String? modelName]) async {
+    final provider = _providers[providerId];
+    if (provider == null) {
+      _logger.error('测试提供商失败：提供商不存在', {'providerId': providerId});
+      return false;
+    }
 
     try {
-      // 发送一个简单的测试请求
-      final response = await client
-          .invoke(PromptValue.chat([ChatMessage.humanText('Hello')]))
-          .timeout(const Duration(seconds: 10));
+      _logger.info('开始测试提供商', {'provider': provider.name, 'model': modelName});
 
-      return response.output.content.isNotEmpty;
+      final result = await _requestService.testProvider(
+        provider: provider,
+        modelName: modelName,
+      );
+
+      _logger.info('提供商测试${result ? '成功' : '失败'}', {'provider': provider.name});
+      return result;
     } catch (e) {
-      _logger.error('测试提供商失败', e);
+      _logger.error('测试提供商异常', {
+        'provider': provider.name,
+        'error': e.toString(),
+      });
       return false;
     }
   }
 
-  // 获取可用的模型列表（返回默认模型列表）
+  // 获取可用的模型列表（返回提供商配置的模型列表）
   Future<List<String>> getAvailableModels(String providerId) async {
     try {
-      // langchain暂时没有直接的模型列表API，返回默认模型列表
       final provider = _providers[providerId];
-      return provider?.supportedModels ?? [];
+      if (provider == null) {
+        _logger.warning('获取模型列表失败：提供商不存在', {'providerId': providerId});
+        return [];
+      }
+
+      // 返回提供商配置的模型列表
+      final models = provider.models.map((model) => model.name).toList();
+      _logger.info('获取模型列表', {
+        'provider': provider.name,
+        'count': models.length,
+      });
+      return models;
     } catch (e) {
-      _logger.error('获取模型列表失败', e);
-      // 返回默认模型列表
-      final provider = _providers[providerId];
-      return provider?.supportedModels ?? [];
+      _logger.error('获取模型列表失败', {
+        'providerId': providerId,
+        'error': e.toString(),
+      });
+      return [];
     }
   }
 }

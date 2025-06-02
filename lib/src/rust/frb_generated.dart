@@ -3,6 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/ai_chat.dart';
 import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -64,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.10.0';
 
   @override
-  int get rustContentHash => -1918914929;
+  int get rustContentHash => 210666046;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -75,9 +76,49 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<ChatResponse> crateApiAiChatAiChatClientChat({
+    required AiChatClient that,
+    required List<ChatMessage> messages,
+  });
+
+  Stream<ChatStreamEvent> crateApiAiChatAiChatClientChatStream({
+    required AiChatClient that,
+    required List<ChatMessage> messages,
+  });
+
+  Future<List<String>> crateApiAiChatAiChatClientGetAvailableModels({
+    required AiChatClient that,
+  });
+
+  AiChatClient crateApiAiChatAiChatClientNew({
+    required AiProvider provider,
+    required AiChatOptions options,
+  });
+
+  AiChatClient crateApiAiChatCreateAiChatClient({
+    required AiProvider provider,
+    required AiChatOptions options,
+  });
+
   String crateApiSimpleGreet({required String name});
 
   Future<void> crateApiSimpleInitApp();
+
+  Future<String> crateApiAiChatQuickChat({
+    required AiProvider provider,
+    required String model,
+    required String apiKey,
+    required String message,
+  });
+
+  Stream<ChatStreamEvent> crateApiAiChatQuickChatStream({
+    required AiProvider provider,
+    required String model,
+    required String apiKey,
+    required String message,
+  });
+
+  Stream<ChatStreamEvent> crateApiAiChatTestStream();
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -89,13 +130,181 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<ChatResponse> crateApiAiChatAiChatClientChat({
+    required AiChatClient that,
+    required List<ChatMessage> messages,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_chat_client(that, serializer);
+          sse_encode_list_chat_message(messages, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_response,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiAiChatAiChatClientChatConstMeta,
+        argValues: [that, messages],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatAiChatClientChatConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_chat",
+        argNames: ["that", "messages"],
+      );
+
+  @override
+  Stream<ChatStreamEvent> crateApiAiChatAiChatClientChatStream({
+    required AiChatClient that,
+    required List<ChatMessage> messages,
+  }) {
+    final sink = RustStreamSink<ChatStreamEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_box_autoadd_ai_chat_client(that, serializer);
+            sse_encode_list_chat_message(messages, serializer);
+            sse_encode_StreamSink_chat_stream_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 2,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiAiChatAiChatClientChatStreamConstMeta,
+          argValues: [that, messages, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiAiChatAiChatClientChatStreamConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_chat_stream",
+        argNames: ["that", "messages", "sink"],
+      );
+
+  @override
+  Future<List<String>> crateApiAiChatAiChatClientGetAvailableModels({
+    required AiChatClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_chat_client(that, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiAiChatAiChatClientGetAvailableModelsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatAiChatClientGetAvailableModelsConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_get_available_models",
+        argNames: ["that"],
+      );
+
+  @override
+  AiChatClient crateApiAiChatAiChatClientNew({
+    required AiProvider provider,
+    required AiChatOptions options,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          sse_encode_box_autoadd_ai_chat_options(options, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_ai_chat_client,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatAiChatClientNewConstMeta,
+        argValues: [provider, options],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatAiChatClientNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_new",
+        argNames: ["provider", "options"],
+      );
+
+  @override
+  AiChatClient crateApiAiChatCreateAiChatClient({
+    required AiProvider provider,
+    required AiChatOptions options,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          sse_encode_box_autoadd_ai_chat_options(options, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_ai_chat_client,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatCreateAiChatClientConstMeta,
+        argValues: [provider, options],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatCreateAiChatClientConstMeta =>
+      const TaskConstMeta(
+        debugName: "create_ai_chat_client",
+        argNames: ["provider", "options"],
+      );
+
+  @override
   String crateApiSimpleGreet({required String name}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -120,7 +329,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 7,
             port: port_,
           );
         },
@@ -138,6 +347,134 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
+  @override
+  Future<String> crateApiAiChatQuickChat({
+    required AiProvider provider,
+    required String model,
+    required String apiKey,
+    required String message,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          sse_encode_String(model, serializer);
+          sse_encode_String(apiKey, serializer);
+          sse_encode_String(message, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiAiChatQuickChatConstMeta,
+        argValues: [provider, model, apiKey, message],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatQuickChatConstMeta => const TaskConstMeta(
+    debugName: "quick_chat",
+    argNames: ["provider", "model", "apiKey", "message"],
+  );
+
+  @override
+  Stream<ChatStreamEvent> crateApiAiChatQuickChatStream({
+    required AiProvider provider,
+    required String model,
+    required String apiKey,
+    required String message,
+  }) {
+    final sink = RustStreamSink<ChatStreamEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_box_autoadd_ai_provider(provider, serializer);
+            sse_encode_String(model, serializer);
+            sse_encode_String(apiKey, serializer);
+            sse_encode_String(message, serializer);
+            sse_encode_StreamSink_chat_stream_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 9,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiAiChatQuickChatStreamConstMeta,
+          argValues: [provider, model, apiKey, message, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiAiChatQuickChatStreamConstMeta =>
+      const TaskConstMeta(
+        debugName: "quick_chat_stream",
+        argNames: ["provider", "model", "apiKey", "message", "sink"],
+      );
+
+  @override
+  Stream<ChatStreamEvent> crateApiAiChatTestStream() {
+    final sink = RustStreamSink<ChatStreamEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_chat_stream_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 10,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiAiChatTestStreamConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiAiChatTestStreamConstMeta =>
+      const TaskConstMeta(debugName: "test_stream", argNames: ["sink"]);
+
+  @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnyhowException(raw as String);
+  }
+
+  @protected
+  RustStreamSink<ChatStreamEvent> dco_decode_StreamSink_chat_stream_event_Sse(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
   @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -145,9 +482,238 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AiChatClient dco_decode_ai_chat_client(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return AiChatClient.raw(
+      provider: dco_decode_ai_provider(arr[0]),
+      options: dco_decode_ai_chat_options(arr[1]),
+    );
+  }
+
+  @protected
+  AiChatOptions dco_decode_ai_chat_options(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return AiChatOptions(
+      model: dco_decode_String(arr[0]),
+      baseUrl: dco_decode_opt_String(arr[1]),
+      apiKey: dco_decode_String(arr[2]),
+      temperature: dco_decode_opt_box_autoadd_f_64(arr[3]),
+      topP: dco_decode_opt_box_autoadd_f_64(arr[4]),
+      maxTokens: dco_decode_opt_box_autoadd_u_32(arr[5]),
+      systemPrompt: dco_decode_opt_String(arr[6]),
+      stopSequences: dco_decode_opt_list_String(arr[7]),
+    );
+  }
+
+  @protected
+  AiProvider dco_decode_ai_provider(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return AiProvider_OpenAI();
+      case 1:
+        return AiProvider_Anthropic();
+      case 2:
+        return AiProvider_Cohere();
+      case 3:
+        return AiProvider_Gemini();
+      case 4:
+        return AiProvider_Groq();
+      case 5:
+        return AiProvider_Ollama();
+      case 6:
+        return AiProvider_Xai();
+      case 7:
+        return AiProvider_DeepSeek();
+      case 8:
+        return AiProvider_Custom(name: dco_decode_String(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  AiChatClient dco_decode_box_autoadd_ai_chat_client(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_ai_chat_client(raw);
+  }
+
+  @protected
+  AiChatOptions dco_decode_box_autoadd_ai_chat_options(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_ai_chat_options(raw);
+  }
+
+  @protected
+  AiProvider dco_decode_box_autoadd_ai_provider(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_ai_provider(raw);
+  }
+
+  @protected
+  double dco_decode_box_autoadd_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  TokenUsage dco_decode_box_autoadd_token_usage(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_token_usage(raw);
+  }
+
+  @protected
+  int dco_decode_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  ChatMessage dco_decode_chat_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ChatMessage(
+      role: dco_decode_chat_role(arr[0]),
+      content: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  ChatResponse dco_decode_chat_response(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return ChatResponse(
+      content: dco_decode_String(arr[0]),
+      model: dco_decode_String(arr[1]),
+      usage: dco_decode_opt_box_autoadd_token_usage(arr[2]),
+    );
+  }
+
+  @protected
+  ChatRole dco_decode_chat_role(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ChatRole.values[raw as int];
+  }
+
+  @protected
+  ChatStreamEvent dco_decode_chat_stream_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return ChatStreamEvent_Start();
+      case 1:
+        return ChatStreamEvent_Content(content: dco_decode_String(raw[1]));
+      case 2:
+        return ChatStreamEvent_Done(
+          totalContent: dco_decode_String(raw[1]),
+          usage: dco_decode_opt_box_autoadd_token_usage(raw[2]),
+        );
+      case 3:
+        return ChatStreamEvent_Error(message: dco_decode_String(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<ChatMessage> dco_decode_list_chat_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_chat_message).toList();
+  }
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  String? dco_decode_opt_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  double? dco_decode_opt_box_autoadd_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_f_64(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_i_32(raw);
+  }
+
+  @protected
+  TokenUsage? dco_decode_opt_box_autoadd_token_usage(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_token_usage(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_32(raw);
+  }
+
+  @protected
+  List<String>? dco_decode_opt_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_list_String(raw);
+  }
+
+  @protected
+  TokenUsage dco_decode_token_usage(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return TokenUsage(
+      promptTokens: dco_decode_opt_box_autoadd_i_32(arr[0]),
+      completionTokens: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      totalTokens: dco_decode_opt_box_autoadd_i_32(arr[2]),
+    );
+  }
+
+  @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -163,6 +729,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_String(deserializer);
+    return AnyhowException(inner);
+  }
+
+  @protected
+  RustStreamSink<ChatStreamEvent> sse_decode_StreamSink_chat_stream_event_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
@@ -170,10 +751,294 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AiChatClient sse_decode_ai_chat_client(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_provider = sse_decode_ai_provider(deserializer);
+    var var_options = sse_decode_ai_chat_options(deserializer);
+    return AiChatClient.raw(provider: var_provider, options: var_options);
+  }
+
+  @protected
+  AiChatOptions sse_decode_ai_chat_options(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_model = sse_decode_String(deserializer);
+    var var_baseUrl = sse_decode_opt_String(deserializer);
+    var var_apiKey = sse_decode_String(deserializer);
+    var var_temperature = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_topP = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_maxTokens = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_systemPrompt = sse_decode_opt_String(deserializer);
+    var var_stopSequences = sse_decode_opt_list_String(deserializer);
+    return AiChatOptions(
+      model: var_model,
+      baseUrl: var_baseUrl,
+      apiKey: var_apiKey,
+      temperature: var_temperature,
+      topP: var_topP,
+      maxTokens: var_maxTokens,
+      systemPrompt: var_systemPrompt,
+      stopSequences: var_stopSequences,
+    );
+  }
+
+  @protected
+  AiProvider sse_decode_ai_provider(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return AiProvider_OpenAI();
+      case 1:
+        return AiProvider_Anthropic();
+      case 2:
+        return AiProvider_Cohere();
+      case 3:
+        return AiProvider_Gemini();
+      case 4:
+        return AiProvider_Groq();
+      case 5:
+        return AiProvider_Ollama();
+      case 6:
+        return AiProvider_Xai();
+      case 7:
+        return AiProvider_DeepSeek();
+      case 8:
+        var var_name = sse_decode_String(deserializer);
+        return AiProvider_Custom(name: var_name);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  AiChatClient sse_decode_box_autoadd_ai_chat_client(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_ai_chat_client(deserializer));
+  }
+
+  @protected
+  AiChatOptions sse_decode_box_autoadd_ai_chat_options(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_ai_chat_options(deserializer));
+  }
+
+  @protected
+  AiProvider sse_decode_box_autoadd_ai_provider(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_ai_provider(deserializer));
+  }
+
+  @protected
+  double sse_decode_box_autoadd_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_f_64(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_32(deserializer));
+  }
+
+  @protected
+  TokenUsage sse_decode_box_autoadd_token_usage(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_token_usage(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_32(deserializer));
+  }
+
+  @protected
+  ChatMessage sse_decode_chat_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_role = sse_decode_chat_role(deserializer);
+    var var_content = sse_decode_String(deserializer);
+    return ChatMessage(role: var_role, content: var_content);
+  }
+
+  @protected
+  ChatResponse sse_decode_chat_response(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_String(deserializer);
+    var var_model = sse_decode_String(deserializer);
+    var var_usage = sse_decode_opt_box_autoadd_token_usage(deserializer);
+    return ChatResponse(
+      content: var_content,
+      model: var_model,
+      usage: var_usage,
+    );
+  }
+
+  @protected
+  ChatRole sse_decode_chat_role(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return ChatRole.values[inner];
+  }
+
+  @protected
+  ChatStreamEvent sse_decode_chat_stream_event(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return ChatStreamEvent_Start();
+      case 1:
+        var var_content = sse_decode_String(deserializer);
+        return ChatStreamEvent_Content(content: var_content);
+      case 2:
+        var var_totalContent = sse_decode_String(deserializer);
+        var var_usage = sse_decode_opt_box_autoadd_token_usage(deserializer);
+        return ChatStreamEvent_Done(
+          totalContent: var_totalContent,
+          usage: var_usage,
+        );
+      case 3:
+        var var_message = sse_decode_String(deserializer);
+        return ChatStreamEvent_Error(message: var_message);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ChatMessage> sse_decode_list_chat_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ChatMessage>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_chat_message(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_f_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  TokenUsage? sse_decode_opt_box_autoadd_token_usage(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_token_usage(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  List<String>? sse_decode_opt_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_list_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  TokenUsage sse_decode_token_usage(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_promptTokens = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_completionTokens = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_totalTokens = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return TokenUsage(
+      promptTokens: var_promptTokens,
+      completionTokens: var_completionTokens,
+      totalTokens: var_totalTokens,
+    );
+  }
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
   }
 
   @protected
@@ -188,21 +1053,223 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
-  }
-
-  @protected
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
   }
 
   @protected
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_StreamSink_chat_stream_event_Sse(
+    RustStreamSink<ChatStreamEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_stream_event,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+  }
+
+  @protected
+  void sse_encode_ai_chat_client(AiChatClient self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_ai_provider(self.provider, serializer);
+    sse_encode_ai_chat_options(self.options, serializer);
+  }
+
+  @protected
+  void sse_encode_ai_chat_options(
+    AiChatOptions self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.model, serializer);
+    sse_encode_opt_String(self.baseUrl, serializer);
+    sse_encode_String(self.apiKey, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.temperature, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.topP, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.maxTokens, serializer);
+    sse_encode_opt_String(self.systemPrompt, serializer);
+    sse_encode_opt_list_String(self.stopSequences, serializer);
+  }
+
+  @protected
+  void sse_encode_ai_provider(AiProvider self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case AiProvider_OpenAI():
+        sse_encode_i_32(0, serializer);
+      case AiProvider_Anthropic():
+        sse_encode_i_32(1, serializer);
+      case AiProvider_Cohere():
+        sse_encode_i_32(2, serializer);
+      case AiProvider_Gemini():
+        sse_encode_i_32(3, serializer);
+      case AiProvider_Groq():
+        sse_encode_i_32(4, serializer);
+      case AiProvider_Ollama():
+        sse_encode_i_32(5, serializer);
+      case AiProvider_Xai():
+        sse_encode_i_32(6, serializer);
+      case AiProvider_DeepSeek():
+        sse_encode_i_32(7, serializer);
+      case AiProvider_Custom(name: final name):
+        sse_encode_i_32(8, serializer);
+        sse_encode_String(name, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_box_autoadd_ai_chat_client(
+    AiChatClient self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_ai_chat_client(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_ai_chat_options(
+    AiChatOptions self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_ai_chat_options(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_ai_provider(
+    AiProvider self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_ai_provider(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_token_usage(
+    TokenUsage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_token_usage(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_message(ChatMessage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_chat_role(self.role, serializer);
+    sse_encode_String(self.content, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_response(ChatResponse self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.content, serializer);
+    sse_encode_String(self.model, serializer);
+    sse_encode_opt_box_autoadd_token_usage(self.usage, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_role(ChatRole self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_stream_event(
+    ChatStreamEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case ChatStreamEvent_Start():
+        sse_encode_i_32(0, serializer);
+      case ChatStreamEvent_Content(content: final content):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(content, serializer);
+      case ChatStreamEvent_Done(
+        totalContent: final totalContent,
+        usage: final usage,
+      ):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(totalContent, serializer);
+        sse_encode_opt_box_autoadd_token_usage(usage, serializer);
+      case ChatStreamEvent_Error(message: final message):
+        sse_encode_i_32(3, serializer);
+        sse_encode_String(message, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_chat_message(
+    List<ChatMessage> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_chat_message(item, serializer);
+    }
   }
 
   @protected
@@ -216,6 +1283,86 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_f_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_token_usage(
+    TokenUsage? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_token_usage(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_list_String(
+    List<String>? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_list_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_token_usage(TokenUsage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_i_32(self.promptTokens, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.completionTokens, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.totalTokens, serializer);
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
+  }
+
+  @protected
   void sse_encode_u_8(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self);
@@ -224,12 +1371,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
   }
 
   @protected

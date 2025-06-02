@@ -6,6 +6,7 @@ class MessageBubble extends StatelessWidget {
   final bool isStreaming;
   final bool showAvatar;
   final bool showAuthor;
+  final bool showTime;
 
   const MessageBubble({
     super.key,
@@ -13,6 +14,7 @@ class MessageBubble extends StatelessWidget {
     this.isStreaming = false,
     this.showAvatar = false,
     this.showAuthor = false,
+    this.showTime = false,
   });
 
   String _formatTime(DateTime dateTime) {
@@ -80,17 +82,26 @@ class MessageBubble extends StatelessWidget {
                         : isErrorMessage || isSystemMessage
                         ? Theme.of(
                             context,
-                          ).colorScheme.errorContainer.withOpacity(0.8)
+                          ).colorScheme.errorContainer.withValues(alpha: 0.8)
                         : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(20),
                     border: isErrorMessage || isSystemMessage
                         ? Border.all(
                             color: Theme.of(
                               context,
-                            ).colorScheme.error.withOpacity(0.3),
+                            ).colorScheme.outline.withValues(alpha: 0.3),
                             width: 1,
                           )
                         : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.shadow.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,22 +140,29 @@ class MessageBubble extends StatelessWidget {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatTime(message.timestamp),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: message.isFromUser
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary.withOpacity(0.7)
-                              : isErrorMessage || isSystemMessage
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.onErrorContainer.withOpacity(0.7)
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontSize: 11,
+                      // 仅在showTime为true时显示时间
+                      if (showTime) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatTime(message.timestamp),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: message.isFromUser
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                          .withValues(alpha: 0.7)
+                                    : isErrorMessage || isSystemMessage
+                                    ? Theme.of(context)
+                                          .colorScheme
+                                          .onErrorContainer
+                                          .withValues(alpha: 0.7)
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant
+                                          .withValues(alpha: 0.6),
+                                fontSize: 11,
+                              ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
