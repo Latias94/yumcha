@@ -773,24 +773,37 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             children: [
               // 聊天历史按钮
               Expanded(
-                child: FilledButton.tonal(
-                  onPressed: () {
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
                     // TODO: 打开完整的聊天历史页面
                     _showChatHistoryDialog();
                   },
-                  style: FilledButton.styleFrom(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.history, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        "聊天历史",
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.history,
+                          size: 18,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "聊天历史",
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                    .withValues(alpha: 0.8),
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -799,20 +812,36 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
               // 设置按钮
               Expanded(
-                child: FilledButton.tonal(
-                  onPressed: () {
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
                     _showSettingsDialog();
                   },
-                  style: FilledButton.styleFrom(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.settings, size: 18),
-                      const SizedBox(width: 8),
-                      Text("设置", style: Theme.of(context).textTheme.bodyMedium),
-                    ],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.settings,
+                          size: 18,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "设置",
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                    .withValues(alpha: 0.8),
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

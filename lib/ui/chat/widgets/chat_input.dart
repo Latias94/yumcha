@@ -3,6 +3,7 @@ import '../../../models/message.dart';
 import '../../../services/assistant_repository.dart';
 import '../../../services/favorite_model_repository.dart';
 import '../../../services/database_service.dart';
+import '../../../services/provider_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/preference_service.dart';
 import '../../../models/ai_assistant.dart';
@@ -128,11 +129,33 @@ class _ChatInputState extends State<ChatInput>
             )
             .firstOrNull;
 
-        if (matchingAssistant != null) {
+        if (matchingAssistant != null &&
+            await _validateAssistant(matchingAssistant)) {
           setState(() {
             _selectedAssistant = matchingAssistant;
           });
           return;
+        } else if (lastUsedModel['providerId'] != null) {
+          // 如果原模型不可用，尝试找到同一提供商的其他可用模型
+          final fallbackAssistant = await _findFallbackAssistant(
+            lastUsedModel['providerId']!,
+          );
+          if (fallbackAssistant != null) {
+            setState(() {
+              _selectedAssistant = fallbackAssistant;
+            });
+            // 更新偏好设置
+            await _preferenceService.saveLastUsedModel(
+              fallbackAssistant.providerId,
+              fallbackAssistant.modelName,
+            );
+            if (mounted) {
+              NotificationService().showInfo(
+                '原模型已更改，已切换到 ${fallbackAssistant.modelName}',
+              );
+            }
+            return;
+          }
         }
       }
 
@@ -167,6 +190,66 @@ class _ChatInputState extends State<ChatInput>
     } catch (e) {
       // 静默处理错误
       return false;
+    }
+  }
+
+  /// 验证助手配置是否仍然有效
+  Future<bool> _validateAssistant(AiAssistant assistant) async {
+    try {
+      // 检查助手是否仍然启用
+      if (!assistant.isEnabled) {
+        return false;
+      }
+
+      // 检查提供商是否仍然存在且启用
+      final providerRepository = ProviderRepository(
+        DatabaseService.instance.database,
+      );
+      final provider = await providerRepository.getProvider(
+        assistant.providerId,
+      );
+      if (provider == null || !provider.isEnabled) {
+        return false;
+      }
+
+      // 检查模型是否仍然在提供商的模型列表中
+      if (provider.models.isNotEmpty) {
+        final modelExists = provider.models.any(
+          (model) => model.name == assistant.modelName,
+        );
+        if (!modelExists) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 查找同一提供商的备用助手
+  Future<AiAssistant?> _findFallbackAssistant(String providerId) async {
+    try {
+      final assistants = await _assistantRepository.getEnabledAssistants();
+
+      // 查找同一提供商的其他可用助手
+      final sameProviderAssistants = assistants
+          .where(
+            (assistant) =>
+                assistant.providerId == providerId && assistant.isEnabled,
+          )
+          .toList();
+
+      for (final assistant in sameProviderAssistants) {
+        if (await _validateAssistant(assistant)) {
+          return assistant;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 
@@ -378,7 +461,7 @@ class _ChatInputState extends State<ChatInput>
 
   Widget _buildActionButtons(ThemeData theme, bool isEditing) {
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         children: [
           // 添加按钮（仅在非编辑模式显示）
@@ -411,100 +494,103 @@ class _ChatInputState extends State<ChatInput>
   }
 
   Widget _buildAttachmentButton(ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _showAttachmentPanel
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
+    return SizedBox(
+      width: 40,
+      height: 40,
       child: IconButton(
         icon: Icon(
           _showAttachmentPanel ? Icons.close : Icons.add,
+          size: 20,
           color: _showAttachmentPanel
-              ? theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.6)
-              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ? theme.colorScheme.primary.withValues(alpha: 0.8)
+              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
         ),
         onPressed: _handleAttachmentPanelToggle,
+        tooltip: _showAttachmentPanel ? '关闭附件面板' : '打开附件面板',
       ),
     );
   }
 
   Widget _buildModelSelectorButton(ThemeData theme) {
-    return InkWell(
-      onTap: _showAssistantSelector,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.8,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
-        child: Icon(
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: IconButton(
+        icon: Icon(
           Icons.auto_awesome,
           size: 20,
-          color: theme.colorScheme.primary.withValues(alpha: 0.6),
+          color: theme.colorScheme.primary.withValues(alpha: 0.8),
         ),
+        onPressed: _showAssistantSelector,
+        tooltip: '选择AI助手',
       ),
     );
   }
 
   Widget _buildWebSearchButton(ThemeData theme) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _isWebSearchEnabled = !_isWebSearchEnabled;
-        });
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: _isWebSearchEnabled
-              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
-              : theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.8,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      height: 32,
+      constraints: BoxConstraints(
+        minWidth: 40,
+        maxWidth: _isWebSearchEnabled ? 130 : 40,
+      ),
+      decoration: BoxDecoration(
+        color: _isWebSearchEnabled
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            setState(() {
+              _isWebSearchEnabled = !_isWebSearchEnabled;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.travel_explore,
+                  size: 18,
+                  color: _isWebSearchEnabled
+                      ? theme.colorScheme.onPrimaryContainer.withValues(
+                          alpha: 0.8,
+                        )
+                      : theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.7,
+                        ),
                 ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: _isWebSearchEnabled
-                ? theme.colorScheme.primary.withValues(alpha: 0.3)
-                : theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.travel_explore,
-              size: 16,
-              color: _isWebSearchEnabled
-                  ? theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.6)
-                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
-            if (_isWebSearchEnabled) ...[
-              const SizedBox(width: 4),
-              Text(
-                "网络搜索",
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer.withValues(
-                    alpha: 0.6,
+                if (_isWebSearchEnabled) ...[
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _isWebSearchEnabled ? 1.0 : 0.0,
+                      child: Text(
+                        '使用网络搜索',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer
+                              .withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ],
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -512,6 +598,8 @@ class _ChatInputState extends State<ChatInput>
 
   Widget _buildCancelEditButton(ThemeData theme) {
     return Container(
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
         shape: BoxShape.circle,
@@ -523,6 +611,7 @@ class _ChatInputState extends State<ChatInput>
       child: IconButton(
         icon: Icon(
           Icons.close,
+          size: 18,
           color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
         ),
         onPressed: widget.onCancelEdit,
@@ -533,6 +622,8 @@ class _ChatInputState extends State<ChatInput>
 
   Widget _buildStopButton(ThemeData theme) {
     return Container(
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer.withValues(alpha: 0.8),
         shape: BoxShape.circle,
@@ -545,6 +636,7 @@ class _ChatInputState extends State<ChatInput>
         onPressed: widget.onCancelMessage,
         icon: Icon(
           Icons.stop,
+          size: 18,
           color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.8),
         ),
         tooltip: '停止生成',
@@ -554,9 +646,11 @@ class _ChatInputState extends State<ChatInput>
 
   Widget _buildSendButton(ThemeData theme, bool isEditing) {
     return Container(
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: _canSend()
-            ? theme.colorScheme.primary.withValues(alpha: 0.8)
+            ? theme.colorScheme.primary.withValues(alpha: 0.9)
             : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
         shape: BoxShape.circle,
         border: Border.all(
@@ -577,9 +671,10 @@ class _ChatInputState extends State<ChatInput>
       ),
       child: IconButton(
         icon: Icon(
-          isEditing ? Icons.check : Icons.send,
+          isEditing ? Icons.check : Icons.arrow_upward,
+          size: 18,
           color: _canSend()
-              ? theme.colorScheme.onPrimary.withValues(alpha: 0.6)
+              ? theme.colorScheme.onPrimary.withValues(alpha: 0.9)
               : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
         ),
         onPressed: _canSend() ? _handleSend : null,

@@ -92,51 +92,39 @@ class ModelTile extends StatelessWidget {
                     ),
                   ),
 
-                // 助手头像
+                // 提供商图标
                 CircleAvatar(
+                  radius: 16,
                   backgroundColor: isSelected
                       ? theme.colorScheme.primary.withValues(alpha: 0.8)
                       : theme.colorScheme.primaryContainer.withValues(
                           alpha: 0.8,
                         ),
                   child: Text(
-                    assistant.avatar,
-                    style: const TextStyle(fontSize: 16),
+                    _getProviderIcon(assistant.providerId),
+                    style: const TextStyle(fontSize: 14),
                   ),
                 ),
 
                 const SizedBox(width: 12),
 
-                // 助手信息
+                // 模型信息
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 助手名称
+                      // 模型名称（作为主标题）
                       Text(
-                        assistant.name,
+                        assistant.modelName,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: isSelected ? theme.colorScheme.primary : null,
                         ),
                       ),
 
-                      const SizedBox(height: 2),
-
-                      // 模型名称
-                      Text(
-                        assistant.modelName,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.7,
-                          ),
-                          fontSize: 11,
-                        ),
-                      ),
-
                       const SizedBox(height: 6),
 
-                      // 助手能力
+                      // 模型能力
                       _buildCapabilities(context, capabilities),
                     ],
                   ),
@@ -258,5 +246,24 @@ class ModelTile extends StatelessWidget {
     }
 
     return capabilities;
+  }
+
+  /// 根据提供商ID获取对应的图标
+  String _getProviderIcon(String providerId) {
+    // 根据提供商ID返回对应的emoji图标
+    switch (providerId.toLowerCase()) {
+      case 'openai':
+        return '🤖';
+      case 'anthropic':
+        return '🧠';
+      case 'google':
+        return '🔍';
+      case 'ollama':
+        return '🦙';
+      case 'custom':
+        return '⚙️';
+      default:
+        return '🤖';
+    }
   }
 }

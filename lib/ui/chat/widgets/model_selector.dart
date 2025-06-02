@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/favorite_model_repository.dart';
 import '../../../services/assistant_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/preference_service.dart';
 import '../../../models/ai_assistant.dart';
+import '../../../models/ai_provider.dart';
+import '../../../providers/ai_provider_notifier.dart';
 import 'model_tile.dart';
 
 /// 模型选择器组件
-class ModelSelector extends StatefulWidget {
+class ModelSelector extends ConsumerStatefulWidget {
   const ModelSelector({
     super.key,
     required this.assistantRepository,
@@ -24,12 +27,14 @@ class ModelSelector extends StatefulWidget {
   final Function(AiAssistant assistant) onAssistantSelected;
 
   @override
-  State<ModelSelector> createState() => _ModelSelectorState();
+  ConsumerState<ModelSelector> createState() => _ModelSelectorState();
 }
 
-class _ModelSelectorState extends State<ModelSelector> {
+class _ModelSelectorState extends ConsumerState<ModelSelector> {
   @override
   Widget build(BuildContext context) {
+    final providersAsync = ref.watch(aiProviderNotifierProvider);
+
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       maxChildSize: 0.9,
@@ -54,55 +59,81 @@ class _ModelSelectorState extends State<ModelSelector> {
               ),
               // 主要内容
               Expanded(
-                child: FutureBuilder<AssistantSelectorData>(
-                  future: _loadData(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+                child: providersAsync.when(
+                  data: (providers) {
+                    return FutureBuilder<AssistantSelectorData>(
+                      future: _loadData(providers),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error, color: Colors.red),
-                            const SizedBox(height: 8),
-                            Text('加载失败: ${snapshot.error}'),
-                            const SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: () => setState(() {}),
-                              child: const Text('重试'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final data = snapshot.data!;
-                    return StatefulBuilder(
-                      builder: (context, setSheetState) {
-                        return FutureBuilder<List<FavoriteModel>>(
-                          future: widget.favoriteModelRepository
-                              .getAllFavoriteModels(),
-                          builder: (context, favSnapshot) {
-                            final currentFavorites =
-                                favSnapshot.data ?? data.favoriteModels;
-                            return ListView(
-                              controller: scrollController,
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                ..._buildAssistantSections(
-                                  data.assistants,
-                                  currentFavorites,
-                                  setSheetState,
+                                const Icon(Icons.error, color: Colors.red),
+                                const SizedBox(height: 8),
+                                Text('加载失败: ${snapshot.error}'),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: () => setState(() {}),
+                                  child: const Text('重试'),
                                 ),
                               ],
+                            ),
+                          );
+                        }
+
+                        final data = snapshot.data!;
+                        return StatefulBuilder(
+                          builder: (context, setSheetState) {
+                            return FutureBuilder<List<FavoriteModel>>(
+                              future: widget.favoriteModelRepository
+                                  .getAllFavoriteModels(),
+                              builder: (context, favSnapshot) {
+                                final currentFavorites =
+                                    favSnapshot.data ?? data.favoriteModels;
+                                return ListView(
+                                  controller: scrollController,
+                                  children: [
+                                    ..._buildAssistantSections(
+                                      data.assistants,
+                                      currentFavorites,
+                                      data.providers,
+                                      setSheetState,
+                                    ),
+                                  ],
+                                );
+                              },
                             );
                           },
                         );
                       },
                     );
                   },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error, color: Colors.red),
+                        const SizedBox(height: 8),
+                        Text('加载提供商失败: $error'),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: () =>
+                              ref.refresh(aiProviderNotifierProvider),
+                          child: const Text('重试'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -112,16 +143,23 @@ class _ModelSelectorState extends State<ModelSelector> {
     );
   }
 
-  Future<AssistantSelectorData> _loadData() async {
+  Future<AssistantSelectorData> _loadData(List<AiProvider> providers) async {
     try {
       final assistants = await widget.assistantRepository
           .getEnabledAssistants();
       final favoriteModels = await widget.favoriteModelRepository
           .getAllFavoriteModels();
 
+      // 将提供商列表转换为映射
+      final providersMap = <String, AiProvider>{};
+      for (final provider in providers) {
+        providersMap[provider.id] = provider;
+      }
+
       return AssistantSelectorData(
         assistants: assistants,
         favoriteModels: favoriteModels,
+        providers: providersMap,
       );
     } catch (e) {
       throw Exception('加载助手失败: $e');
@@ -131,6 +169,7 @@ class _ModelSelectorState extends State<ModelSelector> {
   List<Widget> _buildAssistantSections(
     List<AiAssistant> assistants,
     List<FavoriteModel> favoriteModels,
+    Map<String, AiProvider> providers,
     StateSetter setSheetState,
   ) {
     final List<Widget> sections = [];
@@ -174,7 +213,10 @@ class _ModelSelectorState extends State<ModelSelector> {
 
     for (final entry in groupedAssistants.entries) {
       if (entry.value.isNotEmpty) {
-        sections.add(_buildSectionHeader("${entry.value.first.providerId} 助手"));
+        final provider = providers[entry.key];
+        final providerDisplayName =
+            provider?.name ?? _getProviderDisplayName(entry.key);
+        sections.add(_buildSectionHeader(providerDisplayName));
         sections.addAll(
           _buildAssistantModels(entry.value, favoriteModels, setSheetState),
         );
@@ -233,16 +275,37 @@ class _ModelSelectorState extends State<ModelSelector> {
     // 关闭底部表单
     Navigator.pop(context);
   }
+
+  /// 根据提供商ID获取显示名称
+  String _getProviderDisplayName(String providerId) {
+    // 根据提供商ID返回对应的显示名称
+    switch (providerId.toLowerCase()) {
+      case 'openai':
+        return 'OpenAI';
+      case 'anthropic':
+        return 'Anthropic (Claude)';
+      case 'google':
+        return 'Google (Gemini)';
+      case 'ollama':
+        return 'Ollama';
+      case 'custom':
+        return '自定义';
+      default:
+        return providerId; // 如果没有匹配，返回原始ID
+    }
+  }
 }
 
 /// 助手选择器数据类
 class AssistantSelectorData {
   final List<AiAssistant> assistants;
   final List<FavoriteModel> favoriteModels;
+  final Map<String, AiProvider> providers; // 提供商映射
 
   AssistantSelectorData({
     required this.assistants,
     required this.favoriteModels,
+    required this.providers,
   });
 }
 

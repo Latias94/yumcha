@@ -1,22 +1,24 @@
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/ai_provider.dart';
 import '../models/ai_model.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../providers/ai_provider_notifier.dart';
 import '../components/model_list_manager.dart';
 
-class ProviderEditScreen extends StatefulWidget {
+class ProviderEditScreen extends ConsumerStatefulWidget {
   final AiProvider? provider;
 
   const ProviderEditScreen({super.key, this.provider});
 
   @override
-  State<ProviderEditScreen> createState() => _ProviderEditScreenState();
+  ConsumerState<ProviderEditScreen> createState() => _ProviderEditScreenState();
 }
 
-class _ProviderEditScreenState extends State<ProviderEditScreen> {
+class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
   late final ProviderRepository _repository;
   final _formKey = GlobalKey<FormState>();
 
@@ -90,6 +92,9 @@ class _ProviderEditScreenState extends State<ProviderEditScreen> {
       } else {
         await _repository.insertProvider(provider);
       }
+
+      // 刷新Riverpod状态
+      ref.refresh(aiProviderNotifierProvider);
 
       if (mounted) {
         Navigator.pop(context, true);
