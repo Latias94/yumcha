@@ -111,15 +111,12 @@ final enabledAiAssistantsProvider = Provider<List<AiAssistant>>((ref) {
       [];
 });
 
-/// 根据提供商ID获取助手列表
+/// 根据提供商ID获取助手列表 - 已废弃，因为助手不再关联特定提供商
+@Deprecated('助手不再关联特定提供商，请使用 aiAssistantNotifierProvider 直接获取所有助手')
 final assistantsByProviderProvider = Provider.family<List<AiAssistant>, String>(
   (ref, providerId) {
+    // 返回所有助手，因为助手不再关联特定提供商
     final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
-    return assistantsAsync.whenOrNull(
-          data: (assistants) => assistants
-              .where((assistant) => assistant.providerId == providerId)
-              .toList(),
-        ) ??
-        [];
+    return assistantsAsync.whenOrNull(data: (assistants) => assistants) ?? [];
   },
 );

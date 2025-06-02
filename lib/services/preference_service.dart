@@ -62,6 +62,11 @@ class PreferenceService {
     await _prefs!.setString('last_used_assistant_id', assistantId);
   }
 
+  /// 保存最后使用的助手ID（别名方法）
+  Future<void> saveLastUsedAssistantId(String assistantId) async {
+    await saveLastUsedAssistant(assistantId);
+  }
+
   /// 获取最后使用的助手ID
   Future<String?> getLastUsedAssistantId() async {
     await _ensureInitialized();

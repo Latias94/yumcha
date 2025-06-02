@@ -42,8 +42,6 @@ class Assistants extends Table {
   TextColumn get description => text()();
   TextColumn get avatar => text().withDefault(const Constant('🤖'))();
   TextColumn get systemPrompt => text()();
-  TextColumn get providerId => text()();
-  TextColumn get modelName => text()();
 
   // AI参数
   RealColumn get temperature => real().withDefault(const Constant(0.7))();
@@ -190,9 +188,10 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteAssistant(String id) =>
       (delete(assistants)..where((a) => a.id.equals(id))).go();
 
-  // 获取指定提供商的助手
+  // 获取指定提供商的助手 - 已废弃，因为助手不再关联特定提供商
+  @Deprecated('助手不再关联特定提供商，请使用 getAllAssistants() 方法')
   Future<List<AssistantData>> getAssistantsByProvider(String providerId) =>
-      (select(assistants)..where((a) => a.providerId.equals(providerId))).get();
+      getAllAssistants(); // 返回所有助手
 
   // 对话相关操作
   Future<List<ConversationData>> getAllConversations() => (select(

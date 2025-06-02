@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/favorite_model_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/preference_service.dart';
-import '../../../services/assistant_repository.dart';
 import '../../../models/ai_model.dart';
 import '../../../models/ai_provider.dart';
-import '../../../models/ai_assistant.dart';
+import '../../../models/chat_configuration.dart';
 import '../../../providers/ai_provider_notifier.dart';
 
 /// 提供商-模型组合数据类
@@ -35,7 +34,7 @@ class ModelSelector extends ConsumerStatefulWidget {
   final PreferenceService preferenceService;
   final String? selectedProviderId;
   final String? selectedModelName;
-  final Function(AiAssistant assistant) onModelSelected;
+  final Function(ModelSelection selection) onModelSelected;
 
   @override
   ConsumerState<ModelSelector> createState() => _ModelSelectorState();
@@ -423,30 +422,14 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
       item.model.name,
     );
 
-    // 创建基于选择模型的临时助手对象
-    // 注意：这里我们创建一个临时助手，包含默认的AI参数
-    // 在未来的重构中，应该将助手配置和模型选择分离
-    final tempAssistant = AiAssistant(
-      id: 'temp_${item.provider.id}_${item.model.name}',
-      name: item.model.effectiveDisplayName,
-      description:
-          '基于 ${item.provider.name} 的 ${item.model.effectiveDisplayName} 模型',
-      avatar: '🤖',
-      systemPrompt: '你是一个乐于助人的AI助手。',
-      providerId: item.provider.id,
-      modelName: item.model.name,
-      temperature: 0.7,
-      topP: 1.0,
-      maxTokens: 4096,
-      contextLength: 32,
-      streamOutput: true,
-      isEnabled: true,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+    // 创建模型选择结果
+    final selection = ModelSelection(
+      provider: item.provider,
+      model: item.model,
     );
 
     // 通知父组件
-    widget.onModelSelected(tempAssistant);
+    widget.onModelSelected(selection);
 
     // 关闭底部表单
     Navigator.pop(context);
@@ -468,7 +451,7 @@ Future<void> showModelSelector({
   required PreferenceService preferenceService,
   required String? selectedProviderId,
   required String? selectedModelName,
-  required Function(AiAssistant assistant) onModelSelected,
+  required Function(ModelSelection selection) onModelSelected,
 }) async {
   try {
     await showModalBottomSheet(

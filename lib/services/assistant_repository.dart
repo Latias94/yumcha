@@ -52,20 +52,12 @@ class AssistantRepository {
     return assistantDataList.map(_dataToModel).toList();
   }
 
-  // 根据提供商分组获取助手
+  // 根据提供商分组获取助手 - 已移除，因为助手不再关联特定提供商
+  @Deprecated('助手不再关联特定提供商，请使用 getAllAssistants() 方法')
   Future<Map<String, List<AiAssistant>>>
   getAssistantsByProviderGrouped() async {
-    final assistants = await getAllAssistants();
-    final Map<String, List<AiAssistant>> groupedAssistants = {};
-
-    for (final assistant in assistants) {
-      if (!groupedAssistants.containsKey(assistant.providerId)) {
-        groupedAssistants[assistant.providerId] = [];
-      }
-      groupedAssistants[assistant.providerId]!.add(assistant);
-    }
-
-    return groupedAssistants;
+    // 返回空的分组，因为助手不再关联提供商
+    return {};
   }
 
   // 切换助手启用状态
@@ -89,8 +81,6 @@ class AssistantRepository {
       description: data.description,
       avatar: data.avatar,
       systemPrompt: data.systemPrompt,
-      providerId: data.providerId,
-      modelName: data.modelName,
       temperature: data.temperature,
       topP: data.topP,
       maxTokens: data.maxTokens,
@@ -121,8 +111,6 @@ class AssistantRepository {
       description: Value(assistant.description),
       avatar: Value(assistant.avatar),
       systemPrompt: Value(assistant.systemPrompt),
-      providerId: Value(assistant.providerId),
-      modelName: Value(assistant.modelName),
       temperature: Value(assistant.temperature),
       topP: Value(assistant.topP),
       maxTokens: Value(assistant.maxTokens),

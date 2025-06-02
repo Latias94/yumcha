@@ -95,7 +95,7 @@ class ModelTile extends StatelessWidget {
                           alpha: 0.8,
                         ),
                   child: Text(
-                    _getProviderIcon(assistant.providerId),
+                    assistant.avatar, // 使用助手头像而不是提供商图标
                     style: const TextStyle(fontSize: 14),
                   ),
                 ),
@@ -107,9 +107,9 @@ class ModelTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 模型名称（作为主标题）
+                      // 助手名称（作为主标题）
                       Text(
-                        assistant.modelName,
+                        assistant.name,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: isSelected ? theme.colorScheme.primary : null,
@@ -143,10 +143,8 @@ class ModelTile extends StatelessWidget {
                       size: 20,
                     ),
                     onPressed: () async {
-                      await favoriteModelRepository.toggleFavoriteModel(
-                        assistant.providerId,
-                        assistant.modelName,
-                      );
+                      // 临时修复：助手不再关联提供商和模型，暂时禁用收藏功能
+                      // TODO: 实现新的助手收藏逻辑
                       onFavoriteChanged?.call();
                     },
                   ),
@@ -214,22 +212,5 @@ class ModelTile extends StatelessWidget {
     return capabilities;
   }
 
-  /// 根据提供商ID获取对应的图标
-  String _getProviderIcon(String providerId) {
-    // 根据提供商ID返回对应的emoji图标
-    switch (providerId.toLowerCase()) {
-      case 'openai':
-        return '🤖';
-      case 'anthropic':
-        return '🧠';
-      case 'google':
-        return '🔍';
-      case 'ollama':
-        return '🦙';
-      case 'custom':
-        return '⚙️';
-      default:
-        return '🤖';
-    }
-  }
+  // 移除了 _getProviderIcon 方法，因为助手不再关联特定提供商
 }

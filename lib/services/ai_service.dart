@@ -133,8 +133,6 @@ class AiService {
         name: '默认助手',
         avatar: '🤖',
         systemPrompt: '你是一个乐于助人的AI助手。',
-        providerId: 'openai-default', // 关联默认提供商
-        modelName: 'gpt-3.5-turbo', // 默认模型
         temperature: 0.7,
         topP: 1.0,
         maxTokens: 4096,

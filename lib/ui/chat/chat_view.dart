@@ -5,6 +5,7 @@ import '../../models/message.dart';
 import '../../services/ai_service.dart';
 import '../../services/notification_service.dart';
 import '../../providers/providers.dart';
+import '../../providers/chat_configuration_notifier.dart';
 import 'chat_view_model.dart';
 import 'chat_view_model_provider.dart';
 import 'stream_response.dart';
@@ -148,11 +149,8 @@ class _ChatViewState extends ConsumerState<ChatView>
                         : null,
                     isLoading: _isLoading,
                     onAssistantChanged: (assistant) {
-                      // 通知父组件助手改变
-                      widget.onProviderModelChanged?.call(
-                        assistant.providerId,
-                        assistant.modelName,
-                      );
+                      // 临时修复：助手不再关联提供商和模型
+                      // TODO: 实现新的助手选择逻辑
                     },
                     initialAssistantId: widget.assistantId,
                   ),
@@ -285,12 +283,19 @@ class _ChatViewState extends ConsumerState<ChatView>
     });
 
     try {
+      // 获取当前的聊天配置
+      final chatConfig = ref.read(chatConfigurationProvider);
+      final providerId =
+          chatConfig.selectedProvider?.id ?? widget.selectedProviderId;
+      final modelName =
+          chatConfig.selectedModel?.name ?? widget.selectedModelName;
+
       final stream = _aiService.sendMessageStream(
         assistantId: widget.assistantId,
         chatHistory: _messages.where((m) => m != aiMessage).toList(),
         userMessage: userMessage.content,
-        selectedProviderId: widget.selectedProviderId,
-        selectedModelName: widget.selectedModelName,
+        selectedProviderId: providerId,
+        selectedModelName: modelName,
       );
 
       _pendingStreamResponse = StreamResponse(
@@ -361,12 +366,19 @@ class _ChatViewState extends ConsumerState<ChatView>
     Message userMessage,
     AiAssistant assistant,
   ) async {
+    // 获取当前的聊天配置
+    final chatConfig = ref.read(chatConfigurationProvider);
+    final providerId =
+        chatConfig.selectedProvider?.id ?? widget.selectedProviderId;
+    final modelName =
+        chatConfig.selectedModel?.name ?? widget.selectedModelName;
+
     final response = await _aiService.sendMessage(
       assistantId: widget.assistantId,
       chatHistory: _messages,
       userMessage: userMessage.content,
-      selectedProviderId: widget.selectedProviderId,
-      selectedModelName: widget.selectedModelName,
+      selectedProviderId: providerId,
+      selectedModelName: modelName,
     );
 
     if (response != null) {

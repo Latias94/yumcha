@@ -107,7 +107,7 @@ class _MainNavigationState extends State<MainNavigation> {
               channelName: "与${assistant.name}的新对话",
               channelMembers: 1,
               assistantId: assistant.id,
-              selectedProviderId: assistant.providerId,
+              selectedProviderId: '', // 临时修复：助手不再关联提供商
               messages: [],
             );
           });
@@ -127,7 +127,7 @@ class _MainNavigationState extends State<MainNavigation> {
               : "新对话",
           channelMembers: 1,
           assistantId: defaultAssistant?.id ?? '',
-          selectedProviderId: defaultAssistant?.providerId ?? '',
+          selectedProviderId: '', // 临时修复：助手不再关联提供商
           messages: [],
         );
       });
@@ -136,8 +136,8 @@ class _MainNavigationState extends State<MainNavigation> {
       if (defaultAssistant != null) {
         await _saveCurrentConfiguration(
           defaultAssistant.id,
-          defaultAssistant.providerId,
-          defaultAssistant.modelName,
+          '', // 临时修复：助手不再关联提供商
+          '', // 临时修复：助手不再关联模型
         );
       }
     } catch (e) {

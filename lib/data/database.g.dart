@@ -672,28 +672,6 @@ class $AssistantsTable extends Assistants
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _providerIdMeta = const VerificationMeta(
-    'providerId',
-  );
-  @override
-  late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
-    'provider_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _modelNameMeta = const VerificationMeta(
-    'modelName',
-  );
-  @override
-  late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
-    'model_name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _temperatureMeta = const VerificationMeta(
     'temperature',
   );
@@ -945,8 +923,6 @@ class $AssistantsTable extends Assistants
     description,
     avatar,
     systemPrompt,
-    providerId,
-    modelName,
     temperature,
     topP,
     maxTokens,
@@ -1019,22 +995,6 @@ class $AssistantsTable extends Assistants
       );
     } else if (isInserting) {
       context.missing(_systemPromptMeta);
-    }
-    if (data.containsKey('provider_id')) {
-      context.handle(
-        _providerIdMeta,
-        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_providerIdMeta);
-    }
-    if (data.containsKey('model_name')) {
-      context.handle(
-        _modelNameMeta,
-        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_modelNameMeta);
     }
     if (data.containsKey('temperature')) {
       context.handle(
@@ -1194,14 +1154,6 @@ class $AssistantsTable extends Assistants
         DriftSqlType.string,
         data['${effectivePrefix}system_prompt'],
       )!,
-      providerId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}provider_id'],
-      )!,
-      modelName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}model_name'],
-      )!,
       temperature: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}temperature'],
@@ -1306,8 +1258,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
   final String description;
   final String avatar;
   final String systemPrompt;
-  final String providerId;
-  final String modelName;
   final double temperature;
   final double topP;
   final int maxTokens;
@@ -1333,8 +1283,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     required this.description,
     required this.avatar,
     required this.systemPrompt,
-    required this.providerId,
-    required this.modelName,
     required this.temperature,
     required this.topP,
     required this.maxTokens,
@@ -1363,8 +1311,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     map['description'] = Variable<String>(description);
     map['avatar'] = Variable<String>(avatar);
     map['system_prompt'] = Variable<String>(systemPrompt);
-    map['provider_id'] = Variable<String>(providerId);
-    map['model_name'] = Variable<String>(modelName);
     map['temperature'] = Variable<double>(temperature);
     map['top_p'] = Variable<double>(topP);
     map['max_tokens'] = Variable<int>(maxTokens);
@@ -1410,8 +1356,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       description: Value(description),
       avatar: Value(avatar),
       systemPrompt: Value(systemPrompt),
-      providerId: Value(providerId),
-      modelName: Value(modelName),
       temperature: Value(temperature),
       topP: Value(topP),
       maxTokens: Value(maxTokens),
@@ -1449,8 +1393,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       description: serializer.fromJson<String>(json['description']),
       avatar: serializer.fromJson<String>(json['avatar']),
       systemPrompt: serializer.fromJson<String>(json['systemPrompt']),
-      providerId: serializer.fromJson<String>(json['providerId']),
-      modelName: serializer.fromJson<String>(json['modelName']),
       temperature: serializer.fromJson<double>(json['temperature']),
       topP: serializer.fromJson<double>(json['topP']),
       maxTokens: serializer.fromJson<int>(json['maxTokens']),
@@ -1487,8 +1429,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       'description': serializer.toJson<String>(description),
       'avatar': serializer.toJson<String>(avatar),
       'systemPrompt': serializer.toJson<String>(systemPrompt),
-      'providerId': serializer.toJson<String>(providerId),
-      'modelName': serializer.toJson<String>(modelName),
       'temperature': serializer.toJson<double>(temperature),
       'topP': serializer.toJson<double>(topP),
       'maxTokens': serializer.toJson<int>(maxTokens),
@@ -1517,8 +1457,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     String? description,
     String? avatar,
     String? systemPrompt,
-    String? providerId,
-    String? modelName,
     double? temperature,
     double? topP,
     int? maxTokens,
@@ -1544,8 +1482,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     description: description ?? this.description,
     avatar: avatar ?? this.avatar,
     systemPrompt: systemPrompt ?? this.systemPrompt,
-    providerId: providerId ?? this.providerId,
-    modelName: modelName ?? this.modelName,
     temperature: temperature ?? this.temperature,
     topP: topP ?? this.topP,
     maxTokens: maxTokens ?? this.maxTokens,
@@ -1581,10 +1517,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       systemPrompt: data.systemPrompt.present
           ? data.systemPrompt.value
           : this.systemPrompt,
-      providerId: data.providerId.present
-          ? data.providerId.value
-          : this.providerId,
-      modelName: data.modelName.present ? data.modelName.value : this.modelName,
       temperature: data.temperature.present
           ? data.temperature.value
           : this.temperature,
@@ -1643,8 +1575,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
           ..write('description: $description, ')
           ..write('avatar: $avatar, ')
           ..write('systemPrompt: $systemPrompt, ')
-          ..write('providerId: $providerId, ')
-          ..write('modelName: $modelName, ')
           ..write('temperature: $temperature, ')
           ..write('topP: $topP, ')
           ..write('maxTokens: $maxTokens, ')
@@ -1675,8 +1605,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     description,
     avatar,
     systemPrompt,
-    providerId,
-    modelName,
     temperature,
     topP,
     maxTokens,
@@ -1706,8 +1634,6 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
           other.description == this.description &&
           other.avatar == this.avatar &&
           other.systemPrompt == this.systemPrompt &&
-          other.providerId == this.providerId &&
-          other.modelName == this.modelName &&
           other.temperature == this.temperature &&
           other.topP == this.topP &&
           other.maxTokens == this.maxTokens &&
@@ -1735,8 +1661,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
   final Value<String> description;
   final Value<String> avatar;
   final Value<String> systemPrompt;
-  final Value<String> providerId;
-  final Value<String> modelName;
   final Value<double> temperature;
   final Value<double> topP;
   final Value<int> maxTokens;
@@ -1763,8 +1687,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     this.description = const Value.absent(),
     this.avatar = const Value.absent(),
     this.systemPrompt = const Value.absent(),
-    this.providerId = const Value.absent(),
-    this.modelName = const Value.absent(),
     this.temperature = const Value.absent(),
     this.topP = const Value.absent(),
     this.maxTokens = const Value.absent(),
@@ -1792,8 +1714,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     required String description,
     this.avatar = const Value.absent(),
     required String systemPrompt,
-    required String providerId,
-    required String modelName,
     this.temperature = const Value.absent(),
     this.topP = const Value.absent(),
     this.maxTokens = const Value.absent(),
@@ -1817,17 +1737,13 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
   }) : id = Value(id),
        name = Value(name),
        description = Value(description),
-       systemPrompt = Value(systemPrompt),
-       providerId = Value(providerId),
-       modelName = Value(modelName);
+       systemPrompt = Value(systemPrompt);
   static Insertable<AssistantData> custom({
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? description,
     Expression<String>? avatar,
     Expression<String>? systemPrompt,
-    Expression<String>? providerId,
-    Expression<String>? modelName,
     Expression<double>? temperature,
     Expression<double>? topP,
     Expression<int>? maxTokens,
@@ -1855,8 +1771,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
       if (description != null) 'description': description,
       if (avatar != null) 'avatar': avatar,
       if (systemPrompt != null) 'system_prompt': systemPrompt,
-      if (providerId != null) 'provider_id': providerId,
-      if (modelName != null) 'model_name': modelName,
       if (temperature != null) 'temperature': temperature,
       if (topP != null) 'top_p': topP,
       if (maxTokens != null) 'max_tokens': maxTokens,
@@ -1888,8 +1802,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     Value<String>? description,
     Value<String>? avatar,
     Value<String>? systemPrompt,
-    Value<String>? providerId,
-    Value<String>? modelName,
     Value<double>? temperature,
     Value<double>? topP,
     Value<int>? maxTokens,
@@ -1917,8 +1829,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
       description: description ?? this.description,
       avatar: avatar ?? this.avatar,
       systemPrompt: systemPrompt ?? this.systemPrompt,
-      providerId: providerId ?? this.providerId,
-      modelName: modelName ?? this.modelName,
       temperature: temperature ?? this.temperature,
       topP: topP ?? this.topP,
       maxTokens: maxTokens ?? this.maxTokens,
@@ -1960,12 +1870,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     }
     if (systemPrompt.present) {
       map['system_prompt'] = Variable<String>(systemPrompt.value);
-    }
-    if (providerId.present) {
-      map['provider_id'] = Variable<String>(providerId.value);
-    }
-    if (modelName.present) {
-      map['model_name'] = Variable<String>(modelName.value);
     }
     if (temperature.present) {
       map['temperature'] = Variable<double>(temperature.value);
@@ -2046,8 +1950,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
           ..write('description: $description, ')
           ..write('avatar: $avatar, ')
           ..write('systemPrompt: $systemPrompt, ')
-          ..write('providerId: $providerId, ')
-          ..write('modelName: $modelName, ')
           ..write('temperature: $temperature, ')
           ..write('topP: $topP, ')
           ..write('maxTokens: $maxTokens, ')
@@ -3815,8 +3717,6 @@ typedef $$AssistantsTableCreateCompanionBuilder =
       required String description,
       Value<String> avatar,
       required String systemPrompt,
-      required String providerId,
-      required String modelName,
       Value<double> temperature,
       Value<double> topP,
       Value<int> maxTokens,
@@ -3845,8 +3745,6 @@ typedef $$AssistantsTableUpdateCompanionBuilder =
       Value<String> description,
       Value<String> avatar,
       Value<String> systemPrompt,
-      Value<String> providerId,
-      Value<String> modelName,
       Value<double> temperature,
       Value<double> topP,
       Value<int> maxTokens,
@@ -3900,16 +3798,6 @@ class $$AssistantsTableFilterComposer
 
   ColumnFilters<String> get systemPrompt => $composableBuilder(
     column: $table.systemPrompt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get modelName => $composableBuilder(
-    column: $table.modelName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4054,16 +3942,6 @@ class $$AssistantsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get modelName => $composableBuilder(
-    column: $table.modelName,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<double> get temperature => $composableBuilder(
     column: $table.temperature,
     builder: (column) => ColumnOrderings(column),
@@ -4187,14 +4065,6 @@ class $$AssistantsTableAnnotationComposer
     column: $table.systemPrompt,
     builder: (column) => column,
   );
-
-  GeneratedColumn<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get modelName =>
-      $composableBuilder(column: $table.modelName, builder: (column) => column);
 
   GeneratedColumn<double> get temperature => $composableBuilder(
     column: $table.temperature,
@@ -4321,8 +4191,6 @@ class $$AssistantsTableTableManager
                 Value<String> description = const Value.absent(),
                 Value<String> avatar = const Value.absent(),
                 Value<String> systemPrompt = const Value.absent(),
-                Value<String> providerId = const Value.absent(),
-                Value<String> modelName = const Value.absent(),
                 Value<double> temperature = const Value.absent(),
                 Value<double> topP = const Value.absent(),
                 Value<int> maxTokens = const Value.absent(),
@@ -4349,8 +4217,6 @@ class $$AssistantsTableTableManager
                 description: description,
                 avatar: avatar,
                 systemPrompt: systemPrompt,
-                providerId: providerId,
-                modelName: modelName,
                 temperature: temperature,
                 topP: topP,
                 maxTokens: maxTokens,
@@ -4379,8 +4245,6 @@ class $$AssistantsTableTableManager
                 required String description,
                 Value<String> avatar = const Value.absent(),
                 required String systemPrompt,
-                required String providerId,
-                required String modelName,
                 Value<double> temperature = const Value.absent(),
                 Value<double> topP = const Value.absent(),
                 Value<int> maxTokens = const Value.absent(),
@@ -4407,8 +4271,6 @@ class $$AssistantsTableTableManager
                 description: description,
                 avatar: avatar,
                 systemPrompt: systemPrompt,
-                providerId: providerId,
-                modelName: modelName,
                 temperature: temperature,
                 topP: topP,
                 maxTokens: maxTokens,

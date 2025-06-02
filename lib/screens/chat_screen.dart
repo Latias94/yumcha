@@ -87,10 +87,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         if (selectedAssistant != null) {
           // 2. 确保有选中的提供商
           if (_conversationState.selectedProviderId.isEmpty) {
-            // 优先使用助手关联的提供商
-            selectedProvider = providers
-                .where((p) => p.id == selectedAssistant!.providerId)
-                .firstOrNull;
+            // 临时修复：助手不再关联提供商，选择第一个可用的提供商
+            selectedProvider = providers.where((p) => p.isEnabled).firstOrNull;
 
             // 如果助手关联的提供商不可用，选择第一个启用的提供商
             if (selectedProvider == null || !selectedProvider.isEnabled) {
@@ -113,14 +111,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           // 3. 确保有选中的模型
           if (_conversationState.selectedModelId == null &&
               selectedProvider != null) {
-            // 优先使用助手的默认模型
-            selectedModelId = selectedAssistant.modelName;
-
-            // 如果助手的模型在当前提供商中不可用，使用提供商的第一个模型
-            if (selectedProvider.models.isNotEmpty &&
-                !selectedProvider.models.any(
-                  (m) => m.name == selectedModelId,
-                )) {
+            // 临时修复：使用提供商的第一个模型
+            if (selectedProvider.models.isNotEmpty) {
               selectedModelId = selectedProvider.models.first.name;
             }
 
@@ -357,21 +349,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     subtitle: Text(
                       assistant.description.isNotEmpty
                           ? assistant.description
-                          : '${assistant.providerId} - ${assistant.modelName}',
+                          : '助手配置', // 临时修复：不再显示提供商和模型信息
                     ),
                     trailing: isSelected ? const Icon(Icons.check) : null,
                     onTap: () {
+                      // 临时修复：选择助手时使用第一个可用的提供商和模型
                       providersAsync.whenData((providers) {
                         final provider = providers
-                            .where((p) => p.id == assistant.providerId)
+                            .where((p) => p.isEnabled)
                             .firstOrNull;
-                        if (provider != null) {
+                        if (provider != null && provider.models.isNotEmpty) {
                           Navigator.of(context).pop();
                           setState(() {
                             _conversationState = _conversationState.copyWith(
                               assistantId: assistant.id,
                               selectedProviderId: provider.id,
-                              selectedModelId: assistant.modelName,
+                              selectedModelId: provider.models.first.name,
                             );
                           });
 
@@ -381,7 +374,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           widget.onAssistantConfigChanged?.call(
                             assistant.id,
                             provider.id,
-                            assistant.modelName,
+                            provider.models.first.name,
                           );
                         }
                       });

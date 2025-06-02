@@ -4,8 +4,6 @@ class AiAssistant {
   final String description;
   final String avatar; // 头像emoji或图片路径
   final String systemPrompt;
-  final String providerId; // 关联的提供商ID
-  final String modelName; // 使用的模型名称
 
   // AI参数
   final double temperature; // 温度 0.0-2.0
@@ -40,8 +38,6 @@ class AiAssistant {
     required this.description,
     this.avatar = '🤖',
     required this.systemPrompt,
-    required this.providerId,
-    required this.modelName,
     this.temperature = 0.7,
     this.topP = 1.0,
     this.maxTokens = 2048,
@@ -69,8 +65,6 @@ class AiAssistant {
     String? description,
     String? avatar,
     String? systemPrompt,
-    String? providerId,
-    String? modelName,
     double? temperature,
     double? topP,
     int? maxTokens,
@@ -97,8 +91,6 @@ class AiAssistant {
       description: description ?? this.description,
       avatar: avatar ?? this.avatar,
       systemPrompt: systemPrompt ?? this.systemPrompt,
-      providerId: providerId ?? this.providerId,
-      modelName: modelName ?? this.modelName,
       temperature: temperature ?? this.temperature,
       topP: topP ?? this.topP,
       maxTokens: maxTokens ?? this.maxTokens,

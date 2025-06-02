@@ -231,8 +231,6 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
         description: '', // 移除描述字段
         avatar: _selectedAvatar,
         systemPrompt: _systemPromptController.text.trim(),
-        providerId: '', // 移除提供商选择
-        modelName: '', // 移除模型选择
         temperature: _temperature,
         topP: _topP,
         maxTokens: 4096, // 固定值，不再让用户设置

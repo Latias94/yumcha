@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/message.dart';
 import '../../../services/assistant_repository.dart';
 import '../../../services/favorite_model_repository.dart';
 import '../../../services/database_service.dart';
-import '../../../services/provider_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/preference_service.dart';
 import '../../../models/ai_assistant.dart';
+import '../../../providers/chat_configuration_notifier.dart';
 import 'model_selector.dart';
 import 'attachment_panel.dart';
 
 /// 聊天输入组件 - 重构版
-class ChatInput extends StatefulWidget {
+class ChatInput extends ConsumerStatefulWidget {
   const ChatInput({
     super.key,
     this.initialMessage,
@@ -49,10 +50,10 @@ class ChatInput extends StatefulWidget {
   final String? initialAssistantId;
 
   @override
-  State<ChatInput> createState() => _ChatInputState();
+  ConsumerState<ChatInput> createState() => _ChatInputState();
 }
 
-class _ChatInputState extends State<ChatInput>
+class _ChatInputState extends ConsumerState<ChatInput>
     with SingleTickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -61,7 +62,7 @@ class _ChatInputState extends State<ChatInput>
   bool _isComposing = false;
   bool _isWebSearchEnabled = false;
 
-  AiAssistant? _selectedAssistant;
+  // 移除本地助手状态，使用 ChatConfigurationNotifier
 
   late AnimationController _animationController;
 
@@ -109,53 +110,27 @@ class _ChatInputState extends State<ChatInput>
           widget.initialAssistantId!,
         );
         if (assistant != null) {
-          setState(() {
-            _selectedAssistant = assistant;
-          });
+          // 使用 ChatConfigurationNotifier 选择助手
+          ref
+              .read(chatConfigurationProvider.notifier)
+              .selectAssistant(assistant);
           return;
         }
       }
 
-      // 2. 尝试获取最后使用的助手
-      final lastUsedModel = await _preferenceService.getLastUsedModel();
-      if (lastUsedModel != null) {
-        // 根据提供商和模型查找对应的助手
-        final assistants = await _assistantRepository.getEnabledAssistants();
-        final matchingAssistant = assistants
-            .where(
-              (assistant) =>
-                  assistant.providerId == lastUsedModel['providerId'] &&
-                  assistant.modelName == lastUsedModel['modelName'],
-            )
-            .firstOrNull;
-
-        if (matchingAssistant != null &&
-            await _validateAssistant(matchingAssistant)) {
-          setState(() {
-            _selectedAssistant = matchingAssistant;
-          });
+      // 2. 尝试获取最后使用的助手ID
+      final lastUsedAssistantId = await _preferenceService
+          .getLastUsedAssistantId();
+      if (lastUsedAssistantId != null) {
+        final assistant = await _assistantRepository.getAssistant(
+          lastUsedAssistantId,
+        );
+        if (assistant != null && assistant.isEnabled) {
+          // 选择助手
+          ref
+              .read(chatConfigurationProvider.notifier)
+              .selectAssistant(assistant);
           return;
-        } else if (lastUsedModel['providerId'] != null) {
-          // 如果原模型不可用，尝试找到同一提供商的其他可用模型
-          final fallbackAssistant = await _findFallbackAssistant(
-            lastUsedModel['providerId']!,
-          );
-          if (fallbackAssistant != null) {
-            setState(() {
-              _selectedAssistant = fallbackAssistant;
-            });
-            // 更新偏好设置
-            await _preferenceService.saveLastUsedModel(
-              fallbackAssistant.providerId,
-              fallbackAssistant.modelName,
-            );
-            if (mounted) {
-              NotificationService().showInfo(
-                '原模型已更改，已切换到 ${fallbackAssistant.modelName}',
-              );
-            }
-            return;
-          }
         }
       }
 
@@ -181,9 +156,10 @@ class _ChatInputState extends State<ChatInput>
       final assistants = await _assistantRepository.getEnabledAssistants();
 
       if (assistants.isNotEmpty) {
-        setState(() {
-          _selectedAssistant = assistants.first;
-        });
+        // 选择助手
+        ref
+            .read(chatConfigurationProvider.notifier)
+            .selectAssistant(assistants.first);
         return true;
       }
       return false;
@@ -193,65 +169,7 @@ class _ChatInputState extends State<ChatInput>
     }
   }
 
-  /// 验证助手配置是否仍然有效
-  Future<bool> _validateAssistant(AiAssistant assistant) async {
-    try {
-      // 检查助手是否仍然启用
-      if (!assistant.isEnabled) {
-        return false;
-      }
-
-      // 检查提供商是否仍然存在且启用
-      final providerRepository = ProviderRepository(
-        DatabaseService.instance.database,
-      );
-      final provider = await providerRepository.getProvider(
-        assistant.providerId,
-      );
-      if (provider == null || !provider.isEnabled) {
-        return false;
-      }
-
-      // 检查模型是否仍然在提供商的模型列表中
-      if (provider.models.isNotEmpty) {
-        final modelExists = provider.models.any(
-          (model) => model.name == assistant.modelName,
-        );
-        if (!modelExists) {
-          return false;
-        }
-      }
-
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// 查找同一提供商的备用助手
-  Future<AiAssistant?> _findFallbackAssistant(String providerId) async {
-    try {
-      final assistants = await _assistantRepository.getEnabledAssistants();
-
-      // 查找同一提供商的其他可用助手
-      final sameProviderAssistants = assistants
-          .where(
-            (assistant) =>
-                assistant.providerId == providerId && assistant.isEnabled,
-          )
-          .toList();
-
-      for (final assistant in sameProviderAssistants) {
-        if (await _validateAssistant(assistant)) {
-          return assistant;
-        }
-      }
-
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
+  // 移除了旧的模型配置加载方法，现在使用 ChatConfigurationNotifier
 
   @override
   void didUpdateWidget(ChatInput oldWidget) {
@@ -322,18 +240,23 @@ class _ChatInputState extends State<ChatInput>
   }
 
   void _showModelSelector() async {
+    final chatConfig = ref.read(chatConfigurationProvider);
+
     await showModelSelector(
       context: context,
       favoriteModelRepository: _favoriteModelRepository,
       preferenceService: _preferenceService,
-      selectedProviderId: _selectedAssistant?.providerId,
-      selectedModelName: _selectedAssistant?.modelName,
-      onModelSelected: (assistant) {
-        setState(() {
-          _selectedAssistant = assistant;
-        });
-        // 通知父组件配置已改变
-        widget.onAssistantChanged?.call(assistant);
+      selectedProviderId: chatConfig.selectedProvider?.id,
+      selectedModelName: chatConfig.selectedModel?.name,
+      onModelSelected: (selection) {
+        // 使用 ChatConfigurationNotifier 来选择模型
+        ref.read(chatConfigurationProvider.notifier).selectModel(selection);
+
+        // 通知父组件模型已改变
+        final chatConfig = ref.read(chatConfigurationProvider);
+        if (chatConfig.selectedAssistant != null) {
+          widget.onAssistantChanged?.call(chatConfig.selectedAssistant!);
+        }
       },
     );
   }
