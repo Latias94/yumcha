@@ -63,7 +63,7 @@ SPEC CHECKSUMS:
   dynamic_color: b820c000cc68df65e7ba7ff177cb98404ce56651
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  rust_lib_yumcha: add22f7aaf0fea75a6f400fff80c95f87b3f7c3b
+  rust_lib_yumcha: 0caf61b88ae6522a39ef533a589d7f32ee0b8fcf
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sqlite3: 3c950dc86011117c307eb0b28c4a7bb449dce9f1
   sqlite3_flutter_libs: 74334e3ef2dbdb7d37e50859bb45da43935779c4
