@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuzzy/fuzzy.dart';
 import '../../../services/favorite_model_repository.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/preference_service.dart';
@@ -41,6 +42,8 @@ class ModelSelector extends ConsumerStatefulWidget {
 }
 
 class _ModelSelectorState extends ConsumerState<ModelSelector> {
+  String _searchQuery = '';
+
   @override
   Widget build(BuildContext context) {
     final providersAsync = ref.watch(aiProviderNotifierProvider);
@@ -65,6 +68,40 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                     context,
                   ).colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // 搜索框
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: '搜索模型...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
                 ),
               ),
               // 主要内容
@@ -152,7 +189,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                                   controller: scrollController,
                                   children: [
                                     ..._buildModelSections(
-                                      data.modelItems,
+                                      _filterModelItems(data.modelItems),
                                       currentFavorites,
                                       setSheetState,
                                     ),
@@ -190,6 +227,51 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
         );
       },
     );
+  }
+
+  List<ProviderModelItem> _filterModelItems(
+    List<ProviderModelItem> modelItems,
+  ) {
+    if (_searchQuery.isEmpty) {
+      return modelItems;
+    }
+
+    // 使用 fuzzy 搜索
+    final fuzzy = Fuzzy<ProviderModelItem>(
+      modelItems,
+      options: FuzzyOptions(
+        keys: [
+          WeightedKey(
+            name: 'modelName',
+            getter: (item) => item.model.name,
+            weight: 1.0,
+          ),
+          WeightedKey(
+            name: 'displayName',
+            getter: (item) => item.model.effectiveDisplayName,
+            weight: 0.9,
+          ),
+          WeightedKey(
+            name: 'providerName',
+            getter: (item) => item.provider.name,
+            weight: 0.7,
+          ),
+          WeightedKey(
+            name: 'combinedName',
+            getter: (item) => item.displayName,
+            weight: 0.8,
+          ),
+        ],
+        threshold: 0.3, // 降低阈值以获得更多结果
+        distance: 100,
+        isCaseSensitive: false,
+        shouldSort: true,
+        shouldNormalize: true,
+      ),
+    );
+
+    final results = fuzzy.search(_searchQuery);
+    return results.map((result) => result.item).toList();
   }
 
   Future<ModelSelectorData> _loadData(List<AiProvider> providers) async {

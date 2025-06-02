@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fuzzy/fuzzy.dart';
 import '../models/ai_model.dart';
 
 class ModelSelectionDialog extends StatefulWidget {
@@ -33,11 +34,28 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
       return widget.availableModels;
     }
 
-    return widget.availableModels.where((model) {
-      final query = _searchQuery.toLowerCase();
-      return model.name.toLowerCase().contains(query) ||
-          model.effectiveDisplayName.toLowerCase().contains(query);
-    }).toList();
+    // 使用 fuzzy 搜索
+    final fuzzy = Fuzzy<AiModel>(
+      widget.availableModels,
+      options: FuzzyOptions(
+        keys: [
+          WeightedKey(name: 'name', getter: (model) => model.name, weight: 1.0),
+          WeightedKey(
+            name: 'displayName',
+            getter: (model) => model.effectiveDisplayName,
+            weight: 0.8,
+          ),
+        ],
+        threshold: 0.3, // 降低阈值以获得更多结果
+        distance: 100,
+        isCaseSensitive: false,
+        shouldSort: true,
+        shouldNormalize: true,
+      ),
+    );
+
+    final results = fuzzy.search(_searchQuery);
+    return results.map((result) => result.item).toList();
   }
 
   void _toggleModel(AiModel model) {
