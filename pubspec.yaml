@@ -53,6 +53,8 @@ dependencies:
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
   chat_bubbles: ^1.7.0
+  # 高性能列表组件
+  infinite_scroll_pagination: ^5.0.0
 
 dev_dependencies:
   flutter_test:

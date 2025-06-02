@@ -251,18 +251,39 @@ class _ChatViewState extends State<ChatView>
               }
             }
           });
-          _notifyMessagesChanged();
         },
         onDone: (error) {
+          // 如果有错误，先处理错误消息
+          if (error != null) {
+            NotificationService().showError('请求失败: $error');
+
+            // 如果有流式消息，添加错误标记
+            if (_streamingMessage != null) {
+              final errorMessage = Message(
+                content: '[错误] $error',
+                timestamp: _streamingMessage!.timestamp,
+                isFromUser: false,
+                author: _streamingMessage!.author,
+              );
+
+              final index = _messages.indexOf(_streamingMessage!);
+              if (index != -1) {
+                setState(() {
+                  _messages[index] = errorMessage;
+                });
+              }
+            }
+          }
+
+          // 清空状态变量
           setState(() {
             _pendingStreamResponse = null;
             _streamingMessage = null;
             _isLoading = false;
           });
 
-          if (error != null) {
-            _handleError(error);
-          }
+          // 只在流式响应完成时通知消息变化（无论成功还是失败）
+          _notifyMessagesChanged();
         },
       );
     } catch (e) {

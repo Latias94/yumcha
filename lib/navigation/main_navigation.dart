@@ -6,6 +6,7 @@ import '../models/conversation_ui_state.dart';
 import '../services/conversation_repository.dart';
 import '../services/assistant_repository.dart';
 import '../services/database_service.dart';
+import 'package:uuid/uuid.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -15,7 +16,7 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  String selectedMenu = "ai_chat";
+  String selectedMenu = "new_chat";
   late final ConversationRepository _conversationRepository;
   late final AssistantRepository _assistantRepository;
   ConversationUiState? _currentConversation;
@@ -26,6 +27,9 @@ class _MainNavigationState extends State<MainNavigation> {
   String? _lastUsedAssistantId;
   String? _lastUsedProviderId;
   String? _lastUsedModelName;
+
+  // UUID生成器
+  final _uuid = Uuid();
 
   @override
   void initState() {
@@ -88,6 +92,9 @@ class _MainNavigationState extends State<MainNavigation> {
   // 创建新对话
   Future<void> _createNewConversation() async {
     try {
+      // 生成固定的UUID作为对话ID
+      final conversationId = _uuid.v4();
+
       // 如果有上次的助手ID，尝试获取助手信息
       if (_lastUsedAssistantId != null) {
         final assistant = await _assistantRepository.getAssistant(
@@ -96,7 +103,7 @@ class _MainNavigationState extends State<MainNavigation> {
         if (assistant != null) {
           setState(() {
             _currentConversation = ConversationUiState(
-              id: 'new-conversation-${DateTime.now().millisecondsSinceEpoch}',
+              id: conversationId,
               channelName: "与${assistant.name}的新对话",
               channelMembers: 1,
               assistantId: assistant.id,
@@ -114,7 +121,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
       setState(() {
         _currentConversation = ConversationUiState(
-          id: 'new-conversation-${DateTime.now().millisecondsSinceEpoch}',
+          id: conversationId,
           channelName: defaultAssistant != null
               ? "与${defaultAssistant.name}的新对话"
               : "新对话",
@@ -137,7 +144,7 @@ class _MainNavigationState extends State<MainNavigation> {
       // 创建空白对话
       setState(() {
         _currentConversation = ConversationUiState(
-          id: 'new-conversation-${DateTime.now().millisecondsSinceEpoch}',
+          id: _uuid.v4(),
           channelName: "新对话",
           channelMembers: 1,
           assistantId: '',
@@ -176,22 +183,18 @@ class _MainNavigationState extends State<MainNavigation> {
   Future<void> _saveConversationIfNeeded(
     ConversationUiState conversation,
   ) async {
-    // 只有当对话有消息且ID不是临时ID时才保存
-    if (conversation.messages.isNotEmpty &&
-        conversation.id.startsWith('new-conversation-')) {
+    // 只有当对话有消息时才保存（不再检查ID前缀，因为现在直接使用UUID）
+    if (conversation.messages.isNotEmpty) {
       try {
-        // 生成新的对话ID
-        final newId = 'conv-${DateTime.now().millisecondsSinceEpoch}';
-        final updatedConversation = conversation.copyWith(id: newId);
+        // 直接保存对话，不再重新生成ID
+        await _conversationRepository.saveConversation(conversation);
 
-        // 保存到数据库
-        await _conversationRepository.saveConversation(updatedConversation);
-
-        // 更新当前对话
-        setState(() {
-          _currentConversation = updatedConversation;
-          selectedMenu = newId;
-        });
+        // 更新菜单选择（如果需要的话）
+        if (selectedMenu != conversation.id) {
+          setState(() {
+            selectedMenu = conversation.id;
+          });
+        }
       } catch (e) {
         print('保存对话失败: $e');
       }

@@ -136,35 +136,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
     },
-    onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 3) {
-        // 删除并重新创建providers表
-        await m.drop(providers);
-        await m.create(providers);
-
-        // 删除并重新创建assistants表
-        await m.drop(assistants);
-        await m.create(assistants);
-      }
-      if (from < 4) {
-        // 添加对话和消息表
-        await m.create(conversations);
-        await m.create(messages);
-      }
-      if (from < 6) {
-        // 创建收藏模型表，重新创建assistants表以移除isFavorite字段
-        await m.drop(assistants);
-        await m.create(assistants);
-        await m.create(favoriteModels);
-      }
-    },
+    onUpgrade: (Migrator m, int from, int to) async {},
   );
 
   // 提供商相关操作
@@ -214,6 +193,16 @@ class AppDatabase extends _$AppDatabase {
     conversations,
   )..orderBy([(c) => OrderingTerm.desc(c.lastMessageAt)])).get();
 
+  // 分页获取所有对话
+  Future<List<ConversationData>> getAllConversationsWithPagination({
+    int limit = 20,
+    int offset = 0,
+  }) =>
+      (select(conversations)
+            ..orderBy([(c) => OrderingTerm.desc(c.lastMessageAt)])
+            ..limit(limit, offset: offset))
+          .get();
+
   Future<List<ConversationData>> getConversationsByAssistant(
     String assistantId,
   ) =>
@@ -221,6 +210,36 @@ class AppDatabase extends _$AppDatabase {
             ..where((c) => c.assistantId.equals(assistantId))
             ..orderBy([(c) => OrderingTerm.desc(c.lastMessageAt)]))
           .get();
+
+  // 分页获取指定助手的对话
+  Future<List<ConversationData>> getConversationsByAssistantWithPagination(
+    String assistantId, {
+    int limit = 20,
+    int offset = 0,
+  }) =>
+      (select(conversations)
+            ..where((c) => c.assistantId.equals(assistantId))
+            ..orderBy([(c) => OrderingTerm.desc(c.lastMessageAt)])
+            ..limit(limit, offset: offset))
+          .get();
+
+  // 获取对话数量（用于分页计算）
+  Future<int> getConversationCount() async {
+    final countExp = conversations.id.count();
+    final query = selectOnly(conversations)..addColumns([countExp]);
+    final result = await query.getSingle();
+    return result.read(countExp) ?? 0;
+  }
+
+  // 获取指定助手的对话数量
+  Future<int> getConversationCountByAssistant(String assistantId) async {
+    final countExp = conversations.id.count();
+    final query = selectOnly(conversations)
+      ..addColumns([countExp])
+      ..where(conversations.assistantId.equals(assistantId));
+    final result = await query.getSingle();
+    return result.read(countExp) ?? 0;
+  }
 
   Future<ConversationData?> getConversation(String id) =>
       (select(conversations)..where((c) => c.id.equals(id))).getSingleOrNull();

@@ -3,10 +3,12 @@ import '../models/conversation_ui_state.dart';
 import '../models/message.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import '../services/logger_service.dart';
 
 class ConversationRepository {
   final AppDatabase _database;
   final _uuid = Uuid();
+  final LoggerService _logger = LoggerService();
 
   ConversationRepository(this._database);
 
@@ -38,6 +40,46 @@ class ConversationRepository {
     }
 
     return conversations;
+  }
+
+  // 分页获取指定助手的对话（只获取对话元信息，不包含具体消息）
+  Future<List<ConversationUiState>> getConversationsByAssistantWithPagination(
+    String assistantId, {
+    int limit = 20,
+    int offset = 0,
+    bool includeMessages = false, // 是否包含消息内容
+  }) async {
+    final conversationDataList = await _database
+        .getConversationsByAssistantWithPagination(
+          assistantId,
+          limit: limit,
+          offset: offset,
+        );
+    final conversations = <ConversationUiState>[];
+
+    for (final conversationData in conversationDataList) {
+      if (includeMessages) {
+        // 包含完整消息
+        final messages = await getMessagesByConversation(conversationData.id);
+        conversations.add(_dataToModel(conversationData, messages));
+      } else {
+        // 只获取最后一条消息作为预览
+        final lastMessage = await _database.getLastMessageByConversation(
+          conversationData.id,
+        );
+        final previewMessage = lastMessage != null
+            ? [_messageDataToModel(lastMessage)]
+            : <Message>[];
+        conversations.add(_dataToModel(conversationData, previewMessage));
+      }
+    }
+
+    return conversations;
+  }
+
+  // 获取指定助手的对话数量
+  Future<int> getConversationCountByAssistant(String assistantId) async {
+    return await _database.getConversationCountByAssistant(assistantId);
   }
 
   // 根据ID获取对话
@@ -88,7 +130,7 @@ class ConversationRepository {
       ),
       updatedAt: Value(DateTime.now()),
     );
-
+    _logger.info('更新对话: ${conversation.id}');
     return await _database.updateConversation(conversation.id, companion);
   }
 
@@ -110,7 +152,7 @@ class ConversationRepository {
           modelId: Value(conversation.selectedModelId),
           lastMessageAt: Value(
             conversation.messages.isNotEmpty
-                ? conversation.messages.first.timestamp
+                ? conversation.messages.last.timestamp
                 : DateTime.now(),
           ),
           createdAt: Value(DateTime.now()),
@@ -130,16 +172,101 @@ class ConversationRepository {
             avatarUrl: message.avatarUrl,
           );
         }
+        _logger.info('创建新对话: ${conversation.id}');
       } else {
         // 更新现有对话
-        return await updateConversation(conversation);
+        final companion = ConversationsCompanion(
+          title: Value(conversation.channelName),
+          assistantId: Value(conversation.assistantId ?? ''),
+          providerId: Value(conversation.selectedProviderId),
+          modelId: Value(conversation.selectedModelId),
+          lastMessageAt: Value(
+            conversation.messages.isNotEmpty
+                ? conversation.messages.last.timestamp
+                : DateTime.now(),
+          ),
+          updatedAt: Value(DateTime.now()),
+        );
+        await _database.updateConversation(conversation.id, companion);
+
+        // 获取数据库中现有的消息
+        final existingMessages = await getMessagesByConversation(
+          conversation.id,
+        );
+
+        // 找出新增的消息（基于时间戳和内容比较）
+        final newMessages = <Message>[];
+        for (final message in conversation.messages) {
+          final exists = existingMessages.any(
+            (existing) =>
+                existing.content == message.content &&
+                existing.author == message.author &&
+                existing.isFromUser == message.isFromUser &&
+                existing.timestamp
+                        .difference(message.timestamp)
+                        .abs()
+                        .inSeconds <
+                    2, // 2秒内的时间差认为是同一条消息
+          );
+          if (!exists) {
+            newMessages.add(message);
+          }
+        }
+
+        // 只保存新增的消息
+        for (final message in newMessages) {
+          await _addMessageDirect(
+            conversationId: conversation.id,
+            content: message.content,
+            author: message.author,
+            isFromUser: message.isFromUser,
+            imageUrl: message.imageUrl,
+            avatarUrl: message.avatarUrl,
+            timestamp: message.timestamp,
+          );
+        }
+
+        if (newMessages.isNotEmpty) {
+          _logger.info('更新对话 ${conversation.id}，新增 ${newMessages.length} 条消息');
+        } else {
+          _logger.info('更新对话信息: ${conversation.id}');
+        }
       }
 
       return true;
     } catch (e) {
-      print('保存对话失败: $e');
+      _logger.error('保存对话失败: $e');
       return false;
     }
+  }
+
+  // 私有方法：直接添加消息（不更新对话的最后消息时间）
+  Future<String> _addMessageDirect({
+    required String conversationId,
+    required String content,
+    required String author,
+    required bool isFromUser,
+    String? imageUrl,
+    String? avatarUrl,
+    DateTime? timestamp,
+  }) async {
+    final id = _uuid.v4();
+    final now = timestamp ?? DateTime.now();
+
+    final companion = MessagesCompanion(
+      id: Value(id),
+      conversationId: Value(conversationId),
+      content: Value(content),
+      author: Value(author),
+      isFromUser: Value(isFromUser),
+      imageUrl: Value(imageUrl),
+      avatarUrl: Value(avatarUrl),
+      timestamp: Value(now),
+      createdAt: Value(DateTime.now()),
+    );
+
+    await _database.insertMessage(companion);
+    return id;
   }
 
   // 删除对话

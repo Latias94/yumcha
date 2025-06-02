@@ -6,6 +6,7 @@ import '../services/assistant_repository.dart';
 import '../services/conversation_repository.dart';
 import '../services/database_service.dart';
 import '../screens/settings_screen.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 class AppDrawer extends StatefulWidget {
   final String selectedMenu;
@@ -35,9 +36,11 @@ class _AppDrawerState extends State<AppDrawer> {
   String _assistantSearchQuery = "";
   bool _isAssistantDropdownExpanded = false;
   List<AiAssistant> _assistants = [];
-  List<ConversationUiState> _conversations = [];
   bool _isLoadingAssistants = true;
-  bool _isLoadingConversations = true;
+
+  // 使用 infinite_scroll_pagination 5.0.0
+  static const int _pageSize = 20;
+  late PagingController<int, ConversationUiState> _pagingController;
 
   @override
   void initState() {
@@ -48,6 +51,14 @@ class _AppDrawerState extends State<AppDrawer> {
     _conversationRepository = ConversationRepository(
       DatabaseService.instance.database,
     );
+
+    // 初始化分页控制器 - 使用正确的 5.0.0 API
+    _pagingController = PagingController<int, ConversationUiState>(
+      getNextPageKey: (state) =>
+          (state.keys?.isNotEmpty == true) ? state.keys!.last + _pageSize : 0,
+      fetchPage: (pageKey) => _fetchPage(pageKey),
+    );
+
     _loadAssistants();
   }
 
@@ -55,7 +66,25 @@ class _AppDrawerState extends State<AppDrawer> {
   void dispose() {
     _searchController.dispose();
     _assistantSearchController.dispose();
+    _pagingController.dispose();
     super.dispose();
+  }
+
+  // 获取分页数据 - 返回 Future<List<ConversationUiState>>
+  Future<List<ConversationUiState>> _fetchPage(int pageKey) async {
+    if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) {
+      throw Exception('请选择助手');
+    }
+
+    final newConversations = await _conversationRepository
+        .getConversationsByAssistantWithPagination(
+          _selectedAssistant,
+          limit: _pageSize,
+          offset: pageKey,
+          includeMessages: false, // 只获取预览信息
+        );
+
+    return newConversations;
   }
 
   Future<void> _loadAssistants() async {
@@ -69,44 +98,38 @@ class _AppDrawerState extends State<AppDrawer> {
           _selectedAssistant = assistants.first.id;
         }
       });
-      // 加载助手后，加载对应的对话
-      _loadConversations();
+      // 加载助手后，刷新对话列表
+      _refreshConversations();
     } catch (e) {
       setState(() => _isLoadingAssistants = false);
     }
   }
 
-  Future<void> _loadConversations() async {
-    if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) return;
-
-    try {
-      setState(() => _isLoadingConversations = true);
-      final conversations = await _conversationRepository
-          .getConversationsByAssistant(_selectedAssistant);
-      setState(() {
-        _conversations = conversations;
-        _isLoadingConversations = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingConversations = false);
-    }
+  // 刷新对话列表
+  void _refreshConversations() {
+    _pagingController.refresh();
   }
 
-  List<AiAssistant> get _filteredAssistants {
-    if (_assistantSearchQuery.isEmpty) {
-      return _assistants;
-    }
-    return _assistants
-        .where(
-          (assistant) =>
-              assistant.name.toLowerCase().contains(
-                _assistantSearchQuery.toLowerCase(),
-              ) ||
-              assistant.description.toLowerCase().contains(
-                _assistantSearchQuery.toLowerCase(),
-              ),
-        )
-        .toList();
+  // 切换助手时的处理
+  void _onAssistantChanged(String newAssistantId) {
+    setState(() {
+      _selectedAssistant = newAssistantId;
+    });
+    _refreshConversations();
+  }
+
+  // 性能优化：防抖搜索
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+    });
+    // TODO: 如果需要搜索功能，可以在这里添加搜索逻辑
+  }
+
+  void _onAssistantSearchChanged(String value) {
+    setState(() {
+      _assistantSearchQuery = value;
+    });
   }
 
   AiAssistant? get _selectedAssistantData {
@@ -136,109 +159,6 @@ class _AppDrawerState extends State<AppDrawer> {
         updatedAt: DateTime.now(),
       ),
     );
-  }
-
-  List<ChatHistoryGroup> get _filteredChatHistory {
-    if (_isLoadingConversations) {
-      return [];
-    }
-
-    // 将对话转换为ChatHistoryItem
-    final items = _conversations.map((conversation) {
-      final lastMessage = conversation.messages.isNotEmpty
-          ? conversation.messages.first.content
-          : '暂无消息';
-
-      return ChatHistoryItem(
-        id: conversation.id,
-        title: conversation.channelName,
-        preview: lastMessage,
-        timestamp: conversation.messages.isNotEmpty
-            ? conversation.messages.first.timestamp
-            : DateTime.now(),
-        assistantType: "ai", // 默认为AI类型，可以根据助手类型调整
-        messageCount: conversation.messages.length,
-        assistantId: conversation.assistantId,
-      );
-    }).toList();
-
-    // 按时间分组
-    final groups = _groupConversationsByTime(items);
-
-    if (_searchQuery.isEmpty) {
-      return groups;
-    }
-
-    // 过滤搜索结果
-    final filteredGroups = <ChatHistoryGroup>[];
-    for (final group in groups) {
-      final filteredItems = group.items
-          .where(
-            (item) =>
-                item.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                item.preview.toLowerCase().contains(_searchQuery.toLowerCase()),
-          )
-          .toList();
-
-      if (filteredItems.isNotEmpty) {
-        filteredGroups.add(
-          ChatHistoryGroup(title: group.title, items: filteredItems),
-        );
-      }
-    }
-
-    return filteredGroups;
-  }
-
-  List<ChatHistoryGroup> _groupConversationsByTime(
-    List<ChatHistoryItem> items,
-  ) {
-    if (items.isEmpty) return [];
-
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final thisWeek = today.subtract(const Duration(days: 7));
-
-    final todayItems = <ChatHistoryItem>[];
-    final yesterdayItems = <ChatHistoryItem>[];
-    final thisWeekItems = <ChatHistoryItem>[];
-    final earlierItems = <ChatHistoryItem>[];
-
-    for (final item in items) {
-      final itemDate = DateTime(
-        item.timestamp.year,
-        item.timestamp.month,
-        item.timestamp.day,
-      );
-
-      if (itemDate.isAtSameMomentAs(today)) {
-        todayItems.add(item);
-      } else if (itemDate.isAtSameMomentAs(yesterday)) {
-        yesterdayItems.add(item);
-      } else if (itemDate.isAfter(thisWeek)) {
-        thisWeekItems.add(item);
-      } else {
-        earlierItems.add(item);
-      }
-    }
-
-    final groups = <ChatHistoryGroup>[];
-
-    if (todayItems.isNotEmpty) {
-      groups.add(ChatHistoryGroup(title: "今天", items: todayItems));
-    }
-    if (yesterdayItems.isNotEmpty) {
-      groups.add(ChatHistoryGroup(title: "昨天", items: yesterdayItems));
-    }
-    if (thisWeekItems.isNotEmpty) {
-      groups.add(ChatHistoryGroup(title: "本周", items: thisWeekItems));
-    }
-    if (earlierItems.isNotEmpty) {
-      groups.add(ChatHistoryGroup(title: "更早", items: earlierItems));
-    }
-
-    return groups;
   }
 
   @override
@@ -281,9 +201,7 @@ class _AppDrawerState extends State<AppDrawer> {
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _searchController.clear();
-                        setState(() {
-                          _searchQuery = "";
-                        });
+                        _onSearchChanged("");
                       },
                     )
                   : null,
@@ -295,11 +213,7 @@ class _AppDrawerState extends State<AppDrawer> {
               fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+            onChanged: _onSearchChanged,
           ),
         ],
       ),
@@ -307,73 +221,103 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Widget _buildChatHistoryList() {
-    if (_isLoadingConversations) {
+    if (_isLoadingAssistants) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final groups = _filteredChatHistory;
-
-    if (groups.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _searchQuery.isEmpty
-                  ? Icons.chat_bubble_outline
-                  : Icons.search_off,
-              size: 48,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _searchQuery.isEmpty ? "暂无聊天记录" : "未找到匹配的记录",
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (_searchQuery.isEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                "开始与${_selectedAssistantData?.name ?? 'AI助手'}聊天吧！",
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      itemCount: groups.length,
-      itemBuilder: (context, groupIndex) {
-        final group = groups[groupIndex];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 分组标题
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                group.title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-
-            // 聊天记录列表
-            ...group.items.map((item) => _buildChatHistoryItem(item)),
-
-            // 分组间的间距
-            if (groupIndex < groups.length - 1) const SizedBox(height: 8),
-          ],
-        );
+    // 使用 PagingListener 连接 PagingController 和 PagedListView
+    return RefreshIndicator(
+      onRefresh: () async {
+        _refreshConversations();
       },
+      child: PagingListener(
+        controller: _pagingController,
+        builder: (context, state, fetchNextPage) =>
+            PagedListView<int, ConversationUiState>.separated(
+              state: state,
+              fetchNextPage: fetchNextPage,
+              builderDelegate: PagedChildBuilderDelegate<ConversationUiState>(
+                itemBuilder: (context, conversation, index) =>
+                    _buildChatHistoryItem(
+                      _conversationToHistoryItem(conversation),
+                    ),
+                firstPageErrorIndicatorBuilder: (context) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48),
+                      const SizedBox(height: 16),
+                      const Text('加载失败'),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () => _pagingController.refresh(),
+                        child: const Text('重试'),
+                      ),
+                    ],
+                  ),
+                ),
+                firstPageProgressIndicatorBuilder: (context) =>
+                    const Center(child: CircularProgressIndicator()),
+                newPageProgressIndicatorBuilder: (context) => const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                noItemsFoundIndicatorBuilder: (context) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _searchQuery.isEmpty
+                            ? Icons.chat_bubble_outline
+                            : Icons.search_off,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchQuery.isEmpty ? "暂无聊天记录" : "未找到匹配的记录",
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (_searchQuery.isEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          "开始与${_selectedAssistantData?.name ?? 'AI助手'}聊天吧！",
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              separatorBuilder: (context, index) => const SizedBox(height: 4),
+            ),
+      ),
+    );
+  }
+
+  // 辅助方法：将对话转换为历史记录项
+  ChatHistoryItem _conversationToHistoryItem(ConversationUiState conversation) {
+    final lastMessage = conversation.messages.isNotEmpty
+        ? conversation.messages.first.content
+        : '暂无消息';
+
+    return ChatHistoryItem(
+      id: conversation.id,
+      title: conversation.channelName,
+      preview: lastMessage,
+      timestamp: conversation.messages.isNotEmpty
+          ? conversation.messages.first.timestamp
+          : DateTime.now(),
+      assistantType: "ai",
+      messageCount: conversation.messages.length,
+      assistantId: conversation.assistantId,
     );
   }
 
@@ -484,48 +428,6 @@ class _AppDrawerState extends State<AppDrawer> {
                   const Divider(height: 1),
                   const SizedBox(height: 8),
 
-                  // 搜索框
-                  if (_assistants.length > 5) ...[
-                    TextField(
-                      controller: _assistantSearchController,
-                      decoration: InputDecoration(
-                        hintText: "搜索助手...",
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        suffixIcon: _assistantSearchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _assistantSearchController.clear();
-                                  setState(() {
-                                    _assistantSearchQuery = "";
-                                  });
-                                },
-                              )
-                            : null,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 12,
-                        ),
-                        isDense: true,
-                      ),
-                      style: Theme.of(context).textTheme.bodySmall,
-                      onChanged: (value) {
-                        setState(() {
-                          _assistantSearchQuery = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
                   // 助手列表
                   ConstrainedBox(
                     constraints: BoxConstraints(
@@ -540,7 +442,7 @@ class _AppDrawerState extends State<AppDrawer> {
                               child: CircularProgressIndicator(),
                             ),
                           )
-                        : _filteredAssistants.isEmpty
+                        : _assistants.isEmpty
                         ? Padding(
                             padding: const EdgeInsets.all(16),
                             child: Text(
@@ -554,9 +456,9 @@ class _AppDrawerState extends State<AppDrawer> {
                           )
                         : ListView.builder(
                             shrinkWrap: true,
-                            itemCount: _filteredAssistants.length,
+                            itemCount: _assistants.length,
                             itemBuilder: (context, index) {
-                              final assistant = _filteredAssistants[index];
+                              final assistant = _assistants[index];
                               if (assistant.id == _selectedAssistant) {
                                 return const SizedBox.shrink();
                               }
@@ -571,7 +473,7 @@ class _AppDrawerState extends State<AppDrawer> {
                                     _assistantSearchQuery = "";
                                   });
                                   // 切换助手后重新加载对话
-                                  _loadConversations();
+                                  _refreshConversations();
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
