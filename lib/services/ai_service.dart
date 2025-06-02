@@ -37,7 +37,8 @@ class DebugInfo {
   });
 }
 
-/// AI 服务主类 - 负责管理提供商、助手和聊天功能
+/// AI 服务主类 - 负责聊天功能和调试
+/// 注意：提供商和助手的状态管理现在由 Riverpod 处理
 class AiService {
   static final AiService _instance = AiService._internal();
   factory AiService() => _instance;
@@ -46,10 +47,6 @@ class AiService {
   // Logger实例
   final LoggerService _logger = LoggerService();
   final AiRequestService _requestService = AiRequestService();
-
-  // 内存存储
-  final Map<String, AiProvider> _providers = {};
-  final Map<String, AiAssistant> _assistants = {};
 
   // 调试信息存储
   final List<DebugInfo> _debugLogs = [];
@@ -92,12 +89,13 @@ class AiService {
 
     // 处理默认提供商
     final allDbProviders = await providerRepository.getAllProviders();
-    for (final p in allDbProviders) {
-      _providers[p.id] = p;
-    }
 
     const defaultProviderId = 'openai-default';
-    if (!_providers.containsKey(defaultProviderId)) {
+    bool hasDefaultProvider = allDbProviders.any(
+      (p) => p.id == defaultProviderId,
+    );
+
+    if (!hasDefaultProvider) {
       final defaultOpenAiProvider = AiProvider(
         id: defaultProviderId,
         name: 'OpenAI (默认)',
@@ -117,110 +115,50 @@ class AiService {
         updatedAt: DateTime.now(),
         isEnabled: true,
       );
-      _providers[defaultOpenAiProvider.id] = defaultOpenAiProvider;
       await providerRepository.insertProvider(defaultOpenAiProvider);
       _logger.info('已创建并保存默认OpenAI提供商: ${defaultOpenAiProvider.name}');
     }
 
     // 处理默认助手
     final allDbAssistants = await assistantRepository.getAllAssistants();
-    for (final a in allDbAssistants) {
-      _assistants[a.id] = a;
-    }
 
     const defaultAssistantId = 'default-assistant';
-    if (!_assistants.containsKey(defaultAssistantId)) {
-      if (_providers.containsKey('openai-default')) {
-        final defaultAssistant = AiAssistant(
-          id: defaultAssistantId,
-          name: '默认助手',
-          avatar: '🤖',
-          systemPrompt: '你是一个乐于助人的AI助手。',
-          providerId: 'openai-default', // 关联默认提供商
-          modelName: 'gpt-3.5-turbo', // 默认模型
-          temperature: 0.7,
-          topP: 1.0,
-          maxTokens: 4096,
-          contextLength: 32,
-          streamOutput: true,
-          isEnabled: true,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          description: '',
-          customHeaders: {},
-          customBody: {},
-          stopSequences: [],
-          frequencyPenalty: 0.0,
-          presencePenalty: 0.0,
-          enableWebSearch: false,
-          enableCodeExecution: false,
-          enableImageGeneration: false,
-        );
-        _assistants[defaultAssistant.id] = defaultAssistant;
-        await assistantRepository.insertAssistant(defaultAssistant);
-        _logger.info('已创建并保存默认助手: ${defaultAssistant.name}');
-      } else {
-        _logger.warning('无法创建默认助手，因为默认OpenAI提供商不存在。');
-      }
+    bool hasDefaultAssistant = allDbAssistants.any(
+      (a) => a.id == defaultAssistantId,
+    );
+
+    if (!hasDefaultAssistant) {
+      final defaultAssistant = AiAssistant(
+        id: defaultAssistantId,
+        name: '默认助手',
+        avatar: '🤖',
+        systemPrompt: '你是一个乐于助人的AI助手。',
+        providerId: 'openai-default', // 关联默认提供商
+        modelName: 'gpt-3.5-turbo', // 默认模型
+        temperature: 0.7,
+        topP: 1.0,
+        maxTokens: 4096,
+        contextLength: 32,
+        streamOutput: true,
+        isEnabled: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        description: '',
+        customHeaders: {},
+        customBody: {},
+        stopSequences: [],
+        frequencyPenalty: 0.0,
+        presencePenalty: 0.0,
+        enableCodeExecution: false,
+        enableImageGeneration: false,
+        enableTools: false,
+        enableReasoning: false,
+        enableVision: false,
+        enableEmbedding: false,
+      );
+      await assistantRepository.insertAssistant(defaultAssistant);
+      _logger.info('已创建并保存默认助手: ${defaultAssistant.name}');
     }
-  }
-
-  // === 提供商管理 ===
-
-  List<AiProvider> get providers => _providers.values.toList();
-
-  AiProvider? getProvider(String id) => _providers[id];
-
-  void addProvider(AiProvider provider) {
-    _providers[provider.id] = provider;
-    // 清除相关客户端缓存
-    _requestService.clearClientCache(provider.id);
-    _logger.info('添加AI提供商: ${provider.name} (${provider.type.name})');
-  }
-
-  void updateProvider(AiProvider provider) {
-    _providers[provider.id] = provider;
-    // 清除相关客户端缓存
-    _requestService.clearClientCache(provider.id);
-    _logger.info('更新AI提供商: ${provider.name}');
-  }
-
-  void removeProvider(String id) {
-    final provider = _providers[id];
-    _providers.remove(id);
-    _requestService.clearClientCache(id);
-    // 移除相关助手
-    _assistants.removeWhere((_, assistant) => assistant.providerId == id);
-    _logger.info('删除AI提供商: ${provider?.name ?? id}');
-  }
-
-  // === 助手管理 ===
-
-  List<AiAssistant> get assistants => _assistants.values.toList();
-
-  AiAssistant? getAssistant(String id) => _assistants[id];
-
-  void addAssistant(AiAssistant assistant) {
-    _assistants[assistant.id] = assistant;
-    _logger.info('添加AI助手: ${assistant.name}');
-  }
-
-  void updateAssistant(AiAssistant assistant) {
-    _assistants[assistant.id] = assistant;
-    _logger.info('更新AI助手: ${assistant.name}');
-  }
-
-  void removeAssistant(String id) {
-    final assistant = _assistants[id];
-    _assistants.remove(id);
-    _logger.info('删除AI助手: ${assistant?.name ?? id}');
-  }
-
-  // 根据提供商获取助手
-  List<AiAssistant> getAssistantsByProvider(String providerId) {
-    return _assistants.values
-        .where((assistant) => assistant.providerId == providerId)
-        .toList();
   }
 
   // === 聊天功能 ===
@@ -236,6 +174,24 @@ class AiService {
     final startTime = DateTime.now();
     final requestId = '${assistantId}_${startTime.millisecondsSinceEpoch}';
 
+    if (selectedModelName == "") {
+      _logger.error('模型名称不能为空');
+      NotificationService().showError('模型名称不能为空');
+      return null;
+    }
+
+    if (selectedProviderId == "") {
+      _logger.error('提供商ID不能为空');
+      NotificationService().showError('提供商ID不能为空');
+      return null;
+    }
+
+    if (assistantId == "") {
+      _logger.error('助手ID不能为空');
+      NotificationService().showError('助手ID不能为空');
+      return null;
+    }
+
     _logger.info('开始发送AI消息', {
       'assistantId': assistantId,
       'selectedProviderId': selectedProviderId,
@@ -243,7 +199,15 @@ class AiService {
       'requestId': requestId,
     });
 
-    final assistant = _assistants[assistantId];
+    // 通过 repository 获取数据而不是内存缓存
+    final assistantRepository = AssistantRepository(
+      DatabaseService.instance.database,
+    );
+    final providerRepository = ProviderRepository(
+      DatabaseService.instance.database,
+    );
+
+    final assistant = await assistantRepository.getAssistant(assistantId);
     if (assistant == null) {
       const error = '找不到指定的助手配置';
       _logger.error('助手不存在', {'assistantId': assistantId});
@@ -261,7 +225,7 @@ class AiService {
       return null;
     }
 
-    final provider = _providers[selectedProviderId];
+    final provider = await providerRepository.getProvider(selectedProviderId);
     if (provider == null) {
       const error = '找不到指定的AI提供商配置';
       _logger.error('提供商不存在', {'providerId': selectedProviderId});
@@ -379,6 +343,24 @@ class AiService {
     final startTime = DateTime.now();
     final requestId = '${assistantId}_${startTime.millisecondsSinceEpoch}';
 
+    if (selectedModelName == "") {
+      _logger.error('模型名称不能为空');
+      NotificationService().showError('模型名称不能为空');
+      return;
+    }
+
+    if (selectedProviderId == "") {
+      _logger.error('提供商ID不能为空');
+      NotificationService().showError('提供商ID不能为空');
+      return;
+    }
+
+    if (assistantId == "") {
+      _logger.error('助手ID不能为空');
+      NotificationService().showError('助手ID不能为空');
+      return;
+    }
+
     _logger.info('开始发送AI流式消息', {
       'assistantId': assistantId,
       'selectedProviderId': selectedProviderId,
@@ -386,7 +368,15 @@ class AiService {
       'requestId': requestId,
     });
 
-    final assistant = _assistants[assistantId];
+    // 通过 repository 获取数据
+    final assistantRepository = AssistantRepository(
+      DatabaseService.instance.database,
+    );
+    final providerRepository = ProviderRepository(
+      DatabaseService.instance.database,
+    );
+
+    final assistant = await assistantRepository.getAssistant(assistantId);
     if (assistant == null) {
       const error = '找不到指定的助手配置';
       _logger.error('助手不存在', {'assistantId': assistantId});
@@ -405,7 +395,7 @@ class AiService {
       return;
     }
 
-    final provider = _providers[selectedProviderId];
+    final provider = await providerRepository.getProvider(selectedProviderId);
     if (provider == null) {
       const error = '找不到指定的AI提供商配置';
       _logger.error('提供商不存在', {'providerId': selectedProviderId});
@@ -526,7 +516,10 @@ class AiService {
 
   // 测试提供商连接
   Future<bool> testProvider(String providerId, [String? modelName]) async {
-    final provider = _providers[providerId];
+    final providerRepository = ProviderRepository(
+      DatabaseService.instance.database,
+    );
+    final provider = await providerRepository.getProvider(providerId);
     if (provider == null) {
       _logger.error('测试提供商失败：提供商不存在', {'providerId': providerId});
       return false;
@@ -554,7 +547,10 @@ class AiService {
   // 获取可用的模型列表（返回提供商配置的模型列表）
   Future<List<String>> getAvailableModels(String providerId) async {
     try {
-      final provider = _providers[providerId];
+      final providerRepository = ProviderRepository(
+        DatabaseService.instance.database,
+      );
+      final provider = await providerRepository.getProvider(providerId);
       if (provider == null) {
         _logger.warning('获取模型列表失败：提供商不存在', {'providerId': providerId});
         return [];

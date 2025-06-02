@@ -14,6 +14,8 @@ class ChatViewModel {
     required this.selectedProviderId,
     required this.selectedModelName,
     required this.messages,
+    this.currentAssistant,
+    this.currentProvider,
     this.welcomeMessage,
     this.suggestions = const [],
     this.enableAttachments = false,
@@ -35,6 +37,12 @@ class ChatViewModel {
   /// 聊天消息列表
   final List<Message> messages;
 
+  /// 当前助手（直接传递，避免查询）
+  final AiAssistant? currentAssistant;
+
+  /// 当前提供商（直接传递，避免查询）
+  final AiProvider? currentProvider;
+
   /// 欢迎消息
   final String? welcomeMessage;
 
@@ -47,12 +55,6 @@ class ChatViewModel {
   /// 是否启用语音笔记功能
   final bool enableVoiceNotes;
 
-  /// 获取当前助手
-  AiAssistant? get currentAssistant => aiService.getAssistant(assistantId);
-
-  /// 获取当前提供商
-  AiProvider? get currentProvider => aiService.getProvider(selectedProviderId);
-
   /// 复制并更新消息列表
   ChatViewModel copyWithMessages(List<Message> newMessages) {
     return ChatViewModel(
@@ -61,6 +63,8 @@ class ChatViewModel {
       selectedProviderId: selectedProviderId,
       selectedModelName: selectedModelName,
       messages: newMessages,
+      currentAssistant: currentAssistant,
+      currentProvider: currentProvider,
       welcomeMessage: welcomeMessage,
       suggestions: suggestions,
       enableAttachments: enableAttachments,
@@ -72,6 +76,7 @@ class ChatViewModel {
   ChatViewModel copyWithProviderAndModel({
     String? newProviderId,
     String? newModelName,
+    AiProvider? newProvider,
   }) {
     return ChatViewModel(
       aiService: aiService,
@@ -79,6 +84,8 @@ class ChatViewModel {
       selectedProviderId: newProviderId ?? selectedProviderId,
       selectedModelName: newModelName ?? selectedModelName,
       messages: messages,
+      currentAssistant: currentAssistant,
+      currentProvider: newProvider ?? currentProvider,
       welcomeMessage: welcomeMessage,
       suggestions: suggestions,
       enableAttachments: enableAttachments,
@@ -95,6 +102,8 @@ class ChatViewModel {
           other.selectedProviderId == selectedProviderId &&
           other.selectedModelName == selectedModelName &&
           listEquals(other.messages, messages) &&
+          other.currentAssistant == currentAssistant &&
+          other.currentProvider == currentProvider &&
           other.welcomeMessage == welcomeMessage &&
           listEquals(other.suggestions, suggestions) &&
           other.enableAttachments == enableAttachments &&
@@ -107,6 +116,8 @@ class ChatViewModel {
     selectedProviderId,
     selectedModelName,
     messages,
+    currentAssistant,
+    currentProvider,
     welcomeMessage,
     suggestions,
     enableAttachments,

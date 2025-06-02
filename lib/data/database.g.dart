@@ -810,21 +810,6 @@ class $AssistantsTable extends Assistants
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   ).withConverter<List<String>>($AssistantsTable.$converterstopSequences);
-  static const VerificationMeta _enableWebSearchMeta = const VerificationMeta(
-    'enableWebSearch',
-  );
-  @override
-  late final GeneratedColumn<bool> enableWebSearch = GeneratedColumn<bool>(
-    'enable_web_search',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("enable_web_search" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _enableCodeExecutionMeta =
       const VerificationMeta('enableCodeExecution');
   @override
@@ -854,6 +839,66 @@ class $AssistantsTable extends Assistants
         ),
         defaultValue: const Constant(false),
       );
+  static const VerificationMeta _enableToolsMeta = const VerificationMeta(
+    'enableTools',
+  );
+  @override
+  late final GeneratedColumn<bool> enableTools = GeneratedColumn<bool>(
+    'enable_tools',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enable_tools" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _enableReasoningMeta = const VerificationMeta(
+    'enableReasoning',
+  );
+  @override
+  late final GeneratedColumn<bool> enableReasoning = GeneratedColumn<bool>(
+    'enable_reasoning',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enable_reasoning" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _enableVisionMeta = const VerificationMeta(
+    'enableVision',
+  );
+  @override
+  late final GeneratedColumn<bool> enableVision = GeneratedColumn<bool>(
+    'enable_vision',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enable_vision" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _enableEmbeddingMeta = const VerificationMeta(
+    'enableEmbedding',
+  );
+  @override
+  late final GeneratedColumn<bool> enableEmbedding = GeneratedColumn<bool>(
+    'enable_embedding',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enable_embedding" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _isEnabledMeta = const VerificationMeta(
     'isEnabled',
   );
@@ -912,9 +957,12 @@ class $AssistantsTable extends Assistants
     customHeaders,
     customBody,
     stopSequences,
-    enableWebSearch,
     enableCodeExecution,
     enableImageGeneration,
+    enableTools,
+    enableReasoning,
+    enableVision,
+    enableEmbedding,
     isEnabled,
     createdAt,
     updatedAt,
@@ -1045,15 +1093,6 @@ class $AssistantsTable extends Assistants
         ),
       );
     }
-    if (data.containsKey('enable_web_search')) {
-      context.handle(
-        _enableWebSearchMeta,
-        enableWebSearch.isAcceptableOrUnknown(
-          data['enable_web_search']!,
-          _enableWebSearchMeta,
-        ),
-      );
-    }
     if (data.containsKey('enable_code_execution')) {
       context.handle(
         _enableCodeExecutionMeta,
@@ -1069,6 +1108,42 @@ class $AssistantsTable extends Assistants
         enableImageGeneration.isAcceptableOrUnknown(
           data['enable_image_generation']!,
           _enableImageGenerationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enable_tools')) {
+      context.handle(
+        _enableToolsMeta,
+        enableTools.isAcceptableOrUnknown(
+          data['enable_tools']!,
+          _enableToolsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enable_reasoning')) {
+      context.handle(
+        _enableReasoningMeta,
+        enableReasoning.isAcceptableOrUnknown(
+          data['enable_reasoning']!,
+          _enableReasoningMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enable_vision')) {
+      context.handle(
+        _enableVisionMeta,
+        enableVision.isAcceptableOrUnknown(
+          data['enable_vision']!,
+          _enableVisionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enable_embedding')) {
+      context.handle(
+        _enableEmbeddingMeta,
+        enableEmbedding.isAcceptableOrUnknown(
+          data['enable_embedding']!,
+          _enableEmbeddingMeta,
         ),
       );
     }
@@ -1173,10 +1248,6 @@ class $AssistantsTable extends Assistants
           data['${effectivePrefix}stop_sequences'],
         )!,
       ),
-      enableWebSearch: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enable_web_search'],
-      )!,
       enableCodeExecution: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}enable_code_execution'],
@@ -1184,6 +1255,22 @@ class $AssistantsTable extends Assistants
       enableImageGeneration: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}enable_image_generation'],
+      )!,
+      enableTools: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_tools'],
+      )!,
+      enableReasoning: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_reasoning'],
+      )!,
+      enableVision: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_vision'],
+      )!,
+      enableEmbedding: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_embedding'],
       )!,
       isEnabled: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -1231,9 +1318,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
   final Map<String, String> customHeaders;
   final Map<String, dynamic> customBody;
   final List<String> stopSequences;
-  final bool enableWebSearch;
   final bool enableCodeExecution;
   final bool enableImageGeneration;
+  final bool enableTools;
+  final bool enableReasoning;
+  final bool enableVision;
+  final bool enableEmbedding;
   final bool isEnabled;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1255,9 +1345,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     required this.customHeaders,
     required this.customBody,
     required this.stopSequences,
-    required this.enableWebSearch,
     required this.enableCodeExecution,
     required this.enableImageGeneration,
+    required this.enableTools,
+    required this.enableReasoning,
+    required this.enableVision,
+    required this.enableEmbedding,
     required this.isEnabled,
     required this.createdAt,
     required this.updatedAt,
@@ -1298,9 +1391,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
         $AssistantsTable.$converterstopSequences.toSql(stopSequences),
       );
     }
-    map['enable_web_search'] = Variable<bool>(enableWebSearch);
     map['enable_code_execution'] = Variable<bool>(enableCodeExecution);
     map['enable_image_generation'] = Variable<bool>(enableImageGeneration);
+    map['enable_tools'] = Variable<bool>(enableTools);
+    map['enable_reasoning'] = Variable<bool>(enableReasoning);
+    map['enable_vision'] = Variable<bool>(enableVision);
+    map['enable_embedding'] = Variable<bool>(enableEmbedding);
     map['is_enabled'] = Variable<bool>(isEnabled);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1330,9 +1426,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       customHeaders: Value(customHeaders),
       customBody: Value(customBody),
       stopSequences: Value(stopSequences),
-      enableWebSearch: Value(enableWebSearch),
       enableCodeExecution: Value(enableCodeExecution),
       enableImageGeneration: Value(enableImageGeneration),
+      enableTools: Value(enableTools),
+      enableReasoning: Value(enableReasoning),
+      enableVision: Value(enableVision),
+      enableEmbedding: Value(enableEmbedding),
       isEnabled: Value(isEnabled),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1364,13 +1463,16 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       ),
       customBody: serializer.fromJson<Map<String, dynamic>>(json['customBody']),
       stopSequences: serializer.fromJson<List<String>>(json['stopSequences']),
-      enableWebSearch: serializer.fromJson<bool>(json['enableWebSearch']),
       enableCodeExecution: serializer.fromJson<bool>(
         json['enableCodeExecution'],
       ),
       enableImageGeneration: serializer.fromJson<bool>(
         json['enableImageGeneration'],
       ),
+      enableTools: serializer.fromJson<bool>(json['enableTools']),
+      enableReasoning: serializer.fromJson<bool>(json['enableReasoning']),
+      enableVision: serializer.fromJson<bool>(json['enableVision']),
+      enableEmbedding: serializer.fromJson<bool>(json['enableEmbedding']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1397,9 +1499,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       'customHeaders': serializer.toJson<Map<String, String>>(customHeaders),
       'customBody': serializer.toJson<Map<String, dynamic>>(customBody),
       'stopSequences': serializer.toJson<List<String>>(stopSequences),
-      'enableWebSearch': serializer.toJson<bool>(enableWebSearch),
       'enableCodeExecution': serializer.toJson<bool>(enableCodeExecution),
       'enableImageGeneration': serializer.toJson<bool>(enableImageGeneration),
+      'enableTools': serializer.toJson<bool>(enableTools),
+      'enableReasoning': serializer.toJson<bool>(enableReasoning),
+      'enableVision': serializer.toJson<bool>(enableVision),
+      'enableEmbedding': serializer.toJson<bool>(enableEmbedding),
       'isEnabled': serializer.toJson<bool>(isEnabled),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1424,9 +1529,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     Map<String, String>? customHeaders,
     Map<String, dynamic>? customBody,
     List<String>? stopSequences,
-    bool? enableWebSearch,
     bool? enableCodeExecution,
     bool? enableImageGeneration,
+    bool? enableTools,
+    bool? enableReasoning,
+    bool? enableVision,
+    bool? enableEmbedding,
     bool? isEnabled,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1452,9 +1560,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     customHeaders: customHeaders ?? this.customHeaders,
     customBody: customBody ?? this.customBody,
     stopSequences: stopSequences ?? this.stopSequences,
-    enableWebSearch: enableWebSearch ?? this.enableWebSearch,
     enableCodeExecution: enableCodeExecution ?? this.enableCodeExecution,
     enableImageGeneration: enableImageGeneration ?? this.enableImageGeneration,
+    enableTools: enableTools ?? this.enableTools,
+    enableReasoning: enableReasoning ?? this.enableReasoning,
+    enableVision: enableVision ?? this.enableVision,
+    enableEmbedding: enableEmbedding ?? this.enableEmbedding,
     isEnabled: isEnabled ?? this.isEnabled,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1500,15 +1611,24 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       stopSequences: data.stopSequences.present
           ? data.stopSequences.value
           : this.stopSequences,
-      enableWebSearch: data.enableWebSearch.present
-          ? data.enableWebSearch.value
-          : this.enableWebSearch,
       enableCodeExecution: data.enableCodeExecution.present
           ? data.enableCodeExecution.value
           : this.enableCodeExecution,
       enableImageGeneration: data.enableImageGeneration.present
           ? data.enableImageGeneration.value
           : this.enableImageGeneration,
+      enableTools: data.enableTools.present
+          ? data.enableTools.value
+          : this.enableTools,
+      enableReasoning: data.enableReasoning.present
+          ? data.enableReasoning.value
+          : this.enableReasoning,
+      enableVision: data.enableVision.present
+          ? data.enableVision.value
+          : this.enableVision,
+      enableEmbedding: data.enableEmbedding.present
+          ? data.enableEmbedding.value
+          : this.enableEmbedding,
       isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1535,9 +1655,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
           ..write('customHeaders: $customHeaders, ')
           ..write('customBody: $customBody, ')
           ..write('stopSequences: $stopSequences, ')
-          ..write('enableWebSearch: $enableWebSearch, ')
           ..write('enableCodeExecution: $enableCodeExecution, ')
           ..write('enableImageGeneration: $enableImageGeneration, ')
+          ..write('enableTools: $enableTools, ')
+          ..write('enableReasoning: $enableReasoning, ')
+          ..write('enableVision: $enableVision, ')
+          ..write('enableEmbedding: $enableEmbedding, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -1564,9 +1687,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     customHeaders,
     customBody,
     stopSequences,
-    enableWebSearch,
     enableCodeExecution,
     enableImageGeneration,
+    enableTools,
+    enableReasoning,
+    enableVision,
+    enableEmbedding,
     isEnabled,
     createdAt,
     updatedAt,
@@ -1592,9 +1718,12 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
           other.customHeaders == this.customHeaders &&
           other.customBody == this.customBody &&
           other.stopSequences == this.stopSequences &&
-          other.enableWebSearch == this.enableWebSearch &&
           other.enableCodeExecution == this.enableCodeExecution &&
           other.enableImageGeneration == this.enableImageGeneration &&
+          other.enableTools == this.enableTools &&
+          other.enableReasoning == this.enableReasoning &&
+          other.enableVision == this.enableVision &&
+          other.enableEmbedding == this.enableEmbedding &&
           other.isEnabled == this.isEnabled &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -1618,9 +1747,12 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
   final Value<Map<String, String>> customHeaders;
   final Value<Map<String, dynamic>> customBody;
   final Value<List<String>> stopSequences;
-  final Value<bool> enableWebSearch;
   final Value<bool> enableCodeExecution;
   final Value<bool> enableImageGeneration;
+  final Value<bool> enableTools;
+  final Value<bool> enableReasoning;
+  final Value<bool> enableVision;
+  final Value<bool> enableEmbedding;
   final Value<bool> isEnabled;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1643,9 +1775,12 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     this.customHeaders = const Value.absent(),
     this.customBody = const Value.absent(),
     this.stopSequences = const Value.absent(),
-    this.enableWebSearch = const Value.absent(),
     this.enableCodeExecution = const Value.absent(),
     this.enableImageGeneration = const Value.absent(),
+    this.enableTools = const Value.absent(),
+    this.enableReasoning = const Value.absent(),
+    this.enableVision = const Value.absent(),
+    this.enableEmbedding = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1669,9 +1804,12 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     this.customHeaders = const Value.absent(),
     this.customBody = const Value.absent(),
     this.stopSequences = const Value.absent(),
-    this.enableWebSearch = const Value.absent(),
     this.enableCodeExecution = const Value.absent(),
     this.enableImageGeneration = const Value.absent(),
+    this.enableTools = const Value.absent(),
+    this.enableReasoning = const Value.absent(),
+    this.enableVision = const Value.absent(),
+    this.enableEmbedding = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1700,9 +1838,12 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     Expression<String>? customHeaders,
     Expression<String>? customBody,
     Expression<String>? stopSequences,
-    Expression<bool>? enableWebSearch,
     Expression<bool>? enableCodeExecution,
     Expression<bool>? enableImageGeneration,
+    Expression<bool>? enableTools,
+    Expression<bool>? enableReasoning,
+    Expression<bool>? enableVision,
+    Expression<bool>? enableEmbedding,
     Expression<bool>? isEnabled,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1726,11 +1867,14 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
       if (customHeaders != null) 'custom_headers': customHeaders,
       if (customBody != null) 'custom_body': customBody,
       if (stopSequences != null) 'stop_sequences': stopSequences,
-      if (enableWebSearch != null) 'enable_web_search': enableWebSearch,
       if (enableCodeExecution != null)
         'enable_code_execution': enableCodeExecution,
       if (enableImageGeneration != null)
         'enable_image_generation': enableImageGeneration,
+      if (enableTools != null) 'enable_tools': enableTools,
+      if (enableReasoning != null) 'enable_reasoning': enableReasoning,
+      if (enableVision != null) 'enable_vision': enableVision,
+      if (enableEmbedding != null) 'enable_embedding': enableEmbedding,
       if (isEnabled != null) 'is_enabled': isEnabled,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1756,9 +1900,12 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     Value<Map<String, String>>? customHeaders,
     Value<Map<String, dynamic>>? customBody,
     Value<List<String>>? stopSequences,
-    Value<bool>? enableWebSearch,
     Value<bool>? enableCodeExecution,
     Value<bool>? enableImageGeneration,
+    Value<bool>? enableTools,
+    Value<bool>? enableReasoning,
+    Value<bool>? enableVision,
+    Value<bool>? enableEmbedding,
     Value<bool>? isEnabled,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1782,10 +1929,13 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
       customHeaders: customHeaders ?? this.customHeaders,
       customBody: customBody ?? this.customBody,
       stopSequences: stopSequences ?? this.stopSequences,
-      enableWebSearch: enableWebSearch ?? this.enableWebSearch,
       enableCodeExecution: enableCodeExecution ?? this.enableCodeExecution,
       enableImageGeneration:
           enableImageGeneration ?? this.enableImageGeneration,
+      enableTools: enableTools ?? this.enableTools,
+      enableReasoning: enableReasoning ?? this.enableReasoning,
+      enableVision: enableVision ?? this.enableVision,
+      enableEmbedding: enableEmbedding ?? this.enableEmbedding,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1853,9 +2003,6 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
         $AssistantsTable.$converterstopSequences.toSql(stopSequences.value),
       );
     }
-    if (enableWebSearch.present) {
-      map['enable_web_search'] = Variable<bool>(enableWebSearch.value);
-    }
     if (enableCodeExecution.present) {
       map['enable_code_execution'] = Variable<bool>(enableCodeExecution.value);
     }
@@ -1863,6 +2010,18 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
       map['enable_image_generation'] = Variable<bool>(
         enableImageGeneration.value,
       );
+    }
+    if (enableTools.present) {
+      map['enable_tools'] = Variable<bool>(enableTools.value);
+    }
+    if (enableReasoning.present) {
+      map['enable_reasoning'] = Variable<bool>(enableReasoning.value);
+    }
+    if (enableVision.present) {
+      map['enable_vision'] = Variable<bool>(enableVision.value);
+    }
+    if (enableEmbedding.present) {
+      map['enable_embedding'] = Variable<bool>(enableEmbedding.value);
     }
     if (isEnabled.present) {
       map['is_enabled'] = Variable<bool>(isEnabled.value);
@@ -1899,9 +2058,12 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
           ..write('customHeaders: $customHeaders, ')
           ..write('customBody: $customBody, ')
           ..write('stopSequences: $stopSequences, ')
-          ..write('enableWebSearch: $enableWebSearch, ')
           ..write('enableCodeExecution: $enableCodeExecution, ')
           ..write('enableImageGeneration: $enableImageGeneration, ')
+          ..write('enableTools: $enableTools, ')
+          ..write('enableReasoning: $enableReasoning, ')
+          ..write('enableVision: $enableVision, ')
+          ..write('enableEmbedding: $enableEmbedding, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -3665,9 +3827,12 @@ typedef $$AssistantsTableCreateCompanionBuilder =
       Value<Map<String, String>> customHeaders,
       Value<Map<String, dynamic>> customBody,
       Value<List<String>> stopSequences,
-      Value<bool> enableWebSearch,
       Value<bool> enableCodeExecution,
       Value<bool> enableImageGeneration,
+      Value<bool> enableTools,
+      Value<bool> enableReasoning,
+      Value<bool> enableVision,
+      Value<bool> enableEmbedding,
       Value<bool> isEnabled,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -3692,9 +3857,12 @@ typedef $$AssistantsTableUpdateCompanionBuilder =
       Value<Map<String, String>> customHeaders,
       Value<Map<String, dynamic>> customBody,
       Value<List<String>> stopSequences,
-      Value<bool> enableWebSearch,
       Value<bool> enableCodeExecution,
       Value<bool> enableImageGeneration,
+      Value<bool> enableTools,
+      Value<bool> enableReasoning,
+      Value<bool> enableVision,
+      Value<bool> enableEmbedding,
       Value<bool> isEnabled,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -3806,11 +3974,6 @@ class $$AssistantsTableFilterComposer
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
-  ColumnFilters<bool> get enableWebSearch => $composableBuilder(
-    column: $table.enableWebSearch,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<bool> get enableCodeExecution => $composableBuilder(
     column: $table.enableCodeExecution,
     builder: (column) => ColumnFilters(column),
@@ -3818,6 +3981,26 @@ class $$AssistantsTableFilterComposer
 
   ColumnFilters<bool> get enableImageGeneration => $composableBuilder(
     column: $table.enableImageGeneration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableTools => $composableBuilder(
+    column: $table.enableTools,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableReasoning => $composableBuilder(
+    column: $table.enableReasoning,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableVision => $composableBuilder(
+    column: $table.enableVision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableEmbedding => $composableBuilder(
+    column: $table.enableEmbedding,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3931,11 +4114,6 @@ class $$AssistantsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get enableWebSearch => $composableBuilder(
-    column: $table.enableWebSearch,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<bool> get enableCodeExecution => $composableBuilder(
     column: $table.enableCodeExecution,
     builder: (column) => ColumnOrderings(column),
@@ -3943,6 +4121,26 @@ class $$AssistantsTableOrderingComposer
 
   ColumnOrderings<bool> get enableImageGeneration => $composableBuilder(
     column: $table.enableImageGeneration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enableTools => $composableBuilder(
+    column: $table.enableTools,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enableReasoning => $composableBuilder(
+    column: $table.enableReasoning,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enableVision => $composableBuilder(
+    column: $table.enableVision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enableEmbedding => $composableBuilder(
+    column: $table.enableEmbedding,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4047,11 +4245,6 @@ class $$AssistantsTableAnnotationComposer
         builder: (column) => column,
       );
 
-  GeneratedColumn<bool> get enableWebSearch => $composableBuilder(
-    column: $table.enableWebSearch,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<bool> get enableCodeExecution => $composableBuilder(
     column: $table.enableCodeExecution,
     builder: (column) => column,
@@ -4059,6 +4252,26 @@ class $$AssistantsTableAnnotationComposer
 
   GeneratedColumn<bool> get enableImageGeneration => $composableBuilder(
     column: $table.enableImageGeneration,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enableTools => $composableBuilder(
+    column: $table.enableTools,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enableReasoning => $composableBuilder(
+    column: $table.enableReasoning,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enableVision => $composableBuilder(
+    column: $table.enableVision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enableEmbedding => $composableBuilder(
+    column: $table.enableEmbedding,
     builder: (column) => column,
   );
 
@@ -4120,9 +4333,12 @@ class $$AssistantsTableTableManager
                 Value<Map<String, String>> customHeaders = const Value.absent(),
                 Value<Map<String, dynamic>> customBody = const Value.absent(),
                 Value<List<String>> stopSequences = const Value.absent(),
-                Value<bool> enableWebSearch = const Value.absent(),
                 Value<bool> enableCodeExecution = const Value.absent(),
                 Value<bool> enableImageGeneration = const Value.absent(),
+                Value<bool> enableTools = const Value.absent(),
+                Value<bool> enableReasoning = const Value.absent(),
+                Value<bool> enableVision = const Value.absent(),
+                Value<bool> enableEmbedding = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -4145,9 +4361,12 @@ class $$AssistantsTableTableManager
                 customHeaders: customHeaders,
                 customBody: customBody,
                 stopSequences: stopSequences,
-                enableWebSearch: enableWebSearch,
                 enableCodeExecution: enableCodeExecution,
                 enableImageGeneration: enableImageGeneration,
+                enableTools: enableTools,
+                enableReasoning: enableReasoning,
+                enableVision: enableVision,
+                enableEmbedding: enableEmbedding,
                 isEnabled: isEnabled,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -4172,9 +4391,12 @@ class $$AssistantsTableTableManager
                 Value<Map<String, String>> customHeaders = const Value.absent(),
                 Value<Map<String, dynamic>> customBody = const Value.absent(),
                 Value<List<String>> stopSequences = const Value.absent(),
-                Value<bool> enableWebSearch = const Value.absent(),
                 Value<bool> enableCodeExecution = const Value.absent(),
                 Value<bool> enableImageGeneration = const Value.absent(),
+                Value<bool> enableTools = const Value.absent(),
+                Value<bool> enableReasoning = const Value.absent(),
+                Value<bool> enableVision = const Value.absent(),
+                Value<bool> enableEmbedding = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -4197,9 +4419,12 @@ class $$AssistantsTableTableManager
                 customHeaders: customHeaders,
                 customBody: customBody,
                 stopSequences: stopSequences,
-                enableWebSearch: enableWebSearch,
                 enableCodeExecution: enableCodeExecution,
                 enableImageGeneration: enableImageGeneration,
+                enableTools: enableTools,
+                enableReasoning: enableReasoning,
+                enableVision: enableVision,
+                enableEmbedding: enableEmbedding,
                 isEnabled: isEnabled,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

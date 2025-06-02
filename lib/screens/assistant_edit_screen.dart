@@ -241,9 +241,12 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
         customHeaders: widget.assistant?.customHeaders ?? {},
         customBody: widget.assistant?.customBody ?? {},
         stopSequences: widget.assistant?.stopSequences ?? [],
-        enableWebSearch: false, // 移除功能设置
         enableCodeExecution: false,
         enableImageGeneration: false,
+        enableTools: false,
+        enableReasoning: false,
+        enableVision: false,
+        enableEmbedding: false,
         isEnabled: _isEnabled,
         createdAt: widget.assistant?.createdAt ?? now,
         updatedAt: now,

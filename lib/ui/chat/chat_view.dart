@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/ai_assistant.dart';
 import '../../models/message.dart';
 import '../../services/ai_service.dart';
 import '../../services/notification_service.dart';
+import '../../providers/providers.dart';
 import 'chat_view_model.dart';
 import 'chat_view_model_provider.dart';
 import 'stream_response.dart';
@@ -10,7 +12,7 @@ import 'widgets/chat_history_view.dart';
 import 'widgets/chat_input.dart';
 
 /// 主要的聊天视图组件
-class ChatView extends StatefulWidget {
+class ChatView extends ConsumerStatefulWidget {
   const ChatView({
     super.key,
     required this.assistantId,
@@ -49,10 +51,10 @@ class ChatView extends StatefulWidget {
   onProviderModelChanged;
 
   @override
-  State<ChatView> createState() => _ChatViewState();
+  ConsumerState<ChatView> createState() => _ChatViewState();
 }
 
-class _ChatViewState extends State<ChatView>
+class _ChatViewState extends ConsumerState<ChatView>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
@@ -95,41 +97,92 @@ class _ChatViewState extends State<ChatView>
   Widget build(BuildContext context) {
     super.build(context); // for AutomaticKeepAliveClientMixin
 
-    final viewModel = ChatViewModel(
-      aiService: _aiService,
-      assistantId: widget.assistantId,
-      selectedProviderId: widget.selectedProviderId,
-      selectedModelName: widget.selectedModelName,
-      messages: _messages,
-      welcomeMessage: widget.welcomeMessage,
-      suggestions: widget.suggestions,
-    );
+    final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
+    final providersAsync = ref.watch(aiProviderNotifierProvider);
 
-    return ChatViewModelProvider(
-      viewModel: viewModel,
-      child: Column(
-        children: [
-          // 聊天历史
-          Expanded(
-            child: ChatHistoryView(
-              onEditMessage: _pendingStreamResponse == null
-                  ? _onEditMessage
-                  : null,
-              onSelectSuggestion: _onSelectSuggestion,
+    return assistantsAsync.when(
+      data: (assistants) {
+        return providersAsync.when(
+          data: (providers) {
+            final assistant = assistants
+                .where((a) => a.id == widget.assistantId)
+                .firstOrNull;
+            final provider = providers
+                .where((p) => p.id == widget.selectedProviderId)
+                .firstOrNull;
+
+            final viewModel = ChatViewModel(
+              aiService: _aiService,
+              assistantId: widget.assistantId,
+              selectedProviderId: widget.selectedProviderId,
+              selectedModelName: widget.selectedModelName,
+              messages: _messages,
+              currentAssistant: assistant,
+              currentProvider: provider,
+              welcomeMessage: widget.welcomeMessage,
+              suggestions: widget.suggestions,
+            );
+
+            return ChatViewModelProvider(
+              viewModel: viewModel,
+              child: Column(
+                children: [
+                  // 聊天历史
+                  Expanded(
+                    child: ChatHistoryView(
+                      onEditMessage: _pendingStreamResponse == null
+                          ? _onEditMessage
+                          : null,
+                      onSelectSuggestion: _onSelectSuggestion,
+                    ),
+                  ),
+
+                  // 聊天输入
+                  ChatInput(
+                    initialMessage: _editingMessage,
+                    autofocus: widget.suggestions.isEmpty,
+                    onSendMessage: _onSendMessage,
+                    onCancelMessage: _pendingStreamResponse?.cancel,
+                    onCancelEdit: _editingMessage != null
+                        ? _onCancelEdit
+                        : null,
+                    isLoading: _isLoading,
+                    onAssistantChanged: (assistant) {
+                      // 通知父组件助手改变
+                      widget.onProviderModelChanged?.call(
+                        assistant.providerId,
+                        assistant.modelName,
+                      );
+                    },
+                    initialAssistantId: widget.assistantId,
+                  ),
+                ],
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('加载提供商失败: $error'),
+              ],
             ),
           ),
-
-          // 聊天输入
-          ChatInput(
-            initialMessage: _editingMessage,
-            autofocus: widget.suggestions.isEmpty,
-            onSendMessage: _onSendMessage,
-            onCancelMessage: _pendingStreamResponse?.cancel,
-            onCancelEdit: _editingMessage != null ? _onCancelEdit : null,
-            isLoading: _isLoading,
-            onProviderModelChanged: widget.onProviderModelChanged,
-          ),
-        ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('加载助手失败: $error'),
+          ],
+        ),
       ),
     );
   }
@@ -144,7 +197,16 @@ class _ChatViewState extends State<ChatView>
       return;
     }
 
-    final assistant = _aiService.getAssistant(widget.assistantId);
+    // 使用 Riverpod 获取助手信息
+    final assistantsAsync = ref.read(aiAssistantNotifierProvider);
+    AiAssistant? assistant;
+
+    assistantsAsync.whenData((assistants) {
+      assistant = assistants
+          .where((a) => a.id == widget.assistantId)
+          .firstOrNull;
+    });
+
     if (assistant == null) {
       NotificationService().showError('找不到助手配置');
       return;
@@ -152,7 +214,7 @@ class _ChatViewState extends State<ChatView>
 
     // 如果是编辑模式，处理编辑逻辑
     if (_editingMessage != null) {
-      _handleEditMessage(content, assistant);
+      _handleEditMessage(content, assistant!);
       return;
     }
 
@@ -172,10 +234,10 @@ class _ChatViewState extends State<ChatView>
     _notifyMessagesChanged();
 
     try {
-      if (assistant.streamOutput) {
-        await _handleStreamMessage(userMessage, assistant);
+      if (assistant!.streamOutput) {
+        await _handleStreamMessage(userMessage, assistant!);
       } else {
-        await _handleNormalMessage(userMessage, assistant);
+        await _handleNormalMessage(userMessage, assistant!);
       }
     } catch (e) {
       _handleError(e);

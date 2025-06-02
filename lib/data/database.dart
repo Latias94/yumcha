@@ -66,11 +66,15 @@ class Assistants extends Table {
       .withDefault(const Constant('[]'))(); // JSON string
 
   // 功能开关
-  BoolColumn get enableWebSearch =>
-      boolean().withDefault(const Constant(false))();
   BoolColumn get enableCodeExecution =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get enableImageGeneration =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get enableTools => boolean().withDefault(const Constant(false))();
+  BoolColumn get enableReasoning =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get enableVision => boolean().withDefault(const Constant(false))();
+  BoolColumn get enableEmbedding =>
       boolean().withDefault(const Constant(false))();
 
   // 状态
@@ -143,7 +147,9 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (Migrator m) async {
       await m.createAll();
     },
-    onUpgrade: (Migrator m, int from, int to) async {},
+    onUpgrade: (Migrator m, int from, int to) async {
+      // 开发阶段暂时不处理迁移，直接删除数据库重建
+    },
   );
 
   // 提供商相关操作

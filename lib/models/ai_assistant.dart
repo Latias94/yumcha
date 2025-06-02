@@ -22,9 +22,12 @@ class AiAssistant {
   final List<String> stopSequences; // 停止序列
 
   // 功能设置
-  final bool enableWebSearch; // 是否启用网络搜索
   final bool enableCodeExecution; // 是否启用代码执行
   final bool enableImageGeneration; // 是否启用图像生成
+  final bool enableTools; // 是否支持工具调用/函数调用
+  final bool enableReasoning; // 是否支持推理增强
+  final bool enableVision; // 是否支持视觉理解
+  final bool enableEmbedding; // 是否支持向量嵌入
 
   // 元数据
   final bool isEnabled;
@@ -49,9 +52,12 @@ class AiAssistant {
     this.customHeaders = const {},
     this.customBody = const {},
     this.stopSequences = const [],
-    this.enableWebSearch = false,
     this.enableCodeExecution = false,
     this.enableImageGeneration = false,
+    this.enableTools = false,
+    this.enableReasoning = false,
+    this.enableVision = false,
+    this.enableEmbedding = false,
     this.isEnabled = true,
     required this.createdAt,
     required this.updatedAt,
@@ -75,9 +81,12 @@ class AiAssistant {
     Map<String, String>? customHeaders,
     Map<String, dynamic>? customBody,
     List<String>? stopSequences,
-    bool? enableWebSearch,
     bool? enableCodeExecution,
     bool? enableImageGeneration,
+    bool? enableTools,
+    bool? enableReasoning,
+    bool? enableVision,
+    bool? enableEmbedding,
     bool? isEnabled,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -100,10 +109,13 @@ class AiAssistant {
       customHeaders: customHeaders ?? this.customHeaders,
       customBody: customBody ?? this.customBody,
       stopSequences: stopSequences ?? this.stopSequences,
-      enableWebSearch: enableWebSearch ?? this.enableWebSearch,
       enableCodeExecution: enableCodeExecution ?? this.enableCodeExecution,
       enableImageGeneration:
           enableImageGeneration ?? this.enableImageGeneration,
+      enableTools: enableTools ?? this.enableTools,
+      enableReasoning: enableReasoning ?? this.enableReasoning,
+      enableVision: enableVision ?? this.enableVision,
+      enableEmbedding: enableEmbedding ?? this.enableEmbedding,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

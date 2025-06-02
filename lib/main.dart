@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
 import 'navigation/main_navigation.dart';
 import 'services/ai_service.dart';
@@ -6,6 +7,7 @@ import 'services/notification_service.dart';
 import 'services/logger_service.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
+import 'services/preference_service.dart';
 import 'screens/config_screen.dart';
 import 'package:yumcha/src/rust/frb_generated.dart';
 
@@ -16,6 +18,9 @@ void main() async {
   // 初始化数据库服务 (通过访问 getter 隐式初始化)
   DatabaseService.instance.database;
 
+  // 初始化偏好设置服务
+  await PreferenceService().init();
+
   // 初始化服务
   LoggerService().initialize();
   // 初始化AI服务 (它依赖于数据库服务)
@@ -23,7 +28,7 @@ void main() async {
   // 初始化主题服务
   await ThemeService().initialize();
 
-  runApp(const YumchaApp());
+  runApp(ProviderScope(child: const YumchaApp()));
 }
 
 class YumchaApp extends StatelessWidget {

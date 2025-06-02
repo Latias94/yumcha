@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/conversation_ui_state.dart';
 import '../models/message.dart';
 import '../models/ai_assistant.dart';
 import '../models/ai_provider.dart';
 import '../services/ai_service.dart';
 import '../services/notification_service.dart';
+import '../providers/providers.dart';
 import '../ui/chat/chat_view.dart';
 
 /// 聊天屏幕 - 使用重构后的聊天组件
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
     super.key,
     required this.conversationState,
@@ -31,10 +33,10 @@ class ChatScreen extends StatefulWidget {
   final Function(ConversationUiState conversation)? onConversationUpdated;
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final AiService _aiService = AiService();
   late ConversationUiState _conversationState;
 
@@ -49,116 +51,154 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _ensureValidConfiguration() {
-    // 确保有有效的助手和提供商配置
-    bool needsUpdate = false;
-    AiAssistant? selectedAssistant;
-    AiProvider? selectedProvider;
-    String? selectedModelId;
+    final assistantsAsync = ref.read(aiAssistantNotifierProvider);
+    final providersAsync = ref.read(aiProviderNotifierProvider);
 
-    // 1. 确保有选中的助手
-    if (_conversationState.assistantId == null) {
-      // 优先选择默认助手
-      selectedAssistant = _aiService.assistants
-          .where((a) => a.id == 'default-assistant')
-          .firstOrNull;
-      // 如果没有默认助手，选择第一个启用的助手
-      selectedAssistant ??= _aiService.assistants
-          .where((a) => a.isEnabled)
-          .firstOrNull;
-      // 如果没有启用的助手，选择第一个助手
-      selectedAssistant ??= _aiService.assistants.firstOrNull;
+    assistantsAsync.whenData((assistants) {
+      providersAsync.whenData((providers) {
+        // 确保有有效的助手和提供商配置
+        bool needsUpdate = false;
+        AiAssistant? selectedAssistant;
+        AiProvider? selectedProvider;
+        String? selectedModelId;
 
-      if (selectedAssistant != null) {
-        needsUpdate = true;
-      }
-    } else {
-      selectedAssistant = _aiService.getAssistant(
-        _conversationState.assistantId!,
-      );
-    }
-
-    if (selectedAssistant != null) {
-      // 2. 确保有选中的提供商
-      if (_conversationState.selectedProviderId.isEmpty) {
-        // 优先使用助手关联的提供商
-        selectedProvider = _aiService.getProvider(selectedAssistant.providerId);
-
-        // 如果助手关联的提供商不可用，选择第一个启用的提供商
-        if (selectedProvider == null || !selectedProvider.isEnabled) {
-          selectedProvider = _aiService.providers
-              .where((p) => p.isEnabled)
+        // 1. 确保有选中的助手
+        if (_conversationState.assistantId == null) {
+          // 优先选择默认助手
+          selectedAssistant = assistants
+              .where((a) => a.id == 'default-assistant')
               .firstOrNull;
-          // 如果没有启用的提供商，选择第一个提供商
-          selectedProvider ??= _aiService.providers.firstOrNull;
+          // 如果没有默认助手，选择第一个启用的助手
+          selectedAssistant ??= assistants
+              .where((a) => a.isEnabled)
+              .firstOrNull;
+          // 如果没有启用的助手，选择第一个助手
+          selectedAssistant ??= assistants.firstOrNull;
+
+          if (selectedAssistant != null) {
+            needsUpdate = true;
+          }
+        } else {
+          selectedAssistant = assistants
+              .where((a) => a.id == _conversationState.assistantId!)
+              .firstOrNull;
         }
 
-        if (selectedProvider != null) {
-          needsUpdate = true;
+        if (selectedAssistant != null) {
+          // 2. 确保有选中的提供商
+          if (_conversationState.selectedProviderId.isEmpty) {
+            // 优先使用助手关联的提供商
+            selectedProvider = providers
+                .where((p) => p.id == selectedAssistant!.providerId)
+                .firstOrNull;
+
+            // 如果助手关联的提供商不可用，选择第一个启用的提供商
+            if (selectedProvider == null || !selectedProvider.isEnabled) {
+              selectedProvider = providers
+                  .where((p) => p.isEnabled)
+                  .firstOrNull;
+              // 如果没有启用的提供商，选择第一个提供商
+              selectedProvider ??= providers.firstOrNull;
+            }
+
+            if (selectedProvider != null) {
+              needsUpdate = true;
+            }
+          } else {
+            selectedProvider = providers
+                .where((p) => p.id == _conversationState.selectedProviderId)
+                .firstOrNull;
+          }
+
+          // 3. 确保有选中的模型
+          if (_conversationState.selectedModelId == null &&
+              selectedProvider != null) {
+            // 优先使用助手的默认模型
+            selectedModelId = selectedAssistant.modelName;
+
+            // 如果助手的模型在当前提供商中不可用，使用提供商的第一个模型
+            if (selectedProvider.models.isNotEmpty &&
+                !selectedProvider.models.any(
+                  (m) => m.name == selectedModelId,
+                )) {
+              selectedModelId = selectedProvider.models.first.name;
+            }
+
+            needsUpdate = true;
+          } else {
+            selectedModelId = _conversationState.selectedModelId;
+          }
         }
-      } else {
-        selectedProvider = _aiService.getProvider(
-          _conversationState.selectedProviderId,
-        );
-      }
 
-      // 3. 确保有选中的模型
-      if (_conversationState.selectedModelId == null &&
-          selectedProvider != null) {
-        // 优先使用助手的默认模型
-        selectedModelId = selectedAssistant.modelName;
+        // 更新状态
+        if (needsUpdate &&
+            selectedAssistant != null &&
+            selectedProvider != null &&
+            selectedModelId != null) {
+          setState(() {
+            _conversationState = _conversationState.copyWith(
+              assistantId: selectedAssistant!.id,
+              selectedProviderId: selectedProvider!.id,
+              selectedModelId: selectedModelId,
+            );
+          });
 
-        // 如果助手的模型在当前提供商中不可用，使用提供商的第一个模型
-        if (selectedProvider.models.isNotEmpty &&
-            !selectedProvider.models.any((m) => m.name == selectedModelId)) {
-          selectedModelId = selectedProvider.models.first.name;
+          // 通知上级组件配置已更新
+          widget.onConversationUpdated?.call(_conversationState);
+          widget.onAssistantConfigChanged?.call(
+            selectedAssistant.id,
+            selectedProvider.id,
+            selectedModelId,
+          );
         }
-
-        needsUpdate = true;
-      } else {
-        selectedModelId = _conversationState.selectedModelId;
-      }
-    }
-
-    // 更新状态
-    if (needsUpdate &&
-        selectedAssistant != null &&
-        selectedProvider != null &&
-        selectedModelId != null) {
-      setState(() {
-        _conversationState = _conversationState.copyWith(
-          assistantId: selectedAssistant!.id,
-          selectedProviderId: selectedProvider!.id,
-          selectedModelId: selectedModelId,
-        );
       });
-
-      // 通知上级组件配置已更新
-      widget.onConversationUpdated?.call(_conversationState);
-      widget.onAssistantConfigChanged?.call(
-        selectedAssistant.id,
-        selectedProvider.id,
-        selectedModelId,
-      );
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final assistant = _conversationState.assistantId != null
-        ? _aiService.getAssistant(_conversationState.assistantId!)
-        : null;
+    final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
 
-    return Scaffold(
-      appBar: widget.showAppBar ? _buildAppBar(context, assistant) : null,
-      body: ChatView(
-        assistantId: _conversationState.assistantId ?? '',
-        selectedProviderId: _conversationState.selectedProviderId,
-        selectedModelName: _conversationState.selectedModelId ?? '',
-        messages: _conversationState.messages,
-        welcomeMessage: null, // 不显示欢迎消息，让界面开始时为空
-        suggestions: _getDefaultSuggestions(),
-        onMessagesChanged: _onMessagesChanged,
-        onProviderModelChanged: _onProviderModelChanged,
+    return assistantsAsync.when(
+      data: (assistants) {
+        final assistant = _conversationState.assistantId != null
+            ? assistants
+                  .where((a) => a.id == _conversationState.assistantId!)
+                  .firstOrNull
+            : null;
+
+        return Scaffold(
+          appBar: widget.showAppBar ? _buildAppBar(context, assistant) : null,
+          body: ChatView(
+            assistantId: _conversationState.assistantId ?? '',
+            selectedProviderId: _conversationState.selectedProviderId,
+            selectedModelName: _conversationState.selectedModelId ?? '',
+            messages: _conversationState.messages,
+            welcomeMessage: null, // 不显示欢迎消息，让界面开始时为空
+            suggestions: _getDefaultSuggestions(),
+            onMessagesChanged: _onMessagesChanged,
+            onProviderModelChanged: _onProviderModelChanged,
+          ),
+        );
+      },
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stack) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('加载失败: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.refresh(aiAssistantNotifierProvider),
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -239,6 +279,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildAssistantSettingsSheet(BuildContext context) {
     final theme = Theme.of(context);
+    final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
+    final providersAsync = ref.watch(aiProviderNotifierProvider);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -268,11 +310,17 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     Text('当前助手', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    Text(
-                      _aiService
-                              .getAssistant(_conversationState.assistantId!)
-                              ?.name ??
-                          '未知',
+                    assistantsAsync.when(
+                      data: (assistants) {
+                        final assistant = assistants
+                            .where(
+                              (a) => a.id == _conversationState.assistantId!,
+                            )
+                            .firstOrNull;
+                        return Text(assistant?.name ?? '未知');
+                      },
+                      loading: () => const Text('加载中...'),
+                      error: (_, __) => const Text('加载失败'),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -293,45 +341,58 @@ class _ChatScreenState extends State<ChatScreen> {
           // 助手选择
           Text('选择助手', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          ...(_aiService.assistants.map((assistant) {
-            final isSelected = assistant.id == _conversationState.assistantId;
-            return Card(
-              color: isSelected ? theme.colorScheme.primaryContainer : null,
-              child: ListTile(
-                leading: Text(
-                  assistant.avatar,
-                  style: const TextStyle(fontSize: 24),
-                ),
-                title: Text(assistant.name),
-                subtitle: Text(
-                  assistant.description.isNotEmpty
-                      ? assistant.description
-                      : '${assistant.providerId} - ${assistant.modelName}',
-                ),
-                trailing: isSelected ? const Icon(Icons.check) : null,
-                onTap: () {
-                  final provider = _aiService.getProvider(assistant.providerId);
-                  if (provider != null) {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _conversationState = _conversationState.copyWith(
-                        assistantId: assistant.id,
-                        selectedProviderId: provider.id,
-                        selectedModelId: assistant.modelName,
-                      );
-                    });
+          assistantsAsync.when(
+            data: (assistants) => Column(
+              children: assistants.map((assistant) {
+                final isSelected =
+                    assistant.id == _conversationState.assistantId;
+                return Card(
+                  color: isSelected ? theme.colorScheme.primaryContainer : null,
+                  child: ListTile(
+                    leading: Text(
+                      assistant.avatar,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    title: Text(assistant.name),
+                    subtitle: Text(
+                      assistant.description.isNotEmpty
+                          ? assistant.description
+                          : '${assistant.providerId} - ${assistant.modelName}',
+                    ),
+                    trailing: isSelected ? const Icon(Icons.check) : null,
+                    onTap: () {
+                      providersAsync.whenData((providers) {
+                        final provider = providers
+                            .where((p) => p.id == assistant.providerId)
+                            .firstOrNull;
+                        if (provider != null) {
+                          Navigator.of(context).pop();
+                          setState(() {
+                            _conversationState = _conversationState.copyWith(
+                              assistantId: assistant.id,
+                              selectedProviderId: provider.id,
+                              selectedModelId: assistant.modelName,
+                            );
+                          });
 
-                    widget.onConversationUpdated?.call(_conversationState);
-                    widget.onAssistantConfigChanged?.call(
-                      assistant.id,
-                      provider.id,
-                      assistant.modelName,
-                    );
-                  }
-                },
-              ),
-            );
-          }).toList()),
+                          widget.onConversationUpdated?.call(
+                            _conversationState,
+                          );
+                          widget.onAssistantConfigChanged?.call(
+                            assistant.id,
+                            provider.id,
+                            assistant.modelName,
+                          );
+                        }
+                      });
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Text('加载助手失败: $error'),
+          ),
         ],
       ),
     );
