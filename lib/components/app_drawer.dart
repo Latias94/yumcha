@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
-import '../models/chat_history.dart';
-import '../models/ai_assistant.dart';
 import '../models/conversation_ui_state.dart';
 import '../providers/providers.dart';
 import '../services/conversation_repository.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../services/logger_service.dart';
 import '../screens/settings_screen.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
@@ -31,6 +30,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   final TextEditingController _assistantSearchController =
       TextEditingController();
   late final ConversationRepository _conversationRepository;
+  final LoggerService _logger = LoggerService();
 
   String _selectedAssistant = "ai";
   String _searchQuery = "";
@@ -116,17 +116,29 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     }
 
     try {
-      final newConversations = await _conversationRepository
-          .getConversationsByAssistantWithPagination(
-            _selectedAssistant,
-            limit: _pageSize,
-            offset: pageKey,
-            includeMessages: true, // 需要消息来获取时间戳
-          );
-
-      return newConversations;
+      // 如果有搜索查询，使用搜索方法
+      if (_searchQuery.trim().isNotEmpty) {
+        final searchResults = await _conversationRepository
+            .searchConversationsByTitle(
+              _searchQuery,
+              assistantId: _selectedAssistant,
+              limit: _pageSize,
+              offset: pageKey,
+            );
+        return searchResults;
+      } else {
+        // 否则使用正常的分页获取
+        final newConversations = await _conversationRepository
+            .getConversationsByAssistantWithPagination(
+              _selectedAssistant,
+              limit: _pageSize,
+              offset: pageKey,
+              includeMessages: true, // 需要消息来获取时间戳
+            );
+        return newConversations;
+      }
     } catch (e) {
-      print('获取对话列表失败: $e');
+      _logger.error('获取对话列表失败: ${e.toString()}');
       return []; // 出错时返回空列表而不是抛出异常
     }
   }
@@ -134,7 +146,24 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   // 删除对话
   Future<void> _deleteConversation(String conversationId) async {
     try {
+      // 检查删除的对话是否是当前正在显示的对话
+      final currentConversationState = ref.read(currentConversationProvider);
+      final isCurrentConversation =
+          currentConversationState.conversation?.id == conversationId;
+
+      _logger.info('删除对话: $conversationId, 是否为当前对话: $isCurrentConversation');
+
       await _conversationRepository.deleteConversation(conversationId);
+
+      // 如果删除的是当前对话，创建新对话
+      if (isCurrentConversation) {
+        _logger.info('删除的是当前对话，创建新对话');
+        final conversationNotifier = ref.read(
+          currentConversationProvider.notifier,
+        );
+        await conversationNotifier.createNewConversation();
+      }
+
       // 刷新分页列表
       _pagingController.refresh();
       if (mounted) {
@@ -179,26 +208,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     _pagingController.refresh();
   }
 
-  // 切换助手时的处理
-  void _onAssistantChanged(String newAssistantId) {
-    setState(() {
-      _selectedAssistant = newAssistantId;
-    });
-    _refreshConversations();
-  }
-
   // 性能优化：防抖搜索
   void _onSearchChanged(String value) {
     setState(() {
       _searchQuery = value;
     });
-    // TODO: 如果需要搜索功能，可以在这里添加搜索逻辑
-  }
 
-  void _onAssistantSearchChanged(String value) {
-    setState(() {
-      _assistantSearchQuery = value;
-    });
+    // 刷新列表以显示搜索结果
+    _refreshConversations();
   }
 
   // 获取日期分组标题
@@ -252,7 +269,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: "搜索聊天记录...",
+              hintText: "搜索对话标题...",
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -346,7 +363,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
               ),
               const SizedBox(height: 16),
               Text(
-                _searchQuery.isEmpty ? "暂无聊天记录" : "未找到匹配的记录",
+                _searchQuery.isEmpty ? "暂无聊天记录" : "未找到包含 \"$_searchQuery\" 的对话",
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -365,6 +382,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                       ),
                     );
                   },
+                ),
+              ] else ...[
+                const SizedBox(height: 8),
+                Text(
+                  "尝试使用不同的关键词",
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ],
@@ -447,9 +472,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           borderRadius: BorderRadius.circular(8),
           onTap: () {
             // 打开特定的聊天记录
-            print(
+            _logger.debug(
               '点击对话: ${conversation.id}, 标题: ${conversation.channelName}',
-            ); // 调试信息
+            );
             widget.onChatClicked(conversation.id);
           },
           onLongPress: () {
@@ -758,8 +783,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
-                    // TODO: 打开完整的聊天历史页面
-                    _showChatHistoryDialog();
+                    // 清空搜索框并刷新列表
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = "";
+                    });
+                    _refreshConversations();
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -828,22 +857,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showChatHistoryDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("聊天历史"),
-        content: const Text("这里将显示完整的聊天历史记录，支持搜索和筛选功能。"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("关闭"),
           ),
         ],
       ),

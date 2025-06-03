@@ -338,6 +338,91 @@ class ConversationRepository {
     );
   }
 
+  // 搜索消息
+  Future<List<MessageSearchResult>> searchMessages(
+    String query, {
+    String? assistantId,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final messageDataList = await _database.searchMessages(
+        query,
+        assistantId: assistantId,
+        limit: limit,
+        offset: offset,
+      );
+
+      final results = <MessageSearchResult>[];
+      for (final messageData in messageDataList) {
+        // 获取对应的对话信息
+        final conversationData = await _database.getConversation(
+          messageData.conversationId,
+        );
+        if (conversationData != null) {
+          results.add(
+            MessageSearchResult(
+              message: _messageDataToModel(messageData),
+              conversationId: messageData.conversationId,
+              conversationTitle: conversationData.title,
+              assistantId: conversationData.assistantId,
+            ),
+          );
+        }
+      }
+      return results;
+    } catch (e) {
+      _logger.error('搜索消息失败: ${e.toString()}');
+      return [];
+    }
+  }
+
+  // 获取搜索结果数量
+  Future<int> getSearchResultCount(String query, {String? assistantId}) async {
+    try {
+      return await _database.getSearchResultCount(
+        query,
+        assistantId: assistantId,
+      );
+    } catch (e) {
+      _logger.error('获取搜索结果数量失败: ${e.toString()}');
+      return 0;
+    }
+  }
+
+  // 搜索对话标题
+  Future<List<ConversationUiState>> searchConversationsByTitle(
+    String query, {
+    String? assistantId,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final conversationDataList = await _database.searchConversationsByTitle(
+        query,
+        assistantId: assistantId,
+        limit: limit,
+        offset: offset,
+      );
+
+      final conversations = <ConversationUiState>[];
+      for (final conversationData in conversationDataList) {
+        // 只获取最后一条消息作为预览
+        final lastMessage = await _database.getLastMessageByConversation(
+          conversationData.id,
+        );
+        final previewMessage = lastMessage != null
+            ? [_messageDataToModel(lastMessage)]
+            : <Message>[];
+        conversations.add(_dataToModel(conversationData, previewMessage));
+      }
+      return conversations;
+    } catch (e) {
+      _logger.error('搜索对话标题失败: ${e.toString()}');
+      return [];
+    }
+  }
+
   // 将消息数据库模型转换为业务模型
   Message _messageDataToModel(MessageData data) {
     return Message(
@@ -349,4 +434,19 @@ class ConversationRepository {
       isFromUser: data.isFromUser,
     );
   }
+}
+
+// 搜索结果模型
+class MessageSearchResult {
+  final Message message;
+  final String conversationId;
+  final String conversationTitle;
+  final String assistantId;
+
+  const MessageSearchResult({
+    required this.message,
+    required this.conversationId,
+    required this.conversationTitle,
+    required this.assistantId,
+  });
 }

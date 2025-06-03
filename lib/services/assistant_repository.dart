@@ -44,14 +44,6 @@ class AssistantRepository {
     return allAssistants.where((a) => a.isEnabled).toList();
   }
 
-  // 获取指定提供商的助手
-  Future<List<AiAssistant>> getAssistantsByProvider(String providerId) async {
-    final assistantDataList = await _database.getAssistantsByProvider(
-      providerId,
-    );
-    return assistantDataList.map(_dataToModel).toList();
-  }
-
   // 根据提供商分组获取助手 - 已移除，因为助手不再关联特定提供商
   @Deprecated('助手不再关联特定提供商，请使用 getAllAssistants() 方法')
   Future<Map<String, List<AiAssistant>>>

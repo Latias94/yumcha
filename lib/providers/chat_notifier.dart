@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/message.dart';
 import '../models/ai_provider.dart';
-import '../models/ai_assistant.dart';
 import '../services/ai_service.dart';
 import '../services/preference_service.dart';
 import '../services/provider_repository.dart';

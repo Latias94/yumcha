@@ -1,7 +1,10 @@
 import '../src/rust/api/ai_chat.dart';
+import '../services/logger_service.dart';
 
 /// AI聊天功能使用示例
 class AiChatExample {
+  static final LoggerService _logger = LoggerService();
+
   /// 基本聊天示例
   static Future<void> basicChatExample() async {
     // 创建AI聊天客户端配置
@@ -28,17 +31,17 @@ class AiChatExample {
     try {
       // 发送聊天请求
       final response = await client.chat(messages: messages);
-      print("AI回复: ${response.content}");
-      print("使用的模型: ${response.model}");
+      _logger.info("AI回复: ${response.content}");
+      _logger.info("使用的模型: ${response.model}");
 
       if (response.usage != null) {
-        print("Token使用情况:");
-        print("  提示词tokens: ${response.usage!.promptTokens}");
-        print("  回复tokens: ${response.usage!.completionTokens}");
-        print("  总tokens: ${response.usage!.totalTokens}");
+        _logger.info("Token使用情况:");
+        _logger.info("  提示词tokens: ${response.usage!.promptTokens}");
+        _logger.info("  回复tokens: ${response.usage!.completionTokens}");
+        _logger.info("  总tokens: ${response.usage!.totalTokens}");
       }
     } catch (e) {
-      print("聊天错误: $e");
+      _logger.error("聊天错误: $e");
     }
   }
 
@@ -60,31 +63,31 @@ class AiChatExample {
     ];
 
     try {
-      print("开始流式聊天...");
+      _logger.info("开始流式聊天...");
 
       final stream = client.chatStream(messages: messages);
       await for (final event in stream) {
         switch (event) {
           case ChatStreamEvent_Start():
-            print("🟢 开始接收响应");
+            _logger.info("🟢 开始接收响应");
             break;
           case ChatStreamEvent_Content(:final content):
-            print("📝 $content");
+            _logger.info("📝 $content");
             break;
           case ChatStreamEvent_Done(:final totalContent, :final usage):
-            print("\n✅ 完成！");
-            print("完整回复: $totalContent");
+            _logger.info("\n✅ 完成！");
+            _logger.info("完整回复: $totalContent");
             if (usage != null) {
-              print("Token使用: ${usage.totalTokens}");
+              _logger.info("Token使用: ${usage.totalTokens}");
             }
             break;
           case ChatStreamEvent_Error(:final message):
-            print("❌ 错误: $message");
+            _logger.error("❌ 错误: $message");
             break;
         }
       }
     } catch (e) {
-      print("流式聊天错误: $e");
+      _logger.error("流式聊天错误: $e");
     }
   }
 
@@ -112,7 +115,7 @@ class AiChatExample {
     final chatHistory = <ChatMessage>[];
 
     for (final userInput in conversations) {
-      print("\n👤 用户: $userInput");
+      _logger.info("\n👤 用户: $userInput");
 
       // 添加用户消息到历史记录
       chatHistory.add(ChatMessage(role: ChatRole.user, content: userInput));
@@ -120,14 +123,14 @@ class AiChatExample {
       try {
         // 发送聊天请求
         final response = await client.chat(messages: chatHistory);
-        print("🤖 AI: ${response.content}");
+        _logger.info("🤖 AI: ${response.content}");
 
         // 添加AI回复到历史记录
         chatHistory.add(
           ChatMessage(role: ChatRole.assistant, content: response.content),
         );
       } catch (e) {
-        print("❌ 错误: $e");
+        _logger.error("❌ 错误: $e");
         break;
       }
     }
@@ -149,7 +152,7 @@ class AiChatExample {
     const question = "请用一句话解释什么是递归。";
 
     for (final (provider, model, envKey) in providers) {
-      print("\n🔄 测试提供商: $provider, 模型: $model");
+      _logger.info("\n🔄 测试提供商: $provider, 模型: $model");
 
       final options = AiChatOptions(
         model: model,
@@ -163,9 +166,9 @@ class AiChatExample {
         final response = await client.chat(
           messages: [const ChatMessage(role: ChatRole.user, content: question)],
         );
-        print("✅ 回复: ${response.content}");
+        _logger.info("✅ 回复: ${response.content}");
       } catch (e) {
-        print("❌ 错误: $e");
+        _logger.error("❌ 错误: $e");
       }
     }
   }
@@ -194,40 +197,40 @@ class AiChatExample {
           ),
         ],
       );
-      print("本地AI回复: ${response.content}");
+      _logger.info("本地AI回复: ${response.content}");
     } catch (e) {
-      print("本地AI聊天错误: $e");
+      _logger.error("本地AI聊天错误: $e");
     }
   }
 
   /// 测试流式聊天功能
   static Future<void> testStreamExample() async {
-    print("🧪 测试流式功能...");
+    _logger.info("🧪 测试流式功能...");
 
     try {
       final stream = testStream();
       await for (final event in stream) {
         switch (event) {
           case ChatStreamEvent_Start():
-            print("🟢 测试开始");
+            _logger.info("🟢 测试开始");
             break;
           case ChatStreamEvent_Content(:final content):
-            print("📝 $content");
+            _logger.info("📝 $content");
             break;
           case ChatStreamEvent_Done(:final totalContent, :final usage):
-            print("✅ 测试完成");
-            print("完整内容: $totalContent");
+            _logger.info("✅ 测试完成");
+            _logger.info("完整内容: $totalContent");
             if (usage != null) {
-              print("模拟Token使用: ${usage.totalTokens}");
+              _logger.info("模拟Token使用: ${usage.totalTokens}");
             }
             break;
           case ChatStreamEvent_Error(:final message):
-            print("❌ 测试错误: $message");
+            _logger.error("❌ 测试错误: $message");
             break;
         }
       }
     } catch (e) {
-      print("测试流式功能错误: $e");
+      _logger.error("测试流式功能错误: $e");
     }
   }
 }

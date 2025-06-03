@@ -524,7 +524,7 @@ class AiRequestService {
       buffer.writeln();
       buffer.writeln('🔧 技术详情:');
       buffer.writeln(
-        '   ${technicalError.length > 200 ? technicalError.substring(0, 200) + '...' : technicalError}',
+        '   ${technicalError.length > 200 ? '${technicalError.substring(0, 200)}...' : technicalError}',
       );
     }
 

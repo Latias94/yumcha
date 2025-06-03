@@ -1,210 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'debug_screen.dart';
 import 'providers_screen.dart';
 import 'assistants_screen.dart';
 import 'ai_debug_screen.dart';
 import 'chat_style_settings_screen.dart';
-import '../services/assistant_repository.dart';
-import '../services/provider_repository.dart';
-import '../services/database_service.dart';
-import '../services/theme_service.dart';
+import '../providers/theme_provider.dart';
+import '../providers/ai_provider_notifier.dart';
+import '../providers/ai_assistant_notifier.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  // 添加检测状态
-  bool _hasProviders = false;
-  bool _hasAssistants = false;
-  bool _isLoading = true;
-  late final AssistantRepository _assistantRepository;
-  late final ProviderRepository _providerRepository;
-  late final ThemeService _themeService;
-
-  @override
-  void initState() {
-    super.initState();
-    _assistantRepository = AssistantRepository(
-      DatabaseService.instance.database,
-    );
-    _providerRepository = ProviderRepository(DatabaseService.instance.database);
-    _themeService = ThemeService();
-    _checkConfiguration();
-  }
-
-  Future<void> _checkConfiguration() async {
-    try {
-      final providers = await _providerRepository.getAllProviders();
-      final assistants = await _assistantRepository.getAllAssistants();
-
-      setState(() {
-        _hasProviders = providers.isNotEmpty;
-        _hasAssistants = assistants.isNotEmpty;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final themeSettings = ref.watch(themeProvider);
+    final themeNotifier = ref.read(themeProvider.notifier);
+
     return Scaffold(
-      body: ListenableBuilder(
-        listenable: _themeService,
-        builder: (context, child) {
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar.large(
-                title: const Text("设置"),
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              SliverList(
-                delegate: SliverChildListDelegate([
-                  // API配置提醒卡片
-                  _buildApiConfigCard(),
-
-                  const SizedBox(height: 16),
-
-                  // 通用设置
-                  _buildSectionHeader("通用设置"),
-                  _buildColorModeItem(),
-                  _buildDynamicColorItem(),
-                  _buildDisplaySettingsItem(),
-
-                  const SizedBox(height: 24),
-
-                  // 模型与服务
-                  _buildSectionHeader("模型与服务"),
-                  _buildProvidersItem(),
-                  _buildAssistantsItem(),
-                  _buildDefaultModelItem(),
-                  _buildSearchServiceItem(),
-                  _buildMCPItem(),
-
-                  const SizedBox(height: 24),
-
-                  // 开发者选项
-                  _buildSectionHeader("开发者选项"),
-                  _buildDebugItem(),
-                  _buildAiDebugItem(),
-
-                  const SizedBox(height: 24),
-
-                  // 关于
-                  _buildSectionHeader("关于"),
-                  _buildAboutAppItem(),
-                  _buildChatStorageItem(),
-                  _buildShareItem(),
-
-                  const SizedBox(height: 32),
-                ]),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildApiConfigCard() {
-    // 如果正在加载或者都已配置，则不显示提醒卡片
-    if (_isLoading || (_hasProviders && _hasAssistants)) {
-      return const SizedBox.shrink();
-    }
-
-    String title = "需要配置";
-    String subtitle = "";
-    VoidCallback onPressed;
-
-    if (!_hasProviders && !_hasAssistants) {
-      title = "请配置API和助手";
-      subtitle = "您还没有配置API提供商和助手，请先配置";
-      onPressed = () {
-        // 优先引导到提供商配置
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ProvidersScreen()),
-        ).then((_) => _checkConfiguration());
-      };
-    } else if (!_hasProviders) {
-      title = "请配置API提供商";
-      subtitle = "您还没有配置API提供商，请先配置";
-      onPressed = () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ProvidersScreen()),
-        ).then((_) => _checkConfiguration());
-      };
-    } else {
-      title = "请配置助手";
-      subtitle = "您还没有配置助手，请先配置";
-      onPressed = () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AssistantsScreen()),
-        ).then((_) => _checkConfiguration());
-      };
-    }
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      child: Card(
-        color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.3),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                Icons.warning,
-                color: Theme.of(context).colorScheme.onErrorContainer,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              TextButton(
-                onPressed: onPressed,
-                child: Text(
-                  "配置",
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar.large(
+            title: const Text("设置"),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
-        ),
+          SliverList(
+            delegate: SliverChildListDelegate([
+              // 通用设置
+              _buildSectionHeader("通用设置"),
+              _buildColorModeItem(themeSettings, themeNotifier),
+              _buildDynamicColorItem(themeSettings, themeNotifier),
+              if (themeSettings.shouldShowThemeSelector)
+                _buildThemeSelectionItem(themeSettings, themeNotifier),
+
+              const SizedBox(height: 24),
+
+              // 模型与服务
+              _buildSectionHeader("模型与服务"),
+              _buildProvidersItem(),
+              _buildAssistantsItem(),
+              _buildDefaultModelItem(),
+              _buildSearchServiceItem(),
+              _buildMCPItem(),
+
+              const SizedBox(height: 24),
+
+              // 关于
+              _buildSectionHeader("关于"),
+              _buildAboutAppItem(),
+              _buildChatStorageItem(),
+              _buildShareItem(),
+
+              const SizedBox(height: 24),
+
+              // 开发者选项
+              _buildSectionHeader("开发者选项"),
+              _buildDebugItem(),
+              _buildAiDebugItem(),
+
+              const SizedBox(height: 32),
+            ]),
+          ),
+        ],
       ),
     );
   }
@@ -222,7 +87,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildColorModeItem() {
+  Widget _buildColorModeItem(
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
     return ListTile(
       leading: const Icon(Icons.palette_outlined),
       title: const Text("颜色模式"),
@@ -230,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _themeService.colorModeDisplayName,
+            themeSettings.colorModeDisplayName,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -240,14 +108,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       onTap: () {
-        _showColorModeDialog();
+        _showColorModeDialog(themeSettings, themeNotifier);
       },
     );
   }
 
-  Widget _buildDynamicColorItem() {
-    final isAvailable = _themeService.isDynamicColorAvailable;
-    final isEnabled = _themeService.dynamicColor;
+  Widget _buildDynamicColorItem(
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
+    final isAvailable = themeSettings.isDynamicColorAvailable;
+    final isEnabled = themeSettings.dynamicColorEnabled;
 
     String subtitle;
     if (!isAvailable) {
@@ -263,7 +134,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Icons.color_lens_outlined,
         color: isAvailable
             ? null
-            : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            : Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
       ),
       title: Text(
         "动态颜色",
@@ -272,7 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : TextStyle(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
       ),
       subtitle: Text(
@@ -280,14 +153,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: TextStyle(
           color: isAvailable
               ? Theme.of(context).colorScheme.onSurfaceVariant
-              : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+              : Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
         ),
       ),
       trailing: Switch(
         value: isEnabled,
         onChanged: isAvailable
             ? (value) async {
-                final success = await _themeService.setDynamicColor(value);
+                final success = await themeNotifier.setDynamicColor(value);
                 if (!success && value && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -302,20 +177,115 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildDisplaySettingsItem() {
-    return ListTile(
-      leading: const Icon(Icons.display_settings_outlined),
-      title: const Text("显示设置"),
-      subtitle: const Text("设置消息显示样式和界面选项"),
-      trailing: const Icon(Icons.keyboard_arrow_right),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const DisplaySettingsScreen(),
+  Widget _buildThemeSelectionItem(
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "主题样式",
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-        );
+          const SizedBox(height: 12),
+          _buildThemeToggleButtons(themeSettings, themeNotifier),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeToggleButtons(
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
+    const TextStyle style = TextStyle(fontSize: 12);
+    final List<bool> isSelected = <bool>[
+      themeSettings.themeScheme == AppThemeScheme.pink,
+      themeSettings.themeScheme == AppThemeScheme.green,
+      themeSettings.themeScheme == AppThemeScheme.blue,
+      themeSettings.themeScheme == AppThemeScheme.monochrome,
+    ];
+
+    return ToggleButtons(
+      isSelected: isSelected,
+      onPressed: (int newIndex) async {
+        AppThemeScheme newScheme;
+        switch (newIndex) {
+          case 0:
+            newScheme = AppThemeScheme.pink;
+            break;
+          case 1:
+            newScheme = AppThemeScheme.green;
+            break;
+          case 2:
+            newScheme = AppThemeScheme.blue;
+            break;
+          case 3:
+            newScheme = AppThemeScheme.monochrome;
+            break;
+          default:
+            return;
+        }
+        await themeNotifier.setThemeScheme(newScheme);
       },
+      borderRadius: BorderRadius.circular(8),
+      constraints: const BoxConstraints(minHeight: 48, minWidth: 80),
+      children: <Widget>[
+        _buildThemeButton('温柔\n粉色', AppThemeScheme.pink, themeNotifier, style),
+        _buildThemeButton('自然\n绿色', AppThemeScheme.green, themeNotifier, style),
+        _buildThemeButton('清新\n蓝色', AppThemeScheme.blue, themeNotifier, style),
+        _buildThemeButton(
+          '简约\n黑白',
+          AppThemeScheme.monochrome,
+          themeNotifier,
+          style,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThemeButton(
+    String label,
+    AppThemeScheme scheme,
+    ThemeNotifier themeNotifier,
+    TextStyle style,
+  ) {
+    final colorScheme = themeNotifier.getPreviewColorScheme(
+      scheme,
+      Theme.of(context).brightness,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 颜色预览圆圈
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [colorScheme.primary, colorScheme.secondary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, textAlign: TextAlign.center, style: style),
+        ],
+      ),
     );
   }
 
@@ -329,7 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ProvidersScreen()),
-        ).then((_) => _checkConfiguration()); // 返回时重新检查配置
+        );
       },
     );
   }
@@ -344,8 +314,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AssistantsScreen()),
-        ).then((_) => _checkConfiguration()); // 返回时重新检查配置
+        );
       },
+    );
+  }
+
+  Widget _buildDebugItem() {
+    return ListTile(
+      leading: const Icon(Icons.bug_report_outlined),
+      title: const Text("调试"),
+      subtitle: const Text("进入调试页面"),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DebugScreen()),
+        );
+      },
+    );
+  }
+
+  Widget _buildAiDebugItem() {
+    return ListTile(
+      leading: const Icon(Icons.smart_toy_outlined),
+      title: const Text("AI聊天调试"),
+      subtitle: const Text("测试AI聊天API功能"),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AiDebugScreenWrapper()),
+        );
+      },
+    );
+  }
+
+  void _showColorModeDialog(
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("颜色模式"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<AppColorMode>(
+              title: const Text("跟随系统"),
+              value: AppColorMode.system,
+              groupValue: themeSettings.colorMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await themeNotifier.setColorMode(value);
+                  if (mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                }
+              },
+            ),
+            RadioListTile<AppColorMode>(
+              title: const Text("浅色模式"),
+              value: AppColorMode.light,
+              groupValue: themeSettings.colorMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await themeNotifier.setColorMode(value);
+                  if (mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                }
+              },
+            ),
+            RadioListTile<AppColorMode>(
+              title: const Text("深色模式"),
+              value: AppColorMode.dark,
+              groupValue: themeSettings.colorMode,
+              onChanged: (value) async {
+                if (value != null) {
+                  await themeNotifier.setColorMode(value);
+                  if (mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text("取消"),
+          ),
+        ],
+      ),
     );
   }
 
@@ -418,98 +480,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: () {
         // TODO: 实现分享功能
       },
-    );
-  }
-
-  Widget _buildDebugItem() {
-    return ListTile(
-      leading: const Icon(Icons.bug_report_outlined),
-      title: const Text("调试"),
-      subtitle: const Text("进入调试页面"),
-      trailing: const Icon(Icons.keyboard_arrow_right),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const DebugScreen()),
-        );
-      },
-    );
-  }
-
-  Widget _buildAiDebugItem() {
-    return ListTile(
-      leading: const Icon(Icons.smart_toy_outlined),
-      title: const Text("AI聊天调试"),
-      subtitle: const Text("测试AI聊天API功能"),
-      trailing: const Icon(Icons.keyboard_arrow_right),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AiDebugScreenWrapper()),
-        );
-      },
-    );
-  }
-
-  void _showColorModeDialog() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text("颜色模式"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<ColorMode>(
-              title: const Text("跟随系统"),
-              value: ColorMode.system,
-              groupValue: _themeService.colorMode,
-              onChanged: (value) async {
-                if (value != null) {
-                  await _themeService.setColorMode(value);
-                  if (mounted) {
-                    setState(() {});
-                    Navigator.of(dialogContext).pop();
-                  }
-                }
-              },
-            ),
-            RadioListTile<ColorMode>(
-              title: const Text("浅色模式"),
-              value: ColorMode.light,
-              groupValue: _themeService.colorMode,
-              onChanged: (value) async {
-                if (value != null) {
-                  await _themeService.setColorMode(value);
-                  if (mounted) {
-                    setState(() {});
-                    Navigator.of(dialogContext).pop();
-                  }
-                }
-              },
-            ),
-            RadioListTile<ColorMode>(
-              title: const Text("深色模式"),
-              value: ColorMode.dark,
-              groupValue: _themeService.colorMode,
-              onChanged: (value) async {
-                if (value != null) {
-                  await _themeService.setColorMode(value);
-                  if (mounted) {
-                    setState(() {});
-                    Navigator.of(dialogContext).pop();
-                  }
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text("取消"),
-          ),
-        ],
-      ),
     );
   }
 }

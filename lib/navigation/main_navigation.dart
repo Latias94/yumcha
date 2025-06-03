@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/app_drawer.dart';
 import '../screens/chat_screen.dart';
 import '../providers/conversation_notifier.dart';
+import '../services/logger_service.dart';
 
 class MainNavigation extends ConsumerWidget {
   const MainNavigation({super.key});
+
+  static final LoggerService _logger = LoggerService();
 
   /// 创建新聊天并导航到新页面
   void _createNewChatWithAnimation(BuildContext context, WidgetRef ref) async {
@@ -45,7 +48,7 @@ class MainNavigation extends ConsumerWidget {
       drawer: AppDrawer(
         selectedMenu: conversationState.selectedMenu,
         onChatClicked: (chatId) {
-          print('MainNavigation 收到点击事件: $chatId'); // 调试信息
+          _logger.debug('MainNavigation 收到点击事件', {'chatId': chatId});
           // 防止在加载状态时重复点击
           if (!conversationState.isLoading) {
             conversationNotifier.switchToConversation(chatId);

@@ -11,6 +11,7 @@ class ChatMessageView extends StatefulWidget {
     super.key,
     required this.message,
     this.onEdit,
+    this.onRegenerate,
     this.isWelcomeMessage = false,
   });
 
@@ -19,6 +20,9 @@ class ChatMessageView extends StatefulWidget {
 
   /// 编辑消息回调
   final VoidCallback? onEdit;
+
+  /// 重新生成消息回调
+  final VoidCallback? onRegenerate;
 
   /// 是否为欢迎消息
   final bool isWelcomeMessage;
@@ -30,6 +34,7 @@ class ChatMessageView extends StatefulWidget {
 class _ChatMessageViewState extends State<ChatMessageView> {
   late final PreferenceService _preferenceService;
   ChatBubbleStyle _bubbleStyle = ChatBubbleStyle.list;
+  bool _isCopied = false;
 
   @override
   void initState() {
@@ -117,9 +122,9 @@ class _ChatMessageViewState extends State<ChatMessageView> {
     actionButtons.add(
       _buildActionButton(
         context,
-        icon: Icons.copy,
+        icon: _isCopied ? Icons.check : Icons.copy,
         onPressed: () => _copyToClipboard(context),
-        tooltip: '复制',
+        tooltip: _isCopied ? '已复制' : '复制',
       ),
     );
 
@@ -136,12 +141,12 @@ class _ChatMessageViewState extends State<ChatMessageView> {
     }
 
     // AI消息的额外按钮
-    if (!widget.message.isFromUser) {
+    if (!widget.message.isFromUser && widget.onRegenerate != null) {
       actionButtons.add(
         _buildActionButton(
           context,
           icon: Icons.refresh,
-          onPressed: () => _regenerateMessage(context),
+          onPressed: widget.onRegenerate,
           tooltip: '重新生成',
         ),
       );
@@ -200,22 +205,20 @@ class _ChatMessageViewState extends State<ChatMessageView> {
 
   void _copyToClipboard(BuildContext context) {
     Clipboard.setData(ClipboardData(text: widget.message.content));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('消息已复制到剪贴板'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-  }
 
-  void _regenerateMessage(BuildContext context) {
-    // TODO: 实现重新生成消息功能
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('重新生成功能待实现'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+    // 显示复制成功状态
+    setState(() {
+      _isCopied = true;
+    });
+
+    // 1.5秒后恢复原状态
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() {
+          _isCopied = false;
+        });
+      }
+    });
   }
 
   /// 构建支持markdown的气泡组件

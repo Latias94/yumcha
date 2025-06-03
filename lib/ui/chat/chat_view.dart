@@ -134,6 +134,9 @@ class _ChatViewState extends ConsumerState<ChatView>
                       onEditMessage: _pendingStreamResponse == null
                           ? _onEditMessage
                           : null,
+                      onRegenerateMessage: _pendingStreamResponse == null
+                          ? _onRegenerateMessage
+                          : null,
                       onSelectSuggestion: _onSelectSuggestion,
                     ),
                   ),
@@ -432,6 +435,52 @@ class _ChatViewState extends ConsumerState<ChatView>
     setState(() {
       _editingMessage = null;
       _originalAssistantMessage = null;
+    });
+  }
+
+  void _onRegenerateMessage(Message aiMessage) async {
+    if (aiMessage.isFromUser) return;
+
+    // 找到对应的用户消息
+    final messageIndex = _messages.indexOf(aiMessage);
+    if (messageIndex <= 0) return; // AI消息应该不是第一条消息
+
+    final userMessage = _messages[messageIndex - 1];
+    if (!userMessage.isFromUser) return;
+
+    // 移除当前的AI消息
+    setState(() {
+      _messages.removeAt(messageIndex);
+      _isLoading = true;
+    });
+
+    // 使用 Riverpod 获取助手信息
+    final assistantsAsync = ref.read(aiAssistantNotifierProvider);
+    AiAssistant? assistant;
+
+    assistantsAsync.whenData((assistants) {
+      assistant = assistants
+          .where((a) => a.id == widget.assistantId)
+          .firstOrNull;
+    });
+
+    if (assistant == null) {
+      NotificationService().showError('找不到助手配置');
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // 重新发送消息
+    if (assistant!.streamOutput) {
+      await _handleStreamMessage(userMessage, assistant!);
+    } else {
+      await _handleNormalMessage(userMessage, assistant!);
+    }
+
+    setState(() {
+      _isLoading = false;
     });
   }
 

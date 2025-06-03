@@ -69,6 +69,8 @@ class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
           isEnabled: !provider.isEnabled,
         );
         await updateProvider(updatedProvider);
+        // 更新成功后刷新状态
+        await refresh();
       } catch (error, stackTrace) {
         state = AsyncValue.error(error, stackTrace);
       }

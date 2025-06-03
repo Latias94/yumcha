@@ -46,6 +46,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _ensureValidConfiguration();
   }
 
+  @override
+  void didUpdateWidget(ChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当父组件传入新的对话状态时，更新本地状态
+    if (oldWidget.conversationState != widget.conversationState) {
+      // 调试信息已移除，使用正式日志系统
+      setState(() {
+        _conversationState = widget.conversationState;
+      });
+    }
+  }
+
   void _ensureValidConfiguration() {
     final assistantsAsync = ref.read(aiAssistantNotifierProvider);
     final providersAsync = ref.read(aiProviderNotifierProvider);
@@ -327,7 +339,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         return Text(assistant?.name ?? '未知');
                       },
                       loading: () => const Text('加载中...'),
-                      error: (_, __) => const Text('加载失败'),
+                      error: (_, _) => const Text('加载失败'),
                     ),
                     const SizedBox(height: 4),
                     Text(

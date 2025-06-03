@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/message.dart';
 import '../../../services/assistant_repository.dart';
-import '../../../services/favorite_model_repository.dart';
 import '../../../services/database_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/preference_service.dart';
@@ -68,16 +67,12 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   // 数据仓库
   late final AssistantRepository _assistantRepository;
-  late final FavoriteModelRepository _favoriteModelRepository;
   late final PreferenceService _preferenceService;
 
   @override
   void initState() {
     super.initState();
     _assistantRepository = AssistantRepository(
-      DatabaseService.instance.database,
-    );
-    _favoriteModelRepository = FavoriteModelRepository(
       DatabaseService.instance.database,
     );
     _preferenceService = PreferenceService();
@@ -244,7 +239,6 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
     await showModelSelector(
       context: context,
-      favoriteModelRepository: _favoriteModelRepository,
       preferenceService: _preferenceService,
       selectedProviderId: chatConfig.selectedProvider?.id,
       selectedModelName: chatConfig.selectedModel?.name,

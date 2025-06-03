@@ -23,7 +23,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: effectiveColorScheme.outline.withOpacity(0.12),
+            color: effectiveColorScheme.outline.withValues(alpha: 0.12),
           ),
         ),
       ),
@@ -59,7 +59,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: effectiveColorScheme.outline.withOpacity(0.12),
+            color: effectiveColorScheme.outline.withValues(alpha: 0.12),
           ),
         ),
       ),

@@ -8,6 +8,7 @@ import '../../../models/ai_model.dart';
 import '../../../models/ai_provider.dart';
 import '../../../models/chat_configuration.dart';
 import '../../../providers/ai_provider_notifier.dart';
+import '../../../providers/favorite_model_notifier.dart';
 
 /// 提供商-模型组合数据类
 class ProviderModelItem {
@@ -24,14 +25,12 @@ class ProviderModelItem {
 class ModelSelector extends ConsumerStatefulWidget {
   const ModelSelector({
     super.key,
-    required this.favoriteModelRepository,
     required this.preferenceService,
     required this.selectedProviderId,
     required this.selectedModelName,
     required this.onModelSelected,
   });
 
-  final FavoriteModelRepository favoriteModelRepository;
   final PreferenceService preferenceService;
   final String? selectedProviderId;
   final String? selectedModelName;
@@ -179,23 +178,25 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
 
                         return StatefulBuilder(
                           builder: (context, setSheetState) {
-                            return FutureBuilder<List<FavoriteModel>>(
-                              future: widget.favoriteModelRepository
-                                  .getAllFavoriteModels(),
-                              builder: (context, favSnapshot) {
-                                final currentFavorites =
-                                    favSnapshot.data ?? data.favoriteModels;
-                                return ListView(
-                                  controller: scrollController,
-                                  children: [
-                                    ..._buildModelSections(
-                                      _filterModelItems(data.modelItems),
-                                      currentFavorites,
-                                      setSheetState,
-                                    ),
-                                  ],
-                                );
-                              },
+                            // 监听收藏模型状态变化
+                            final favoriteModelsAsync = ref.watch(
+                              favoriteModelNotifierProvider,
+                            );
+                            final currentFavorites = favoriteModelsAsync.when(
+                              data: (models) => models,
+                              loading: () => data.favoriteModels,
+                              error: (_, _) => data.favoriteModels,
+                            );
+
+                            return ListView(
+                              controller: scrollController,
+                              children: [
+                                ..._buildModelSections(
+                                  _filterModelItems(data.modelItems),
+                                  currentFavorites,
+                                  setSheetState,
+                                ),
+                              ],
                             );
                           },
                         );
@@ -276,8 +277,13 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
 
   Future<ModelSelectorData> _loadData(List<AiProvider> providers) async {
     try {
-      final favoriteModels = await widget.favoriteModelRepository
-          .getAllFavoriteModels();
+      // 通过Riverpod获取收藏模型
+      final favoriteModelsAsync = ref.read(favoriteModelNotifierProvider);
+      final favoriteModels = favoriteModelsAsync.when(
+        data: (models) => models,
+        loading: () => <FavoriteModel>[],
+        error: (_, _) => <FavoriteModel>[],
+      );
 
       // 获取所有启用提供商的启用模型
       final modelItems = <ProviderModelItem>[];
@@ -478,13 +484,16 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
             color: isFavorite ? Colors.red : theme.colorScheme.onSurfaceVariant,
           ),
           onPressed: () async {
+            final favoriteNotifier = ref.read(
+              favoriteModelNotifierProvider.notifier,
+            );
             if (isFavorite) {
-              await widget.favoriteModelRepository.removeFavoriteModel(
+              await favoriteNotifier.removeFavoriteModel(
                 item.provider.id,
                 item.model.name,
               );
             } else {
-              await widget.favoriteModelRepository.addFavoriteModel(
+              await favoriteNotifier.addFavoriteModel(
                 item.provider.id,
                 item.model.name,
               );
@@ -529,7 +538,6 @@ class ModelSelectorData {
 /// 显示模型选择器
 Future<void> showModelSelector({
   required BuildContext context,
-  required FavoriteModelRepository favoriteModelRepository,
   required PreferenceService preferenceService,
   required String? selectedProviderId,
   required String? selectedModelName,
@@ -543,7 +551,6 @@ Future<void> showModelSelector({
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => ModelSelector(
-        favoriteModelRepository: favoriteModelRepository,
         preferenceService: preferenceService,
         selectedProviderId: selectedProviderId,
         selectedModelName: selectedModelName,

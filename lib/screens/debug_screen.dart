@@ -244,7 +244,9 @@ class _DebugScreenState extends State<DebugScreen> {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Text(
@@ -290,13 +292,17 @@ class _DebugScreenState extends State<DebugScreen> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isError
-                ? Theme.of(context).colorScheme.errorContainer.withOpacity(0.3)
+                ? Theme.of(
+                    context,
+                  ).colorScheme.errorContainer.withValues(alpha: 0.3)
                 : Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isError
-                  ? Theme.of(context).colorScheme.error.withOpacity(0.3)
-                  : Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  ? Theme.of(context).colorScheme.error.withValues(alpha: 0.3)
+                  : Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Text(

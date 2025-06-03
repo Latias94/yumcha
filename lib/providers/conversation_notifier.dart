@@ -4,6 +4,7 @@ import '../models/ai_assistant.dart';
 import '../services/conversation_repository.dart';
 import '../services/assistant_repository.dart';
 import '../services/database_service.dart';
+import '../services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -46,6 +47,7 @@ class CurrentConversationNotifier
   late final ConversationRepository _conversationRepository;
   late final AssistantRepository _assistantRepository;
   final _uuid = const Uuid();
+  final LoggerService _logger = LoggerService();
 
   // 记住上次的配置
   String? _lastUsedAssistantId;
@@ -107,13 +109,13 @@ class CurrentConversationNotifier
 
   /// 创建新对话
   Future<void> createNewConversation() async {
-    print('开始创建新对话'); // 调试信息
+    _logger.info('开始创建新对话');
 
     // 防抖：如果距离上次创建时间少于500毫秒，忽略请求
     final now = DateTime.now();
     if (_lastCreateTime != null &&
         now.difference(_lastCreateTime!).inMilliseconds < 500) {
-      print('防抖：忽略重复的创建请求'); // 调试信息
+      _logger.debug('防抖：忽略重复的创建请求');
       return;
     }
     _lastCreateTime = now;
@@ -173,9 +175,10 @@ class CurrentConversationNotifier
         selectedMenu: "new_chat",
       );
 
-      print(
-        '新对话创建成功: ${newConversation.id}, 助手: ${selectedAssistant?.name}',
-      ); // 调试信息
+      _logger.info('新对话创建成功', {
+        'conversationId': newConversation.id,
+        'assistantName': selectedAssistant?.name,
+      });
 
       // 如果有选中的助手，保存其配置
       if (selectedAssistant != null) {
@@ -207,16 +210,17 @@ class CurrentConversationNotifier
   /// 加载现有对话
   Future<void> loadConversation(String conversationId) async {
     try {
-      print('开始加载对话: $conversationId'); // 调试信息
+      _logger.info('开始加载对话', {'conversationId': conversationId});
       state = state.copyWith(isLoading: true, error: null);
 
       final conversation = await _conversationRepository.getConversation(
         conversationId,
       );
 
-      print(
-        '加载的对话: ${conversation?.channelName}, 消息数量: ${conversation?.messages.length}',
-      ); // 调试信息
+      _logger.debug('加载的对话', {
+        'channelName': conversation?.channelName,
+        'messageCount': conversation?.messages.length,
+      });
 
       if (conversation != null) {
         state = state.copyWith(
@@ -224,40 +228,41 @@ class CurrentConversationNotifier
           isLoading: false,
           selectedMenu: conversationId,
         );
-        print('对话加载成功'); // 调试信息
+        _logger.info('对话加载成功');
       } else {
-        print('对话不存在: $conversationId'); // 调试信息
+        _logger.warning('对话不存在', {'conversationId': conversationId});
         state = state.copyWith(isLoading: false, error: '对话不存在');
       }
     } catch (e) {
-      print('加载对话失败: $e'); // 调试信息
+      _logger.error('加载对话失败', {'error': e.toString()});
       state = state.copyWith(isLoading: false, error: '加载对话失败: $e');
     }
   }
 
   /// 切换对话
   Future<void> switchToConversation(String chatId) async {
-    print(
-      'switchToConversation 被调用: $chatId, 当前加载状态: ${state.isLoading}',
-    ); // 调试信息
+    _logger.debug('switchToConversation 被调用', {
+      'chatId': chatId,
+      'isLoading': state.isLoading,
+    });
 
     // 防止重复调用
     if (state.isLoading) {
-      print('正在加载中，忽略请求'); // 调试信息
+      _logger.debug('正在加载中，忽略请求');
       return;
     }
 
     // 如果已经是当前对话，不需要重复加载
     if (state.conversation?.id == chatId && chatId != "new_chat") {
-      print('已经是当前对话，忽略请求'); // 调试信息
+      _logger.debug('已经是当前对话，忽略请求');
       return;
     }
 
     if (chatId == "new_chat") {
-      print('调用 createNewConversation'); // 调试信息
+      _logger.debug('调用 createNewConversation');
       await createNewConversation();
     } else {
-      print('调用 loadConversation: $chatId'); // 调试信息
+      _logger.debug('调用 loadConversation', {'chatId': chatId});
       await loadConversation(chatId);
     }
   }

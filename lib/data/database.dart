@@ -144,11 +144,48 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
+      await _createIndexes(m);
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      // 开发阶段暂时不处理迁移，直接删除数据库重建
+      // 数据库迁移策略
+      await _performMigration(m, from, to);
     },
   );
+
+  /// 创建索引以提高查询性能
+  Future<void> _createIndexes(Migrator m) async {
+    // 为常用查询字段创建索引
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_assistant_id ON conversations(assistant_id);',
+    );
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_last_message_at ON conversations(last_message_at);',
+    );
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);',
+    );
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);',
+    );
+    // 为消息内容搜索添加索引
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_messages_content ON messages(content);',
+    );
+  }
+
+  /// 执行数据库迁移
+  Future<void> _performMigration(Migrator m, int from, int to) async {
+    // 目前版本为1，暂无迁移需求
+    // 未来版本升级时在此处添加迁移逻辑
+
+    // 示例迁移代码：
+    // if (from < 2) {
+    //   await m.addColumn(providers, providers.newColumn);
+    // }
+    // if (from < 3) {
+    //   await m.createTable(newTable);
+    // }
+  }
 
   // 提供商相关操作
   Future<List<ProviderData>> getAllProviders() => select(providers).get();
@@ -299,6 +336,100 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(m) => OrderingTerm.desc(m.timestamp)])
             ..limit(1))
           .getSingleOrNull();
+
+  // 搜索消息内容
+  Future<List<MessageData>> searchMessages(
+    String query, {
+    String? assistantId,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    if (query.trim().isEmpty) {
+      return [];
+    }
+
+    final searchQuery = select(messages).join([
+      leftOuterJoin(
+        conversations,
+        conversations.id.equalsExp(messages.conversationId),
+      ),
+    ]);
+
+    // 添加搜索条件
+    searchQuery.where(messages.content.like('%${query.trim()}%'));
+
+    // 如果指定了助手ID，添加助手过滤条件
+    if (assistantId != null && assistantId.isNotEmpty) {
+      searchQuery.where(conversations.assistantId.equals(assistantId));
+    }
+
+    // 按时间倒序排列
+    searchQuery.orderBy([OrderingTerm.desc(messages.timestamp)]);
+
+    // 分页
+    searchQuery.limit(limit, offset: offset);
+
+    final results = await searchQuery.get();
+    return results.map((row) => row.readTable(messages)).toList();
+  }
+
+  // 获取搜索结果数量
+  Future<int> getSearchResultCount(String query, {String? assistantId}) async {
+    if (query.trim().isEmpty) {
+      return 0;
+    }
+
+    final countQuery = selectOnly(messages).join([
+      leftOuterJoin(
+        conversations,
+        conversations.id.equalsExp(messages.conversationId),
+      ),
+    ]);
+
+    final countExp = messages.id.count();
+    countQuery.addColumns([countExp]);
+
+    // 添加搜索条件
+    countQuery.where(messages.content.like('%${query.trim()}%'));
+
+    // 如果指定了助手ID，添加助手过滤条件
+    if (assistantId != null && assistantId.isNotEmpty) {
+      countQuery.where(conversations.assistantId.equals(assistantId));
+    }
+
+    final result = await countQuery.getSingle();
+    return result.read(countExp) ?? 0;
+  }
+
+  // 搜索对话标题
+  Future<List<ConversationData>> searchConversationsByTitle(
+    String query, {
+    String? assistantId,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    if (query.trim().isEmpty) {
+      return [];
+    }
+
+    final searchQuery = select(conversations);
+
+    // 添加标题搜索条件
+    searchQuery.where((c) => c.title.like('%${query.trim()}%'));
+
+    // 如果指定了助手ID，添加助手过滤条件
+    if (assistantId != null && assistantId.isNotEmpty) {
+      searchQuery.where((c) => c.assistantId.equals(assistantId));
+    }
+
+    // 按最后消息时间倒序排列
+    searchQuery.orderBy([(c) => OrderingTerm.desc(c.lastMessageAt)]);
+
+    // 分页
+    searchQuery.limit(limit, offset: offset);
+
+    return await searchQuery.get();
+  }
 }
 
 LazyDatabase _openConnection() {

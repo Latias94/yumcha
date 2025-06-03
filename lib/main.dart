@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'theme/app_theme.dart';
 import 'navigation/main_navigation.dart';
 import 'services/ai_service.dart';
 import 'services/notification_service.dart';
 import 'services/logger_service.dart';
 import 'services/database_service.dart';
-import 'services/theme_service.dart';
 import 'services/preference_service.dart';
+import 'providers/theme_provider.dart';
 import 'screens/config_screen.dart';
 import 'package:yumcha/src/rust/frb_generated.dart';
 
@@ -25,31 +24,26 @@ void main() async {
   LoggerService().initialize();
   // 初始化AI服务 (它依赖于数据库服务)
   await AiService().initialize();
-  // 初始化主题服务
-  await ThemeService().initialize();
 
   runApp(ProviderScope(child: const YumchaApp()));
 }
 
-class YumchaApp extends StatelessWidget {
+class YumchaApp extends ConsumerWidget {
   const YumchaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: ThemeService(),
-      builder: (context, child) {
-        final themeService = ThemeService();
-        return MaterialApp(
-          title: 'Yumcha',
-          theme: AppTheme.getLightTheme(themeService.getLightColorScheme()),
-          darkTheme: AppTheme.getDarkTheme(themeService.getDarkColorScheme()),
-          themeMode: themeService.themeMode,
-          scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
-          home: const MainNavigation(),
-          debugShowCheckedModeBanner: false,
-        );
-      },
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeSettings = ref.watch(themeProvider);
+    final themeNotifier = ref.read(themeProvider.notifier);
+
+    return MaterialApp(
+      title: 'Yumcha',
+      theme: themeNotifier.getLightTheme(),
+      darkTheme: themeNotifier.getDarkTheme(),
+      themeMode: themeSettings.themeMode,
+      scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
+      home: const MainNavigation(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

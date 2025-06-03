@@ -54,7 +54,7 @@ class ProviderListWidget extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
-        ref.refresh(aiProviderNotifierProvider);
+        ref.invalidate(aiProviderNotifierProvider);
       },
       child: ListView.builder(
         itemCount: providers.length,

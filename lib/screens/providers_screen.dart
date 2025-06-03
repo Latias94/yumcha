@@ -1,71 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/ai_provider.dart';
-import '../services/provider_repository.dart';
-import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../providers/ai_provider_notifier.dart';
 import 'provider_edit_screen.dart';
 
-class ProvidersScreen extends StatefulWidget {
+class ProvidersScreen extends ConsumerWidget {
   const ProvidersScreen({super.key});
 
-  @override
-  State<ProvidersScreen> createState() => _ProvidersScreenState();
-}
-
-class _ProvidersScreenState extends State<ProvidersScreen> {
-  late final ProviderRepository _repository;
-  List<AiProvider> _providers = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _repository = ProviderRepository(DatabaseService.instance.database);
-    _loadProviders();
-  }
-
-  Future<void> _loadProviders() async {
-    setState(() => _isLoading = true);
+  Future<void> _deleteProvider(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
     try {
-      final providers = await _repository.getAllProviders();
-      setState(() {
-        _providers = providers;
-        _isLoading = false;
-      });
+      await ref.read(aiProviderNotifierProvider.notifier).deleteProvider(id);
+      NotificationService().showSuccess('提供商已删除');
     } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        NotificationService().showError('加载提供商失败: $e');
-      }
+      NotificationService().showError('删除失败: $e');
     }
   }
 
-  Future<void> _deleteProvider(String id) async {
+  Future<void> _toggleProvider(WidgetRef ref, String id) async {
     try {
-      await _repository.deleteProvider(id);
-      _loadProviders();
-      if (mounted) {
-        NotificationService().showSuccess('提供商已删除');
-      }
+      await ref
+          .read(aiProviderNotifierProvider.notifier)
+          .toggleProviderEnabled(id);
     } catch (e) {
-      if (mounted) {
-        NotificationService().showError('删除失败: $e');
-      }
+      NotificationService().showError('切换状态失败: $e');
     }
   }
 
-  Future<void> _toggleProvider(String id) async {
-    try {
-      await _repository.toggleProviderEnabled(id);
-      _loadProviders();
-    } catch (e) {
-      if (mounted) {
-        NotificationService().showError('切换状态失败: $e');
-      }
-    }
-  }
-
-  void _showDeleteDialog(AiProvider provider) {
+  void _showDeleteDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AiProvider provider,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -79,7 +49,7 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _deleteProvider(provider.id);
+              _deleteProvider(context, ref, provider.id);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('删除'),
@@ -115,23 +85,13 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
       case ProviderType.ollama:
         return Icons.memory_outlined;
       case ProviderType.custom:
-      default:
         return Icons.settings_input_component_outlined;
     }
   }
 
-  Future<void> _navigateAndRefresh(Widget screen) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
-    if (result == true && mounted) {
-      _loadProviders();
-    }
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final providersAsync = ref.watch(aiProviderNotifierProvider);
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -144,22 +104,27 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.add),
-                onPressed: () =>
-                    _navigateAndRefresh(const ProviderEditScreen()),
+                onPressed: () async {
+                  final result = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProviderEditScreen(),
+                    ),
+                  );
+                  if (result == true) {
+                    ref.invalidate(aiProviderNotifierProvider);
+                  }
+                },
               ),
             ],
           ),
-          SliverToBoxAdapter(
-            child: _isLoading
-                ? const SizedBox(
-                    height: 400,
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : _providers.isEmpty
-                ? SizedBox(
-                    height:
-                        MediaQuery.of(context).size.height *
-                        0.6, // Adjust height
+          // 使用providersAsync来渲染内容
+          providersAsync.when(
+            data: (providers) {
+              if (providers.isEmpty) {
+                return SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6,
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -194,101 +159,143 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
                         ],
                       ),
                     ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          if (!_isLoading && _providers.isNotEmpty)
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final provider = _providers[index];
-                final colorScheme = Theme.of(context).colorScheme;
-
-                return Card(
-                  elevation: 1,
-                  color: colorScheme.surfaceContainerHighest,
-                  margin: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 16,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              _getProviderIcon(provider.type),
-                              size: 32,
-                              color: colorScheme.primary,
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    provider.name,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
-                                  ),
-                                  Text(
-                                    '类型: ${_getProviderTypeDisplayName(provider.type)}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                  Text(
-                                    '模型: ${provider.supportedModels.length} 个',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Switch(
-                              value: provider.isEnabled,
-                              onChanged: (_) => _toggleProvider(provider.id),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton.icon(
-                              icon: const Icon(Icons.edit_outlined),
-                              label: const Text('编辑'),
-                              onPressed: () => _navigateAndRefresh(
-                                ProviderEditScreen(provider: provider),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            TextButton.icon(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                color: colorScheme.error,
-                              ),
-                              label: Text(
-                                '删除',
-                                style: TextStyle(color: colorScheme.error),
-                              ),
-                              onPressed: () => _showDeleteDialog(provider),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
                   ),
                 );
-              }, childCount: _providers.length),
+              }
+              return SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final provider = providers[index];
+                  final colorScheme = Theme.of(context).colorScheme;
+
+                  return Card(
+                    elevation: 1,
+                    color: colorScheme.surfaceContainerHighest,
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 16,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _getProviderIcon(provider.type),
+                                size: 32,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      provider.name,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    Text(
+                                      '类型: ${_getProviderTypeDisplayName(provider.type)}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                    Text(
+                                      '模型: ${provider.supportedModels.length} 个',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: provider.isEnabled,
+                                onChanged: (_) =>
+                                    _toggleProvider(ref, provider.id),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                icon: const Icon(Icons.edit_outlined),
+                                label: const Text('编辑'),
+                                onPressed: () async {
+                                  final result = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ProviderEditScreen(
+                                        provider: provider,
+                                      ),
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    ref.invalidate(aiProviderNotifierProvider);
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton.icon(
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: colorScheme.error,
+                                ),
+                                label: Text(
+                                  '删除',
+                                  style: TextStyle(color: colorScheme.error),
+                                ),
+                                onPressed: () =>
+                                    _showDeleteDialog(context, ref, provider),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }, childCount: providers.length),
+              );
+            },
+            loading: () => SliverToBoxAdapter(
+              child: SizedBox(
+                height: 400,
+                child: Center(child: CircularProgressIndicator()),
+              ),
             ),
+            error: (error, stack) => SliverToBoxAdapter(
+              child: SizedBox(
+                height: 400,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, color: Colors.red),
+                      SizedBox(height: 16),
+                      Text('加载失败: $error'),
+                      SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () =>
+                            ref.refresh(aiProviderNotifierProvider),
+                        child: Text('重试'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

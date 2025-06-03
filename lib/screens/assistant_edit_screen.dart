@@ -1,12 +1,12 @@
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/ai_assistant.dart';
 import '../models/ai_provider.dart';
-import '../services/assistant_repository.dart';
-import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../providers/ai_assistant_notifier.dart';
 
-class AssistantEditScreen extends StatefulWidget {
+class AssistantEditScreen extends ConsumerStatefulWidget {
   final AiAssistant? assistant;
   final List<AiProvider> providers;
 
@@ -17,12 +17,12 @@ class AssistantEditScreen extends StatefulWidget {
   });
 
   @override
-  State<AssistantEditScreen> createState() => _AssistantEditScreenState();
+  ConsumerState<AssistantEditScreen> createState() =>
+      _AssistantEditScreenState();
 }
 
-class _AssistantEditScreenState extends State<AssistantEditScreen>
+class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
     with SingleTickerProviderStateMixin {
-  late final AssistantRepository _repository;
   late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
 
@@ -112,7 +112,6 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
   @override
   void initState() {
     super.initState();
-    _repository = AssistantRepository(DatabaseService.instance.database);
     _tabController = TabController(length: 2, vsync: this); // 只有两个tab
 
     final assistant = widget.assistant;
@@ -251,9 +250,13 @@ class _AssistantEditScreenState extends State<AssistantEditScreen>
       );
 
       if (_isEditing) {
-        await _repository.updateAssistant(assistant);
+        await ref
+            .read(aiAssistantNotifierProvider.notifier)
+            .updateAssistant(assistant);
       } else {
-        await _repository.insertAssistant(assistant);
+        await ref
+            .read(aiAssistantNotifierProvider.notifier)
+            .addAssistant(assistant);
       }
 
       if (mounted) {

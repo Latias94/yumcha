@@ -9,11 +9,15 @@ class ChatHistoryView extends StatefulWidget {
   const ChatHistoryView({
     super.key,
     this.onEditMessage,
+    this.onRegenerateMessage,
     required this.onSelectSuggestion,
   });
 
   /// 编辑消息回调
   final void Function(Message message)? onEditMessage;
+
+  /// 重新生成消息回调
+  final void Function(Message message)? onRegenerateMessage;
 
   /// 选择建议回调
   final void Function(String suggestion) onSelectSuggestion;
@@ -87,6 +91,13 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
                           widget.onEditMessage != null &&
                           index == displayMessages.length - 1;
 
+                      // 判断是否可以重新生成（只有最后一条AI消息可以重新生成）
+                      final canRegenerate =
+                          !isWelcomeMessage &&
+                          !message.isFromUser &&
+                          widget.onRegenerateMessage != null &&
+                          index == displayMessages.length - 1;
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: ChatMessageView(
@@ -94,6 +105,9 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
                           isWelcomeMessage: isWelcomeMessage,
                           onEdit: canEdit
                               ? () => widget.onEditMessage?.call(message)
+                              : null,
+                          onRegenerate: canRegenerate
+                              ? () => widget.onRegenerateMessage?.call(message)
                               : null,
                         ),
                       );

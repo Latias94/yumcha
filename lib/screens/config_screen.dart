@@ -307,7 +307,7 @@ class ConfigScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(
               context,
-            ).colorScheme.tertiaryContainer.withOpacity(0.3),
+            ).colorScheme.tertiaryContainer.withValues(alpha: 0.3),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -76,7 +76,7 @@ class NotificationService {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: textColor.withOpacity(0.1),
+                    color: textColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.close, color: textColor, size: 16),
