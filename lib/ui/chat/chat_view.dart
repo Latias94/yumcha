@@ -24,6 +24,7 @@ class ChatView extends ConsumerStatefulWidget {
     this.suggestions = const [],
     this.onMessagesChanged,
     this.onProviderModelChanged,
+    this.initialMessageId,
   });
 
   /// 助手ID
@@ -50,6 +51,9 @@ class ChatView extends ConsumerStatefulWidget {
   /// 提供商模型变化回调
   final void Function(String providerId, String modelName)?
   onProviderModelChanged;
+
+  /// 初始要定位的消息ID
+  final String? initialMessageId;
 
   @override
   ConsumerState<ChatView> createState() => _ChatViewState();
@@ -138,6 +142,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                           ? _onRegenerateMessage
                           : null,
                       onSelectSuggestion: _onSelectSuggestion,
+                      initialMessageId: widget.initialMessageId,
                     ),
                   ),
 
@@ -232,6 +237,7 @@ class _ChatViewState extends ConsumerState<ChatView>
       _isLoading = true;
     });
 
+    // 立即保存用户消息到数据库
     _notifyMessagesChanged();
 
     try {
@@ -284,6 +290,8 @@ class _ChatViewState extends ConsumerState<ChatView>
       _messages.add(aiMessage);
       _streamingMessage = aiMessage;
     });
+
+    // 注意：这里不调用 _notifyMessagesChanged()，避免保存空的AI消息到数据库
 
     try {
       // 获取当前的聊天配置

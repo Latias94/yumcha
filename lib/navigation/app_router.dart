@@ -11,6 +11,7 @@ import '../models/ai_provider.dart';
 import '../models/ai_assistant.dart';
 import '../models/conversation_ui_state.dart';
 import '../navigation/main_navigation.dart';
+import '../services/logger_service.dart';
 
 /// 应用路由管理
 class AppRouter {
@@ -27,10 +28,29 @@ class AppRouter {
 
   /// 生成路由
   static Route<dynamic> generateRoute(RouteSettings settings) {
+    final logger = LoggerService();
+
+    logger.info('AppRouter.generateRoute 被调用', {
+      'routeName': settings.name,
+      'arguments': settings.arguments,
+    });
+
     switch (settings.name) {
       case home:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final conversationId = args?['conversationId'] as String?;
+        final messageId = args?['messageId'] as String?;
+
+        logger.info('生成主页路由', {
+          'conversationId': conversationId,
+          'messageId': messageId,
+        });
+
         return MaterialPageRoute(
-          builder: (_) => const MainNavigation(),
+          builder: (_) => MainNavigation(
+            initialConversationId: conversationId,
+            initialMessageId: messageId,
+          ),
           settings: settings,
         );
 

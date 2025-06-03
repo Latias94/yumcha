@@ -8,6 +8,7 @@ import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/logger_service.dart';
 import '../screens/settings_screen.dart';
+import '../screens/chat_search_screen.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
   final String selectedMenu;
@@ -778,17 +779,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           // 聊天历史和设置按钮
           Row(
             children: [
-              // 聊天历史按钮
+              // 聊天历史搜索按钮
               Expanded(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
-                    // 清空搜索框并刷新列表
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = "";
-                    });
-                    _refreshConversations();
+                    // 打开全面搜索页面
+                    _openChatSearchScreen();
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -796,7 +793,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.history,
+                          Icons.search,
                           size: 18,
                           color: Theme.of(
                             context,
@@ -868,5 +865,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+  }
+
+  void _openChatSearchScreen() async {
+    Navigator.of(context).pop(); // 关闭侧边栏
+
+    // 直接打开搜索页面，搜索页面会自己处理导航
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const ChatSearchScreen()));
   }
 }

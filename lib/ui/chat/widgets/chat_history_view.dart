@@ -11,6 +11,7 @@ class ChatHistoryView extends StatefulWidget {
     this.onEditMessage,
     this.onRegenerateMessage,
     required this.onSelectSuggestion,
+    this.initialMessageId,
   });
 
   /// 编辑消息回调
@@ -22,11 +23,23 @@ class ChatHistoryView extends StatefulWidget {
   /// 选择建议回调
   final void Function(String suggestion) onSelectSuggestion;
 
+  /// 初始要定位的消息ID
+  final String? initialMessageId;
+
   @override
   State<ChatHistoryView> createState() => _ChatHistoryViewState();
 }
 
 class _ChatHistoryViewState extends State<ChatHistoryView> {
+  final ScrollController _scrollController = ScrollController();
+  bool _hasScrolledToMessage = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModel = ChatViewModelProvider.of(context);
@@ -54,6 +67,15 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
     final showSuggestions =
         viewModel.suggestions.isNotEmpty && messages.isEmpty;
 
+    // 处理消息定位
+    if (widget.initialMessageId != null &&
+        !_hasScrolledToMessage &&
+        displayMessages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToMessage(widget.initialMessageId!, displayMessages);
+      });
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: 16, left: 8, right: 8),
       child: Column(
@@ -63,6 +85,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
             child: displayMessages.isEmpty && !showSuggestions
                 ? _buildEmptyState(context)
                 : ListView.builder(
+                    controller: _scrollController,
                     reverse: false, // 正常顺序显示，新消息在下面
                     itemCount:
                         displayMessages.length + (showSuggestions ? 1 : 0),
@@ -149,5 +172,29 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
         ],
       ),
     );
+  }
+
+  void _scrollToMessage(String messageId, List<Message> displayMessages) {
+    // 查找目标消息的索引
+    final targetIndex = displayMessages.indexWhere(
+      (message) => message.id == messageId,
+    );
+
+    if (targetIndex != -1) {
+      // 计算滚动位置（每个消息项大概的高度）
+      const double estimatedItemHeight = 100.0; // 估算的消息项高度
+      final double targetOffset = targetIndex * estimatedItemHeight;
+
+      // 滚动到目标位置
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+
+      setState(() {
+        _hasScrolledToMessage = true;
+      });
+    }
   }
 }

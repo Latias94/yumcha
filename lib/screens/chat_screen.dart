@@ -16,6 +16,7 @@ class ChatScreen extends ConsumerStatefulWidget {
     this.showAppBar = true,
     this.onAssistantConfigChanged,
     this.onConversationUpdated,
+    this.initialMessageId,
   });
 
   /// 对话状态
@@ -30,6 +31,9 @@ class ChatScreen extends ConsumerStatefulWidget {
 
   /// 对话更新回调
   final Function(ConversationUiState conversation)? onConversationUpdated;
+
+  /// 初始要定位的消息ID
+  final String? initialMessageId;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -197,6 +201,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             suggestions: _getDefaultSuggestions(),
             onMessagesChanged: _onMessagesChanged,
             onProviderModelChanged: _onProviderModelChanged,
+            initialMessageId: widget.initialMessageId,
           ),
         );
       },

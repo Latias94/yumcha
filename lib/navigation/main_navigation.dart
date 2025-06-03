@@ -5,10 +5,59 @@ import '../screens/chat_screen.dart';
 import '../providers/conversation_notifier.dart';
 import '../services/logger_service.dart';
 
-class MainNavigation extends ConsumerWidget {
-  const MainNavigation({super.key});
+class MainNavigation extends ConsumerStatefulWidget {
+  const MainNavigation({
+    super.key,
+    this.initialConversationId,
+    this.initialMessageId,
+  });
 
+  final String? initialConversationId;
+  final String? initialMessageId;
+
+  @override
+  ConsumerState<MainNavigation> createState() => _MainNavigationState();
+}
+
+class _MainNavigationState extends ConsumerState<MainNavigation> {
   static final LoggerService _logger = LoggerService();
+  bool _hasInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _logger.info('MainNavigation initState 被调用', {
+      'initialConversationId': widget.initialConversationId,
+      'initialMessageId': widget.initialMessageId,
+    });
+
+    // 如果有初始对话ID，在下一帧开始加载
+    if (widget.initialConversationId != null) {
+      _logger.info('MainNavigation初始化，准备加载对话', {
+        'conversationId': widget.initialConversationId,
+        'messageId': widget.initialMessageId,
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_hasInitialized) {
+          _logger.info('开始加载初始对话', {
+            'conversationId': widget.initialConversationId,
+          });
+          final conversationNotifier = ref.read(
+            currentConversationProvider.notifier,
+          );
+          conversationNotifier.switchToConversation(
+            widget.initialConversationId!,
+          );
+          setState(() {
+            _hasInitialized = true;
+          });
+        }
+      });
+    } else {
+      _logger.info('MainNavigation 没有初始对话ID，将显示默认状态');
+    }
+  }
 
   /// 创建新聊天并导航到新页面
   void _createNewChatWithAnimation(BuildContext context, WidgetRef ref) async {
@@ -28,7 +77,7 @@ class MainNavigation extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final conversationState = ref.watch(currentConversationProvider);
     final conversationNotifier = ref.read(currentConversationProvider.notifier);
 
@@ -115,6 +164,7 @@ class MainNavigation extends ConsumerWidget {
         showAppBar: false,
         onAssistantConfigChanged: notifier.onAssistantConfigChanged,
         onConversationUpdated: notifier.updateConversation,
+        initialMessageId: widget.initialMessageId,
       );
     }
 

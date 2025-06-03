@@ -161,8 +161,13 @@ class ConversationRepository {
 
         await _database.insertConversation(companion);
 
-        // 保存所有消息
+        // 保存所有消息（跳过空内容的AI消息）
         for (final message in conversation.messages) {
+          // 跳过空内容的AI消息（流式传输的占位符）
+          if (!message.isFromUser && message.content.trim().isEmpty) {
+            continue;
+          }
+
           await addMessage(
             conversationId: conversation.id,
             content: message.content,
@@ -197,6 +202,11 @@ class ConversationRepository {
         // 找出新增的消息（基于时间戳和内容比较）
         final newMessages = <Message>[];
         for (final message in conversation.messages) {
+          // 跳过空内容的AI消息（流式传输的占位符）
+          if (!message.isFromUser && message.content.trim().isEmpty) {
+            continue;
+          }
+
           final exists = existingMessages.any(
             (existing) =>
                 existing.content == message.content &&
@@ -426,6 +436,7 @@ class ConversationRepository {
   // 将消息数据库模型转换为业务模型
   Message _messageDataToModel(MessageData data) {
     return Message(
+      id: data.id,
       author: data.author,
       content: data.content,
       timestamp: data.timestamp,
