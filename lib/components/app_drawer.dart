@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
@@ -38,6 +39,15 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   String _assistantSearchQuery = "";
   bool _isAssistantDropdownExpanded = false;
 
+  // 搜索防抖Timer
+  Timer? _searchDebounce;
+
+  // 用于控制清除按钮显示的ValueNotifier
+  final ValueNotifier<bool> _showClearButton = ValueNotifier<bool>(false);
+
+  // 用于控制搜索状态显示的ValueNotifier
+  final ValueNotifier<String> _searchQueryNotifier = ValueNotifier<String>("");
+
   // 使用 infinite_scroll_pagination 5.0.0 正确的 API
   static const int _pageSize = 20;
   late final PagingController<int, ConversationUiState> _pagingController;
@@ -75,6 +85,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     _searchController.dispose();
     _assistantSearchController.dispose();
     _pagingController.dispose();
+    _searchDebounce?.cancel();
+    _showClearButton.dispose();
+    _searchQueryNotifier.dispose();
     super.dispose();
   }
 
@@ -105,41 +118,60 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   // 获取分页数据 - 返回 Future<List<ConversationUiState>>
   Future<List<ConversationUiState>> _fetchPage(int pageKey) async {
+    _logger.debug(
+      '开始获取分页数据: pageKey=$pageKey, searchQuery="$_searchQuery", assistant=$_selectedAssistant',
+    );
+
     // 确保有有效的助手选择
     if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) {
       // 尝试重新初始化助手选择
       final assistantsAsync = ref.read(enabledAiAssistantsProvider);
       if (assistantsAsync.isNotEmpty) {
         _selectedAssistant = assistantsAsync.first.id;
+        _logger.debug('重新初始化助手选择: $_selectedAssistant');
       } else {
+        _logger.warning('没有可用助手');
         return []; // 没有可用助手时返回空列表
       }
     }
 
     try {
+      List<ConversationUiState> results;
+
       // 如果有搜索查询，使用搜索方法
       if (_searchQuery.trim().isNotEmpty) {
-        final searchResults = await _conversationRepository
-            .searchConversationsByTitle(
-              _searchQuery,
-              assistantId: _selectedAssistant,
-              limit: _pageSize,
-              offset: pageKey,
-            );
-        return searchResults;
+        _logger.debug(
+          '执行搜索: query="$_searchQuery", assistantId=$_selectedAssistant',
+        );
+        results = await _conversationRepository.searchConversationsByTitle(
+          _searchQuery,
+          assistantId: _selectedAssistant,
+          limit: _pageSize,
+          offset: pageKey,
+        );
+        _logger.debug('搜索结果数量: ${results.length}');
       } else {
         // 否则使用正常的分页获取
-        final newConversations = await _conversationRepository
+        _logger.debug('获取正常对话列表: assistantId=$_selectedAssistant');
+        results = await _conversationRepository
             .getConversationsByAssistantWithPagination(
               _selectedAssistant,
               limit: _pageSize,
               offset: pageKey,
               includeMessages: true, // 需要消息来获取时间戳
             );
-        return newConversations;
+        _logger.debug('对话列表数量: ${results.length}');
       }
-    } catch (e) {
-      _logger.error('获取对话列表失败: ${e.toString()}');
+
+      return results;
+    } catch (e, stackTrace) {
+      _logger.error('获取对话列表失败', {
+        'error': e.toString(),
+        'stackTrace': stackTrace.toString(),
+        'pageKey': pageKey,
+        'searchQuery': _searchQuery,
+        'selectedAssistant': _selectedAssistant,
+      });
       return []; // 出错时返回空列表而不是抛出异常
     }
   }
@@ -211,12 +243,27 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   // 性能优化：防抖搜索
   void _onSearchChanged(String value) {
-    setState(() {
-      _searchQuery = value;
-    });
+    // 取消之前的防抖Timer
+    _searchDebounce?.cancel();
 
-    // 刷新列表以显示搜索结果
-    _refreshConversations();
+    // 更新内部搜索查询状态（不触发UI重建）
+    _searchQuery = value;
+
+    // 更新UI状态通知器
+    _showClearButton.value = value.isNotEmpty;
+    _searchQueryNotifier.value = value;
+
+    // 如果搜索查询为空，立即刷新
+    if (value.trim().isEmpty) {
+      _refreshConversations();
+      return;
+    }
+
+    // 设置防抖Timer，500ms后执行搜索
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      _logger.debug('执行搜索: $_searchQuery');
+      _refreshConversations();
+    });
   }
 
   // 获取日期分组标题
@@ -267,29 +314,46 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           SizedBox(height: MediaQuery.of(context).padding.top),
 
           // 搜索框
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: "搜索对话标题...",
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        _onSearchChanged("");
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            onChanged: _onSearchChanged,
+          ValueListenableBuilder<bool>(
+            valueListenable: _showClearButton,
+            builder: (context, showClear, child) {
+              return TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: "搜索对话标题...",
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(
+                        scale: animation,
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                    child: showClear
+                        ? IconButton(
+                            key: const ValueKey('clear_button'),
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged("");
+                            },
+                          )
+                        : const SizedBox.shrink(key: ValueKey('empty_space')),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onChanged: _onSearchChanged,
+              );
+            },
           ),
         ],
       ),
@@ -351,51 +415,62 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           padding: EdgeInsets.all(16),
           child: Center(child: CircularProgressIndicator()),
         ),
-        noItemsFoundIndicatorBuilder: (context) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                _searchQuery.isEmpty
-                    ? Icons.chat_bubble_outline
-                    : Icons.search_off,
-                size: 48,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _searchQuery.isEmpty ? "暂无聊天记录" : "未找到包含 \"$_searchQuery\" 的对话",
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (_searchQuery.isEmpty) ...[
-                const SizedBox(height: 8),
-                Consumer(
-                  builder: (context, ref, _) {
-                    final selectedAssistant = ref.watch(
-                      aiAssistantProvider(_selectedAssistant),
-                    );
-                    return Text(
-                      "开始与${selectedAssistant?.name ?? 'AI助手'}聊天吧！",
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        noItemsFoundIndicatorBuilder: (context) =>
+            ValueListenableBuilder<String>(
+              valueListenable: _searchQueryNotifier,
+              builder: (context, searchQuery, child) {
+                final isEmpty = searchQuery.trim().isEmpty;
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isEmpty ? Icons.chat_bubble_outline : Icons.search_off,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.outline,
                       ),
-                    );
-                  },
-                ),
-              ] else ...[
-                const SizedBox(height: 8),
-                Text(
-                  "尝试使用不同的关键词",
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      const SizedBox(height: 16),
+                      Text(
+                        isEmpty ? "暂无聊天记录" : "未找到包含 \"$searchQuery\" 的对话",
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (isEmpty) ...[
+                        const SizedBox(height: 8),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final selectedAssistant = ref.watch(
+                              aiAssistantProvider(_selectedAssistant),
+                            );
+                            return Text(
+                              "开始与${selectedAssistant?.name ?? 'AI助手'}聊天吧！",
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            );
+                          },
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          "尝试使用不同的关键词",
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-              ],
-            ],
-          ),
-        ),
+                );
+              },
+            ),
       ),
       separatorBuilder: (context, index) => const SizedBox(height: 4),
     );
