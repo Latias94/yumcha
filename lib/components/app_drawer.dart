@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../models/conversation_ui_state.dart';
 import '../providers/providers.dart';
 import '../services/conversation_repository.dart';
@@ -48,6 +49,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   // 用于控制搜索状态显示的ValueNotifier
   final ValueNotifier<String> _searchQueryNotifier = ValueNotifier<String>("");
 
+  // 用于控制搜索加载状态的ValueNotifier
+  final ValueNotifier<bool> _isSearching = ValueNotifier<bool>(false);
+
   // 使用 infinite_scroll_pagination 5.0.0 正确的 API
   static const int _pageSize = 20;
   late final PagingController<int, ConversationUiState> _pagingController;
@@ -88,6 +92,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     _searchDebounce?.cancel();
     _showClearButton.dispose();
     _searchQueryNotifier.dispose();
+    _isSearching.dispose();
     super.dispose();
   }
 
@@ -241,6 +246,15 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     _pagingController.refresh();
   }
 
+  // 带动画的刷新对话列表
+  void _refreshConversationsWithAnimation() {
+    // 延迟一小段时间以确保搜索状态更新
+    Future.delayed(const Duration(milliseconds: 50), () {
+      _isSearching.value = false;
+      _pagingController.refresh();
+    });
+  }
+
   // 性能优化：防抖搜索
   void _onSearchChanged(String value) {
     // 取消之前的防抖Timer
@@ -255,14 +269,18 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
     // 如果搜索查询为空，立即刷新
     if (value.trim().isEmpty) {
+      _isSearching.value = false;
       _refreshConversations();
       return;
     }
 
-    // 设置防抖Timer，500ms后执行搜索
-    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+    // 显示搜索状态
+    _isSearching.value = true;
+
+    // 设置防抖Timer，300ms后执行搜索（减少延迟）
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
       _logger.debug('执行搜索: $_searchQuery');
-      _refreshConversations();
+      _refreshConversationsWithAnimation();
     });
   }
 
@@ -365,10 +383,84 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       onRefresh: () async {
         _refreshConversations();
       },
-      child: PagingListener<int, ConversationUiState>(
-        controller: _pagingController,
-        builder: (context, state, fetchNextPage) {
-          return _buildGroupedPagedListView(state, fetchNextPage);
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _isSearching,
+        builder: (context, isSearching, child) {
+          return Stack(
+            children: [
+              PagingListener<int, ConversationUiState>(
+                controller: _pagingController,
+                builder: (context, state, fetchNextPage) {
+                  return _buildGroupedPagedListView(state, fetchNextPage);
+                },
+              ),
+              // 搜索加载指示器
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.5),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: isSearching
+                    ? Positioned(
+                        key: const ValueKey('search_indicator'),
+                        top: 8,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '搜索中...',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('empty_indicator')),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -387,11 +479,20 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       fetchNextPage: fetchNextPage,
       builderDelegate: PagedChildBuilderDelegate<ConversationUiState>(
         itemBuilder: (context, conversation, globalIndex) {
-          return _buildConversationItemWithGroup(
-            conversation,
-            globalIndex,
-            allItems,
-            groups,
+          return AnimationConfiguration.staggeredList(
+            position: globalIndex,
+            duration: const Duration(milliseconds: 375),
+            child: SlideAnimation(
+              verticalOffset: 50.0,
+              child: FadeInAnimation(
+                child: _buildConversationItemWithGroup(
+                  conversation,
+                  globalIndex,
+                  allItems,
+                  groups,
+                ),
+              ),
+            ),
           );
         },
         firstPageErrorIndicatorBuilder: (context) => Center(
