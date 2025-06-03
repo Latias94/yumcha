@@ -52,6 +52,9 @@ class CurrentConversationNotifier
   String? _lastUsedProviderId;
   String? _lastUsedModelName;
 
+  // 防抖机制
+  DateTime? _lastCreateTime;
+
   Future<void> _initialize() async {
     _conversationRepository = ConversationRepository(
       DatabaseService.instance.database,
@@ -104,6 +107,17 @@ class CurrentConversationNotifier
 
   /// 创建新对话
   Future<void> createNewConversation() async {
+    print('开始创建新对话'); // 调试信息
+
+    // 防抖：如果距离上次创建时间少于500毫秒，忽略请求
+    final now = DateTime.now();
+    if (_lastCreateTime != null &&
+        now.difference(_lastCreateTime!).inMilliseconds < 500) {
+      print('防抖：忽略重复的创建请求'); // 调试信息
+      return;
+    }
+    _lastCreateTime = now;
+
     try {
       state = state.copyWith(isLoading: true, error: null);
 
@@ -158,6 +172,10 @@ class CurrentConversationNotifier
         isLoading: false,
         selectedMenu: "new_chat",
       );
+
+      print(
+        '新对话创建成功: ${newConversation.id}, 助手: ${selectedAssistant?.name}',
+      ); // 调试信息
 
       // 如果有选中的助手，保存其配置
       if (selectedAssistant != null) {
@@ -219,9 +237,27 @@ class CurrentConversationNotifier
 
   /// 切换对话
   Future<void> switchToConversation(String chatId) async {
+    print(
+      'switchToConversation 被调用: $chatId, 当前加载状态: ${state.isLoading}',
+    ); // 调试信息
+
+    // 防止重复调用
+    if (state.isLoading) {
+      print('正在加载中，忽略请求'); // 调试信息
+      return;
+    }
+
+    // 如果已经是当前对话，不需要重复加载
+    if (state.conversation?.id == chatId && chatId != "new_chat") {
+      print('已经是当前对话，忽略请求'); // 调试信息
+      return;
+    }
+
     if (chatId == "new_chat") {
+      print('调用 createNewConversation'); // 调试信息
       await createNewConversation();
     } else {
+      print('调用 loadConversation: $chatId'); // 调试信息
       await loadConversation(chatId);
     }
   }

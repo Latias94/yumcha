@@ -4,7 +4,6 @@ import '../models/conversation_ui_state.dart';
 import '../models/message.dart';
 import '../models/ai_assistant.dart';
 import '../models/ai_provider.dart';
-import '../services/ai_service.dart';
 import '../services/notification_service.dart';
 import '../providers/providers.dart';
 import '../ui/chat/chat_view.dart';
@@ -37,17 +36,14 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
-  final AiService _aiService = AiService();
   late ConversationUiState _conversationState;
 
   @override
   void initState() {
     super.initState();
     _conversationState = widget.conversationState;
-    _aiService.initialize().then((_) {
-      // 初始化后，确保有有效的助手配置
-      _ensureValidConfiguration();
-    });
+    // AI服务已在main.dart中初始化，直接确保有效配置
+    _ensureValidConfiguration();
   }
 
   void _ensureValidConfiguration() {

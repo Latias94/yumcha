@@ -7,6 +7,23 @@ import '../providers/conversation_notifier.dart';
 class MainNavigation extends ConsumerWidget {
   const MainNavigation({super.key});
 
+  /// 创建新聊天并导航到新页面
+  void _createNewChatWithAnimation(BuildContext context, WidgetRef ref) async {
+    final notifier = ref.read(currentConversationProvider.notifier);
+
+    // 先创建新对话
+    await notifier.createNewConversation();
+
+    // 检查 context 是否仍然有效
+    if (!context.mounted) return;
+
+    // 使用 pushReplacement 替换当前页面
+    // 使用默认的页面转场动画
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const MainNavigation()),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conversationState = ref.watch(currentConversationProvider);
@@ -19,21 +36,9 @@ class MainNavigation extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              conversationNotifier.createNewConversation();
+              _createNewChatWithAnimation(context, ref);
             },
             tooltip: '新对话',
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // TODO: Implement menu
-            },
           ),
         ],
       ),
@@ -41,8 +46,11 @@ class MainNavigation extends ConsumerWidget {
         selectedMenu: conversationState.selectedMenu,
         onChatClicked: (chatId) {
           print('MainNavigation 收到点击事件: $chatId'); // 调试信息
-          conversationNotifier.switchToConversation(chatId);
-          Navigator.of(context).pop(); // Close drawer
+          // 防止在加载状态时重复点击
+          if (!conversationState.isLoading) {
+            conversationNotifier.switchToConversation(chatId);
+            Navigator.of(context).pop(); // Close drawer
+          }
         },
         onProfileClicked: (String userId) {}, // 移除profile功能，保留空实现避免错误
       ),

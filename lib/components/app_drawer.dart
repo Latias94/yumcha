@@ -443,7 +443,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
       child: Material(
         borderRadius: BorderRadius.circular(8),
-        child: GestureDetector(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
           onTap: () {
             // 打开特定的聊天记录
             print(
@@ -451,126 +452,78 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             ); // 调试信息
             widget.onChatClicked(conversation.id);
           },
-          onLongPressStart: (details) {
-            // 显示上下文菜单在实际点击位置
-            _showContextMenuAtPosition(
-              context,
-              conversation,
-              details.globalPosition,
-            );
+          onLongPress: () {
+            // 显示上下文菜单
+            _showContextMenu(context, conversation);
           },
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              // 打开特定的聊天记录
-              widget.onChatClicked(conversation.id);
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Expanded(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    conversation.channelName,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                // 消息数量指示器
+                if (conversation.messages.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Text(
-                      conversation.channelName,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
+                      conversation.messages.length.toString(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontSize: 10,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // 消息数量指示器
-                  if (conversation.messages.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(left: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        conversation.messages.length.toString(),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  // 更多选项按钮
-                  PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem<String>(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red, size: 20),
-                            SizedBox(width: 12),
-                            Text('删除对话'),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'delete') {
-                        _showDeleteConfirmDialog(conversation);
-                      }
-                    },
+                // 更多选项按钮
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                ],
-              ),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red, size: 20),
+                          SizedBox(width: 12),
+                          Text('删除对话'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _showDeleteConfirmDialog(conversation);
+                    }
+                  },
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  // 在指定位置显示上下文菜单
-  void _showContextMenuAtPosition(
-    BuildContext context,
-    ConversationUiState conversation,
-    Offset globalPosition,
-  ) {
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(globalPosition, globalPosition),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        const PopupMenuItem<String>(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete, color: Colors.red, size: 20),
-              SizedBox(width: 12),
-              Text('删除对话'),
-            ],
-          ),
-        ),
-      ],
-      elevation: 8,
-    ).then((value) {
-      if (value == 'delete') {
-        _showDeleteConfirmDialog(conversation);
-      }
-    });
   }
 
   // 显示上下文菜单

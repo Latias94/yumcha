@@ -52,6 +52,9 @@ class AiService {
   final List<DebugInfo> _debugLogs = [];
   bool _debugMode = true; // 默认开启调试模式
 
+  // 初始化状态
+  bool _isInitialized = false;
+
   // 获取调试日志
   List<DebugInfo> get debugLogs => List.unmodifiable(_debugLogs);
   bool get debugMode => _debugMode;
@@ -79,6 +82,12 @@ class AiService {
 
   // 初始化默认数据
   Future<void> initialize() async {
+    // 防止重复初始化
+    if (_isInitialized) {
+      _logger.debug('AI服务已经初始化，跳过重复初始化');
+      return;
+    }
+
     final providerRepository = ProviderRepository(
       DatabaseService.instance.database,
     );
@@ -157,6 +166,10 @@ class AiService {
       await assistantRepository.insertAssistant(defaultAssistant);
       _logger.info('已创建并保存默认助手: ${defaultAssistant.name}');
     }
+
+    // 标记为已初始化
+    _isInitialized = true;
+    _logger.info('AI服务初始化完成');
   }
 
   // === 聊天功能 ===
