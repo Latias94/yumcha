@@ -274,7 +274,7 @@ class ErrorHandler {
 
     // 默认错误信息
     final contextInfo = context != null ? '$context: ' : '';
-    return '${contextInfo}操作失败，请稍后重试';
+    return '$contextInfo操作失败，请稍后重试';
   }
 
   /// 获取应用错误的用户友好信息
@@ -283,22 +283,22 @@ class ErrorHandler {
 
     switch (error.type) {
       case ErrorType.network:
-        return '${contextInfo}网络连接失败，请检查网络设置';
+        return '$contextInfo网络连接失败，请检查网络设置';
       case ErrorType.database:
-        return '${contextInfo}数据操作失败，请稍后重试';
+        return '$contextInfo数据操作失败，请稍后重试';
       case ErrorType.api:
         if (error is ApiError && error.statusCode == 401) {
-          return '${contextInfo}认证失败，请重新登录';
+          return '$contextInfo认证失败，请重新登录';
         } else if (error is ApiError && error.statusCode == 403) {
-          return '${contextInfo}权限不足，无法执行此操作';
+          return '$contextInfo权限不足，无法执行此操作';
         }
-        return '${contextInfo}服务调用失败，请稍后重试';
+        return '$contextInfo服务调用失败，请稍后重试';
       case ErrorType.validation:
-        return '${contextInfo}输入数据有误，请检查后重试';
+        return '$contextInfo输入数据有误，请检查后重试';
       case ErrorType.permission:
-        return '${contextInfo}权限不足，请检查应用权限设置';
+        return '$contextInfo权限不足，请检查应用权限设置';
       case ErrorType.unknown:
-        return '${contextInfo}操作失败，请稍后重试';
+        return '$contextInfo操作失败，请稍后重试';
     }
   }
 

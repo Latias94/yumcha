@@ -58,6 +58,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_i_32(dynamic raw);
 
   @protected
+  TitleGenerationClient dco_decode_box_autoadd_title_generation_client(
+    dynamic raw,
+  );
+
+  @protected
   TokenUsage dco_decode_box_autoadd_token_usage(dynamic raw);
 
   @protected
@@ -115,6 +120,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ProviderCapabilities dco_decode_provider_capabilities(dynamic raw);
 
   @protected
+  TitleGenerationClient dco_decode_title_generation_client(dynamic raw);
+
+  @protected
+  TitleGenerationResponse dco_decode_title_generation_response(dynamic raw);
+
+  @protected
   TokenUsage dco_decode_token_usage(dynamic raw);
 
   @protected
@@ -167,6 +178,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  TitleGenerationClient sse_decode_box_autoadd_title_generation_client(
+    SseDeserializer deserializer,
+  );
 
   @protected
   TokenUsage sse_decode_box_autoadd_token_usage(SseDeserializer deserializer);
@@ -232,6 +248,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TitleGenerationClient sse_decode_title_generation_client(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TitleGenerationResponse sse_decode_title_generation_response(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TokenUsage sse_decode_token_usage(SseDeserializer deserializer);
 
   @protected
@@ -293,6 +319,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_title_generation_client(
+    TitleGenerationClient self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_token_usage(
@@ -369,6 +401,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_provider_capabilities(
     ProviderCapabilities self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_title_generation_client(
+    TitleGenerationClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_title_generation_response(
+    TitleGenerationResponse self,
     SseSerializer serializer,
   );
 

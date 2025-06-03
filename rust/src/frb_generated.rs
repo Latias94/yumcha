@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.10.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2020386691;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1188442318;
 
 // Section: executor
 
@@ -124,6 +124,52 @@ fn wire__crate__api__ai_chat__ai_chat_client_chat_stream_impl(
                             api_sink,
                         )
                         .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__ai_chat__ai_chat_client_generate_title_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "ai_chat_client_generate_title",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <crate::api::ai_chat::AiChatClient>::sse_decode(&mut deserializer);
+            let api_messages =
+                <Vec<crate::api::ai_chat::ChatMessage>>::sse_decode(&mut deserializer);
+            let api_custom_prompt = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::ai_chat::AiChatClient::generate_title(
+                                &api_that,
+                                api_messages,
+                                api_custom_prompt,
+                            )
+                            .await,
+                        )?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -339,6 +385,40 @@ fn wire__crate__api__ai_chat__check_provider_supports_list_models_impl(
         },
     )
 }
+fn wire__crate__api__ai_chat__clean_title_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "clean_title",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_title = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok =
+                        Result::<_, ()>::Ok(crate::api::ai_chat::clean_title(&api_title))?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__ai_chat__create_ai_chat_client_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -405,6 +485,106 @@ fn wire__crate__api__ai_chat__fetch_openai_compatible_models_impl(
                             crate::api::ai_chat::fetch_openai_compatible_models(
                                 api_api_key,
                                 api_base_url,
+                            )
+                            .await,
+                        )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__ai_chat__generate_chat_title_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "generate_chat_title",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_provider = <crate::api::ai_chat::AiProvider>::sse_decode(&mut deserializer);
+            let api_model = <String>::sse_decode(&mut deserializer);
+            let api_api_key = <String>::sse_decode(&mut deserializer);
+            let api_base_url = <Option<String>>::sse_decode(&mut deserializer);
+            let api_messages =
+                <Vec<crate::api::ai_chat::ChatMessage>>::sse_decode(&mut deserializer);
+            let api_custom_prompt = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::ai_chat::generate_chat_title(
+                                api_provider,
+                                api_model,
+                                api_api_key,
+                                api_base_url,
+                                api_messages,
+                                api_custom_prompt,
+                            )
+                            .await,
+                        )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__ai_chat__generate_title_standalone_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "generate_title_standalone",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_provider = <crate::api::ai_chat::AiProvider>::sse_decode(&mut deserializer);
+            let api_options = <crate::api::ai_chat::AiChatOptions>::sse_decode(&mut deserializer);
+            let api_messages =
+                <Vec<crate::api::ai_chat::ChatMessage>>::sse_decode(&mut deserializer);
+            let api_custom_prompt = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::ai_chat::generate_title_standalone(
+                                api_provider,
+                                api_options,
+                                api_messages,
+                                api_custom_prompt,
                             )
                             .await,
                         )?;
@@ -652,6 +832,41 @@ fn wire__crate__api__ai_chat__quick_chat_stream_impl(
         },
     )
 }
+fn wire__crate__api__ai_chat__remove_thinking_tags_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "remove_thinking_tags",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_content = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(
+                        crate::api::ai_chat::remove_thinking_tags(&api_content),
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__ai_chat__test_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -688,6 +903,119 @@ fn wire__crate__api__ai_chat__test_stream_impl(
                     .await,
                 )
             }
+        },
+    )
+}
+fn wire__crate__api__ai_chat__title_generation_client_from_chat_client_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "title_generation_client_from_chat_client",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_chat_client =
+                <crate::api::ai_chat::AiChatClient>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Result::<_, ()>::Ok(
+                    crate::api::ai_chat::TitleGenerationClient::from_chat_client(&api_chat_client),
+                )?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__ai_chat__title_generation_client_generate_title_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "title_generation_client_generate_title",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <crate::api::ai_chat::TitleGenerationClient>::sse_decode(&mut deserializer);
+            let api_messages =
+                <Vec<crate::api::ai_chat::ChatMessage>>::sse_decode(&mut deserializer);
+            let api_custom_prompt = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::ai_chat::TitleGenerationClient::generate_title(
+                                &api_that,
+                                api_messages,
+                                api_custom_prompt,
+                            )
+                            .await,
+                        )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__ai_chat__title_generation_client_new_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "title_generation_client_new",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_provider = <crate::api::ai_chat::AiProvider>::sse_decode(&mut deserializer);
+            let api_options = <crate::api::ai_chat::AiChatOptions>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Result::<_, ()>::Ok(
+                    crate::api::ai_chat::TitleGenerationClient::new(api_provider, api_options),
+                )?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -1025,6 +1353,32 @@ impl SseDecode for crate::api::ai_chat::ProviderCapabilities {
     }
 }
 
+impl SseDecode for crate::api::ai_chat::TitleGenerationClient {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_provider = <crate::api::ai_chat::AiProvider>::sse_decode(deserializer);
+        let mut var_options = <crate::api::ai_chat::AiChatOptions>::sse_decode(deserializer);
+        return crate::api::ai_chat::TitleGenerationClient {
+            provider: var_provider,
+            options: var_options,
+        };
+    }
+}
+
+impl SseDecode for crate::api::ai_chat::TitleGenerationResponse {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_success = <bool>::sse_decode(deserializer);
+        let mut var_errorMessage = <Option<String>>::sse_decode(deserializer);
+        return crate::api::ai_chat::TitleGenerationResponse {
+            title: var_title,
+            success: var_success,
+            error_message: var_errorMessage,
+        };
+    }
+}
+
 impl SseDecode for crate::api::ai_chat::TokenUsage {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1074,34 +1428,59 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        3 => wire__crate__api__ai_chat__ai_chat_client_get_available_models_impl(
+        3 => wire__crate__api__ai_chat__ai_chat_client_generate_title_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        4 => wire__crate__api__ai_chat__ai_chat_client_get_available_models_safe_impl(
+        4 => wire__crate__api__ai_chat__ai_chat_client_get_available_models_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__ai_chat__fetch_openai_compatible_models_impl(
+        5 => wire__crate__api__ai_chat__ai_chat_client_get_available_models_safe_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        11 => wire__crate__api__ai_chat__get_models_from_provider_impl(
+        10 => wire__crate__api__ai_chat__clean_title_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__ai_chat__fetch_openai_compatible_models_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__ai_chat__quick_chat_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__ai_chat__quick_chat_stream_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__ai_chat__test_stream_impl(port, ptr, rust_vec_len, data_len),
+        13 => {
+            wire__crate__api__ai_chat__generate_chat_title_impl(port, ptr, rust_vec_len, data_len)
+        }
+        14 => wire__crate__api__ai_chat__generate_title_standalone_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        15 => wire__crate__api__ai_chat__get_models_from_provider_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        18 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__ai_chat__quick_chat_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__ai_chat__quick_chat_stream_impl(port, ptr, rust_vec_len, data_len),
+        21 => {
+            wire__crate__api__ai_chat__remove_thinking_tags_impl(port, ptr, rust_vec_len, data_len)
+        }
+        22 => wire__crate__api__ai_chat__test_stream_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__ai_chat__title_generation_client_generate_title_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
         _ => unreachable!(),
     }
 }
@@ -1114,29 +1493,37 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        5 => wire__crate__api__ai_chat__ai_chat_client_get_provider_capabilities_impl(
+        6 => wire__crate__api__ai_chat__ai_chat_client_get_provider_capabilities_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        6 => wire__crate__api__ai_chat__ai_chat_client_new_impl(ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__ai_chat__ai_chat_client_supports_list_models_impl(
+        7 => wire__crate__api__ai_chat__ai_chat_client_new_impl(ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__ai_chat__ai_chat_client_supports_list_models_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        8 => wire__crate__api__ai_chat__check_provider_supports_list_models_impl(
+        9 => wire__crate__api__ai_chat__check_provider_supports_list_models_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        9 => wire__crate__api__ai_chat__create_ai_chat_client_impl(ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__ai_chat__get_provider_capabilities_info_impl(
+        11 => wire__crate__api__ai_chat__create_ai_chat_client_impl(ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__ai_chat__get_provider_capabilities_info_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        13 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__ai_chat__title_generation_client_from_chat_client_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        25 => {
+            wire__crate__api__ai_chat__title_generation_client_new_impl(ptr, rust_vec_len, data_len)
+        }
         _ => unreachable!(),
     }
 }
@@ -1363,6 +1750,49 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::ai_chat::ProviderCapabilities
     for crate::api::ai_chat::ProviderCapabilities
 {
     fn into_into_dart(self) -> crate::api::ai_chat::ProviderCapabilities {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::ai_chat::TitleGenerationClient {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.provider.into_into_dart().into_dart(),
+            self.options.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::ai_chat::TitleGenerationClient
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::ai_chat::TitleGenerationClient>
+    for crate::api::ai_chat::TitleGenerationClient
+{
+    fn into_into_dart(self) -> crate::api::ai_chat::TitleGenerationClient {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::ai_chat::TitleGenerationResponse {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.title.into_into_dart().into_dart(),
+            self.success.into_into_dart().into_dart(),
+            self.error_message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::ai_chat::TitleGenerationResponse
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::ai_chat::TitleGenerationResponse>
+    for crate::api::ai_chat::TitleGenerationResponse
+{
+    fn into_into_dart(self) -> crate::api::ai_chat::TitleGenerationResponse {
         self
     }
 }
@@ -1666,6 +2096,23 @@ impl SseEncode for crate::api::ai_chat::ProviderCapabilities {
         <bool>::sse_encode(self.supports_list_models, serializer);
         <bool>::sse_encode(self.supports_custom_base_url, serializer);
         <String>::sse_encode(self.description, serializer);
+    }
+}
+
+impl SseEncode for crate::api::ai_chat::TitleGenerationClient {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::ai_chat::AiProvider>::sse_encode(self.provider, serializer);
+        <crate::api::ai_chat::AiChatOptions>::sse_encode(self.options, serializer);
+    }
+}
+
+impl SseEncode for crate::api::ai_chat::TitleGenerationResponse {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.title, serializer);
+        <bool>::sse_encode(self.success, serializer);
+        <Option<String>>::sse_encode(self.error_message, serializer);
     }
 }
 

@@ -514,5 +514,25 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   void _notifyMessagesChanged() {
     widget.onMessagesChanged?.call(_messages);
+
+    // 检查是否有新的 AI 消息，如果有则触发标题生成
+    _checkForNewAiMessage();
+  }
+
+  /// 检查是否有新的 AI 消息并触发标题生成
+  void _checkForNewAiMessage() {
+    if (_messages.isEmpty) return;
+
+    // 获取最后一条消息
+    final lastMessage = _messages.last;
+
+    // 如果最后一条消息是 AI 消息，触发标题生成检查
+    if (!lastMessage.isFromUser && lastMessage.content.isNotEmpty) {
+      // 使用 Riverpod 获取 conversation notifier 并调用标题生成
+      final conversationNotifier = ref.read(
+        currentConversationProvider.notifier,
+      );
+      conversationNotifier.onAiMessageAdded(lastMessage);
+    }
   }
 }

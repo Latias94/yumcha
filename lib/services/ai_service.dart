@@ -9,6 +9,7 @@ import 'provider_repository.dart';
 import 'assistant_repository.dart';
 import 'database_service.dart';
 import 'ai_request_service.dart';
+import '../src/rust/api/ai_chat.dart' as genai;
 
 // 调试信息类
 class DebugInfo {
@@ -580,6 +581,92 @@ class AiService {
         'error': e.toString(),
       });
       return [];
+    }
+  }
+
+  // === 标题生成功能 ===
+
+  /// 生成聊天标题
+  Future<String?> generateChatTitle({
+    required AiProvider provider,
+    required String modelName,
+    required List<Message> messages,
+    String? customPrompt,
+  }) async {
+    final startTime = DateTime.now();
+
+    if (messages.isEmpty) {
+      _logger.warning('无法生成标题：消息列表为空');
+      return null;
+    }
+
+    _logger.info('开始生成聊天标题', {
+      'providerId': provider.id,
+      'providerName': provider.name,
+      'modelName': modelName,
+      'messageCount': messages.length,
+    });
+
+    try {
+      // 转换消息格式
+      final chatMessages = messages.map((msg) {
+        return genai.ChatMessage(
+          role: msg.isFromUser ? genai.ChatRole.user : genai.ChatRole.assistant,
+          content: msg.content,
+        );
+      }).toList();
+
+      // 转换提供商类型
+      final aiProvider = _convertToGenaiProvider(provider);
+
+      // 调用 Rust 标题生成功能
+      final response = await genai.generateChatTitle(
+        provider: aiProvider,
+        model: modelName,
+        apiKey: provider.apiKey,
+        baseUrl: provider.baseUrl?.isNotEmpty == true ? provider.baseUrl : null,
+        messages: chatMessages,
+        customPrompt: customPrompt,
+      );
+
+      final duration = DateTime.now().difference(startTime);
+
+      if (response.success) {
+        _logger.info('标题生成成功', {
+          'title': response.title,
+          'duration': '${duration.inMilliseconds}ms',
+        });
+        return response.title;
+      } else {
+        _logger.error('标题生成失败', {
+          'error': response.errorMessage,
+          'duration': '${duration.inMilliseconds}ms',
+        });
+        return null;
+      }
+    } catch (e) {
+      final duration = DateTime.now().difference(startTime);
+      _logger.error('标题生成异常', {
+        'error': e.toString(),
+        'duration': '${duration.inMilliseconds}ms',
+      });
+      return null;
+    }
+  }
+
+  /// 转换提供商类型到 genai 格式
+  genai.AiProvider _convertToGenaiProvider(AiProvider provider) {
+    switch (provider.type) {
+      case ProviderType.openai:
+        return const genai.AiProvider.openAi();
+      case ProviderType.anthropic:
+        return const genai.AiProvider.anthropic();
+      case ProviderType.google:
+        return const genai.AiProvider.gemini();
+      case ProviderType.ollama:
+        return const genai.AiProvider.ollama();
+      case ProviderType.custom:
+        return genai.AiProvider.custom(name: provider.name);
     }
   }
 }

@@ -65,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.10.0';
 
   @override
-  int get rustContentHash => -2020386691;
+  int get rustContentHash => -1188442318;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -84,6 +84,12 @@ abstract class RustLibApi extends BaseApi {
   Stream<ChatStreamEvent> crateApiAiChatAiChatClientChatStream({
     required AiChatClient that,
     required List<ChatMessage> messages,
+  });
+
+  Future<TitleGenerationResponse> crateApiAiChatAiChatClientGenerateTitle({
+    required AiChatClient that,
+    required List<ChatMessage> messages,
+    String? customPrompt,
   });
 
   Future<List<String>> crateApiAiChatAiChatClientGetAvailableModels({
@@ -111,6 +117,8 @@ abstract class RustLibApi extends BaseApi {
     required AiProvider provider,
   });
 
+  Future<String> crateApiAiChatCleanTitle({required String title});
+
   AiChatClient crateApiAiChatCreateAiChatClient({
     required AiProvider provider,
     required AiChatOptions options,
@@ -119,6 +127,22 @@ abstract class RustLibApi extends BaseApi {
   Future<ModelListResponse> crateApiAiChatFetchOpenaiCompatibleModels({
     required String apiKey,
     required String baseUrl,
+  });
+
+  Future<TitleGenerationResponse> crateApiAiChatGenerateChatTitle({
+    required AiProvider provider,
+    required String model,
+    required String apiKey,
+    String? baseUrl,
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  });
+
+  Future<TitleGenerationResponse> crateApiAiChatGenerateTitleStandalone({
+    required AiProvider provider,
+    required AiChatOptions options,
+    required List<ChatMessage> messages,
+    String? customPrompt,
   });
 
   Future<ModelListResponse> crateApiAiChatGetModelsFromProvider({
@@ -149,7 +173,25 @@ abstract class RustLibApi extends BaseApi {
     required String message,
   });
 
+  Future<String> crateApiAiChatRemoveThinkingTags({required String content});
+
   Stream<ChatStreamEvent> crateApiAiChatTestStream();
+
+  TitleGenerationClient crateApiAiChatTitleGenerationClientFromChatClient({
+    required AiChatClient chatClient,
+  });
+
+  Future<TitleGenerationResponse>
+  crateApiAiChatTitleGenerationClientGenerateTitle({
+    required TitleGenerationClient that,
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  });
+
+  TitleGenerationClient crateApiAiChatTitleGenerationClientNew({
+    required AiProvider provider,
+    required AiChatOptions options,
+  });
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -236,6 +278,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<TitleGenerationResponse> crateApiAiChatAiChatClientGenerateTitle({
+    required AiChatClient that,
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_chat_client(that, serializer);
+          sse_encode_list_chat_message(messages, serializer);
+          sse_encode_opt_String(customPrompt, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_title_generation_response,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatAiChatClientGenerateTitleConstMeta,
+        argValues: [that, messages, customPrompt],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatAiChatClientGenerateTitleConstMeta =>
+      const TaskConstMeta(
+        debugName: "ai_chat_client_generate_title",
+        argNames: ["that", "messages", "customPrompt"],
+      );
+
+  @override
   Future<List<String>> crateApiAiChatAiChatClientGetAvailableModels({
     required AiChatClient that,
   }) {
@@ -247,7 +326,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 4,
             port: port_,
           );
         },
@@ -280,7 +359,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 5,
             port: port_,
           );
         },
@@ -311,7 +390,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_chat_client(that, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_provider_capabilities,
@@ -342,7 +421,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_provider(provider, serializer);
           sse_encode_box_autoadd_ai_chat_options(options, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_ai_chat_client,
@@ -370,7 +449,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_chat_client(that, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -398,7 +477,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_provider(provider, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -418,6 +497,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<String> crateApiAiChatCleanTitle({required String title}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(title, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatCleanTitleConstMeta,
+        argValues: [title],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatCleanTitleConstMeta =>
+      const TaskConstMeta(debugName: "clean_title", argNames: ["title"]);
+
+  @override
   AiChatClient crateApiAiChatCreateAiChatClient({
     required AiProvider provider,
     required AiChatOptions options,
@@ -428,7 +535,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_provider(provider, serializer);
           sse_encode_box_autoadd_ai_chat_options(options, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_ai_chat_client,
@@ -461,7 +568,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 12,
             port: port_,
           );
         },
@@ -483,6 +590,95 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<TitleGenerationResponse> crateApiAiChatGenerateChatTitle({
+    required AiProvider provider,
+    required String model,
+    required String apiKey,
+    String? baseUrl,
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          sse_encode_String(model, serializer);
+          sse_encode_String(apiKey, serializer);
+          sse_encode_opt_String(baseUrl, serializer);
+          sse_encode_list_chat_message(messages, serializer);
+          sse_encode_opt_String(customPrompt, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_title_generation_response,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatGenerateChatTitleConstMeta,
+        argValues: [provider, model, apiKey, baseUrl, messages, customPrompt],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatGenerateChatTitleConstMeta =>
+      const TaskConstMeta(
+        debugName: "generate_chat_title",
+        argNames: [
+          "provider",
+          "model",
+          "apiKey",
+          "baseUrl",
+          "messages",
+          "customPrompt",
+        ],
+      );
+
+  @override
+  Future<TitleGenerationResponse> crateApiAiChatGenerateTitleStandalone({
+    required AiProvider provider,
+    required AiChatOptions options,
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          sse_encode_box_autoadd_ai_chat_options(options, serializer);
+          sse_encode_list_chat_message(messages, serializer);
+          sse_encode_opt_String(customPrompt, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_title_generation_response,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatGenerateTitleStandaloneConstMeta,
+        argValues: [provider, options, messages, customPrompt],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatGenerateTitleStandaloneConstMeta =>
+      const TaskConstMeta(
+        debugName: "generate_title_standalone",
+        argNames: ["provider", "options", "messages", "customPrompt"],
+      );
+
+  @override
   Future<ModelListResponse> crateApiAiChatGetModelsFromProvider({
     required AiProvider provider,
     required String apiKey,
@@ -498,7 +694,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 15,
             port: port_,
           );
         },
@@ -528,7 +724,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_ai_provider(provider, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_provider_capabilities,
@@ -554,7 +750,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -579,7 +775,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 18,
             port: port_,
           );
         },
@@ -615,7 +811,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 19,
             port: port_,
           );
         },
@@ -656,7 +852,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 16,
+              funcId: 20,
               port: port_,
             );
           },
@@ -680,6 +876,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<String> crateApiAiChatRemoveThinkingTags({required String content}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(content, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 21,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatRemoveThinkingTagsConstMeta,
+        argValues: [content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatRemoveThinkingTagsConstMeta =>
+      const TaskConstMeta(
+        debugName: "remove_thinking_tags",
+        argNames: ["content"],
+      );
+
+  @override
   Stream<ChatStreamEvent> crateApiAiChatTestStream() {
     final sink = RustStreamSink<ChatStreamEvent>();
     unawaited(
@@ -691,7 +918,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 17,
+              funcId: 22,
               port: port_,
             );
           },
@@ -710,6 +937,104 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiAiChatTestStreamConstMeta =>
       const TaskConstMeta(debugName: "test_stream", argNames: ["sink"]);
+
+  @override
+  TitleGenerationClient crateApiAiChatTitleGenerationClientFromChatClient({
+    required AiChatClient chatClient,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_chat_client(chatClient, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_title_generation_client,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatTitleGenerationClientFromChatClientConstMeta,
+        argValues: [chatClient],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiAiChatTitleGenerationClientFromChatClientConstMeta =>
+      const TaskConstMeta(
+        debugName: "title_generation_client_from_chat_client",
+        argNames: ["chatClient"],
+      );
+
+  @override
+  Future<TitleGenerationResponse>
+  crateApiAiChatTitleGenerationClientGenerateTitle({
+    required TitleGenerationClient that,
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_title_generation_client(that, serializer);
+          sse_encode_list_chat_message(messages, serializer);
+          sse_encode_opt_String(customPrompt, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 24,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_title_generation_response,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatTitleGenerationClientGenerateTitleConstMeta,
+        argValues: [that, messages, customPrompt],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiAiChatTitleGenerationClientGenerateTitleConstMeta =>
+      const TaskConstMeta(
+        debugName: "title_generation_client_generate_title",
+        argNames: ["that", "messages", "customPrompt"],
+      );
+
+  @override
+  TitleGenerationClient crateApiAiChatTitleGenerationClientNew({
+    required AiProvider provider,
+    required AiChatOptions options,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_ai_provider(provider, serializer);
+          sse_encode_box_autoadd_ai_chat_options(options, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_title_generation_client,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAiChatTitleGenerationClientNewConstMeta,
+        argValues: [provider, options],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAiChatTitleGenerationClientNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "title_generation_client_new",
+        argNames: ["provider", "options"],
+      );
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
@@ -822,6 +1147,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_box_autoadd_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  TitleGenerationClient dco_decode_box_autoadd_title_generation_client(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_title_generation_client(raw);
   }
 
   @protected
@@ -980,6 +1313,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TitleGenerationClient dco_decode_title_generation_client(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return TitleGenerationClient.raw(
+      provider: dco_decode_ai_provider(arr[0]),
+      options: dco_decode_ai_chat_options(arr[1]),
+    );
+  }
+
+  @protected
+  TitleGenerationResponse dco_decode_title_generation_response(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return TitleGenerationResponse(
+      title: dco_decode_String(arr[0]),
+      success: dco_decode_bool(arr[1]),
+      errorMessage: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
   TokenUsage dco_decode_token_usage(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1131,6 +1489,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int sse_decode_box_autoadd_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_i_32(deserializer));
+  }
+
+  @protected
+  TitleGenerationClient sse_decode_box_autoadd_title_generation_client(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_title_generation_client(deserializer));
   }
 
   @protected
@@ -1341,6 +1707,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TitleGenerationClient sse_decode_title_generation_client(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_provider = sse_decode_ai_provider(deserializer);
+    var var_options = sse_decode_ai_chat_options(deserializer);
+    return TitleGenerationClient.raw(
+      provider: var_provider,
+      options: var_options,
+    );
+  }
+
+  @protected
+  TitleGenerationResponse sse_decode_title_generation_response(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_title = sse_decode_String(deserializer);
+    var var_success = sse_decode_bool(deserializer);
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    return TitleGenerationResponse(
+      title: var_title,
+      success: var_success,
+      errorMessage: var_errorMessage,
+    );
+  }
+
+  @protected
   TokenUsage sse_decode_token_usage(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_promptTokens = sse_decode_opt_box_autoadd_i_32(deserializer);
@@ -1494,6 +1888,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_title_generation_client(
+    TitleGenerationClient self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_title_generation_client(self, serializer);
   }
 
   @protected
@@ -1686,6 +2089,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.supportsListModels, serializer);
     sse_encode_bool(self.supportsCustomBaseUrl, serializer);
     sse_encode_String(self.description, serializer);
+  }
+
+  @protected
+  void sse_encode_title_generation_client(
+    TitleGenerationClient self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_ai_provider(self.provider, serializer);
+    sse_encode_ai_chat_options(self.options, serializer);
+  }
+
+  @protected
+  void sse_encode_title_generation_response(
+    TitleGenerationResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.title, serializer);
+    sse_encode_bool(self.success, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
   }
 
   @protected

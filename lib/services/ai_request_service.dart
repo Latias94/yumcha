@@ -74,7 +74,7 @@ class AiRequestService {
     AiAssistant assistant,
     String modelName,
   ) {
-    return genai.AiChatOptions(
+    final options = genai.AiChatOptions(
       model: modelName,
       apiKey: provider.apiKey,
       baseUrl: provider.baseUrl?.isNotEmpty == true ? provider.baseUrl : null,
@@ -88,6 +88,28 @@ class AiRequestService {
           ? assistant.stopSequences
           : null,
     );
+
+    // 打印构建的选项
+    _logger.info('✅ buildChatOptions 构建结果', {
+      'options': {
+        'model': options.model,
+        'baseUrl': options.baseUrl,
+        'apiKeyPrefix': options.apiKey.isNotEmpty
+            ? options.apiKey.length > 8
+                  ? '${options.apiKey.substring(0, 8)}...'
+                  : '${options.apiKey}...'
+            : '未设置',
+        'temperature': options.temperature,
+        'topP': options.topP,
+        'maxTokens': options.maxTokens,
+        'systemPrompt': options.systemPrompt != null
+            ? '${options.systemPrompt!.length} 字符'
+            : null,
+        'stopSequences': options.stopSequences?.length,
+      },
+    });
+
+    return options;
   }
 
   /// 构建聊天消息列表

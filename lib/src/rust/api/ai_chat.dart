@@ -10,7 +10,20 @@ part 'ai_chat.freezed.dart';
 
 // These functions are ignored because they are not marked as `pub`: `build_chat_options_for_stream`, `build_chat_options`, `build_chat_request`, `create_genai_client`, `fetch_models_from_openai_api`, `get_adapter_kind`, `get_default_base_url`, `normalize_base_url`, `normalize_base_url`, `set_env_api_key`, `should_include_model`, `supports_openai_compatible_api`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `OpenAiModel`, `OpenAiModelsResponse`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+
+/// 独立的标题生成函数（推荐使用）
+Future<TitleGenerationResponse> generateTitleStandalone({
+  required AiProvider provider,
+  required AiChatOptions options,
+  required List<ChatMessage> messages,
+  String? customPrompt,
+}) => RustLib.instance.api.crateApiAiChatGenerateTitleStandalone(
+  provider: provider,
+  options: options,
+  messages: messages,
+  customPrompt: customPrompt,
+);
 
 /// 创建AI聊天客户端
 AiChatClient createAiChatClient({
@@ -80,6 +93,31 @@ Future<ModelListResponse> fetchOpenaiCompatibleModels({
   baseUrl: baseUrl,
 );
 
+/// 快速生成聊天标题
+Future<TitleGenerationResponse> generateChatTitle({
+  required AiProvider provider,
+  required String model,
+  required String apiKey,
+  String? baseUrl,
+  required List<ChatMessage> messages,
+  String? customPrompt,
+}) => RustLib.instance.api.crateApiAiChatGenerateChatTitle(
+  provider: provider,
+  model: model,
+  apiKey: apiKey,
+  baseUrl: baseUrl,
+  messages: messages,
+  customPrompt: customPrompt,
+);
+
+/// 移除思考类模型的 <think> 标签
+Future<String> removeThinkingTags({required String content}) =>
+    RustLib.instance.api.crateApiAiChatRemoveThinkingTags(content: content);
+
+/// 清理标题：移除换行符并限制长度
+Future<String> cleanTitle({required String title}) =>
+    RustLib.instance.api.crateApiAiChatCleanTitle(title: title);
+
 /// 简单的流式测试函数 - 发送一些测试数据
 Stream<ChatStreamEvent> testStream() =>
     RustLib.instance.api.crateApiAiChatTestStream();
@@ -103,6 +141,16 @@ class AiChatClient {
         that: this,
         messages: messages,
       );
+
+  /// 生成标题（便捷方法，使用当前客户端的配置）
+  Future<TitleGenerationResponse> generateTitle({
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  }) => RustLib.instance.api.crateApiAiChatAiChatClientGenerateTitle(
+    that: this,
+    messages: messages,
+    customPrompt: customPrompt,
+  );
 
   /// 获取支持的模型列表
   Future<List<String>> getAvailableModels() => RustLib.instance.api
@@ -346,6 +394,79 @@ class ProviderCapabilities {
           supportsListModels == other.supportsListModels &&
           supportsCustomBaseUrl == other.supportsCustomBaseUrl &&
           description == other.description;
+}
+
+/// 专门用于标题生成的客户端
+class TitleGenerationClient {
+  final AiProvider provider;
+  final AiChatOptions options;
+
+  const TitleGenerationClient.raw({
+    required this.provider,
+    required this.options,
+  });
+
+  /// 从现有的聊天客户端创建标题生成客户端
+  static TitleGenerationClient fromChatClient({
+    required AiChatClient chatClient,
+  }) => RustLib.instance.api.crateApiAiChatTitleGenerationClientFromChatClient(
+    chatClient: chatClient,
+  );
+
+  /// 生成标题
+  Future<TitleGenerationResponse> generateTitle({
+    required List<ChatMessage> messages,
+    String? customPrompt,
+  }) => RustLib.instance.api.crateApiAiChatTitleGenerationClientGenerateTitle(
+    that: this,
+    messages: messages,
+    customPrompt: customPrompt,
+  );
+
+  /// 创建标题生成客户端
+  factory TitleGenerationClient({
+    required AiProvider provider,
+    required AiChatOptions options,
+  }) => RustLib.instance.api.crateApiAiChatTitleGenerationClientNew(
+    provider: provider,
+    options: options,
+  );
+
+  @override
+  int get hashCode => provider.hashCode ^ options.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TitleGenerationClient &&
+          runtimeType == other.runtimeType &&
+          provider == other.provider &&
+          options == other.options;
+}
+
+/// 标题生成响应
+class TitleGenerationResponse {
+  final String title;
+  final bool success;
+  final String? errorMessage;
+
+  const TitleGenerationResponse({
+    required this.title,
+    required this.success,
+    this.errorMessage,
+  });
+
+  @override
+  int get hashCode => title.hashCode ^ success.hashCode ^ errorMessage.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TitleGenerationResponse &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          success == other.success &&
+          errorMessage == other.errorMessage;
 }
 
 /// Token使用情况

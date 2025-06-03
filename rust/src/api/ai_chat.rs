@@ -1,6 +1,6 @@
+use anyhow::Result;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
-use anyhow::Result;
 
 // Flutter Rust Bridge StreamSink
 use crate::frb_generated::StreamSink;
@@ -116,8 +116,6 @@ pub struct OpenAiModelsResponse {
     pub data: Vec<OpenAiModel>,
 }
 
-
-
 /// 流式聊天事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ChatStreamEvent {
@@ -126,13 +124,65 @@ pub enum ChatStreamEvent {
     /// 内容块
     Content { content: String },
     /// 完成响应
-    Done { 
+    Done {
         total_content: String,
-        usage: Option<TokenUsage> 
+        usage: Option<TokenUsage>,
     },
     /// 错误
     Error { message: String },
 }
+
+/// 标题生成响应
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TitleGenerationResponse {
+    pub title: String,
+    pub success: bool,
+    pub error_message: Option<String>,
+}
+
+/// 专门用于标题生成的客户端
+#[derive(Debug, Clone)]
+pub struct TitleGenerationClient {
+    pub provider: AiProvider,
+    pub options: AiChatOptions,
+}
+
+impl TitleGenerationClient {
+    /// 创建标题生成客户端
+    #[frb(sync)]
+    pub fn new(provider: AiProvider, options: AiChatOptions) -> Self {
+        Self { provider, options }
+    }
+
+    /// 从现有的聊天客户端创建标题生成客户端
+    #[frb(sync)]
+    pub fn from_chat_client(chat_client: &AiChatClient) -> Self {
+        // 复制配置但优化用于标题生成
+        let mut title_options = chat_client.options.clone();
+        title_options.max_tokens = Some(1000);
+        title_options.temperature = Some(0.7);
+
+        Self {
+            provider: chat_client.provider.clone(),
+            options: title_options,
+        }
+    }
+
+    /// 生成标题
+    pub async fn generate_title(
+        &self,
+        messages: Vec<ChatMessage>,
+        custom_prompt: Option<String>,
+    ) -> TitleGenerationResponse {
+        let ai_client = AiChatClient::new(self.provider.clone(), self.options.clone());
+        ai_client.generate_title(messages, custom_prompt).await
+    }
+}
+
+// ===== 常量定义 =====
+
+/// 标题生成的默认提示词
+pub const DEFAULT_TITLE_PROMPT: &str = "You are an assistant skilled in conversation. You need to summarize the user's conversation into a title within 10 words. The language of the title should be consistent with the user's primary language. Do not use punctuation marks or other special symbols";
 
 // ===== AI聊天接口实现 =====
 
@@ -205,7 +255,9 @@ impl AiChatClient {
 
     /// 从 OpenAI 兼容 API 获取模型列表
     async fn fetch_models_from_openai_api(&self) -> Result<Vec<String>> {
-        let base_url = self.options.base_url
+        let base_url = self
+            .options
+            .base_url
             .as_ref()
             .map(|url| Self::normalize_base_url(url))
             .unwrap_or_else(|| self.get_default_base_url());
@@ -251,17 +303,24 @@ impl AiChatClient {
         }
     }
 
-
-
     /// 判断是否应该包含该模型
     fn should_include_model(&self, model_id: &str) -> bool {
         let exclude_patterns = [
-            "whisper", "tts", "dall-e", "embedding", "moderation",
-            "babbage", "ada", "curie", "davinci",
+            "whisper",
+            "tts",
+            "dall-e",
+            "embedding",
+            "moderation",
+            "babbage",
+            "ada",
+            "curie",
+            "davinci",
         ];
 
         let lower_model_id = model_id.to_lowercase();
-        !exclude_patterns.iter().any(|pattern| lower_model_id.contains(pattern))
+        !exclude_patterns
+            .iter()
+            .any(|pattern| lower_model_id.contains(pattern))
     }
 
     /// 检查提供商是否支持列出模型
@@ -379,10 +438,10 @@ impl AiChatClient {
         {
             Ok(mut stream_res) => {
                 let mut total_content = String::new();
-                
+
                 // 使用 futures::StreamExt 来处理流
                 use futures::StreamExt;
-                
+
                 while let Some(event) = stream_res.stream.next().await {
                     match event {
                         Ok(genai::chat::ChatStreamEvent::Start) => {
@@ -425,7 +484,21 @@ impl AiChatClient {
         Ok(())
     }
 
-    // ===== 私有辅助方法 =====
+    /// 生成标题（便捷方法，使用当前客户端的配置）
+    pub async fn generate_title(
+        &self,
+        messages: Vec<ChatMessage>,
+        custom_prompt: Option<String>,
+    ) -> TitleGenerationResponse {
+        // 调用独立的标题生成函数
+        generate_title_standalone(
+            self.provider.clone(),
+            self.options.clone(),
+            messages,
+            custom_prompt,
+        )
+        .await
+    }
 
     /// 规范化 URL，确保结尾有斜杠
     fn normalize_base_url(url: &str) -> String {
@@ -433,7 +506,7 @@ impl AiChatClient {
         if trimmed.is_empty() {
             return trimmed.to_string();
         }
-        
+
         if trimmed.ends_with('/') {
             trimmed.to_string()
         } else {
@@ -559,17 +632,101 @@ impl AiChatClient {
 
     fn build_chat_options_for_stream(&self) -> Option<genai::chat::ChatOptions> {
         let mut options = self.build_chat_options().unwrap_or_default();
-        
+
         // 流式聊天时启用内容和使用情况捕获
-        options = options
-            .with_capture_content(true)
-            .with_capture_usage(true);
+        options = options.with_capture_content(true).with_capture_usage(true);
 
         Some(options)
     }
 }
 
 // ===== 便捷函数 =====
+
+/// 独立的标题生成函数（推荐使用）
+pub async fn generate_title_standalone(
+    provider: AiProvider,
+    options: AiChatOptions,
+    messages: Vec<ChatMessage>,
+    custom_prompt: Option<String>,
+) -> TitleGenerationResponse {
+    // 取最近5条消息作为上下文
+    let recent_messages: Vec<ChatMessage> = messages
+        .into_iter()
+        .rev() // 反转以获取最新的消息
+        .take(5)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev() // 再次反转以保持时间顺序
+        .collect();
+
+    if recent_messages.is_empty() {
+        return TitleGenerationResponse {
+            title: "新对话".to_string(),
+            success: false,
+            error_message: Some("没有可用的消息内容".to_string()),
+        };
+    }
+
+    // 构建用户消息内容
+    let user_message_content = recent_messages
+        .iter()
+        .map(|msg| {
+            let role_prefix = match msg.role {
+                ChatRole::User => "User",
+                ChatRole::Assistant => "Assistant",
+                ChatRole::System => "System",
+            };
+            format!("{}: {}", role_prefix, msg.content)
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // 构建标题生成请求
+    let title_messages = vec![ChatMessage {
+        role: ChatRole::User,
+        content: user_message_content,
+    }];
+
+    // 创建专门用于标题生成的选项（限制token数量）
+    let mut title_options = options;
+    title_options.max_tokens = Some(1000);
+    title_options.temperature = Some(0.7);
+    // 使用自定义提示词或默认提示词
+    title_options.system_prompt =
+        Some(custom_prompt.unwrap_or_else(|| DEFAULT_TITLE_PROMPT.to_string()));
+
+    let title_client = AiChatClient::new(provider.clone(), title_options);
+
+    // Debug: 打印客户端参数
+    // println!("=== DEBUG: generate_title_standalone 客户端参数 ===");
+    // println!("  provider: {:?}", provider);
+    // println!("  options: {:?}", title_client.options);
+    // println!("  标题生成消息数量: {}", title_messages.len());
+    // println!("=================================================");
+
+    match title_client.chat(title_messages).await {
+        Ok(response) => {
+            let mut title = response.content;
+
+            // 处理思考类模型的输出，移除 <think> 标签
+            title = remove_thinking_tags(&title);
+
+            // 移除特殊字符并限制长度
+            title = clean_title(&title);
+
+            TitleGenerationResponse {
+                title,
+                success: true,
+                error_message: None,
+            }
+        }
+        Err(e) => TitleGenerationResponse {
+            title: "新对话".to_string(),
+            success: false,
+            error_message: Some(format!("生成标题失败: {}", e)),
+        },
+    }
+}
 
 /// 创建AI聊天客户端
 #[frb(sync)]
@@ -778,8 +935,15 @@ pub async fn fetch_openai_compatible_models(
             match response.json::<OpenAiModelsResponse>().await {
                 Ok(models_response) => {
                     let exclude_patterns = [
-                        "whisper", "tts", "dall-e", "embedding", "moderation",
-                        "babbage", "ada", "curie", "davinci",
+                        "whisper",
+                        "tts",
+                        "dall-e",
+                        "embedding",
+                        "moderation",
+                        "babbage",
+                        "ada",
+                        "curie",
+                        "davinci",
                     ];
 
                     let models: Vec<String> = models_response
@@ -788,7 +952,9 @@ pub async fn fetch_openai_compatible_models(
                         .map(|model| model.id)
                         .filter(|model_id| {
                             let lower_model_id = model_id.to_lowercase();
-                            !exclude_patterns.iter().any(|pattern| lower_model_id.contains(pattern))
+                            !exclude_patterns
+                                .iter()
+                                .any(|pattern| lower_model_id.contains(pattern))
                         })
                         .collect();
 
@@ -813,6 +979,65 @@ pub async fn fetch_openai_compatible_models(
     }
 }
 
+/// 快速生成聊天标题
+pub async fn generate_chat_title(
+    provider: AiProvider,
+    model: String,
+    api_key: String,
+    base_url: Option<String>,
+    messages: Vec<ChatMessage>,
+    custom_prompt: Option<String>,
+) -> TitleGenerationResponse {
+    let options = AiChatOptions {
+        model,
+        base_url,
+        api_key,
+        temperature: Some(0.7),
+        top_p: None,
+        max_tokens: Some(1000),
+        system_prompt: None,
+        stop_sequences: None,
+    };
+
+    let client = AiChatClient::new(provider, options);
+    client.generate_title(messages, custom_prompt).await
+}
+
+// ===== 私有辅助方法 =====
+
+/// 移除思考类模型的 <think> 标签
+pub fn remove_thinking_tags(content: &str) -> String {
+    // 简单的字符串处理来移除 <think>...</think> 内容
+    let mut result = content.to_string();
+
+    // 查找并移除所有的 <think>...</think> 块
+    while let Some(start) = result.find("<think>") {
+        if let Some(end) = result[start..].find("</think>") {
+            let end_pos = start + end + "</think>".len();
+            result.replace_range(start..end_pos, "");
+        } else {
+            // 如果没有找到结束标签，只移除开始标签
+            result.replace_range(start..start + "<think>".len(), "");
+            break;
+        }
+    }
+
+    result.trim().to_string()
+}
+
+/// 清理标题：移除换行符并限制长度
+pub fn clean_title(title: &str) -> String {
+    // 参考 JavaScript 版本：只移除换行符，替换为空格，然后 trim
+    let cleaned = title.replace(['\r', '\n'], " ").trim().to_string();
+
+    // 限制长度为50个字符
+    if cleaned.chars().count() > 50 {
+        cleaned.chars().take(50).collect()
+    } else {
+        cleaned
+    }
+}
+
 // ===== 简单的测试函数 =====
 
 /// 简单的流式测试函数 - 发送一些测试数据
@@ -820,14 +1045,14 @@ pub async fn test_stream(sink: StreamSink<ChatStreamEvent>) -> Result<()> {
     use tokio::time::{sleep, Duration};
 
     sink.add(ChatStreamEvent::Start);
-    
+
     for i in 1..=5 {
         sleep(Duration::from_millis(500)).await;
         sink.add(ChatStreamEvent::Content {
             content: format!("Test chunk {}", i),
         });
     }
-    
+
     sink.add(ChatStreamEvent::Done {
         total_content: "Test chunk 1Test chunk 2Test chunk 3Test chunk 4Test chunk 5".to_string(),
         usage: Some(TokenUsage {
@@ -876,4 +1101,4 @@ mod tests {
             "https://api.moonshot.cn/v1/chat/completions/"
         );
     }
-} 
+}
