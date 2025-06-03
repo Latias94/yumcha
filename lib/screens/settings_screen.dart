@@ -4,10 +4,8 @@ import 'debug_screen.dart';
 import 'providers_screen.dart';
 import 'assistants_screen.dart';
 import 'ai_debug_screen.dart';
-import 'chat_style_settings_screen.dart';
 import '../providers/theme_provider.dart';
-import '../providers/ai_provider_notifier.dart';
-import '../providers/ai_assistant_notifier.dart';
+import '../ui/debug/thinking_process_demo.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -65,6 +63,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildSectionHeader("开发者选项"),
               _buildDebugItem(),
               _buildAiDebugItem(),
+              _buildThinkingProcessDemoItem(),
 
               const SizedBox(height: 32),
             ]),
@@ -344,6 +343,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AiDebugScreenWrapper()),
+        );
+      },
+    );
+  }
+
+  Widget _buildThinkingProcessDemoItem() {
+    return ListTile(
+      leading: const Icon(Icons.psychology_outlined),
+      title: const Text("思考过程演示"),
+      subtitle: const Text("演示AI推理模型的思考过程显示功能"),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ThinkingProcessDemo()),
         );
       },
     );

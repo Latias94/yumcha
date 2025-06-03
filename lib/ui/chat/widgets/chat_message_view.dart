@@ -4,6 +4,7 @@ import 'package:markdown_widget/markdown_widget.dart';
 import '../../../models/message.dart';
 import '../../../models/chat_bubble_style.dart';
 import '../../../services/preference_service.dart';
+import 'thinking_process_widget.dart';
 
 /// 聊天消息显示组件
 class ChatMessageView extends StatefulWidget {
@@ -69,6 +70,11 @@ class _ChatMessageViewState extends State<ChatMessageView> {
 
   /// 构建列表布局（无头像）
   Widget _buildListLayout(BuildContext context, ThemeData theme) {
+    // 解析思考过程
+    final thinkingResult = ThinkingProcessParser.parseMessage(
+      widget.message.content,
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Column(
@@ -85,8 +91,22 @@ class _ChatMessageViewState extends State<ChatMessageView> {
           ),
           const SizedBox(height: 4),
 
-          // 消息内容
-          _buildMarkdownContent(context, theme, theme.colorScheme.onSurface),
+          // 思考过程（仅AI消息且包含思考过程时显示）
+          if (!widget.message.isFromUser &&
+              thinkingResult.hasThinkingProcess) ...[
+            ThinkingProcessWidget(
+              thinkingContent: thinkingResult.thinkingContent,
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // 消息内容（显示处理后的实际内容）
+          _buildMarkdownContent(
+            context,
+            theme,
+            theme.colorScheme.onSurface,
+            content: thinkingResult.actualContent,
+          ),
           const SizedBox(height: 4),
           _buildActionButtons(context),
         ],
@@ -96,6 +116,11 @@ class _ChatMessageViewState extends State<ChatMessageView> {
 
   /// 构建气泡布局
   Widget _buildBubbleLayout(BuildContext context, ThemeData theme) {
+    // 解析思考过程
+    final thinkingResult = ThinkingProcessParser.parseMessage(
+      widget.message.content,
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Column(
@@ -103,8 +128,26 @@ class _ChatMessageViewState extends State<ChatMessageView> {
             ? CrossAxisAlignment.end
             : CrossAxisAlignment.start,
         children: [
-          // 使用自定义的markdown支持气泡组件
-          _buildMarkdownBubble(context, theme),
+          // 思考过程（仅AI消息且包含思考过程时显示）
+          if (!widget.message.isFromUser &&
+              thinkingResult.hasThinkingProcess) ...[
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.8,
+              ),
+              child: ThinkingProcessWidget(
+                thinkingContent: thinkingResult.thinkingContent,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // 使用自定义的markdown支持气泡组件（显示处理后的实际内容）
+          _buildMarkdownBubble(
+            context,
+            theme,
+            content: thinkingResult.actualContent,
+          ),
 
           // 操作按钮显示在气泡下方
           const SizedBox(height: 4),
@@ -222,7 +265,11 @@ class _ChatMessageViewState extends State<ChatMessageView> {
   }
 
   /// 构建支持markdown的气泡组件
-  Widget _buildMarkdownBubble(BuildContext context, ThemeData theme) {
+  Widget _buildMarkdownBubble(
+    BuildContext context,
+    ThemeData theme, {
+    String? content,
+  }) {
     final isFromUser = widget.message.isFromUser;
     final bubbleColor = isFromUser
         ? theme.colorScheme.primary
@@ -250,7 +297,12 @@ class _ChatMessageViewState extends State<ChatMessageView> {
                 : const Radius.circular(20),
           ),
         ),
-        child: _buildMarkdownContent(context, theme, textColor),
+        child: _buildMarkdownContent(
+          context,
+          theme,
+          textColor,
+          content: content,
+        ),
       ),
     );
   }
@@ -259,15 +311,19 @@ class _ChatMessageViewState extends State<ChatMessageView> {
   Widget _buildMarkdownContent(
     BuildContext context,
     ThemeData theme,
-    Color textColor,
-  ) {
+    Color textColor, {
+    String? content,
+  }) {
+    // 使用传入的内容或默认的消息内容
+    final messageContent = content ?? widget.message.content;
+
     // 检查消息内容是否包含markdown语法
-    final hasMarkdown = _hasMarkdownSyntax(widget.message.content);
+    final hasMarkdown = _hasMarkdownSyntax(messageContent);
 
     if (!hasMarkdown) {
       // 如果没有markdown语法，直接使用普通文本
       return Text(
-        widget.message.content,
+        messageContent,
         style: TextStyle(color: textColor, fontSize: 16, height: 1.4),
       );
     }
@@ -282,11 +338,11 @@ class _ChatMessageViewState extends State<ChatMessageView> {
         ],
       );
 
-      return MarkdownBlock(data: widget.message.content, config: config);
+      return MarkdownBlock(data: messageContent, config: config);
     } catch (e) {
       // 如果markdown渲染失败，回退到普通文本
       return Text(
-        widget.message.content,
+        messageContent,
         style: TextStyle(color: textColor, fontSize: 16, height: 1.4),
       );
     }
