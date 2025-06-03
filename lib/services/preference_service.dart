@@ -87,6 +87,18 @@ class PreferenceService {
     return _prefs!.getString('theme_mode');
   }
 
+  /// 保存聊天气泡样式
+  Future<void> saveChatBubbleStyle(String style) async {
+    await _ensureInitialized();
+    await _prefs!.setString('chat_bubble_style', style);
+  }
+
+  /// 获取聊天气泡样式
+  Future<String> getChatBubbleStyle() async {
+    await _ensureInitialized();
+    return _prefs!.getString('chat_bubble_style') ?? 'list'; // 默认列表样式
+  }
+
   /// 保存是否开启调试模式
   Future<void> saveDebugMode(bool enabled) async {
     await _ensureInitialized();

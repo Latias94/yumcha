@@ -88,4 +88,18 @@ class AiModel {
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AiModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          displayName == other.displayName &&
+          isEnabled == other.isEnabled;
+
+  @override
+  int get hashCode =>
+      id.hashCode ^ name.hashCode ^ displayName.hashCode ^ isEnabled.hashCode;
 }

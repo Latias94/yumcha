@@ -32,6 +32,16 @@ class _ModelListManagerState extends State<ModelListManager> {
     _models = List.from(widget.models);
   }
 
+  @override
+  void didUpdateWidget(ModelListManager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // 当模型列表发生变化时更新本地状态
+    if (widget.models != oldWidget.models) {
+      _models = List.from(widget.models);
+    }
+  }
+
   void _addModel() {
     showDialog(
       context: context,
@@ -139,13 +149,16 @@ class _ModelListManagerState extends State<ModelListManager> {
       return;
     }
 
+    // 获取当前的 provider 信息
+    final currentProvider = widget.provider!;
+
     // 检查 API Key 是否已填写
-    if (widget.provider!.apiKey.isEmpty) {
+    if (currentProvider.apiKey.isEmpty) {
       NotificationService().showWarning('请先填写 API Key');
       return;
     }
 
-    final genaiProvider = _convertToGenaiProvider(widget.provider!);
+    final genaiProvider = _convertToGenaiProvider(currentProvider);
 
     // 检查提供商是否支持列出模型
     if (!genai.checkProviderSupportsListModels(provider: genaiProvider)) {
@@ -164,20 +177,21 @@ class _ModelListManagerState extends State<ModelListManager> {
       late genai.ModelListResponse response;
 
       // 对于支持 OpenAI 兼容接口的提供商，直接调用 API
-      if (_supportsOpenAiCompatibleApi(widget.provider!.type)) {
+      if (_supportsOpenAiCompatibleApi(currentProvider.type)) {
         final baseUrl =
-            widget.provider!.baseUrl ??
-            _getDefaultBaseUrl(widget.provider!.type)!;
+            currentProvider.baseUrl ??
+            _getDefaultBaseUrl(currentProvider.type)!;
+
         response = await genai.fetchOpenaiCompatibleModels(
-          apiKey: widget.provider!.apiKey,
+          apiKey: currentProvider.apiKey,
           baseUrl: baseUrl,
         );
       } else {
         // 使用 GenAI 后端获取模型列表
         response = await genai.getModelsFromProvider(
           provider: genaiProvider,
-          apiKey: widget.provider!.apiKey,
-          baseUrl: widget.provider!.baseUrl,
+          apiKey: currentProvider.apiKey,
+          baseUrl: currentProvider.baseUrl,
         );
       }
 

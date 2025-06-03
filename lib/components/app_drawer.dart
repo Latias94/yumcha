@@ -80,29 +80,55 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   // 初始化选中的助手
   void _initializeSelectedAssistant() {
     final assistantsAsync = ref.read(enabledAiAssistantsProvider);
-    if (assistantsAsync.isNotEmpty && _selectedAssistant == "ai") {
-      setState(() {
-        _selectedAssistant = assistantsAsync.first.id;
-      });
-      _refreshConversations();
+    if (assistantsAsync.isNotEmpty) {
+      // 如果当前选择的是默认值或无效值，选择第一个可用助手
+      if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) {
+        setState(() {
+          _selectedAssistant = assistantsAsync.first.id;
+        });
+        _refreshConversations();
+      } else {
+        // 验证当前选择的助手是否仍然有效
+        final isValidAssistant = assistantsAsync.any(
+          (a) => a.id == _selectedAssistant,
+        );
+        if (!isValidAssistant) {
+          setState(() {
+            _selectedAssistant = assistantsAsync.first.id;
+          });
+          _refreshConversations();
+        }
+      }
     }
   }
 
   // 获取分页数据 - 返回 Future<List<ConversationUiState>>
   Future<List<ConversationUiState>> _fetchPage(int pageKey) async {
+    // 确保有有效的助手选择
     if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) {
-      throw Exception('请选择助手');
+      // 尝试重新初始化助手选择
+      final assistantsAsync = ref.read(enabledAiAssistantsProvider);
+      if (assistantsAsync.isNotEmpty) {
+        _selectedAssistant = assistantsAsync.first.id;
+      } else {
+        return []; // 没有可用助手时返回空列表
+      }
     }
 
-    final newConversations = await _conversationRepository
-        .getConversationsByAssistantWithPagination(
-          _selectedAssistant,
-          limit: _pageSize,
-          offset: pageKey,
-          includeMessages: true, // 需要消息来获取时间戳
-        );
+    try {
+      final newConversations = await _conversationRepository
+          .getConversationsByAssistantWithPagination(
+            _selectedAssistant,
+            limit: _pageSize,
+            offset: pageKey,
+            includeMessages: true, // 需要消息来获取时间戳
+          );
 
-    return newConversations;
+      return newConversations;
+    } catch (e) {
+      print('获取对话列表失败: $e');
+      return []; // 出错时返回空列表而不是抛出异常
+    }
   }
 
   // 删除对话
@@ -420,6 +446,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         child: GestureDetector(
           onTap: () {
             // 打开特定的聊天记录
+            print(
+              '点击对话: ${conversation.id}, 标题: ${conversation.channelName}',
+            ); // 调试信息
             widget.onChatClicked(conversation.id);
           },
           onLongPressStart: (details) {

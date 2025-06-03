@@ -6,3 +6,4 @@
 export 'ai_provider_notifier.dart';
 export 'ai_assistant_notifier.dart';
 export 'chat_notifier.dart';
+export 'conversation_notifier.dart';

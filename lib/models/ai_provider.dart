@@ -125,4 +125,25 @@ class AiProvider {
         return [];
     }
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AiProvider &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          type == other.type &&
+          apiKey == other.apiKey &&
+          baseUrl == other.baseUrl &&
+          isEnabled == other.isEnabled;
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      type.hashCode ^
+      apiKey.hashCode ^
+      baseUrl.hashCode ^
+      isEnabled.hashCode;
 }

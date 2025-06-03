@@ -3,6 +3,7 @@ import 'debug_screen.dart';
 import 'providers_screen.dart';
 import 'assistants_screen.dart';
 import 'ai_debug_screen.dart';
+import 'chat_style_settings_screen.dart';
 import '../services/assistant_repository.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
@@ -55,57 +56,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar.large(
-            title: const Text("设置"),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildListDelegate([
-              // API配置提醒卡片
-              _buildApiConfigCard(),
+      body: ListenableBuilder(
+        listenable: _themeService,
+        builder: (context, child) {
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar.large(
+                title: const Text("设置"),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  // API配置提醒卡片
+                  _buildApiConfigCard(),
 
-              const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-              // 通用设置
-              _buildSectionHeader("通用设置"),
-              _buildColorModeItem(),
-              _buildDynamicColorItem(),
-              _buildDisplaySettingsItem(),
+                  // 通用设置
+                  _buildSectionHeader("通用设置"),
+                  _buildColorModeItem(),
+                  _buildDynamicColorItem(),
+                  _buildDisplaySettingsItem(),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // 模型与服务
-              _buildSectionHeader("模型与服务"),
-              _buildProvidersItem(),
-              _buildAssistantsItem(),
-              _buildDefaultModelItem(),
-              _buildSearchServiceItem(),
-              _buildMCPItem(),
+                  // 模型与服务
+                  _buildSectionHeader("模型与服务"),
+                  _buildProvidersItem(),
+                  _buildAssistantsItem(),
+                  _buildDefaultModelItem(),
+                  _buildSearchServiceItem(),
+                  _buildMCPItem(),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // 开发者选项
-              _buildSectionHeader("开发者选项"),
-              _buildDebugItem(),
-              _buildAiDebugItem(),
+                  // 开发者选项
+                  _buildSectionHeader("开发者选项"),
+                  _buildDebugItem(),
+                  _buildAiDebugItem(),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // 关于
-              _buildSectionHeader("关于"),
-              _buildAboutAppItem(),
-              _buildChatStorageItem(),
-              _buildShareItem(),
+                  // 关于
+                  _buildSectionHeader("关于"),
+                  _buildAboutAppItem(),
+                  _buildChatStorageItem(),
+                  _buildShareItem(),
 
-              const SizedBox(height: 32),
-            ]),
-          ),
-        ],
+                  const SizedBox(height: 32),
+                ]),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -240,16 +246,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildDynamicColorItem() {
+    final isAvailable = _themeService.isDynamicColorAvailable;
+    final isEnabled = _themeService.dynamicColor;
+
+    String subtitle;
+    if (!isAvailable) {
+      subtitle = "此设备不支持动态颜色";
+    } else if (isEnabled) {
+      subtitle = "跟随系统壁纸颜色";
+    } else {
+      subtitle = "使用应用默认颜色";
+    }
+
     return ListTile(
-      leading: const Icon(Icons.color_lens_outlined),
-      title: const Text("动态颜色"),
-      subtitle: Text(_themeService.dynamicColor ? "跟随系统壁纸颜色" : "使用应用默认颜色"),
+      leading: Icon(
+        Icons.color_lens_outlined,
+        color: isAvailable
+            ? null
+            : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+      ),
+      title: Text(
+        "动态颜色",
+        style: isAvailable
+            ? null
+            : TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: isAvailable
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+        ),
+      ),
       trailing: Switch(
-        value: _themeService.dynamicColor,
-        onChanged: (value) async {
-          await _themeService.setDynamicColor(value);
-          setState(() {});
-        },
+        value: isEnabled,
+        onChanged: isAvailable
+            ? (value) async {
+                final success = await _themeService.setDynamicColor(value);
+                if (!success && value && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("此设备不支持动态颜色功能"),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            : null,
       ),
     );
   }
@@ -258,10 +306,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ListTile(
       leading: const Icon(Icons.display_settings_outlined),
       title: const Text("显示设置"),
-      subtitle: const Text("管理显示设置"),
+      subtitle: const Text("设置消息显示样式和界面选项"),
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
-        // TODO: 跳转到显示设置页面
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const DisplaySettingsScreen(),
+          ),
+        );
       },
     );
   }
@@ -401,7 +454,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showColorModeDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text("颜色模式"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -413,8 +466,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await _themeService.setColorMode(value);
-                  setState(() {});
-                  Navigator.of(context).pop();
+                  if (mounted) {
+                    setState(() {});
+                    Navigator.of(dialogContext).pop();
+                  }
                 }
               },
             ),
@@ -425,8 +480,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await _themeService.setColorMode(value);
-                  setState(() {});
-                  Navigator.of(context).pop();
+                  if (mounted) {
+                    setState(() {});
+                    Navigator.of(dialogContext).pop();
+                  }
                 }
               },
             ),
@@ -437,8 +494,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await _themeService.setColorMode(value);
-                  setState(() {});
-                  Navigator.of(context).pop();
+                  if (mounted) {
+                    setState(() {});
+                    Navigator.of(dialogContext).pop();
+                  }
                 }
               },
             ),
@@ -446,7 +505,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text("取消"),
           ),
         ],

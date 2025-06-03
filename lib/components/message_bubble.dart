@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import '../models/message.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -110,22 +111,10 @@ class MessageBubble extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Flexible(
-                            child: Text(
-                              _cleanErrorMessage(message.content),
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: message.isFromUser
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimary
-                                        : isErrorMessage || isSystemMessage
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.onErrorContainer
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                  ),
+                            child: _buildMessageContent(
+                              context,
+                              isErrorMessage,
+                              isSystemMessage,
                             ),
                           ),
                           // 如果是流式输出，显示光标
@@ -186,6 +175,137 @@ class MessageBubble extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // 构建消息内容，支持markdown渲染
+  Widget _buildMessageContent(
+    BuildContext context,
+    bool isErrorMessage,
+    bool isSystemMessage,
+  ) {
+    final content = _cleanErrorMessage(message.content);
+    final theme = Theme.of(context);
+
+    // 确定文本颜色
+    final textColor = message.isFromUser
+        ? theme.colorScheme.onPrimary
+        : isErrorMessage || isSystemMessage
+        ? theme.colorScheme.onErrorContainer
+        : theme.colorScheme.onSurface;
+
+    // 创建markdown配置
+    final config = MarkdownConfig(
+      configs: [
+        // 段落配置
+        PConfig(
+          textStyle:
+              theme.textTheme.bodyMedium?.copyWith(color: textColor) ??
+              TextStyle(color: textColor),
+        ),
+        // 代码块配置
+        PreConfig(
+          textStyle:
+              theme.textTheme.bodyMedium?.copyWith(
+                color: textColor,
+                fontFamily: 'monospace',
+              ) ??
+              TextStyle(color: textColor, fontFamily: 'monospace'),
+          decoration: BoxDecoration(
+            color: textColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          padding: const EdgeInsets.all(8),
+        ),
+        // 行内代码配置
+        CodeConfig(
+          style:
+              theme.textTheme.bodyMedium?.copyWith(
+                color: textColor,
+                fontFamily: 'monospace',
+                backgroundColor: textColor.withValues(alpha: 0.1),
+              ) ??
+              TextStyle(
+                color: textColor,
+                fontFamily: 'monospace',
+                backgroundColor: textColor.withValues(alpha: 0.1),
+              ),
+        ),
+        // 标题配置
+        H1Config(
+          style:
+              theme.textTheme.headlineLarge?.copyWith(color: textColor) ??
+              TextStyle(
+                color: textColor,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        H2Config(
+          style:
+              theme.textTheme.headlineMedium?.copyWith(color: textColor) ??
+              TextStyle(
+                color: textColor,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        H3Config(
+          style:
+              theme.textTheme.headlineSmall?.copyWith(color: textColor) ??
+              TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        // 强调文本配置 - 注意：markdown_widget没有单独的StrongConfig和EmConfig
+        // 这些样式会通过PConfig中的textStyle自动处理
+        // 链接配置
+        LinkConfig(
+          style:
+              theme.textTheme.bodyMedium?.copyWith(
+                color: message.isFromUser
+                    ? theme.colorScheme.onPrimary.withValues(alpha: 0.8)
+                    : theme.colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ) ??
+              TextStyle(
+                color: message.isFromUser
+                    ? theme.colorScheme.onPrimary.withValues(alpha: 0.8)
+                    : theme.colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+        ),
+        // 列表配置
+        ListConfig(
+          marker: (isOrdered, depth, index) {
+            if (isOrdered) {
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: Text(
+                  '${index + 1}.',
+                  style:
+                      theme.textTheme.bodyMedium?.copyWith(color: textColor) ??
+                      TextStyle(color: textColor),
+                ),
+              );
+            } else {
+              return Container(
+                width: 4,
+                height: 4,
+                margin: const EdgeInsets.only(right: 8, top: 8),
+                decoration: BoxDecoration(
+                  color: textColor,
+                  shape: BoxShape.circle,
+                ),
+              );
+            }
+          },
+        ),
+      ],
+    );
+
+    return MarkdownWidget(data: content, config: config, shrinkWrap: true);
   }
 
   // 清理错误消息，移除[错误]前缀

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:chat_bubbles/chat_bubbles.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import '../../../models/message.dart';
+import '../../../models/chat_bubble_style.dart';
+import '../../../services/preference_service.dart';
 
 /// 聊天消息显示组件
-class ChatMessageView extends StatelessWidget {
+class ChatMessageView extends StatefulWidget {
   const ChatMessageView({
     super.key,
     required this.message,
@@ -22,31 +24,82 @@ class ChatMessageView extends StatelessWidget {
   final bool isWelcomeMessage;
 
   @override
+  State<ChatMessageView> createState() => _ChatMessageViewState();
+}
+
+class _ChatMessageViewState extends State<ChatMessageView> {
+  late final PreferenceService _preferenceService;
+  ChatBubbleStyle _bubbleStyle = ChatBubbleStyle.list;
+
+  @override
+  void initState() {
+    super.initState();
+    _preferenceService = PreferenceService();
+    _loadBubbleStyle();
+  }
+
+  Future<void> _loadBubbleStyle() async {
+    try {
+      final styleValue = await _preferenceService.getChatBubbleStyle();
+      if (mounted) {
+        setState(() {
+          _bubbleStyle = ChatBubbleStyle.fromValue(styleValue);
+        });
+      }
+    } catch (e) {
+      // 使用默认样式
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (_bubbleStyle == ChatBubbleStyle.list) {
+      return _buildListLayout(context, theme);
+    } else {
+      return _buildBubbleLayout(context, theme);
+    }
+  }
+
+  /// 构建列表布局（无头像）
+  Widget _buildListLayout(BuildContext context, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 角色标识
+          Text(
+            widget.message.isFromUser ? "用户" : "AI助手",
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // 消息内容
+          _buildMarkdownContent(context, theme, theme.colorScheme.onSurface),
+          const SizedBox(height: 4),
+          _buildActionButtons(context),
+        ],
+      ),
+    );
+  }
+
+  /// 构建气泡布局
+  Widget _buildBubbleLayout(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Column(
-        crossAxisAlignment: message.isFromUser
+        crossAxisAlignment: widget.message.isFromUser
             ? CrossAxisAlignment.end
             : CrossAxisAlignment.start,
         children: [
-          // 使用chat_bubbles库的BubbleNormal组件
-          BubbleNormal(
-            text: message.content,
-            isSender: message.isFromUser,
-            color: message.isFromUser
-                ? theme.colorScheme.primary
-                : theme.colorScheme.surfaceContainerHighest,
-            tail: true,
-            textStyle: TextStyle(
-              color: message.isFromUser
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.onSurface,
-              fontSize: 16,
-            ),
-          ),
+          // 使用自定义的markdown支持气泡组件
+          _buildMarkdownBubble(context, theme),
 
           // 操作按钮显示在气泡下方
           const SizedBox(height: 4),
@@ -71,19 +124,19 @@ class ChatMessageView extends StatelessWidget {
     );
 
     // 编辑按钮 - 仅用户消息显示
-    if (onEdit != null && message.isFromUser) {
+    if (widget.onEdit != null && widget.message.isFromUser) {
       actionButtons.add(
         _buildActionButton(
           context,
           icon: Icons.edit,
-          onPressed: onEdit,
+          onPressed: widget.onEdit,
           tooltip: '编辑',
         ),
       );
     }
 
     // AI消息的额外按钮
-    if (!message.isFromUser) {
+    if (!widget.message.isFromUser) {
       actionButtons.add(
         _buildActionButton(
           context,
@@ -99,7 +152,7 @@ class ChatMessageView extends StatelessWidget {
     }
 
     return Row(
-      mainAxisAlignment: message.isFromUser
+      mainAxisAlignment: widget.message.isFromUser
           ? MainAxisAlignment.end
           : MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -146,7 +199,7 @@ class ChatMessageView extends StatelessWidget {
   }
 
   void _copyToClipboard(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: message.content));
+    Clipboard.setData(ClipboardData(text: widget.message.content));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('消息已复制到剪贴板'),
@@ -163,5 +216,93 @@ class ChatMessageView extends StatelessWidget {
         duration: Duration(seconds: 1),
       ),
     );
+  }
+
+  /// 构建支持markdown的气泡组件
+  Widget _buildMarkdownBubble(BuildContext context, ThemeData theme) {
+    final isFromUser = widget.message.isFromUser;
+    final bubbleColor = isFromUser
+        ? theme.colorScheme.primary
+        : theme.colorScheme.surfaceContainerHighest;
+    final textColor = isFromUser
+        ? theme.colorScheme.onPrimary
+        : theme.colorScheme.onSurface;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.8,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: bubbleColor,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: isFromUser
+                ? const Radius.circular(20)
+                : const Radius.circular(4),
+            bottomRight: isFromUser
+                ? const Radius.circular(4)
+                : const Radius.circular(20),
+          ),
+        ),
+        child: _buildMarkdownContent(context, theme, textColor),
+      ),
+    );
+  }
+
+  /// 构建markdown内容
+  Widget _buildMarkdownContent(
+    BuildContext context,
+    ThemeData theme,
+    Color textColor,
+  ) {
+    // 检查消息内容是否包含markdown语法
+    final hasMarkdown = _hasMarkdownSyntax(widget.message.content);
+
+    if (!hasMarkdown) {
+      // 如果没有markdown语法，直接使用普通文本
+      return Text(
+        widget.message.content,
+        style: TextStyle(color: textColor, fontSize: 16, height: 1.4),
+      );
+    }
+
+    try {
+      // 只有在确实需要时才使用markdown渲染
+      final config = MarkdownConfig(
+        configs: [
+          PConfig(
+            textStyle: TextStyle(color: textColor, fontSize: 16, height: 1.4),
+          ),
+        ],
+      );
+
+      return MarkdownBlock(data: widget.message.content, config: config);
+    } catch (e) {
+      // 如果markdown渲染失败，回退到普通文本
+      return Text(
+        widget.message.content,
+        style: TextStyle(color: textColor, fontSize: 16, height: 1.4),
+      );
+    }
+  }
+
+  /// 检查文本是否包含markdown语法
+  bool _hasMarkdownSyntax(String text) {
+    // 检查常见的markdown语法
+    final markdownPatterns = [
+      RegExp(r'#{1,6}\s'), // 标题
+      RegExp(r'\*\*.*\*\*'), // 粗体
+      RegExp(r'\*.*\*'), // 斜体
+      RegExp(r'`.*`'), // 行内代码
+      RegExp(r'```'), // 代码块
+      RegExp(r'\[.*\]\(.*\)'), // 链接
+      RegExp(r'^[-*+]\s', multiLine: true), // 无序列表
+      RegExp(r'^\d+\.\s', multiLine: true), // 有序列表
+    ];
+
+    return markdownPatterns.any((pattern) => pattern.hasMatch(text));
   }
 }

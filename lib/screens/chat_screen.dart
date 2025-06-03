@@ -63,10 +63,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         String? selectedModelId;
 
         // 1. 确保有选中的助手
-        if (_conversationState.assistantId == null) {
+        if (_conversationState.assistantId == null ||
+            _conversationState.assistantId!.isEmpty) {
           // 优先选择默认助手
           selectedAssistant = assistants
-              .where((a) => a.id == 'default-assistant')
+              .where((a) => a.id == 'default-assistant' && a.isEnabled)
               .firstOrNull;
           // 如果没有默认助手，选择第一个启用的助手
           selectedAssistant ??= assistants
@@ -82,22 +83,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           selectedAssistant = assistants
               .where((a) => a.id == _conversationState.assistantId!)
               .firstOrNull;
+
+          // 如果选中的助手不存在或已被禁用，重新选择
+          if (selectedAssistant == null || !selectedAssistant.isEnabled) {
+            selectedAssistant = assistants
+                .where((a) => a.isEnabled)
+                .firstOrNull;
+            selectedAssistant ??= assistants.firstOrNull;
+            if (selectedAssistant != null) {
+              needsUpdate = true;
+            }
+          }
         }
 
         if (selectedAssistant != null) {
           // 2. 确保有选中的提供商
           if (_conversationState.selectedProviderId.isEmpty) {
-            // 临时修复：助手不再关联提供商，选择第一个可用的提供商
+            // 选择第一个可用的提供商
             selectedProvider = providers.where((p) => p.isEnabled).firstOrNull;
-
-            // 如果助手关联的提供商不可用，选择第一个启用的提供商
-            if (selectedProvider == null || !selectedProvider.isEnabled) {
-              selectedProvider = providers
-                  .where((p) => p.isEnabled)
-                  .firstOrNull;
-              // 如果没有启用的提供商，选择第一个提供商
-              selectedProvider ??= providers.firstOrNull;
-            }
+            selectedProvider ??= providers.firstOrNull;
 
             if (selectedProvider != null) {
               needsUpdate = true;
@@ -106,19 +110,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             selectedProvider = providers
                 .where((p) => p.id == _conversationState.selectedProviderId)
                 .firstOrNull;
+
+            // 如果选中的提供商不存在或已被禁用，重新选择
+            if (selectedProvider == null || !selectedProvider.isEnabled) {
+              selectedProvider = providers
+                  .where((p) => p.isEnabled)
+                  .firstOrNull;
+              selectedProvider ??= providers.firstOrNull;
+              if (selectedProvider != null) {
+                needsUpdate = true;
+              }
+            }
           }
 
           // 3. 确保有选中的模型
-          if (_conversationState.selectedModelId == null &&
-              selectedProvider != null) {
-            // 临时修复：使用提供商的第一个模型
-            if (selectedProvider.models.isNotEmpty) {
-              selectedModelId = selectedProvider.models.first.name;
+          if (selectedProvider != null) {
+            if (_conversationState.selectedModelId == null ||
+                _conversationState.selectedModelId!.isEmpty ||
+                !selectedProvider.models.any(
+                  (m) => m.name == _conversationState.selectedModelId,
+                )) {
+              // 使用提供商的第一个模型
+              if (selectedProvider.models.isNotEmpty) {
+                selectedModelId = selectedProvider.models.first.name;
+                needsUpdate = true;
+              }
+            } else {
+              selectedModelId = _conversationState.selectedModelId;
             }
-
-            needsUpdate = true;
-          } else {
-            selectedModelId = _conversationState.selectedModelId;
           }
         }
 

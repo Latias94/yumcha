@@ -383,6 +383,9 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
               child: ModelListManager(
+                key: ValueKey(
+                  '${_apiKeyController.text.trim()}_${_baseUrlController.text.trim()}_${_selectedType.name}',
+                ),
                 models: _models,
                 onModelsChanged: (models) {
                   setState(() {

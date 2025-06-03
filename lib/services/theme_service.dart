@@ -15,11 +15,13 @@ class ThemeService extends ChangeNotifier {
 
   ColorMode _colorMode = ColorMode.system;
   bool _dynamicColor = true;
+  bool _isDynamicColorAvailable = false;
   ColorScheme? _lightDynamicColorScheme;
   ColorScheme? _darkDynamicColorScheme;
 
   ColorMode get colorMode => _colorMode;
   bool get dynamicColor => _dynamicColor;
+  bool get isDynamicColorAvailable => _isDynamicColorAvailable;
   ColorScheme? get lightDynamicColorScheme => _lightDynamicColorScheme;
   ColorScheme? get darkDynamicColorScheme => _darkDynamicColorScheme;
 
@@ -64,14 +66,24 @@ class ThemeService extends ChangeNotifier {
   }
 
   Future<void> _loadDynamicColors() async {
-    if (_dynamicColor) {
+    try {
       final corePalette = await DynamicColorPlugin.getCorePalette();
-      if (corePalette != null) {
+      _isDynamicColorAvailable = corePalette != null;
+
+      if (_dynamicColor && corePalette != null) {
         _lightDynamicColorScheme = corePalette.toColorScheme();
         _darkDynamicColorScheme = corePalette.toColorScheme(
           brightness: Brightness.dark,
         );
+      } else {
+        _lightDynamicColorScheme = null;
+        _darkDynamicColorScheme = null;
       }
+    } catch (e) {
+      // 如果获取动态颜色失败，标记为不可用
+      _isDynamicColorAvailable = false;
+      _lightDynamicColorScheme = null;
+      _darkDynamicColorScheme = null;
     }
     notifyListeners();
   }
@@ -85,7 +97,12 @@ class ThemeService extends ChangeNotifier {
     }
   }
 
-  Future<void> setDynamicColor(bool enabled) async {
+  Future<bool> setDynamicColor(bool enabled) async {
+    // 如果要启用动态颜色但不可用，返回 false
+    if (enabled && !_isDynamicColorAvailable) {
+      return false;
+    }
+
     if (_dynamicColor != enabled) {
       _dynamicColor = enabled;
       final prefs = await SharedPreferences.getInstance();
@@ -99,6 +116,7 @@ class ThemeService extends ChangeNotifier {
         notifyListeners();
       }
     }
+    return true;
   }
 
   ColorScheme getLightColorScheme() {
