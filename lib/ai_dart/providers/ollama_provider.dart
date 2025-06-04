@@ -504,4 +504,66 @@ class OllamaProvider
       'Ollama does not implement text to speech endpoint yet.',
     );
   }
+
+  @override
+  Future<List<AIModel>> models() async {
+    if (config.baseUrl.isEmpty) {
+      throw const InvalidRequestError('Missing Ollama base URL');
+    }
+
+    try {
+      _logger.fine('Ollama request: GET /api/tags');
+
+      final response = await _dio.get('/api/tags');
+
+      _logger.fine('Ollama HTTP status: ${response.statusCode}');
+
+      if (response.statusCode != 200) {
+        throw ProviderError(
+          'Ollama API returned status ${response.statusCode}: ${response.data}',
+        );
+      }
+
+      final responseData = response.data;
+      if (responseData is! Map<String, dynamic>) {
+        throw ResponseFormatError(
+          'Invalid response format from Ollama API',
+          responseData.toString(),
+        );
+      }
+
+      final modelsData = responseData['models'] as List?;
+      if (modelsData == null) {
+        return [];
+      }
+
+      // Convert Ollama model format to AIModel
+      final models = modelsData
+          .map((modelData) {
+            if (modelData is! Map<String, dynamic>) return null;
+
+            try {
+              return AIModel(
+                id: modelData['name'] as String,
+                description: modelData['details']?['family'] as String?,
+                object: 'model',
+                ownedBy: 'ollama',
+              );
+            } catch (e) {
+              _logger.warning('Failed to parse model: $e');
+              return null;
+            }
+          })
+          .where((model) => model != null)
+          .cast<AIModel>()
+          .toList();
+
+      _logger.fine('Retrieved ${models.length} models from Ollama');
+      return models;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
 }

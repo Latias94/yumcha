@@ -221,15 +221,24 @@ abstract class TextToSpeechProvider {
   Future<List<int>> speech(String text);
 }
 
+/// Trait for providers that support model listing
+abstract class ModelProvider {
+  /// Get available models from the provider
+  ///
+  /// Returns a list of available models or throws an LLMError
+  Future<List<AIModel>> models();
+}
+
 /// Core trait that all LLM providers should implement
-/// Combines chat, completion, embedding, and speech capabilities
+/// Combines chat, completion, embedding, speech, and model capabilities
 abstract class LLMProvider
     implements
         ChatProvider,
         CompletionProvider,
         EmbeddingProvider,
         SpeechToTextProvider,
-        TextToSpeechProvider {
+        TextToSpeechProvider,
+        ModelProvider {
   /// Get available tools for this provider
   List<Tool>? get tools => null;
 }

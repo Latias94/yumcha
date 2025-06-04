@@ -12,7 +12,7 @@ void main() async {
   final llm = await LLMBuilder()
       .backend(LLMBackend.xai) // Use xAI as the LLM provider
       .apiKey(apiKey) // Set the API key
-      .model('grok-2-latest') // Use Grok-2 model
+      .model('grok-3-mini-beta') // Use Grok-3 mini beta model
       .maxTokens(512) // Limit response length
       .temperature(0.7) // Control response randomness (0.0-1.0)
       .stream(false) // Disable streaming responses
@@ -30,6 +30,7 @@ void main() async {
   try {
     // Send chat request and handle the response
     final response = await llm.chat(messages);
+    // print('Chat thinking:\n${response.thinking}');
     print('Chat response:\n${response.text}');
   } catch (e) {
     print('Chat error: $e');

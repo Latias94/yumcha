@@ -226,6 +226,9 @@ class LLMBuilder {
   /// Returns a unified ChatProvider interface that can be used consistently
   /// regardless of the underlying backend provider.
   ///
+  /// Note: Some providers may implement additional interfaces like ModelProvider,
+  /// StreamingChatProvider, etc. Use dynamic casting to access these features.
+  ///
   /// Throws [LLMError] if:
   /// - No backend is specified
   /// - Required configuration like API keys are missing

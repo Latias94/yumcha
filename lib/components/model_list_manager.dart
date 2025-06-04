@@ -3,6 +3,8 @@ import '../models/ai_model.dart';
 import '../models/ai_provider.dart';
 import '../services/notification_service.dart';
 import '../services/ai_request_service.dart';
+import '../services/ai_service.dart';
+import '../services/logger_service.dart';
 import 'model_edit_dialog.dart';
 import 'model_selection_dialog.dart';
 
@@ -25,6 +27,7 @@ class ModelListManager extends StatefulWidget {
 class _ModelListManagerState extends State<ModelListManager> {
   late List<AiModel> _models;
   bool _isLoading = false;
+  final _logger = LoggerService();
 
   @override
   void initState() {
@@ -137,7 +140,31 @@ class _ModelListManagerState extends State<ModelListManager> {
     setState(() => _isLoading = true);
 
     try {
-      // 使用AI请求服务测试提供商连接
+      List<AiModel> availableModels = [];
+
+      // 首先尝试从提供商API获取模型列表
+      try {
+        final aiService = AiService();
+        availableModels = await aiService.fetchModelsFromProvider(
+          currentProvider,
+        );
+
+        if (availableModels.isNotEmpty) {
+          // 成功从API获取模型
+          if (mounted) {
+            _showModelSelectionDialog(availableModels);
+            NotificationService().showSuccess(
+              '从API成功获取 ${availableModels.length} 个模型',
+            );
+          }
+          return;
+        }
+      } catch (e) {
+        // API获取失败，记录错误但继续使用通用模型
+        _logger.warning('从API获取模型失败', {'error': e.toString()});
+      }
+
+      // 如果API获取失败或返回空列表，使用AI请求服务测试连接并使用通用模型
       final aiRequestService = AiRequestService();
       final isConnected = await aiRequestService.testProvider(
         provider: currentProvider,
@@ -147,13 +174,16 @@ class _ModelListManagerState extends State<ModelListManager> {
         throw Exception('无法连接到提供商，请检查API密钥和网络连接');
       }
 
-      // 对于支持的提供商，提供一些常用模型
+      // 使用通用模型作为回退
       final commonModels = _getCommonModelsForProvider(currentProvider.type);
 
       if (commonModels.isNotEmpty) {
         // 显示选择对话框
         if (mounted) {
           _showModelSelectionDialog(commonModels);
+          NotificationService().showInfo(
+            '使用预设模型列表 (${commonModels.length} 个模型)',
+          );
         }
       } else {
         NotificationService().showWarning('该提供商暂无预设模型，请手动添加');

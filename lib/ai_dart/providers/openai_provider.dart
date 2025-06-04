@@ -764,6 +764,69 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     }
   }
 
+  // ModelProvider methods
+  @override
+  Future<List<AIModel>> models() async {
+    if (config.apiKey.isEmpty) {
+      throw const AuthError('Missing OpenAI API key');
+    }
+
+    try {
+      _logger.fine('OpenAI request: GET /models');
+
+      final response = await _dio.get('models');
+
+      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+
+      if (response.statusCode != 200) {
+        throw ProviderError(
+          'OpenAI API returned status ${response.statusCode}: ${response.data}',
+        );
+      }
+
+      final responseData = response.data;
+      if (responseData is! Map<String, dynamic>) {
+        throw ResponseFormatError(
+          'Invalid response format from OpenAI API',
+          responseData.toString(),
+        );
+      }
+
+      final modelsData = responseData['data'] as List?;
+      if (modelsData == null) {
+        return [];
+      }
+
+      // Convert OpenAI model format to AIModel
+      final models = modelsData
+          .map((modelData) {
+            if (modelData is! Map<String, dynamic>) return null;
+
+            try {
+              return AIModel(
+                id: modelData['id'] as String,
+                description: modelData['description'] as String?,
+                object: modelData['object'] as String? ?? 'model',
+                ownedBy: modelData['owned_by'] as String?,
+              );
+            } catch (e) {
+              _logger.warning('Failed to parse model: $e');
+              return null;
+            }
+          })
+          .where((model) => model != null)
+          .cast<AIModel>()
+          .toList();
+
+      _logger.fine('Retrieved ${models.length} models from OpenAI');
+      return models;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
+
   // LLMProvider methods
   @override
   List<Tool>? get tools => config.tools;

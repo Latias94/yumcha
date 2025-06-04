@@ -10,6 +10,8 @@ import 'assistant_repository.dart';
 import '../data/repositories/setting_repository.dart';
 import 'database_service.dart';
 import 'ai_request_service.dart';
+import 'ai_dart_service.dart';
+import '../ai_dart/core/chat_provider.dart';
 
 // 调试信息类
 class DebugInfo {
@@ -582,6 +584,149 @@ class AiService {
       });
       return [];
     }
+  }
+
+  /// 从提供商API获取模型列表（使用AI Dart库）
+  Future<List<AiModel>> fetchModelsFromProvider(AiProvider provider) async {
+    final startTime = DateTime.now();
+
+    try {
+      _logger.info('开始从提供商API获取模型列表', {
+        'provider': provider.name,
+        'type': provider.type.toString(),
+        'baseUrl': provider.baseUrl ?? '默认端点',
+      });
+
+      // 检查提供商是否支持模型列表功能
+      if (!_providerSupportsModelListing(provider.type)) {
+        _logger.warning('提供商不支持模型列表功能', {'provider': provider.name});
+        return [];
+      }
+
+      // 创建一个临时的助手配置用于获取模型
+      final tempAssistant = AiAssistant(
+        id: 'temp-model-fetcher',
+        name: 'Model Fetcher',
+        avatar: '📋',
+        systemPrompt: '',
+        temperature: 0.7,
+        topP: 1.0,
+        maxTokens: 100,
+        contextLength: 1,
+        streamOutput: false,
+        isEnabled: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        description: '临时模型获取助手',
+        customHeaders: {},
+        customBody: {},
+        stopSequences: [],
+        frequencyPenalty: 0.0,
+        presencePenalty: 0.0,
+        enableCodeExecution: false,
+        enableImageGeneration: false,
+        enableTools: false,
+        enableReasoning: false,
+        enableVision: false,
+        enableEmbedding: false,
+      );
+
+      // 使用AI Dart服务创建提供商实例
+      final aiDartService = AiDartService();
+      final chatProvider = await aiDartService.createProvider(
+        provider,
+        tempAssistant,
+        'gpt-3.5-turbo', // 使用默认模型名称
+      );
+
+      // 检查是否支持模型列表功能
+      if (chatProvider is! ModelProvider) {
+        _logger.warning('提供商不支持ModelProvider接口', {'provider': provider.name});
+        return [];
+      }
+
+      final modelProvider = chatProvider as ModelProvider;
+      final aiModels = await modelProvider.models();
+
+      final duration = DateTime.now().difference(startTime);
+
+      // 转换AI Dart模型到应用模型格式
+      final appModels = aiModels.map((aiModel) {
+        return AiModel(
+          id: aiModel.id,
+          name: aiModel.id,
+          displayName: aiModel.description?.isNotEmpty == true
+              ? aiModel.description!
+              : aiModel.id,
+          capabilities: _inferModelCapabilities(aiModel.id),
+          metadata: {
+            'source': 'api',
+            'ownedBy': aiModel.ownedBy ?? 'unknown',
+            'object': aiModel.object,
+          },
+          isEnabled: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      }).toList();
+
+      _logger.info('成功从API获取模型列表', {
+        'provider': provider.name,
+        'count': appModels.length,
+        'duration': '${duration.inMilliseconds}ms',
+      });
+
+      return appModels;
+    } catch (e) {
+      final duration = DateTime.now().difference(startTime);
+      _logger.error('从API获取模型列表失败', {
+        'provider': provider.name,
+        'error': e.toString(),
+        'duration': '${duration.inMilliseconds}ms',
+      });
+      return [];
+    }
+  }
+
+  /// 检查提供商是否支持模型列表功能
+  bool _providerSupportsModelListing(ProviderType type) {
+    switch (type) {
+      case ProviderType.openai:
+      case ProviderType.custom: // OpenAI兼容接口
+        return true;
+      case ProviderType.anthropic:
+      case ProviderType.google:
+      case ProviderType.ollama:
+        return false; // 这些提供商暂不支持或不需要动态获取
+    }
+  }
+
+  /// 根据模型名称推断模型能力
+  List<ModelCapability> _inferModelCapabilities(String modelId) {
+    final capabilities = <ModelCapability>[ModelCapability.reasoning];
+
+    final lowerModelId = modelId.toLowerCase();
+
+    // 视觉能力
+    if (lowerModelId.contains('vision') ||
+        lowerModelId.contains('gpt-4') ||
+        lowerModelId.contains('claude-3')) {
+      capabilities.add(ModelCapability.vision);
+    }
+
+    // 工具调用能力
+    if (lowerModelId.contains('gpt-') ||
+        lowerModelId.contains('claude-') ||
+        lowerModelId.contains('gemini')) {
+      capabilities.add(ModelCapability.tools);
+    }
+
+    // 嵌入能力
+    if (lowerModelId.contains('embedding') || lowerModelId.contains('embed')) {
+      capabilities.add(ModelCapability.embedding);
+    }
+
+    return capabilities;
   }
 
   // === 标题生成功能 ===
