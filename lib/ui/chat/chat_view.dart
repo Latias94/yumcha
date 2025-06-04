@@ -243,12 +243,17 @@ class _ChatViewState extends ConsumerState<ChatView>
     try {
       if (assistant!.streamOutput) {
         await _handleStreamMessage(userMessage, assistant!);
+        // 流式消息的 _isLoading 状态由 _handleStreamMessage 内部管理
       } else {
         await _handleNormalMessage(userMessage, assistant!);
+        // 非流式消息完成后重置加载状态
+        setState(() {
+          _isLoading = false;
+        });
       }
     } catch (e) {
       _handleError(e);
-    } finally {
+      // 发生异常时重置加载状态
       setState(() {
         _isLoading = false;
       });
@@ -289,6 +294,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     setState(() {
       _messages.add(aiMessage);
       _streamingMessage = aiMessage;
+      // 确保在流式响应期间保持加载状态
+      _isLoading = true;
     });
 
     // 注意：这里不调用 _notifyMessagesChanged()，避免保存空的AI消息到数据库
@@ -368,6 +375,7 @@ class _ChatViewState extends ConsumerState<ChatView>
       setState(() {
         _pendingStreamResponse = null;
         _streamingMessage = null;
+        _isLoading = false; // 确保在异常时也重置加载状态
       });
       rethrow;
     }
@@ -483,13 +491,14 @@ class _ChatViewState extends ConsumerState<ChatView>
     // 重新发送消息
     if (assistant!.streamOutput) {
       await _handleStreamMessage(userMessage, assistant!);
+      // 流式消息的 _isLoading 状态由 _handleStreamMessage 内部管理
     } else {
       await _handleNormalMessage(userMessage, assistant!);
+      // 非流式消息完成后重置加载状态
+      setState(() {
+        _isLoading = false;
+      });
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   void _handleError(Object error) {

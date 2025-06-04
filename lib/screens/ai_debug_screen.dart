@@ -4,7 +4,6 @@ import '../services/ai_dart_service.dart';
 import '../models/ai_provider.dart' as models;
 import '../models/ai_assistant.dart';
 import '../models/message.dart';
-import '../ai_dart/core/chat_provider.dart';
 import 'dart:convert';
 
 class AiDebugScreen extends StatefulWidget {
@@ -39,7 +38,6 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
   String _requestBody = '';
   String _responseBody = '';
   final List<String> _streamChunks = [];
-  UsageInfo? _lastUsage;
 
   // 预设配置
   static const Map<String, Map<String, String>> _presets = {
@@ -142,7 +140,6 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
       _requestBody = '';
       _responseBody = '';
       _streamChunks.clear();
-      _lastUsage = null;
     });
 
     // 生成请求体
@@ -229,7 +226,6 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
           _updateDebugInfo('📝 收到块: ${event.delta!.length} 字符\n');
         } else if (event.isCompleted) {
           setState(() {
-            _lastUsage = event.usage;
             _responseBody = jsonEncode({
               'ai_dart_service': true,
               'stream_mode': true,
@@ -268,7 +264,6 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
 
       setState(() {
         _response = response.content ?? '';
-        _lastUsage = response.usage;
         _responseBody = jsonEncode({
           'ai_dart_service': true,
           'stream_mode': false,
@@ -358,7 +353,6 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
                 _requestBody = '';
                 _responseBody = '';
                 _streamChunks.clear();
-                _lastUsage = null;
               });
             },
             tooltip: '清空结果',

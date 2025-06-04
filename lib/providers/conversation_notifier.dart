@@ -449,21 +449,31 @@ class CurrentConversationNotifier
         }
       }
 
-      // 验证提供商和模型信息
-      final validationResult = _validateTitleGenerationRequirements(
-        conversation,
+      // 首先尝试使用默认模型生成标题
+      String? generatedTitle = await _aiService.generateChatTitleWithDefaults(
+        messages: conversation.messages,
       );
-      if (!validationResult.isValid) {
-        _logger.warning('标题生成验证失败: ${validationResult.errorMessage}');
-        return;
-      }
 
-      // 生成标题
-      final generatedTitle = await _generateTitle(
-        validationResult.provider!,
-        validationResult.modelId!,
-        conversation.messages,
-      );
+      // 如果默认模型生成失败，回退到使用当前对话的模型
+      if (generatedTitle == null) {
+        _logger.info('默认模型生成标题失败，回退到当前对话模型');
+
+        // 验证提供商和模型信息
+        final validationResult = _validateTitleGenerationRequirements(
+          conversation,
+        );
+        if (!validationResult.isValid) {
+          _logger.warning('标题生成验证失败: ${validationResult.errorMessage}');
+          return;
+        }
+
+        // 使用当前对话的模型生成标题
+        generatedTitle = await _generateTitle(
+          validationResult.provider!,
+          validationResult.modelId!,
+          conversation.messages,
+        );
+      }
 
       if (generatedTitle != null && generatedTitle.isNotEmpty) {
         await _updateConversationTitle(

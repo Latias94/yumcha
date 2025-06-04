@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -137,11 +138,22 @@ class OllamaChatResponse implements ChatResponse {
 }
 
 /// Ollama provider implementation
-class OllamaProvider implements StreamingChatProvider {
+class OllamaProvider
+    implements
+        StreamingChatProvider,
+        CompletionProvider,
+        EmbeddingProvider,
+        SpeechToTextProvider,
+        TextToSpeechProvider,
+        LLMProvider {
   final OllamaConfig config;
   final Dio _dio;
+  static final Logger _logger = Logger('OllamaProvider');
 
   OllamaProvider(this.config) : _dio = _createDio(config);
+
+  @override
+  List<Tool>? get tools => config.tools;
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -195,7 +207,11 @@ class OllamaProvider implements StreamingChatProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
 
+      _logger.fine('Ollama request payload: ${jsonEncode(requestBody)}');
+
       final response = await _dio.post('/api/chat', data: requestBody);
+
+      _logger.fine('Ollama HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -224,11 +240,17 @@ class OllamaProvider implements StreamingChatProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, true);
 
+      _logger.fine(
+        'Ollama streaming request payload: ${jsonEncode(requestBody)}',
+      );
+
       final response = await _dio.post(
         '/api/chat',
         data: requestBody,
         options: Options(responseType: ResponseType.stream),
       );
+
+      _logger.fine('Ollama streaming HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         yield ErrorEvent(
@@ -285,9 +307,8 @@ class OllamaProvider implements StreamingChatProvider {
       'stream': stream,
     };
 
-    // Add options if needed
+    // Add options if needed (excluding temperature as Ollama handles it differently)
     final options = <String, dynamic>{};
-    if (config.temperature != null) options['temperature'] = config.temperature;
     if (config.topP != null) options['top_p'] = config.topP;
     if (config.topK != null) options['top_k'] = config.topK;
 
@@ -296,6 +317,7 @@ class OllamaProvider implements StreamingChatProvider {
     }
 
     // Add structured output format if configured
+    // Ollama doesn't require the "name" field in the schema, so we just use the schema itself
     if (config.jsonSchema?.schema != null) {
       body['format'] = config.jsonSchema!.schema;
     }
@@ -319,12 +341,22 @@ class OllamaProvider implements StreamingChatProvider {
   }
 
   Map<String, dynamic> _convertTool(Tool tool) {
+    // Convert properties to proper JSON format for Ollama
+    final propertiesJson = <String, dynamic>{};
+    for (final entry in tool.function.parameters.properties.entries) {
+      propertiesJson[entry.key] = entry.value.toJson();
+    }
+
     return {
       'type': 'function',
       'function': {
         'name': tool.function.name,
         'description': tool.function.description,
-        'parameters': tool.function.parameters.toJson(),
+        'parameters': {
+          'type': tool.function.parameters.schemaType,
+          'properties': propertiesJson,
+          'required': tool.function.parameters.required,
+        },
       },
     };
   }
@@ -371,5 +403,105 @@ class OllamaProvider implements StreamingChatProvider {
       default:
         return HttpError('Network error: ${e.message}');
     }
+  }
+
+  @override
+  Future<CompletionResponse> complete(CompletionRequest request) async {
+    if (config.baseUrl.isEmpty) {
+      throw const InvalidRequestError('Missing Ollama base URL');
+    }
+
+    try {
+      final requestBody = {
+        'model': config.model,
+        'prompt': request.prompt,
+        'raw': true,
+        'stream': false,
+      };
+
+      _logger.fine('Ollama completion request: ${jsonEncode(requestBody)}');
+
+      final response = await _dio.post('/api/generate', data: requestBody);
+
+      _logger.fine('Ollama completion HTTP status: ${response.statusCode}');
+
+      if (response.statusCode != 200) {
+        throw ProviderError(
+          'Ollama API returned status ${response.statusCode}: ${response.data}',
+        );
+      }
+
+      final responseData = response.data as Map<String, dynamic>;
+      final text =
+          responseData['response'] as String? ??
+          responseData['content'] as String?;
+
+      if (text == null || text.isEmpty) {
+        throw const ProviderError('No answer returned by Ollama');
+      }
+
+      return CompletionResponse(text: text);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
+
+  @override
+  Future<List<List<double>>> embed(List<String> input) async {
+    if (config.baseUrl.isEmpty) {
+      throw const InvalidRequestError('Missing Ollama base URL');
+    }
+
+    try {
+      final requestBody = {'model': config.model, 'input': input};
+
+      _logger.fine('Ollama embedding request: ${jsonEncode(requestBody)}');
+
+      final response = await _dio.post('/api/embed', data: requestBody);
+
+      _logger.fine('Ollama embedding HTTP status: ${response.statusCode}');
+
+      if (response.statusCode != 200) {
+        throw ProviderError(
+          'Ollama API returned status ${response.statusCode}: ${response.data}',
+        );
+      }
+
+      final responseData = response.data as Map<String, dynamic>;
+      final embeddings = responseData['embeddings'] as List?;
+
+      if (embeddings == null) {
+        throw const ProviderError('No embeddings returned by Ollama');
+      }
+
+      return embeddings.map((e) => List<double>.from(e as List)).toList();
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
+
+  @override
+  Future<String> transcribe(List<int> audio) async {
+    throw const ProviderError(
+      'Ollama does not implement speech to text endpoint yet.',
+    );
+  }
+
+  @override
+  Future<String> transcribeFile(String filePath) async {
+    throw const ProviderError(
+      'Ollama does not implement speech to text endpoint yet.',
+    );
+  }
+
+  @override
+  Future<List<int>> speech(String text) async {
+    throw const ProviderError(
+      'Ollama does not implement text to speech endpoint yet.',
+    );
   }
 }

@@ -1,11 +1,62 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+
+/// Search source configuration for search parameters
+class SearchSource {
+  /// Type of source: "web" or "news"
+  final String sourceType;
+
+  /// List of websites to exclude from this source
+  final List<String>? excludedWebsites;
+
+  const SearchSource({required this.sourceType, this.excludedWebsites});
+
+  Map<String, dynamic> toJson() => {
+    'type': sourceType,
+    if (excludedWebsites != null) 'excluded_websites': excludedWebsites,
+  };
+}
+
+/// Search parameters for LLM providers that support search functionality
+class SearchParameters {
+  /// Search mode (e.g., "auto")
+  final String? mode;
+
+  /// List of search sources with exclusions
+  final List<SearchSource>? sources;
+
+  /// Maximum number of search results to return
+  final int? maxSearchResults;
+
+  /// Start date for search results (format: "YYYY-MM-DD")
+  final String? fromDate;
+
+  /// End date for search results (format: "YYYY-MM-DD")
+  final String? toDate;
+
+  const SearchParameters({
+    this.mode,
+    this.sources,
+    this.maxSearchResults,
+    this.fromDate,
+    this.toDate,
+  });
+
+  Map<String, dynamic> toJson() => {
+    if (mode != null) 'mode': mode,
+    if (sources != null) 'sources': sources!.map((s) => s.toJson()).toList(),
+    if (maxSearchResults != null) 'max_search_results': maxSearchResults,
+    if (fromDate != null) 'from_date': fromDate,
+    if (toDate != null) 'to_date': toDate,
+  };
+}
 
 /// xAI provider configuration
 class XAIConfig {
@@ -22,6 +73,9 @@ class XAIConfig {
   final List<Tool>? tools;
   final ToolChoice? toolChoice;
   final StructuredOutputFormat? jsonSchema;
+  final String? embeddingEncodingFormat;
+  final int? embeddingDimensions;
+  final SearchParameters? searchParameters;
 
   const XAIConfig({
     required this.apiKey,
@@ -37,6 +91,9 @@ class XAIConfig {
     this.tools,
     this.toolChoice,
     this.jsonSchema,
+    this.embeddingEncodingFormat,
+    this.embeddingDimensions,
+    this.searchParameters,
   });
 
   XAIConfig copyWith({
@@ -53,6 +110,9 @@ class XAIConfig {
     List<Tool>? tools,
     ToolChoice? toolChoice,
     StructuredOutputFormat? jsonSchema,
+    String? embeddingEncodingFormat,
+    int? embeddingDimensions,
+    SearchParameters? searchParameters,
   }) => XAIConfig(
     apiKey: apiKey ?? this.apiKey,
     baseUrl: baseUrl ?? this.baseUrl,
@@ -67,6 +127,10 @@ class XAIConfig {
     tools: tools ?? this.tools,
     toolChoice: toolChoice ?? this.toolChoice,
     jsonSchema: jsonSchema ?? this.jsonSchema,
+    embeddingEncodingFormat:
+        embeddingEncodingFormat ?? this.embeddingEncodingFormat,
+    embeddingDimensions: embeddingDimensions ?? this.embeddingDimensions,
+    searchParameters: searchParameters ?? this.searchParameters,
   );
 }
 
@@ -87,17 +151,8 @@ class XAIChatResponse implements ChatResponse {
 
   @override
   List<ToolCall>? get toolCalls {
-    final choices = _rawResponse['choices'] as List?;
-    if (choices == null || choices.isEmpty) return null;
-
-    final message = choices.first['message'] as Map<String, dynamic>?;
-    final toolCalls = message?['tool_calls'] as List?;
-
-    if (toolCalls == null) return null;
-
-    return toolCalls
-        .map((tc) => ToolCall.fromJson(tc as Map<String, dynamic>))
-        .toList();
+    // XAI doesn't support tool calls yet
+    return null;
   }
 
   @override
@@ -128,10 +183,43 @@ class XAIChatResponse implements ChatResponse {
   }
 }
 
+/// Embedding data from xAI API
+class XAIEmbeddingData {
+  final List<double> embedding;
+
+  XAIEmbeddingData(this.embedding);
+
+  factory XAIEmbeddingData.fromJson(Map<String, dynamic> json) {
+    final embeddingList = json['embedding'] as List;
+    return XAIEmbeddingData(
+      embeddingList.map((e) => (e as num).toDouble()).toList(),
+    );
+  }
+}
+
+/// Embedding response from xAI API
+class XAIEmbeddingResponse {
+  final List<XAIEmbeddingData> data;
+
+  XAIEmbeddingResponse(this.data);
+
+  factory XAIEmbeddingResponse.fromJson(Map<String, dynamic> json) {
+    final dataList = json['data'] as List;
+    return XAIEmbeddingResponse(
+      dataList
+          .map(
+            (item) => XAIEmbeddingData.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+}
+
 /// xAI provider implementation
 class XAIProvider implements StreamingChatProvider {
   final XAIConfig config;
   final Dio _dio;
+  final Logger _logger = Logger('XAIProvider');
 
   XAIProvider(this.config) : _dio = _createDio(config);
 
@@ -177,6 +265,7 @@ class XAIProvider implements StreamingChatProvider {
     List<ChatMessage> messages,
     List<Tool>? tools,
   ) async {
+    // Note: XAI doesn't support tools yet, but we include them for API compatibility
     if (config.apiKey.isEmpty) {
       throw const AuthError('Missing xAI API key');
     }
@@ -184,7 +273,12 @@ class XAIProvider implements StreamingChatProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
 
+      // Debug logging for request payload
+      _logger.finest('xAI request payload: ${jsonEncode(requestBody)}');
+
       final response = await _dio.post('chat/completions', data: requestBody);
+
+      _logger.fine('xAI HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -285,7 +379,7 @@ class XAIProvider implements StreamingChatProvider {
     if (config.topP != null) body['top_p'] = config.topP;
     if (config.topK != null) body['top_k'] = config.topK;
 
-    // Add tools if provided
+    // Add tools if provided (Note: XAI doesn't support tools yet, but keeping for compatibility)
     final effectiveTools = tools ?? config.tools;
     if (effectiveTools != null && effectiveTools.isNotEmpty) {
       body['tools'] = effectiveTools.map((t) => t.toJson()).toList();
@@ -302,6 +396,11 @@ class XAIProvider implements StreamingChatProvider {
         'type': 'json_schema',
         'json_schema': config.jsonSchema!.toJson(),
       };
+    }
+
+    // Add search parameters if configured
+    if (config.searchParameters != null) {
+      body['search_parameters'] = config.searchParameters!.toJson();
     }
 
     return body;
@@ -341,12 +440,7 @@ class XAIProvider implements StreamingChatProvider {
       return TextDeltaEvent(content);
     }
 
-    final toolCalls = delta['tool_calls'] as List?;
-    if (toolCalls != null && toolCalls.isNotEmpty) {
-      final toolCall = toolCalls.first as Map<String, dynamic>;
-      return ToolCallDeltaEvent(ToolCall.fromJson(toolCall));
-    }
-
+    // XAI doesn't support tool calls yet, so we don't parse them
     return null;
   }
 
@@ -372,6 +466,45 @@ class XAIProvider implements StreamingChatProvider {
         return HttpError('Connection error: ${e.message}');
       default:
         return HttpError('Network error: ${e.message}');
+    }
+  }
+
+  /// Generate embeddings for the given texts using xAI's embedding API
+  Future<List<List<double>>> embed(List<String> texts) async {
+    if (config.apiKey.isEmpty) {
+      throw const AuthError('Missing xAI API key');
+    }
+
+    try {
+      final embeddingFormat = config.embeddingEncodingFormat ?? 'float';
+
+      final requestBody = <String, dynamic>{
+        'model': config.model,
+        'input': texts,
+        'encoding_format': embeddingFormat,
+      };
+
+      if (config.embeddingDimensions != null) {
+        requestBody['dimensions'] = config.embeddingDimensions;
+      }
+
+      final response = await _dio.post('embeddings', data: requestBody);
+
+      if (response.statusCode != 200) {
+        throw ProviderError(
+          'xAI API returned status ${response.statusCode}: ${response.data}',
+        );
+      }
+
+      final embeddingResponse = XAIEmbeddingResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+
+      return embeddingResponse.data.map((d) => d.embedding).toList();
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
     }
   }
 }

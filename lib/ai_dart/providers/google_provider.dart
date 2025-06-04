@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -160,6 +161,7 @@ class GoogleChatResponse implements ChatResponse {
 class GoogleProvider implements StreamingChatProvider {
   final GoogleConfig config;
   final Dio _dio;
+  static final Logger _logger = Logger('GoogleProvider');
 
   GoogleProvider(this.config) : _dio = _createDio(config);
 
@@ -208,6 +210,12 @@ class GoogleProvider implements StreamingChatProvider {
 
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
+
+      // Debug logging for request payload
+      _logger.finest(
+        'Google Gemini request payload: ${jsonEncode(requestBody)}',
+      );
+
       final endpoint = config.stream
           ? 'models/${config.model}:streamGenerateContent'
           : 'models/${config.model}:generateContent';
@@ -223,7 +231,15 @@ class GoogleProvider implements StreamingChatProvider {
         );
       }
 
-      return GoogleChatResponse(response.data as Map<String, dynamic>);
+      final responseData = response.data;
+      if (responseData is! Map<String, dynamic>) {
+        throw ResponseFormatError(
+          'Invalid response format from Google API',
+          responseData.toString(),
+        );
+      }
+
+      return GoogleChatResponse(responseData);
     } on DioException catch (e) {
       throw _handleDioError(e);
     } catch (e) {
@@ -326,11 +342,14 @@ class GoogleProvider implements StreamingChatProvider {
     }
 
     // Add structured output if configured
-    if (config.jsonSchema != null) {
+    if (config.jsonSchema != null && config.jsonSchema!.schema != null) {
       generationConfig['responseMimeType'] = 'application/json';
-      if (config.jsonSchema!.schema != null) {
-        generationConfig['responseSchema'] = config.jsonSchema!.schema;
-      }
+
+      // Remove additionalProperties if present (Google API doesn't support it)
+      final schema = Map<String, dynamic>.from(config.jsonSchema!.schema!);
+      schema.remove('additionalProperties');
+
+      generationConfig['responseSchema'] = schema;
     }
 
     if (generationConfig.isNotEmpty) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -174,6 +175,7 @@ class AnthropicChatResponse implements ChatResponse {
 class AnthropicProvider implements StreamingChatProvider {
   final AnthropicConfig config;
   final Dio _dio;
+  final Logger _logger = Logger('AnthropicProvider');
 
   AnthropicProvider(this.config) : _dio = _createDio(config);
 
@@ -227,7 +229,16 @@ class AnthropicProvider implements StreamingChatProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
 
+      // Log request payload at trace level
+      if (_logger.level <= Level.FINEST) {
+        _logger.finest('Anthropic request payload: ${jsonEncode(requestBody)}');
+      }
+
+      _logger.fine('Anthropic request: POST /v1/messages');
+
       final response = await _dio.post('messages', data: requestBody);
+
+      _logger.fine('Anthropic HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -256,11 +267,22 @@ class AnthropicProvider implements StreamingChatProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, true);
 
+      // Log request payload at trace level
+      if (_logger.level <= Level.FINEST) {
+        _logger.finest(
+          'Anthropic stream request payload: ${jsonEncode(requestBody)}',
+        );
+      }
+
+      _logger.fine('Anthropic stream request: POST /v1/messages');
+
       final response = await _dio.post(
         'messages',
         data: requestBody,
         options: Options(responseType: ResponseType.stream),
       );
+
+      _logger.fine('Anthropic stream HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         yield ErrorEvent(
@@ -276,25 +298,35 @@ class AnthropicProvider implements StreamingChatProvider {
           if (line.startsWith('data: ')) {
             final data = line.substring(6).trim();
             if (data == '[DONE]') {
+              _logger.finer('Anthropic stream completed with [DONE]');
               return;
             }
 
             try {
               final json = jsonDecode(data) as Map<String, dynamic>;
+
+              // Log stream events at finest level
+              if (_logger.level <= Level.FINEST) {
+                _logger.finest('Anthropic stream event: ${jsonEncode(json)}');
+              }
+
               final event = _parseStreamEvent(json);
               if (event != null) {
                 yield event;
               }
             } catch (e) {
-              // Skip malformed JSON chunks
+              // Log malformed JSON but continue processing
+              _logger.warning('Failed to parse stream JSON: $data, error: $e');
               continue;
             }
           }
         }
       }
     } on DioException catch (e) {
+      _logger.severe('Anthropic stream DioException: ${e.message}');
       yield ErrorEvent(_handleDioError(e));
     } catch (e) {
+      _logger.severe('Anthropic stream unexpected error: $e');
       yield ErrorEvent(GenericError('Unexpected error: $e'));
     }
   }
@@ -305,13 +337,15 @@ class AnthropicProvider implements StreamingChatProvider {
     bool stream,
   ) {
     final anthropicMessages = <Map<String, dynamic>>[];
+    final systemMessages = <String>[];
 
-    // Convert messages to Anthropic format
+    // Extract system messages and convert other messages to Anthropic format
     for (final message in messages) {
-      // Skip system messages as they are handled separately
-      if (message.role == ChatRole.system) continue;
-
-      anthropicMessages.add(_convertMessage(message));
+      if (message.role == ChatRole.system) {
+        systemMessages.add(message.content);
+      } else {
+        anthropicMessages.add(_convertMessage(message));
+      }
     }
 
     final body = <String, dynamic>{
@@ -321,9 +355,15 @@ class AnthropicProvider implements StreamingChatProvider {
       'stream': stream,
     };
 
-    // Add system prompt if configured
+    // Add system prompt - combine config system prompt with message system prompts
+    final allSystemPrompts = <String>[];
     if (config.systemPrompt != null) {
-      body['system'] = config.systemPrompt;
+      allSystemPrompts.add(config.systemPrompt!);
+    }
+    allSystemPrompts.addAll(systemMessages);
+
+    if (allSystemPrompts.isNotEmpty) {
+      body['system'] = allSystemPrompts.join('\n\n');
     }
 
     // Add optional parameters
@@ -371,9 +411,12 @@ class AnthropicProvider implements StreamingChatProvider {
         });
         break;
       case ImageUrlMessage(url: final url):
+        // Note: Anthropic doesn't support image URLs directly like OpenAI
+        // This would need to be downloaded and converted to base64
+        // For now, we'll add a text message indicating this limitation
         content.add({
-          'type': 'image_url',
-          'image_url': {'url': url},
+          'type': 'text',
+          'text': '[Image URL not supported by Anthropic: $url]',
         });
         break;
       case ToolUseMessage(toolCalls: final toolCalls):
@@ -427,6 +470,18 @@ class AnthropicProvider implements StreamingChatProvider {
     final type = json['type'] as String?;
 
     switch (type) {
+      case 'message_start':
+        // Message started - could emit a start event if needed
+        break;
+      case 'content_block_start':
+        final contentBlock = json['content_block'] as Map<String, dynamic>?;
+        if (contentBlock != null) {
+          final blockType = contentBlock['type'] as String?;
+          if (blockType == 'tool_use') {
+            // Tool use started - could emit tool use start event if needed
+          }
+        }
+        break;
       case 'content_block_delta':
         final delta = json['delta'] as Map<String, dynamic>?;
         if (delta != null) {
@@ -434,7 +489,15 @@ class AnthropicProvider implements StreamingChatProvider {
           if (text != null) {
             return TextDeltaEvent(text);
           }
+          // Handle tool use input delta if needed
+          final partialJson = delta['partial_json'] as String?;
+          if (partialJson != null) {
+            // Could emit tool use delta event if needed
+          }
         }
+        break;
+      case 'content_block_stop':
+        // Content block completed
         break;
       case 'message_delta':
         final delta = json['delta'] as Map<String, dynamic>?;
@@ -448,20 +511,36 @@ class AnthropicProvider implements StreamingChatProvider {
           return CompletionEvent(response);
         }
         break;
+      case 'message_stop':
+        // Message fully completed
+        break;
+      case 'error':
+        final error = json['error'] as Map<String, dynamic>?;
+        if (error != null) {
+          final message = error['message'] as String? ?? 'Unknown error';
+          return ErrorEvent(ProviderError('Anthropic API error: $message'));
+        }
+        break;
     }
 
     return null;
   }
 
   LLMError _handleDioError(DioException e) {
+    _logger.warning('Anthropic DioException: ${e.type}, message: ${e.message}');
+
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return HttpError('Request timeout: ${e.message}');
+        final error = HttpError('Request timeout: ${e.message}');
+        _logger.warning('Anthropic timeout error: ${error.message}');
+        return error;
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode;
         final data = e.response?.data;
+        _logger.warning('Anthropic bad response: $statusCode, data: $data');
+
         if (statusCode == 401) {
           return const AuthError('Invalid Anthropic API key');
         } else if (statusCode == 429) {
@@ -470,11 +549,16 @@ class AnthropicProvider implements StreamingChatProvider {
           return ProviderError('HTTP $statusCode: $data');
         }
       case DioExceptionType.cancel:
+        _logger.info('Anthropic request was cancelled');
         return const GenericError('Request was cancelled');
       case DioExceptionType.connectionError:
-        return HttpError('Connection error: ${e.message}');
+        final error = HttpError('Connection error: ${e.message}');
+        _logger.warning('Anthropic connection error: ${error.message}');
+        return error;
       default:
-        return HttpError('Network error: ${e.message}');
+        final error = HttpError('Network error: ${e.message}');
+        _logger.warning('Anthropic network error: ${error.message}');
+        return error;
     }
   }
 }

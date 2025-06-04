@@ -7,6 +7,7 @@ import 'notification_service.dart';
 import 'logger_service.dart';
 import 'provider_repository.dart';
 import 'assistant_repository.dart';
+import '../data/repositories/setting_repository.dart';
 import 'database_service.dart';
 import 'ai_request_service.dart';
 
@@ -584,6 +585,60 @@ class AiService {
   }
 
   // === 标题生成功能 ===
+
+  /// 使用默认模型生成聊天标题
+  Future<String?> generateChatTitleWithDefaults({
+    required List<Message> messages,
+    String? customPrompt,
+  }) async {
+    try {
+      // 获取设置仓库
+      final settingRepository = SettingRepository(
+        DatabaseService.instance.database,
+      );
+
+      // 获取默认标题生成模型配置
+      final defaultConfig = await settingRepository.getDefaultTitleModel();
+
+      if (defaultConfig?.isConfigured != true) {
+        _logger.warning('未配置默认标题生成模型，跳过自动生成');
+        return null;
+      }
+
+      // 获取提供商信息
+      final providerRepository = ProviderRepository(
+        DatabaseService.instance.database,
+      );
+      final provider = await providerRepository.getProvider(
+        defaultConfig!.providerId!,
+      );
+
+      if (provider == null) {
+        _logger.error('默认标题生成模型的提供商不存在', {
+          'providerId': defaultConfig.providerId,
+        });
+        return null;
+      }
+
+      if (!provider.isEnabled) {
+        _logger.warning('默认标题生成模型的提供商已禁用', {
+          'providerId': defaultConfig.providerId,
+        });
+        return null;
+      }
+
+      // 使用默认配置生成标题
+      return await generateChatTitle(
+        provider: provider,
+        modelName: defaultConfig.modelName!,
+        messages: messages,
+        customPrompt: customPrompt,
+      );
+    } catch (e) {
+      _logger.error('使用默认模型生成标题失败', {'error': e.toString()});
+      return null;
+    }
+  }
 
   /// 生成聊天标题（使用 ai_dart 库）
   Future<String?> generateChatTitle({

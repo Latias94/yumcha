@@ -131,14 +131,35 @@ class Messages extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+// 设置表
+@DataClassName('SettingData')
+class Settings extends Table {
+  TextColumn get key => text()(); // 设置键名
+  TextColumn get value => text()(); // 设置值（JSON字符串）
+  TextColumn get type => text()(); // 值类型：string, bool, int, double, json
+  TextColumn get description => text().nullable()(); // 设置描述
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 @DriftDatabase(
-  tables: [Providers, Assistants, Conversations, Messages, FavoriteModels],
+  tables: [
+    Providers,
+    Assistants,
+    Conversations,
+    Messages,
+    FavoriteModels,
+    Settings,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -175,13 +196,16 @@ class AppDatabase extends _$AppDatabase {
 
   /// 执行数据库迁移
   Future<void> _performMigration(Migrator m, int from, int to) async {
-    // 目前版本为1，暂无迁移需求
-    // 未来版本升级时在此处添加迁移逻辑
+    // 版本1到版本2：添加设置表
+    if (from < 2) {
+      await m.createTable(settings);
+      // 为设置表创建索引
+      await m.database.customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);',
+      );
+    }
 
-    // 示例迁移代码：
-    // if (from < 2) {
-    //   await m.addColumn(providers, providers.newColumn);
-    // }
+    // 未来版本升级时在此处添加迁移逻辑
     // if (from < 3) {
     //   await m.createTable(newTable);
     // }

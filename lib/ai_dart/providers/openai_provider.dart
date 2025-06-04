@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -149,6 +150,7 @@ class OpenAIChatResponse implements ChatResponse {
 class OpenAIProvider implements StreamingChatProvider, LLMProvider {
   final OpenAIConfig config;
   final Dio _dio;
+  static final Logger _logger = Logger('OpenAIProvider');
 
   OpenAIProvider(this.config) : _dio = _createDio(config);
 
@@ -180,7 +182,23 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
 
-      final response = await _dio.post('chat/completions', data: requestBody);
+      // Trace logging for request payload (similar to Rust implementation)
+      if (_logger.isLoggable(Level.FINEST)) {
+        _logger.finest('OpenAI request payload: ${jsonEncode(requestBody)}');
+      }
+
+      _logger.fine('OpenAI request: POST /chat/completions');
+
+      var request = _dio.post('chat/completions', data: requestBody);
+
+      // Add explicit timeout if configured (similar to Rust implementation)
+      if (config.timeout != null && config.timeout!.inSeconds > 0) {
+        request = request.timeout(config.timeout!);
+      }
+
+      final response = await request;
+
+      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -188,7 +206,15 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         );
       }
 
-      return OpenAIChatResponse(response.data as Map<String, dynamic>);
+      final responseData = response.data;
+      if (responseData is! Map<String, dynamic>) {
+        throw ResponseFormatError(
+          'Invalid response format from OpenAI API',
+          responseData.toString(),
+        );
+      }
+
+      return OpenAIChatResponse(responseData);
     } on DioException catch (e) {
       throw _handleDioError(e);
     } catch (e) {
@@ -226,10 +252,15 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
       await for (final chunk in stream.stream.map(utf8.decode)) {
         final lines = chunk.split('\n');
         for (final line in lines) {
-          if (line.startsWith('data: ')) {
-            final data = line.substring(6).trim();
+          final trimmedLine = line.trim();
+          if (trimmedLine.startsWith('data: ')) {
+            final data = trimmedLine.substring(6).trim();
             if (data == '[DONE]') {
               return;
+            }
+
+            if (data.isEmpty) {
+              continue;
             }
 
             try {
@@ -273,7 +304,9 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
           apiMessages.add({
             'role': 'tool',
             'tool_call_id': result.id,
-            'content': result.function.arguments,
+            'content': result.function.arguments.isNotEmpty
+                ? result.function.arguments
+                : message.content,
           });
         }
       } else {
@@ -342,6 +375,16 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
       case TextMessage():
         result['content'] = message.content;
         break;
+      case ImageMessage(mime: final mime, data: final data):
+        // Handle base64 encoded images
+        final base64Data = base64Encode(data);
+        result['content'] = [
+          {
+            'type': 'image_url',
+            'image_url': {'url': 'data:${mime.mimeType};base64,$base64Data'},
+          },
+        ];
+        break;
       case ImageUrlMessage(url: final url):
         result['content'] = [
           {
@@ -373,18 +416,43 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     final choices = json['choices'] as List?;
     if (choices == null || choices.isEmpty) return null;
 
-    final delta = choices.first['delta'] as Map<String, dynamic>?;
+    final choice = choices.first as Map<String, dynamic>;
+    final delta = choice['delta'] as Map<String, dynamic>?;
     if (delta == null) return null;
 
     final content = delta['content'] as String?;
-    if (content != null) {
+    if (content != null && content.isNotEmpty) {
       return TextDeltaEvent(content);
     }
 
     final toolCalls = delta['tool_calls'] as List?;
     if (toolCalls != null && toolCalls.isNotEmpty) {
       final toolCall = toolCalls.first as Map<String, dynamic>;
-      return ToolCallDeltaEvent(ToolCall.fromJson(toolCall));
+      // Only create tool call delta if we have sufficient data
+      if (toolCall.containsKey('id') && toolCall.containsKey('function')) {
+        try {
+          return ToolCallDeltaEvent(ToolCall.fromJson(toolCall));
+        } catch (e) {
+          // Skip malformed tool calls
+          return null;
+        }
+      }
+    }
+
+    // Check for finish reason (similar to Anthropic implementation)
+    final finishReason = choice['finish_reason'] as String?;
+    if (finishReason != null) {
+      // Create completion event with usage info if available
+      final usage = json['usage'] as Map<String, dynamic>?;
+      final response = OpenAIChatResponse({
+        'choices': [
+          {
+            'message': {'content': '', 'role': 'assistant'},
+          },
+        ],
+        if (usage != null) 'usage': usage,
+      });
+      return CompletionEvent(response);
     }
 
     return null;
@@ -400,7 +468,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         final statusCode = e.response?.statusCode;
         final data = e.response?.data;
         if (statusCode == 401) {
-          return const AuthError('Invalid API key');
+          return const AuthError('Invalid OpenAI API key');
         } else if (statusCode == 429) {
           return const ProviderError('Rate limit exceeded');
         } else {
@@ -463,7 +531,11 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
           'dimensions': config.embeddingDimensions,
       };
 
+      _logger.fine('OpenAI request: POST /embeddings');
+
       final response = await _dio.post('embeddings', data: requestBody);
+
+      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -498,7 +570,11 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         'file': MultipartFile.fromBytes(audio, filename: 'audio.m4a'),
       });
 
+      _logger.fine('OpenAI request: POST /audio/transcriptions');
+
       final response = await _dio.post('audio/transcriptions', data: formData);
+
+      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -527,7 +603,11 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         'file': await MultipartFile.fromFile(filePath),
       });
 
+      _logger.fine('OpenAI request: POST /audio/transcriptions (file)');
+
       final response = await _dio.post('audio/transcriptions', data: formData);
+
+      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -557,11 +637,15 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         'voice': config.voice ?? 'alloy',
       };
 
+      _logger.fine('OpenAI request: POST /audio/speech');
+
       final response = await _dio.post(
         'audio/speech',
         data: requestBody,
         options: Options(responseType: ResponseType.bytes),
       );
+
+      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -128,6 +129,7 @@ class GroqChatResponse implements ChatResponse {
 class GroqProvider implements StreamingChatProvider {
   final GroqConfig config;
   final Dio _dio;
+  static final Logger _logger = Logger('GroqProvider');
 
   GroqProvider(this.config) : _dio = _createDio(config);
 
@@ -180,7 +182,21 @@ class GroqProvider implements StreamingChatProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
 
-      final response = await _dio.post('chat/completions', data: requestBody);
+      // Trace logging for request payload (similar to Rust implementation)
+      if (_logger.isLoggable(Level.FINEST)) {
+        _logger.finest('Groq request payload: ${jsonEncode(requestBody)}');
+      }
+
+      var request = _dio.post('chat/completions', data: requestBody);
+
+      // Add explicit timeout if configured (similar to Rust implementation)
+      if (config.timeout != null && config.timeout!.inSeconds > 0) {
+        request = request.timeout(config.timeout!);
+      }
+
+      final response = await request;
+
+      _logger.fine('Groq HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -209,11 +225,27 @@ class GroqProvider implements StreamingChatProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, true);
 
-      final response = await _dio.post(
+      // Trace logging for request payload (similar to Rust implementation)
+      if (_logger.isLoggable(Level.FINEST)) {
+        _logger.finest(
+          'Groq stream request payload: ${jsonEncode(requestBody)}',
+        );
+      }
+
+      var request = _dio.post(
         'chat/completions',
         data: requestBody,
         options: Options(responseType: ResponseType.stream),
       );
+
+      // Add explicit timeout if configured (similar to Rust implementation)
+      if (config.timeout != null && config.timeout!.inSeconds > 0) {
+        request = request.timeout(config.timeout!);
+      }
+
+      final response = await request;
+
+      _logger.fine('Groq stream HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         yield ErrorEvent(

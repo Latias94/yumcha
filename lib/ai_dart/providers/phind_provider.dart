@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -24,7 +25,7 @@ class PhindConfig {
 
   const PhindConfig({
     required this.apiKey,
-    this.baseUrl = 'https://api.phind.com/v1/',
+    this.baseUrl = 'https://https.extension.phind.com/agent/',
     this.model = 'Phind-70B',
     this.maxTokens,
     this.temperature,
@@ -66,66 +67,32 @@ class PhindConfig {
   );
 }
 
-/// Phind chat response implementation
-class PhindChatResponse implements ChatResponse {
-  final Map<String, dynamic> _rawResponse;
+/// Phind chat response implementation for parsed streaming responses
+class _PhindChatResponse implements ChatResponse {
+  final String _content;
 
-  PhindChatResponse(this._rawResponse);
-
-  @override
-  String? get text {
-    final choices = _rawResponse['choices'] as List?;
-    if (choices == null || choices.isEmpty) return null;
-
-    final message = choices.first['message'] as Map<String, dynamic>?;
-    return message?['content'] as String?;
-  }
+  _PhindChatResponse(this._content);
 
   @override
-  List<ToolCall>? get toolCalls {
-    final choices = _rawResponse['choices'] as List?;
-    if (choices == null || choices.isEmpty) return null;
-
-    final message = choices.first['message'] as Map<String, dynamic>?;
-    final toolCalls = message?['tool_calls'] as List?;
-
-    if (toolCalls == null) return null;
-
-    return toolCalls
-        .map((tc) => ToolCall.fromJson(tc as Map<String, dynamic>))
-        .toList();
-  }
+  String? get text => _content;
 
   @override
-  UsageInfo? get usage {
-    final usageData = _rawResponse['usage'] as Map<String, dynamic>?;
-    if (usageData == null) return null;
+  List<ToolCall>? get toolCalls => null; // Phind doesn't support tool calls
 
-    return UsageInfo.fromJson(usageData);
-  }
+  @override
+  UsageInfo? get usage => null; // Phind doesn't provide usage info
 
   @override
   String? get thinking => null; // Phind doesn't support thinking/reasoning content
 
   @override
-  String toString() {
-    final textContent = text;
-    final calls = toolCalls;
-
-    if (textContent != null && calls != null) {
-      return '${calls.map((c) => c.toString()).join('\n')}\n$textContent';
-    } else if (textContent != null) {
-      return textContent;
-    } else if (calls != null) {
-      return calls.map((c) => c.toString()).join('\n');
-    } else {
-      return '';
-    }
-  }
+  String toString() => _content;
 }
 
 /// Phind provider implementation
 class PhindProvider implements StreamingChatProvider {
+  static final Logger _logger = Logger('PhindProvider');
+
   final PhindConfig config;
   final Dio _dio;
 
@@ -159,8 +126,10 @@ class PhindProvider implements StreamingChatProvider {
         connectTimeout: config.timeout ?? const Duration(seconds: 30),
         receiveTimeout: config.timeout ?? const Duration(seconds: 30),
         headers: {
-          'Authorization': 'Bearer ${config.apiKey}',
           'Content-Type': 'application/json',
+          'User-Agent': '', // Phind requires empty User-Agent
+          'Accept': '*/*',
+          'Accept-Encoding': 'Identity',
         },
       ),
     );
@@ -173,14 +142,16 @@ class PhindProvider implements StreamingChatProvider {
     List<ChatMessage> messages,
     List<Tool>? tools,
   ) async {
-    if (config.apiKey.isEmpty) {
-      throw const AuthError('Missing Phind API key');
-    }
-
     try {
-      final requestBody = _buildRequestBody(messages, tools, false);
+      final requestBody = _buildPhindRequestBody(messages);
 
-      final response = await _dio.post('chat/completions', data: requestBody);
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('Phind request payload: ${jsonEncode(requestBody)}');
+      }
+
+      final response = await _dio.post('', data: requestBody);
+
+      _logger.info('Phind HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -188,7 +159,15 @@ class PhindProvider implements StreamingChatProvider {
         );
       }
 
-      return PhindChatResponse(response.data as Map<String, dynamic>);
+      // Phind returns streaming response even for non-streaming requests
+      final responseText = response.data as String;
+      final content = _parsePhindStreamResponse(responseText);
+
+      if (content.isEmpty) {
+        throw const ProviderError('No completion choice returned.');
+      }
+
+      return _PhindChatResponse(content);
     } on DioException catch (e) {
       throw _handleDioError(e);
     } catch (e) {
@@ -201,19 +180,22 @@ class PhindProvider implements StreamingChatProvider {
     List<ChatMessage> messages, {
     List<Tool>? tools,
   }) async* {
-    if (config.apiKey.isEmpty) {
-      yield ErrorEvent(const AuthError('Missing Phind API key'));
-      return;
-    }
-
     try {
-      final requestBody = _buildRequestBody(messages, tools, true);
+      final requestBody = _buildPhindRequestBody(messages);
+
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine(
+          'Phind stream request payload: ${jsonEncode(requestBody)}',
+        );
+      }
 
       final response = await _dio.post(
-        'chat/completions',
+        '',
         data: requestBody,
         options: Options(responseType: ResponseType.stream),
       );
+
+      _logger.info('Phind stream HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         yield ErrorEvent(
@@ -234,7 +216,7 @@ class PhindProvider implements StreamingChatProvider {
 
             try {
               final json = jsonDecode(data) as Map<String, dynamic>;
-              final event = _parseStreamEvent(json);
+              final event = _parsePhindStreamEvent(json);
               if (event != null) {
                 yield event;
               }
@@ -252,72 +234,63 @@ class PhindProvider implements StreamingChatProvider {
     }
   }
 
-  Map<String, dynamic> _buildRequestBody(
-    List<ChatMessage> messages,
-    List<Tool>? tools,
-    bool stream,
-  ) {
-    final apiMessages = <Map<String, dynamic>>[];
-
-    // Add system message if configured
-    if (config.systemPrompt != null) {
-      apiMessages.add({'role': 'system', 'content': config.systemPrompt});
-    }
+  /// Builds the Phind-specific request body format
+  Map<String, dynamic> _buildPhindRequestBody(List<ChatMessage> messages) {
+    final messageHistory = <Map<String, dynamic>>[];
 
     // Convert messages to Phind format
     for (final message in messages) {
-      apiMessages.add(_convertMessage(message));
+      final roleStr = message.role == ChatRole.user ? 'user' : 'assistant';
+      messageHistory.add({'content': message.content, 'role': roleStr});
     }
 
-    final body = <String, dynamic>{
-      'model': config.model,
-      'messages': apiMessages,
-      'stream': stream,
+    // Add system message if configured
+    if (config.systemPrompt != null) {
+      messageHistory.insert(0, {
+        'content': config.systemPrompt,
+        'role': 'system',
+      });
+    }
+
+    // Find the last user message for user_input field
+    final lastUserMessage = messages
+        .where((m) => m.role == ChatRole.user)
+        .lastOrNull;
+
+    return {
+      'additional_extension_context': '',
+      'allow_magic_buttons': true,
+      'is_vscode_extension': true,
+      'message_history': messageHistory,
+      'requested_model': config.model,
+      'user_input': lastUserMessage?.content ?? '',
     };
-
-    // Add optional parameters
-    if (config.maxTokens != null) body['max_tokens'] = config.maxTokens;
-    if (config.temperature != null) body['temperature'] = config.temperature;
-    if (config.topP != null) body['top_p'] = config.topP;
-    if (config.topK != null) body['top_k'] = config.topK;
-
-    // Add tools if provided
-    final effectiveTools = tools ?? config.tools;
-    if (effectiveTools != null && effectiveTools.isNotEmpty) {
-      body['tools'] = effectiveTools.map((t) => t.toJson()).toList();
-
-      final effectiveToolChoice = config.toolChoice;
-      if (effectiveToolChoice != null) {
-        body['tool_choice'] = effectiveToolChoice.toJson();
-      }
-    }
-
-    return body;
   }
 
-  Map<String, dynamic> _convertMessage(ChatMessage message) {
-    final result = <String, dynamic>{'role': message.role.name};
+  /// Parses a single line from the Phind streaming response
+  String? _parsePhindLine(String line) {
+    if (!line.startsWith('data: ')) return null;
 
-    switch (message.messageType) {
-      case TextMessage():
-        result['content'] = message.content;
-        break;
-      case ToolUseMessage(toolCalls: final toolCalls):
-        result['tool_calls'] = toolCalls.map((tc) => tc.toJson()).toList();
-        break;
-      case ToolResultMessage():
-        // Tool results are handled as separate messages in Phind
-        // This should be handled at a higher level
-        result['content'] = message.content;
-        break;
-      default:
-        result['content'] = message.content;
+    final data = line.substring(6);
+    try {
+      final json = jsonDecode(data) as Map<String, dynamic>;
+      return json['choices']?.first?['delta']?['content'] as String?;
+    } catch (e) {
+      return null;
     }
-
-    return result;
   }
 
-  ChatStreamEvent? _parseStreamEvent(Map<String, dynamic> json) {
+  /// Parses the complete Phind streaming response into a single string
+  String _parsePhindStreamResponse(String responseText) {
+    return responseText
+        .split('\n')
+        .map(_parsePhindLine)
+        .where((content) => content != null)
+        .join();
+  }
+
+  /// Parses stream events for Phind streaming responses
+  ChatStreamEvent? _parsePhindStreamEvent(Map<String, dynamic> json) {
     final choices = json['choices'] as List?;
     if (choices == null || choices.isEmpty) return null;
 
@@ -327,12 +300,6 @@ class PhindProvider implements StreamingChatProvider {
     final content = delta['content'] as String?;
     if (content != null) {
       return TextDeltaEvent(content);
-    }
-
-    final toolCalls = delta['tool_calls'] as List?;
-    if (toolCalls != null && toolCalls.isNotEmpty) {
-      final toolCall = toolCalls.first as Map<String, dynamic>;
-      return ToolCallDeltaEvent(ToolCall.fromJson(toolCall));
     }
 
     return null;

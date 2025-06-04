@@ -176,29 +176,24 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                           );
                         }
 
-                        return StatefulBuilder(
-                          builder: (context, setSheetState) {
-                            // 监听收藏模型状态变化
-                            final favoriteModelsAsync = ref.watch(
-                              favoriteModelNotifierProvider,
-                            );
-                            final currentFavorites = favoriteModelsAsync.when(
-                              data: (models) => models,
-                              loading: () => data.favoriteModels,
-                              error: (_, _) => data.favoriteModels,
-                            );
+                        // 监听收藏模型状态变化
+                        final favoriteModelsAsync = ref.watch(
+                          favoriteModelNotifierProvider,
+                        );
+                        final currentFavorites = favoriteModelsAsync.when(
+                          data: (models) => models,
+                          loading: () => data.favoriteModels,
+                          error: (_, _) => data.favoriteModels,
+                        );
 
-                            return ListView(
-                              controller: scrollController,
-                              children: [
-                                ..._buildModelSections(
-                                  _filterModelItems(data.modelItems),
-                                  currentFavorites,
-                                  setSheetState,
-                                ),
-                              ],
-                            );
-                          },
+                        return ListView(
+                          controller: scrollController,
+                          children: [
+                            ..._buildModelSections(
+                              _filterModelItems(data.modelItems),
+                              currentFavorites,
+                            ),
+                          ],
                         );
                       },
                     );
@@ -312,7 +307,6 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
   List<Widget> _buildModelSections(
     List<ProviderModelItem> modelItems,
     List<FavoriteModel> favoriteModels,
-    StateSetter setSheetState,
   ) {
     final List<Widget> sections = [];
 
@@ -327,9 +321,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
 
     if (favoriteItems.isNotEmpty) {
       sections.add(_buildSectionHeader("收藏夹"));
-      sections.addAll(
-        _buildModelTiles(favoriteItems, favoriteModels, setSheetState),
-      );
+      sections.addAll(_buildModelTiles(favoriteItems, favoriteModels));
       sections.add(const SizedBox(height: 16));
     }
 
@@ -351,9 +343,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
       if (entry.value.isNotEmpty) {
         final provider = entry.value.first.provider;
         sections.add(_buildSectionHeader(provider.name));
-        sections.addAll(
-          _buildModelTiles(entry.value, favoriteModels, setSheetState),
-        );
+        sections.addAll(_buildModelTiles(entry.value, favoriteModels));
         sections.add(const SizedBox(height: 16));
       }
     }
@@ -377,7 +367,6 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
   List<Widget> _buildModelTiles(
     List<ProviderModelItem> modelItems,
     List<FavoriteModel> favoriteModels,
-    StateSetter setSheetState,
   ) {
     return modelItems.map((item) {
       final isFavorite = favoriteModels.any(
@@ -395,7 +384,6 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
         isSelected: isSelected,
         isFavorite: isFavorite,
         onTap: () => _selectModel(item),
-        onFavoriteChanged: () => setSheetState(() {}),
       );
     }).toList();
   }
@@ -405,7 +393,6 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
     required bool isSelected,
     required bool isFavorite,
     required VoidCallback onTap,
-    required VoidCallback onFavoriteChanged,
   }) {
     final theme = Theme.of(context);
 
@@ -484,21 +471,31 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
             color: isFavorite ? Colors.red : theme.colorScheme.onSurfaceVariant,
           ),
           onPressed: () async {
-            final favoriteNotifier = ref.read(
-              favoriteModelNotifierProvider.notifier,
-            );
-            if (isFavorite) {
-              await favoriteNotifier.removeFavoriteModel(
-                item.provider.id,
-                item.model.name,
+            try {
+              final favoriteNotifier = ref.read(
+                favoriteModelNotifierProvider.notifier,
               );
-            } else {
-              await favoriteNotifier.addFavoriteModel(
-                item.provider.id,
-                item.model.name,
-              );
+
+              if (isFavorite) {
+                await favoriteNotifier.removeFavoriteModel(
+                  item.provider.id,
+                  item.model.name,
+                );
+                NotificationService().showSuccess(
+                  '已取消收藏 ${item.model.effectiveDisplayName}',
+                );
+              } else {
+                await favoriteNotifier.addFavoriteModel(
+                  item.provider.id,
+                  item.model.name,
+                );
+                NotificationService().showSuccess(
+                  '已收藏 ${item.model.effectiveDisplayName}',
+                );
+              }
+            } catch (e) {
+              NotificationService().showError('操作失败: $e');
             }
-            onFavoriteChanged();
           },
         ),
         onTap: onTap,

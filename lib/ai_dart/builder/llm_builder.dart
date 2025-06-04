@@ -100,6 +100,9 @@ class LLMBuilder {
   /// Embedding dimensions
   int? _embeddingDimensions;
 
+  /// Search parameters for providers that support search functionality
+  SearchParameters? _searchParameters;
+
   /// Creates a new empty builder instance with default values
   LLMBuilder();
 
@@ -117,7 +120,8 @@ class LLMBuilder {
 
   /// Sets the base URL for API requests
   LLMBuilder baseUrl(String url) {
-    _baseUrl = url;
+    // Ensure the URL ends with a slash
+    _baseUrl = url.endsWith('/') ? url : '$url/';
     return this;
   }
 
@@ -208,6 +212,12 @@ class LLMBuilder {
   /// Sets the dimensions for embeddings
   LLMBuilder embeddingDimensions(int dimensions) {
     _embeddingDimensions = dimensions;
+    return this;
+  }
+
+  /// Sets the search parameters for providers that support search functionality
+  LLMBuilder searchParameters(SearchParameters parameters) {
+    _searchParameters = parameters;
     return this;
   }
 
@@ -342,8 +352,8 @@ class LLMBuilder {
         return XAIProvider(
           XAIConfig(
             apiKey: _apiKey!,
-            baseUrl: _baseUrl ?? 'https://api.x.ai/v1',
-            model: _model ?? 'grok-beta',
+            baseUrl: _baseUrl ?? 'https://api.x.ai/v1/',
+            model: _model ?? 'grok-2-latest',
             maxTokens: _maxTokens,
             temperature: _temperature,
             systemPrompt: _systemPrompt,
@@ -354,6 +364,9 @@ class LLMBuilder {
             tools: _tools,
             toolChoice: _toolChoice,
             jsonSchema: _jsonSchema,
+            embeddingEncodingFormat: _embeddingEncodingFormat,
+            embeddingDimensions: _embeddingDimensions,
+            searchParameters: _searchParameters,
           ),
         );
 

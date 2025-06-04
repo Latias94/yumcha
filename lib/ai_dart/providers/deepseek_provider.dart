@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -128,6 +129,7 @@ class DeepSeekChatResponse implements ChatResponse {
 class DeepSeekProvider implements StreamingChatProvider {
   final DeepSeekConfig config;
   final Dio _dio;
+  static final Logger _logger = Logger('DeepSeekProvider');
 
   DeepSeekProvider(this.config) : _dio = _createDio(config);
 
@@ -179,6 +181,9 @@ class DeepSeekProvider implements StreamingChatProvider {
 
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
+
+      // Debug logging for request payload
+      _logger.finest('DeepSeek request payload: ${jsonEncode(requestBody)}');
 
       final response = await _dio.post('chat/completions', data: requestBody);
 

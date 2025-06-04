@@ -44,6 +44,12 @@ class FavoriteModelRepository {
 
   // 添加收藏模型
   Future<String> addFavoriteModel(String providerId, String modelName) async {
+    // 检查是否已经存在
+    final existing = await isModelFavorite(providerId, modelName);
+    if (existing) {
+      throw Exception('模型已经被收藏');
+    }
+
     final id = _uuid.v4();
     final companion = FavoriteModelsCompanion(
       id: Value(id),

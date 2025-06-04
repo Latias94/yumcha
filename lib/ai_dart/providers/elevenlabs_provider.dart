@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
@@ -53,6 +54,21 @@ class ElevenLabsConfig {
   );
 }
 
+/// Word with timing information from ElevenLabs STT
+class Word {
+  final String text;
+  final double start;
+  final double end;
+
+  const Word({required this.text, required this.start, required this.end});
+
+  factory Word.fromJson(Map<String, dynamic> json) => Word(
+    text: json['text'] as String,
+    start: (json['start'] as num?)?.toDouble() ?? 0.0,
+    end: (json['end'] as num?)?.toDouble() ?? 0.0,
+  );
+}
+
 /// ElevenLabs response for TTS
 class ElevenLabsTTSResponse {
   final Uint8List audioData;
@@ -64,15 +80,37 @@ class ElevenLabsTTSResponse {
 /// ElevenLabs response for STT
 class ElevenLabsSTTResponse {
   final String text;
-  final double? confidence;
+  final String? languageCode;
+  final double? languageProbability;
+  final List<Word>? words;
 
-  const ElevenLabsSTTResponse({required this.text, this.confidence});
+  const ElevenLabsSTTResponse({
+    required this.text,
+    this.languageCode,
+    this.languageProbability,
+    this.words,
+  });
+
+  factory ElevenLabsSTTResponse.fromJson(Map<String, dynamic> json) {
+    final wordsJson = json['words'] as List<dynamic>?;
+    final words = wordsJson
+        ?.map((w) => Word.fromJson(w as Map<String, dynamic>))
+        .toList();
+
+    return ElevenLabsSTTResponse(
+      text: json['text'] as String? ?? '',
+      languageCode: json['language_code'] as String?,
+      languageProbability: (json['language_probability'] as num?)?.toDouble(),
+      words: words,
+    );
+  }
 }
 
 /// ElevenLabs provider implementation for TTS and STT
 class ElevenLabsProvider implements ChatProvider {
   final ElevenLabsConfig config;
   final Dio _dio;
+  final Logger _logger = Logger('ElevenLabsProvider');
 
   ElevenLabsProvider(this.config) : _dio = _createDio(config);
 
@@ -124,8 +162,14 @@ class ElevenLabsProvider implements ChatProvider {
     }
 
     final effectiveVoiceId =
-        voiceId ?? config.voiceId ?? 'pNInz6obpgDQGcFmaJgB'; // Default voice
+        voiceId ??
+        config.voiceId ??
+        'JBFqnCBsd6RMkjVDRZzb'; // Default voice to match Rust
     final effectiveModel = model ?? config.model ?? 'eleven_monolingual_v1';
+
+    _logger.info(
+      'Converting text to speech with voice: $effectiveVoiceId, model: $effectiveModel',
+    );
 
     try {
       final requestBody = {
@@ -141,8 +185,9 @@ class ElevenLabsProvider implements ChatProvider {
         },
       };
 
+      // Add query parameter for output format to match Rust implementation
       final response = await _dio.post(
-        'text-to-speech/$effectiveVoiceId',
+        'text-to-speech/$effectiveVoiceId?output_format=mp3_44100_128',
         data: requestBody,
         options: Options(responseType: ResponseType.bytes),
       );
@@ -178,12 +223,15 @@ class ElevenLabsProvider implements ChatProvider {
 
     final effectiveModel = model ?? config.model ?? 'eleven_multilingual_v2';
 
+    _logger.info('Converting speech to text with model: $effectiveModel');
+
     try {
+      // Use 'file' as the field name to match Rust implementation
       final formData = FormData.fromMap({
-        'audio': MultipartFile.fromBytes(
+        'file': MultipartFile.fromBytes(
           audioData,
-          filename: 'audio.mp3',
-          contentType: DioMediaType('audio', 'mpeg'),
+          filename: 'audio.wav', // Use .wav to match Rust implementation
+          contentType: DioMediaType('audio', 'wav'),
         ),
         'model_id': effectiveModel,
       });
@@ -200,11 +248,96 @@ class ElevenLabsProvider implements ChatProvider {
         );
       }
 
-      final responseData = response.data as Map<String, dynamic>;
-      final text = responseData['text'] as String? ?? '';
-      final confidence = responseData['confidence'] as double?;
+      final responseText = response.data.toString();
+      final rawResponse = responseText;
 
-      return ElevenLabsSTTResponse(text: text, confidence: confidence);
+      try {
+        final responseData = response.data as Map<String, dynamic>;
+        final sttResponse = ElevenLabsSTTResponse.fromJson(responseData);
+
+        // Extract text from words if available, similar to Rust implementation
+        if (sttResponse.words != null && sttResponse.words!.isNotEmpty) {
+          final wordsText = sttResponse.words!.map((w) => w.text).join(' ');
+          return ElevenLabsSTTResponse(
+            text: wordsText,
+            languageCode: sttResponse.languageCode,
+            languageProbability: sttResponse.languageProbability,
+            words: sttResponse.words,
+          );
+        }
+
+        return sttResponse;
+      } catch (e) {
+        throw ResponseFormatError(
+          'Failed to parse ElevenLabs STT response: $e',
+          rawResponse,
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
+
+  /// Convert speech file to text using ElevenLabs STT
+  Future<ElevenLabsSTTResponse> speechToTextFromFile(
+    String filePath, {
+    String? model,
+  }) async {
+    if (config.apiKey.isEmpty) {
+      throw const AuthError('Missing ElevenLabs API key');
+    }
+
+    final effectiveModel = model ?? config.model ?? 'eleven_multilingual_v2';
+
+    _logger.info(
+      'Converting speech file to text: $filePath, model: $effectiveModel',
+    );
+
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath),
+        'model_id': effectiveModel,
+      });
+
+      final response = await _dio.post(
+        'speech-to-text',
+        data: formData,
+        options: Options(headers: {'xi-api-key': config.apiKey}),
+      );
+
+      if (response.statusCode != 200) {
+        throw ProviderError(
+          'ElevenLabs STT API returned status ${response.statusCode}',
+        );
+      }
+
+      final responseText = response.data.toString();
+      final rawResponse = responseText;
+
+      try {
+        final responseData = response.data as Map<String, dynamic>;
+        final sttResponse = ElevenLabsSTTResponse.fromJson(responseData);
+
+        // Extract text from words if available, similar to Rust implementation
+        if (sttResponse.words != null && sttResponse.words!.isNotEmpty) {
+          final wordsText = sttResponse.words!.map((w) => w.text).join(' ');
+          return ElevenLabsSTTResponse(
+            text: wordsText,
+            languageCode: sttResponse.languageCode,
+            languageProbability: sttResponse.languageProbability,
+            words: sttResponse.words,
+          );
+        }
+
+        return sttResponse;
+      } catch (e) {
+        throw ResponseFormatError(
+          'Failed to parse ElevenLabs STT response: $e',
+          rawResponse,
+        );
+      }
     } on DioException catch (e) {
       throw _handleDioError(e);
     } catch (e) {
