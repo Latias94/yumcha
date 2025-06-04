@@ -17,7 +17,9 @@ void main() async {
       .maxTokens(512) // Limit response length
       .temperature(0.7) // Control response randomness (0.0-1.0)
       .stream(true) // Enable streaming responses
-      .systemPrompt('You are a helpful assistant that explains concepts clearly.')
+      .systemPrompt(
+        'You are a helpful assistant that explains concepts clearly.',
+      )
       .build();
 
   // Prepare conversation history with example messages
@@ -30,13 +32,17 @@ void main() async {
     if (llm is StreamingChatProvider) {
       print('🚀 Starting streaming chat...\n');
       print('Response: ');
-      
+
       // Send streaming chat request and handle events
       await for (final event in llm.chatStream(messages)) {
         switch (event) {
           case TextDeltaEvent(delta: final delta):
             // Print each text chunk as it arrives
             print(delta);
+            break;
+          case ThinkingDeltaEvent(delta: final delta):
+            // Print thinking/reasoning content with special formatting
+            print('\x1B[90m$delta\x1B[0m'); // Gray color for thinking content
             break;
           case ToolCallDeltaEvent(toolCall: final toolCall):
             // Handle tool call events (if supported)
@@ -47,7 +53,9 @@ void main() async {
             print('\n\n✅ Stream completed!');
             if (response.usage != null) {
               final usage = response.usage!;
-              print('Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total tokens');
+              print(
+                'Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total tokens',
+              );
             }
             break;
           case ErrorEvent(error: final error):
@@ -58,7 +66,7 @@ void main() async {
       }
     } else {
       print('❌ Provider does not support streaming');
-      
+
       // Fallback to regular chat
       print('Falling back to regular chat...');
       final response = await llm.chat(messages);

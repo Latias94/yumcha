@@ -6,16 +6,13 @@ import '../models/chat_models.dart';
 /// Example demonstrating how to use the OpenAI provider with LLMBuilder
 void main() async {
   // Get OpenAI API key from environment variable or use test key as fallback
-  final apiKey =
-      Platform.environment['OPENAI_API_KEY'] ??
-      'sk-ngt7SAfEo154u80l8Yc7T7R8xAwCQE9yd9MhnEqxKCdjZxV9';
+  final apiKey = Platform.environment['OPENAI_API_KEY'] ?? 'sk-OPENAI';
 
   // Initialize and configure the LLM client using LLMBuilder
   final llm = await LLMBuilder()
       .backend(LLMBackend.openai) // Use OpenAI as the LLM provider
       .apiKey(apiKey) // Set the API key
-      .baseUrl('https://api.mnapi.com/v1/') // Custom base URL
-      .model('deepseek-r1') // Use GPT-3.5 Turbo model
+      .model('gpt-4o') // Use GPT-4o model
       .reasoningEffort('high') // Set reasoning effort level
       .maxTokens(512) // Limit response length
       .temperature(0.7) // Control response randomness (0.0-1.0)

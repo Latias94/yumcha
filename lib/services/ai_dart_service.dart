@@ -6,6 +6,7 @@ import '../ai_dart/builder/llm_builder.dart';
 import '../ai_dart/models/chat_models.dart';
 import '../ai_dart/core/chat_provider.dart';
 import '../ai_dart/core/llm_error.dart';
+import '../ai_dart/utils/reasoning_utils.dart';
 import 'logger_service.dart';
 
 /// Service that adapts the new AI Dart library to the existing service architecture
@@ -153,6 +154,7 @@ class AiDartService {
 
       return AiDartResult(
         content: content,
+        thinking: response.thinking,
         duration: duration,
         usage: response.usage,
         toolCalls: response.toolCalls,
@@ -211,6 +213,10 @@ class AiDartService {
           case TextDeltaEvent(delta: final delta):
             yield AiDartStreamEvent(delta: delta);
             break;
+          case ThinkingDeltaEvent(delta: final delta):
+            // Emit thinking content as separate field
+            yield AiDartStreamEvent(thinkingDelta: delta);
+            break;
           case ToolCallDeltaEvent(toolCall: final toolCall):
             yield AiDartStreamEvent(toolCall: toolCall);
             break;
@@ -219,11 +225,14 @@ class AiDartService {
             _logger.info('AI Dart 流式聊天请求完成', {
               'duration': '${duration.inMilliseconds}ms',
               'usage': response.usage?.totalTokens,
+              'hasThinking': response.thinking != null,
+              'thinkingLength': response.thinking?.length ?? 0,
             });
             yield AiDartStreamEvent(
               completed: true,
               usage: response.usage,
               duration: duration,
+              finalThinking: response.thinking,
             );
             break;
           case ErrorEvent(error: final error):
@@ -332,6 +341,7 @@ class AiDartService {
 /// Result from AI Dart chat request
 class AiDartResult {
   final String? content;
+  final String? thinking;
   final String? error;
   final Duration duration;
   final UsageInfo? usage;
@@ -339,6 +349,7 @@ class AiDartResult {
 
   const AiDartResult({
     this.content,
+    this.thinking,
     this.error,
     required this.duration,
     this.usage,
@@ -346,28 +357,35 @@ class AiDartResult {
   });
 
   bool get isSuccess => error == null;
+  bool get hasThinking => thinking != null && thinking!.isNotEmpty;
 }
 
 /// Stream event from AI Dart streaming request
 class AiDartStreamEvent {
   final String? delta;
+  final String? thinkingDelta;
   final String? error;
   final bool completed;
   final Duration? duration;
   final UsageInfo? usage;
   final ToolCall? toolCall;
+  final String?
+  finalThinking; // Complete thinking content when stream completes
 
   const AiDartStreamEvent({
     this.delta,
+    this.thinkingDelta,
     this.error,
     this.completed = false,
     this.duration,
     this.usage,
     this.toolCall,
+    this.finalThinking,
   });
 
   bool get isError => error != null;
   bool get isCompleted => completed;
   bool get hasContent => delta != null;
+  bool get hasThinking => thinkingDelta != null;
   bool get hasToolCall => toolCall != null;
 }

@@ -7,6 +7,7 @@ import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../utils/reasoning_utils.dart';
 
 /// DeepSeek provider configuration
 class DeepSeekConfig {
@@ -70,8 +71,9 @@ class DeepSeekConfig {
 /// DeepSeek chat response implementation
 class DeepSeekChatResponse implements ChatResponse {
   final Map<String, dynamic> _rawResponse;
+  final String? _thinkingContent;
 
-  DeepSeekChatResponse(this._rawResponse);
+  DeepSeekChatResponse(this._rawResponse, [this._thinkingContent]);
 
   @override
   String? get text {
@@ -106,7 +108,7 @@ class DeepSeekChatResponse implements ChatResponse {
   }
 
   @override
-  String? get thinking => null; // DeepSeek doesn't support thinking/reasoning content
+  String? get thinking => _thinkingContent;
 
   @override
   String toString() {
@@ -228,6 +230,12 @@ class DeepSeekProvider implements StreamingChatProvider {
       }
 
       final stream = response.data as ResponseBody;
+
+      // Reasoning tracking variables
+      bool hasReasoningContent = false;
+      String lastChunk = '';
+      final thinkingBuffer = StringBuffer();
+
       await for (final chunk in stream.stream.map(utf8.decode)) {
         final lines = chunk.split('\n');
         for (final line in lines) {
@@ -239,8 +247,26 @@ class DeepSeekProvider implements StreamingChatProvider {
 
             try {
               final json = jsonDecode(data) as Map<String, dynamic>;
-              final event = _parseStreamEvent(json);
-              if (event != null) {
+              final events = _parseStreamEventWithReasoning(
+                json,
+                hasReasoningContent,
+                lastChunk,
+                thinkingBuffer,
+              );
+
+              // Update tracking variables using reasoning utils
+              final delta = _getDelta(json);
+              if (delta != null) {
+                final reasoningResult = ReasoningUtils.checkReasoningStatus(
+                  delta: delta,
+                  hasReasoningContent: hasReasoningContent,
+                  lastChunk: lastChunk,
+                );
+                hasReasoningContent = reasoningResult.hasReasoningContent;
+                lastChunk = reasoningResult.updatedLastChunk;
+              }
+
+              for (final event in events) {
                 yield event;
               }
             } catch (e) {
@@ -321,25 +347,97 @@ class DeepSeekProvider implements StreamingChatProvider {
     return result;
   }
 
-  ChatStreamEvent? _parseStreamEvent(Map<String, dynamic> json) {
+  /// Get delta from JSON response
+  Map<String, dynamic>? _getDelta(Map<String, dynamic> json) {
     final choices = json['choices'] as List?;
     if (choices == null || choices.isEmpty) return null;
 
-    final delta = choices.first['delta'] as Map<String, dynamic>?;
-    if (delta == null) return null;
+    final choice = choices.first as Map<String, dynamic>;
+    return choice['delta'] as Map<String, dynamic>?;
+  }
 
-    final content = delta['content'] as String?;
-    if (content != null) {
-      return TextDeltaEvent(content);
+  /// Parse stream events with reasoning support
+  List<ChatStreamEvent> _parseStreamEventWithReasoning(
+    Map<String, dynamic> json,
+    bool hasReasoningContent,
+    String lastChunk,
+    StringBuffer thinkingBuffer,
+  ) {
+    final events = <ChatStreamEvent>[];
+    final choices = json['choices'] as List?;
+    if (choices == null || choices.isEmpty) return events;
+
+    final choice = choices.first as Map<String, dynamic>;
+    final delta = choice['delta'] as Map<String, dynamic>?;
+    if (delta == null) return events;
+
+    // Handle reasoning content using reasoning utils
+    final reasoningContent = ReasoningUtils.extractReasoningContent(delta);
+
+    if (reasoningContent != null && reasoningContent.isNotEmpty) {
+      thinkingBuffer.write(reasoningContent);
+      events.add(ThinkingDeltaEvent(reasoningContent));
+      return events;
     }
 
+    // Handle regular content
+    final content = delta['content'] as String?;
+    if (content != null && content.isNotEmpty) {
+      // Check reasoning status using utils
+      final reasoningResult = ReasoningUtils.checkReasoningStatus(
+        delta: delta,
+        hasReasoningContent: hasReasoningContent,
+        lastChunk: lastChunk,
+      );
+
+      if (reasoningResult.isReasoningJustDone) {
+        _logger.fine('Reasoning phase completed, starting response phase');
+      }
+
+      // Filter out thinking tags for models that use <think> tags
+      if (ReasoningUtils.containsThinkingTags(content)) {
+        // Don't emit content that contains thinking tags
+        return events;
+      }
+
+      events.add(TextDeltaEvent(content));
+    }
+
+    // Handle tool calls
     final toolCalls = delta['tool_calls'] as List?;
     if (toolCalls != null && toolCalls.isNotEmpty) {
       final toolCall = toolCalls.first as Map<String, dynamic>;
-      return ToolCallDeltaEvent(ToolCall.fromJson(toolCall));
+      if (toolCall.containsKey('id') && toolCall.containsKey('function')) {
+        try {
+          events.add(ToolCallDeltaEvent(ToolCall.fromJson(toolCall)));
+        } catch (e) {
+          // Skip malformed tool calls
+          _logger.warning('Failed to parse tool call: $e');
+        }
+      }
     }
 
-    return null;
+    // Check for finish reason
+    final finishReason = choice['finish_reason'] as String?;
+    if (finishReason != null) {
+      final usage = json['usage'] as Map<String, dynamic>?;
+      final thinkingContent = thinkingBuffer.isNotEmpty
+          ? thinkingBuffer.toString()
+          : null;
+
+      final response = DeepSeekChatResponse({
+        'choices': [
+          {
+            'message': {'content': '', 'role': 'assistant'},
+          },
+        ],
+        if (usage != null) 'usage': usage,
+      }, thinkingContent);
+
+      events.add(CompletionEvent(response));
+    }
+
+    return events;
   }
 
   LLMError _handleDioError(DioException e) {

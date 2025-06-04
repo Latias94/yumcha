@@ -7,6 +7,7 @@ import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../utils/reasoning_utils.dart';
 
 /// OpenAI provider configuration
 class OpenAIConfig {
@@ -91,8 +92,9 @@ class OpenAIConfig {
 /// OpenAI chat response implementation
 class OpenAIChatResponse implements ChatResponse {
   final Map<String, dynamic> _rawResponse;
+  final String? _thinkingContent;
 
-  OpenAIChatResponse(this._rawResponse);
+  OpenAIChatResponse(this._rawResponse, [this._thinkingContent]);
 
   @override
   String? get text {
@@ -127,7 +129,7 @@ class OpenAIChatResponse implements ChatResponse {
   }
 
   @override
-  String? get thinking => null; // OpenAI doesn't support thinking/reasoning content
+  String? get thinking => _thinkingContent;
 
   @override
   String toString() {
@@ -249,6 +251,12 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
       }
 
       final stream = response.data as ResponseBody;
+
+      // Reasoning tracking variables
+      bool hasReasoningContent = false;
+      String lastChunk = '';
+      final thinkingBuffer = StringBuffer();
+
       await for (final chunk in stream.stream.map(utf8.decode)) {
         final lines = chunk.split('\n');
         for (final line in lines) {
@@ -265,8 +273,26 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
 
             try {
               final json = jsonDecode(data) as Map<String, dynamic>;
-              final event = _parseStreamEvent(json);
-              if (event != null) {
+              final events = _parseStreamEventWithReasoning(
+                json,
+                hasReasoningContent,
+                lastChunk,
+                thinkingBuffer,
+              );
+
+              // Update tracking variables using reasoning utils
+              final delta = _getDelta(json);
+              if (delta != null) {
+                final reasoningResult = ReasoningUtils.checkReasoningStatus(
+                  delta: delta,
+                  hasReasoningContent: hasReasoningContent,
+                  lastChunk: lastChunk,
+                );
+                hasReasoningContent = reasoningResult.hasReasoningContent;
+                lastChunk = reasoningResult.updatedLastChunk;
+              }
+
+              for (final event in events) {
                 yield event;
               }
             } catch (e) {
@@ -320,14 +346,36 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
       'stream': stream,
     };
 
-    // Add optional parameters
-    if (config.maxTokens != null) body['max_tokens'] = config.maxTokens;
-    if (config.temperature != null) body['temperature'] = config.temperature;
-    if (config.topP != null) body['top_p'] = config.topP;
-    if (config.topK != null) body['top_k'] = config.topK;
-    if (config.reasoningEffort != null) {
-      body['reasoning_effort'] = config.reasoningEffort;
+    // Add optional parameters using reasoning utils
+    // Handle max tokens based on model type
+    body.addAll(
+      ReasoningUtils.getMaxTokensParams(
+        model: config.model,
+        maxTokens: config.maxTokens,
+      ),
+    );
+
+    // Add temperature if not disabled for reasoning models
+    if (config.temperature != null &&
+        !ReasoningUtils.shouldDisableTemperature(config.model)) {
+      body['temperature'] = config.temperature;
     }
+
+    // Add top_p if not disabled for reasoning models
+    if (config.topP != null &&
+        !ReasoningUtils.shouldDisableTopP(config.model)) {
+      body['top_p'] = config.topP;
+    }
+    if (config.topK != null) body['top_k'] = config.topK;
+
+    // Add reasoning effort parameters
+    body.addAll(
+      ReasoningUtils.getReasoningEffortParams(
+        providerId: 'openai', // or extract from config.baseUrl
+        model: config.model,
+        reasoningEffort: config.reasoningEffort,
+      ),
+    );
 
     // Add tools if provided
     final effectiveTools = tools ?? config.tools;
@@ -412,38 +460,90 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     return result;
   }
 
-  ChatStreamEvent? _parseStreamEvent(Map<String, dynamic> json) {
+  /// Get delta from JSON response
+  Map<String, dynamic>? _getDelta(Map<String, dynamic> json) {
     final choices = json['choices'] as List?;
     if (choices == null || choices.isEmpty) return null;
 
     final choice = choices.first as Map<String, dynamic>;
-    final delta = choice['delta'] as Map<String, dynamic>?;
-    if (delta == null) return null;
+    return choice['delta'] as Map<String, dynamic>?;
+  }
 
-    final content = delta['content'] as String?;
-    if (content != null && content.isNotEmpty) {
-      return TextDeltaEvent(content);
+  /// Parse stream events with reasoning support
+  List<ChatStreamEvent> _parseStreamEventWithReasoning(
+    Map<String, dynamic> json,
+    bool hasReasoningContent,
+    String lastChunk,
+    StringBuffer thinkingBuffer,
+  ) {
+    final events = <ChatStreamEvent>[];
+    final choices = json['choices'] as List?;
+    if (choices == null || choices.isEmpty) return events;
+
+    final choice = choices.first as Map<String, dynamic>;
+    final delta = choice['delta'] as Map<String, dynamic>?;
+    if (delta == null) return events;
+
+    // Handle reasoning content using reasoning utils
+    final reasoningContent = ReasoningUtils.extractReasoningContent(delta);
+
+    if (reasoningContent != null && reasoningContent.isNotEmpty) {
+      thinkingBuffer.write(reasoningContent);
+      events.add(ThinkingDeltaEvent(reasoningContent));
+      return events;
     }
 
+    // Handle regular content
+    final content = delta['content'] as String?;
+    if (content != null && content.isNotEmpty) {
+      // Check reasoning status using utils
+      final reasoningResult = ReasoningUtils.checkReasoningStatus(
+        delta: delta,
+        hasReasoningContent: hasReasoningContent,
+        lastChunk: lastChunk,
+      );
+
+      if (reasoningResult.isReasoningJustDone) {
+        _logger.fine('Reasoning phase completed, starting response phase');
+      }
+
+      // Filter out thinking tags for models that use <think> tags
+      if (ReasoningUtils.containsThinkingTags(content)) {
+        // Don't emit content that contains thinking tags
+        return events;
+      }
+
+      // If we previously had reasoning content and now have regular content,
+      // this might be the start of the actual response
+      if (hasReasoningContent && content.trim().isNotEmpty) {
+        _logger.fine('Transitioning from reasoning to response content');
+      }
+
+      events.add(TextDeltaEvent(content));
+    }
+
+    // Handle tool calls
     final toolCalls = delta['tool_calls'] as List?;
     if (toolCalls != null && toolCalls.isNotEmpty) {
       final toolCall = toolCalls.first as Map<String, dynamic>;
-      // Only create tool call delta if we have sufficient data
       if (toolCall.containsKey('id') && toolCall.containsKey('function')) {
         try {
-          return ToolCallDeltaEvent(ToolCall.fromJson(toolCall));
+          events.add(ToolCallDeltaEvent(ToolCall.fromJson(toolCall)));
         } catch (e) {
           // Skip malformed tool calls
-          return null;
+          _logger.warning('Failed to parse tool call: $e');
         }
       }
     }
 
-    // Check for finish reason (similar to Anthropic implementation)
+    // Check for finish reason
     final finishReason = choice['finish_reason'] as String?;
     if (finishReason != null) {
-      // Create completion event with usage info if available
       final usage = json['usage'] as Map<String, dynamic>?;
+      final thinkingContent = thinkingBuffer.isNotEmpty
+          ? thinkingBuffer.toString()
+          : null;
+
       final response = OpenAIChatResponse({
         'choices': [
           {
@@ -451,11 +551,12 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
           },
         ],
         if (usage != null) 'usage': usage,
-      });
-      return CompletionEvent(response);
+      }, thinkingContent);
+
+      events.add(CompletionEvent(response));
     }
 
-    return null;
+    return events;
   }
 
   LLMError _handleDioError(DioException e) {
@@ -502,7 +603,9 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     if (text == null) {
       throw const GenericError('no text in summary response');
     }
-    return text;
+
+    // Filter out thinking content for reasoning models (similar to TypeScript implementation)
+    return ReasoningUtils.filterThinkingContent(text);
   }
 
   // CompletionProvider methods

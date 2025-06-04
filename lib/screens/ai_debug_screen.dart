@@ -34,16 +34,28 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
 
   // 结果显示
   String _response = '';
+  String _thinkingContent = '';
   String _debugInfo = '';
   String _requestBody = '';
   String _responseBody = '';
   final List<String> _streamChunks = [];
+  final List<String> _thinkingChunks = [];
 
   // 预设配置
   static const Map<String, Map<String, String>> _presets = {
     'OpenAI GPT-4': {
       'provider': 'openai',
       'model': 'gpt-4',
+      'baseUrl': 'https://api.openai.com/v1',
+    },
+    'OpenAI o1-preview (推理)': {
+      'provider': 'openai',
+      'model': 'o1-preview',
+      'baseUrl': 'https://api.openai.com/v1',
+    },
+    'OpenAI o1-mini (推理)': {
+      'provider': 'openai',
+      'model': 'o1-mini',
       'baseUrl': 'https://api.openai.com/v1',
     },
     'OpenAI GPT-3.5': {
@@ -54,6 +66,11 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
     'DeepSeek': {
       'provider': 'openai', // 使用OpenAI兼容接口
       'model': 'deepseek-chat',
+      'baseUrl': 'https://api.deepseek.com/v1',
+    },
+    'DeepSeek R1 (推理)': {
+      'provider': 'openai', // 使用OpenAI兼容接口
+      'model': 'deepseek-r1',
       'baseUrl': 'https://api.deepseek.com/v1',
     },
     'Anthropic Claude': {
@@ -136,10 +153,12 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
     setState(() {
       _isLoading = true;
       _response = '';
+      _thinkingContent = '';
       _debugInfo = '';
       _requestBody = '';
       _responseBody = '';
       _streamChunks.clear();
+      _thinkingChunks.clear();
     });
 
     // 生成请求体
@@ -216,6 +235,7 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
       );
 
       String fullResponse = '';
+      String fullThinking = '';
       await for (final event in stream) {
         if (event.hasContent) {
           setState(() {
@@ -223,14 +243,35 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
             fullResponse += event.delta!;
             _response = fullResponse;
           });
-          _updateDebugInfo('📝 收到块: ${event.delta!.length} 字符\n');
+          _updateDebugInfo('📝 收到内容块: ${event.delta!.length} 字符\n');
+        } else if (event.hasThinking) {
+          setState(() {
+            _thinkingChunks.add(event.thinkingDelta!);
+            fullThinking += event.thinkingDelta!;
+            _thinkingContent = fullThinking;
+          });
+          _updateDebugInfo('🧠 收到思考块: ${event.thinkingDelta!.length} 字符\n');
         } else if (event.isCompleted) {
+          // 处理完成时的最终思考内容
+          if (event.finalThinking != null && event.finalThinking!.isNotEmpty) {
+            setState(() {
+              _thinkingContent = event.finalThinking!;
+            });
+            _updateDebugInfo(
+              '🧠 收到完整思考内容: ${event.finalThinking!.length} 字符\n',
+            );
+          }
+
           setState(() {
             _responseBody = jsonEncode({
               'ai_dart_service': true,
               'stream_mode': true,
               'total_chunks': _streamChunks.length,
+              'thinking_chunks': _thinkingChunks.length,
               'total_content': fullResponse,
+              'thinking_content': _thinkingContent.isNotEmpty
+                  ? _thinkingContent
+                  : null,
               'usage': event.usage != null
                   ? {
                       'prompt_tokens': event.usage!.promptTokens,
@@ -264,10 +305,12 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
 
       setState(() {
         _response = response.content ?? '';
+        _thinkingContent = response.thinking ?? '';
         _responseBody = jsonEncode({
           'ai_dart_service': true,
           'stream_mode': false,
           'content': response.content,
+          'thinking_content': response.thinking,
           'usage': response.usage != null
               ? {
                   'prompt_tokens': response.usage!.promptTokens,
@@ -280,6 +323,9 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
 
       _updateDebugInfo('✅ ai_dart 请求完成\n');
       _updateDebugInfo('响应长度: ${(response.content ?? '').length} 字符\n');
+      if (response.thinking != null && response.thinking!.isNotEmpty) {
+        _updateDebugInfo('🧠 思考内容长度: ${response.thinking!.length} 字符\n');
+      }
       if (response.usage != null) {
         _updateDebugInfo('Token使用情况:\n');
         _updateDebugInfo('  输入: ${response.usage!.promptTokens}\n');
@@ -349,10 +395,12 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
             onPressed: () {
               setState(() {
                 _response = '';
+                _thinkingContent = '';
                 _debugInfo = '';
                 _requestBody = '';
                 _responseBody = '';
                 _streamChunks.clear();
+                _thinkingChunks.clear();
               });
             },
             tooltip: '清空结果',
@@ -712,7 +760,7 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
           if (_isResponsePanelExpanded)
             Expanded(
               child: DefaultTabController(
-                length: 4,
+                length: 5,
                 child: Column(
                   children: [
                     // 标签栏
@@ -721,8 +769,10 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
                         context,
                       ).colorScheme.surfaceContainerHighest,
                       child: const TabBar(
+                        isScrollable: true,
                         tabs: [
                           Tab(text: '响应内容'),
+                          Tab(text: '思考过程'),
                           Tab(text: '请求体'),
                           Tab(text: '响应体'),
                           Tab(text: '调试信息'),
@@ -735,6 +785,7 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
                       child: TabBarView(
                         children: [
                           _buildResponseTab(),
+                          _buildThinkingTab(),
                           _buildRequestTab(),
                           _buildResponseBodyTab(),
                           _buildDebugTab(),
@@ -788,6 +839,104 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThinkingTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology, size: 20, color: Colors.orange),
+              const SizedBox(width: 8),
+              const Text(
+                '思考过程',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              if (_thinkingContent.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_thinkingContent.length} 字符',
+                    style: const TextStyle(fontSize: 12, color: Colors.orange),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.copy),
+                  onPressed: () => _copyToClipboard(_thinkingContent),
+                  tooltip: '复制思考内容',
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_thinkingContent.isEmpty)
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.orange.shade50,
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.psychology, size: 48, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        '暂无思考内容',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '推理模型（如 o1、DeepSeek R1）会在此显示思考过程',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.orange.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.orange.shade50,
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    _thinkingContent,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

@@ -107,6 +107,13 @@ class CompletionEvent extends ChatStreamEvent {
   const CompletionEvent(this.response);
 }
 
+/// Thinking/reasoning delta event for reasoning models
+class ThinkingDeltaEvent extends ChatStreamEvent {
+  final String delta;
+
+  const ThinkingDeltaEvent(this.delta);
+}
+
 /// Error event
 class ErrorEvent extends ChatStreamEvent {
   final LLMError error;
