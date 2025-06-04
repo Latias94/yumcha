@@ -103,7 +103,6 @@ class AiDartService {
 
     // Add optional parameters if they exist
     if (provider.baseUrl?.isNotEmpty == true) {
-      _logger.info('使用自定义BaseURL', {'baseUrl': provider.baseUrl});
       builder.baseUrl(provider.baseUrl!);
     }
 

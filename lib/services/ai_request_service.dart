@@ -8,6 +8,7 @@ import '../ai_dart/ai_dart.dart';
 /// AI 请求响应结果
 class AiRequestResult {
   final String? content;
+  final String? thinking;
   final String? error;
   final Duration? duration;
   final UsageInfo? usage;
@@ -15,6 +16,7 @@ class AiRequestResult {
 
   const AiRequestResult({
     this.content,
+    this.thinking,
     this.error,
     this.duration,
     this.usage,
@@ -27,6 +29,8 @@ class AiRequestResult {
 /// AI 流式请求事件
 class AiStreamEvent {
   final String? content;
+  final String? thinkingDelta;
+  final String? finalThinking;
   final String? error;
   final bool isDone;
   final UsageInfo? usage;
@@ -34,6 +38,8 @@ class AiStreamEvent {
 
   const AiStreamEvent({
     this.content,
+    this.thinkingDelta,
+    this.finalThinking,
     this.error,
     this.isDone = false,
     this.usage,
@@ -41,6 +47,7 @@ class AiStreamEvent {
   });
 
   bool get isContent => content != null && !isDone;
+  bool get isThinking => thinkingDelta != null;
   bool get isError => error != null;
 }
 
@@ -72,6 +79,7 @@ class AiRequestService {
 
       return AiRequestResult(
         content: result.content,
+        thinking: result.thinking,
         error: result.error,
         duration: result.duration,
         usage: result.usage,
@@ -102,6 +110,8 @@ class AiRequestService {
       await for (final event in stream) {
         yield AiStreamEvent(
           content: event.delta,
+          thinkingDelta: event.thinkingDelta,
+          finalThinking: event.finalThinking,
           error: event.error,
           isDone: event.isCompleted,
           usage: event.usage,

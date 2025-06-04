@@ -321,11 +321,11 @@ class CurrentConversationNotifier
     final conversation = state.conversation;
     if (conversation == null) return;
 
-    _logger.info('AI 消息添加，检查是否需要生成标题', {
-      'conversationId': conversation.id,
-      'messageCount': conversation.messages.length,
-      'currentTitle': conversation.channelName,
-    });
+    // _logger.info('AI 消息添加，检查是否需要生成标题', {
+    //   'conversationId': conversation.id,
+    //   'messageCount': conversation.messages.length,
+    //   'currentTitle': conversation.channelName,
+    // });
 
     // 检查是否满足标题生成条件
     if (!_shouldGenerateTitle(conversation)) {
@@ -559,10 +559,10 @@ class CurrentConversationNotifier
   ) async {
     final conversationId = conversation.id;
 
-    _logger.info('标题生成成功', {
-      'conversationId': conversationId,
-      'title': newTitle,
-    });
+    // _logger.info('标题生成成功', {
+    //   'conversationId': conversationId,
+    //   'title': newTitle,
+    // });
 
     // 如果需要检查默认标题，再次验证当前对话状态
     if (checkDefaultTitle) {

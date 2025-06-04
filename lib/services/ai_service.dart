@@ -294,7 +294,8 @@ class AiService {
           ),
         );
 
-        return result.content;
+        // 合并思考内容和回复内容
+        return _combineContentWithThinking(result.content, result.thinking);
       } else {
         _logger.error('AI聊天请求失败', {
           'error': result.error,
@@ -446,8 +447,10 @@ class AiService {
       );
 
       var fullResponse = '';
+      var fullThinking = '';
       var chunkCount = 0;
       bool hasError = false;
+      bool thinkingStarted = false;
 
       await for (final event in streamEvents) {
         if (event.content != null) {
@@ -461,17 +464,31 @@ class AiService {
 
           // 立即输出接收到的内容
           yield event.content!;
+        } else if (event.thinkingDelta != null) {
+          // 处理思考内容
+          if (!thinkingStarted) {
+            // 第一次收到思考内容时，输出开始标签
+            yield '<think>\n';
+            thinkingStarted = true;
+          }
+          fullThinking += event.thinkingDelta!;
+          yield event.thinkingDelta!;
         } else if (event.error != null) {
           hasError = true;
           _logger.error('流式聊天错误', {'error': event.error});
           yield '[错误] ${event.error}';
         } else if (event.isDone) {
+          // 如果有思考内容，输出结束标签和分隔符
+          if (thinkingStarted) {
+            yield '\n</think>\n\n';
+          }
           final duration = DateTime.now().difference(startTime);
 
           _logger.info('流式聊天完成', {
             'chunks': chunkCount,
             'duration': duration,
             'totalLength': fullResponse.length,
+            'thinkingLength': fullThinking.length,
             'usage': event.usage?.totalTokens,
           });
 
@@ -989,5 +1006,18 @@ class AiService {
     }
 
     return cleaned;
+  }
+
+  /// 合并思考内容和回复内容
+  String? _combineContentWithThinking(String? content, String? thinking) {
+    if (content == null) return null;
+
+    // 如果没有思考内容，直接返回原内容
+    if (thinking == null || thinking.trim().isEmpty) {
+      return content;
+    }
+
+    // 将思考内容包装在 <think>...</think> 标签中，然后与回复内容合并
+    return '<think>\n$thinking\n</think>\n\n$content';
   }
 }
