@@ -259,15 +259,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
         selectedModelName: state.selectedModelName!,
       );
 
-      if (response != null) {
+      if (response.isSuccess) {
         // 添加AI回复
         final aiMsg = Message(
           author: 'AI助手',
-          content: response,
+          content: response.content,
           isFromUser: false,
           timestamp: DateTime.now(),
         );
         addMessage(aiMsg);
+      } else {
+        state = state.copyWith(error: response.error);
       }
     } catch (error) {
       state = state.copyWith(error: error.toString());
@@ -302,25 +304,41 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     try {
       var fullResponse = '';
-      await for (final chunk in _aiService.sendMessageStream(
+      var fullThinking = '';
+
+      await for (final event in _aiService.sendMessageStream(
         assistantId: state.selectedAssistantId!,
         chatHistory: state.messages,
         userMessage: userMessage,
         selectedProviderId: state.selectedProviderId!,
         selectedModelName: state.selectedModelName!,
       )) {
-        fullResponse += chunk;
-        yield chunk;
-      }
+        if (event.isError) {
+          state = state.copyWith(error: event.error);
+          yield '[错误] ${event.error}';
+          break;
+        } else if (event.isContent) {
+          fullResponse += event.contentDelta!;
+          yield event.contentDelta!;
+        } else if (event.isThinking) {
+          fullThinking += event.thinkingDelta!;
+          yield event.thinkingDelta!;
+        } else if (event.isDone) {
+          // 流式完成，添加完整的AI回复到聊天历史
+          final content = fullThinking.isNotEmpty
+              ? '<think>\n$fullThinking\n</think>\n\n$fullResponse'
+              : fullResponse;
 
-      // 完成后添加完整的AI回复到聊天历史
-      final aiMsg = Message(
-        author: 'AI助手',
-        content: fullResponse,
-        isFromUser: false,
-        timestamp: DateTime.now(),
-      );
-      addMessage(aiMsg);
+          final aiMsg = Message(
+            author: 'AI助手',
+            content: content,
+            isFromUser: false,
+            timestamp: DateTime.now(),
+          );
+          addMessage(aiMsg);
+          break;
+        }
+      }
     } catch (error) {
       state = state.copyWith(error: error.toString());
       yield '[错误] $error';

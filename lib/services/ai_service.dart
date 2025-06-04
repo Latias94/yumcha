@@ -13,6 +13,52 @@ import 'ai_request_service.dart';
 import 'ai_dart_service.dart';
 import '../ai_dart/core/chat_provider.dart';
 
+/// AI 响应结果，包含完整的响应信息
+class AiResponse {
+  final String content;
+  final String? thinking;
+  final UsageInfo? usage;
+  final Duration? duration;
+  final String? error;
+
+  const AiResponse({
+    required this.content,
+    this.thinking,
+    this.usage,
+    this.duration,
+    this.error,
+  });
+
+  bool get isSuccess => error == null;
+  bool get hasThinking => thinking?.isNotEmpty == true;
+}
+
+/// AI 流式响应事件
+class AiStreamResponse {
+  final String? contentDelta;
+  final String? thinkingDelta;
+  final String? finalThinking;
+  final bool isDone;
+  final String? error;
+  final UsageInfo? usage;
+  final Duration? duration;
+
+  const AiStreamResponse({
+    this.contentDelta,
+    this.thinkingDelta,
+    this.finalThinking,
+    this.isDone = false,
+    this.error,
+    this.usage,
+    this.duration,
+  });
+
+  bool get isContent => contentDelta != null;
+  bool get isThinking => thinkingDelta != null;
+  bool get isError => error != null;
+  bool get isSuccess => error == null;
+}
+
 // 调试信息类
 class DebugInfo {
   final String assistantId;
@@ -178,7 +224,7 @@ class AiService {
   // === 聊天功能 ===
 
   // 发送聊天消息
-  Future<String?> sendMessage({
+  Future<AiResponse> sendMessage({
     required String assistantId,
     required List<Message> chatHistory,
     required String userMessage,
@@ -189,21 +235,24 @@ class AiService {
     final requestId = '${assistantId}_${startTime.millisecondsSinceEpoch}';
 
     if (selectedModelName == "") {
-      _logger.error('模型名称不能为空');
-      NotificationService().showError('模型名称不能为空');
-      return null;
+      const error = '模型名称不能为空';
+      _logger.error(error);
+      NotificationService().showError(error);
+      return AiResponse(content: '', error: error);
     }
 
     if (selectedProviderId == "") {
-      _logger.error('提供商ID不能为空');
-      NotificationService().showError('提供商ID不能为空');
-      return null;
+      const error = '提供商ID不能为空';
+      _logger.error(error);
+      NotificationService().showError(error);
+      return AiResponse(content: '', error: error);
     }
 
     if (assistantId == "") {
-      _logger.error('助手ID不能为空');
-      NotificationService().showError('助手ID不能为空');
-      return null;
+      const error = '助手ID不能为空';
+      _logger.error(error);
+      NotificationService().showError(error);
+      return AiResponse(content: '', error: error);
     }
 
     _logger.info('开始发送AI消息', {
@@ -236,7 +285,7 @@ class AiService {
         ),
       );
       NotificationService().showError(error);
-      return null;
+      return AiResponse(content: '', error: error);
     }
 
     final provider = await providerRepository.getProvider(selectedProviderId);
@@ -254,7 +303,7 @@ class AiService {
         ),
       );
       NotificationService().showError(error);
-      return null;
+      return AiResponse(content: '', error: error);
     }
 
     try {
@@ -294,8 +343,12 @@ class AiService {
           ),
         );
 
-        // 合并思考内容和回复内容
-        return _combineContentWithThinking(result.content, result.thinking);
+        return AiResponse(
+          content: result.content ?? '',
+          thinking: result.thinking,
+          usage: result.usage,
+          duration: duration,
+        );
       } else {
         _logger.error('AI聊天请求失败', {
           'error': result.error,
@@ -318,7 +371,11 @@ class AiService {
         );
 
         NotificationService().showError(result.error ?? '未知错误');
-        return '[错误] ${result.error}';
+        return AiResponse(
+          content: '',
+          error: result.error ?? '未知错误',
+          duration: duration,
+        );
       }
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
@@ -343,12 +400,12 @@ class AiService {
       );
 
       NotificationService().showError('请求失败: $e');
-      return '[错误] 请求失败: $e';
+      return AiResponse(content: '', error: '请求失败: $e', duration: duration);
     }
   }
 
   // 发送流式聊天消息
-  Stream<String> sendMessageStream({
+  Stream<AiStreamResponse> sendMessageStream({
     required String assistantId,
     required List<Message> chatHistory,
     required String userMessage,
@@ -359,20 +416,26 @@ class AiService {
     final requestId = '${assistantId}_${startTime.millisecondsSinceEpoch}';
 
     if (selectedModelName == "") {
-      _logger.error('模型名称不能为空');
-      NotificationService().showError('模型名称不能为空');
+      const error = '模型名称不能为空';
+      _logger.error(error);
+      NotificationService().showError(error);
+      yield AiStreamResponse(error: error);
       return;
     }
 
     if (selectedProviderId == "") {
-      _logger.error('提供商ID不能为空');
-      NotificationService().showError('提供商ID不能为空');
+      const error = '提供商ID不能为空';
+      _logger.error(error);
+      NotificationService().showError(error);
+      yield AiStreamResponse(error: error);
       return;
     }
 
     if (assistantId == "") {
-      _logger.error('助手ID不能为空');
-      NotificationService().showError('助手ID不能为空');
+      const error = '助手ID不能为空';
+      _logger.error(error);
+      NotificationService().showError(error);
+      yield AiStreamResponse(error: error);
       return;
     }
 
@@ -406,7 +469,7 @@ class AiService {
         ),
       );
       NotificationService().showError(error);
-      yield '[错误] $error';
+      yield AiStreamResponse(error: error);
       return;
     }
 
@@ -425,7 +488,7 @@ class AiService {
         ),
       );
       NotificationService().showError(error);
-      yield '[错误] $error';
+      yield AiStreamResponse(error: error);
       return;
     }
 
@@ -450,7 +513,6 @@ class AiService {
       var fullThinking = '';
       var chunkCount = 0;
       bool hasError = false;
-      bool thinkingStarted = false;
 
       await for (final event in streamEvents) {
         if (event.content != null) {
@@ -462,26 +524,20 @@ class AiService {
             'totalLength': fullResponse.length,
           });
 
-          // 立即输出接收到的内容
-          yield event.content!;
+          yield AiStreamResponse(contentDelta: event.content!);
         } else if (event.thinkingDelta != null) {
-          // 处理思考内容
-          if (!thinkingStarted) {
-            // 第一次收到思考内容时，输出开始标签
-            yield '<think>\n';
-            thinkingStarted = true;
-          }
           fullThinking += event.thinkingDelta!;
-          yield event.thinkingDelta!;
+          _logger.debug('收到思考内容块', {
+            'thinkingDelta': event.thinkingDelta!,
+            'totalThinkingLength': fullThinking.length,
+          });
+
+          yield AiStreamResponse(thinkingDelta: event.thinkingDelta!);
         } else if (event.error != null) {
           hasError = true;
           _logger.error('流式聊天错误', {'error': event.error});
-          yield '[错误] ${event.error}';
+          yield AiStreamResponse(error: event.error!);
         } else if (event.isDone) {
-          // 如果有思考内容，输出结束标签和分隔符
-          if (thinkingStarted) {
-            yield '\n</think>\n\n';
-          }
           final duration = DateTime.now().difference(startTime);
 
           _logger.info('流式聊天完成', {
@@ -512,6 +568,13 @@ class AiService {
               error: hasError ? '流式响应中出现错误' : null,
             ),
           );
+
+          yield AiStreamResponse(
+            isDone: true,
+            finalThinking: event.finalThinking ?? fullThinking,
+            usage: event.usage,
+            duration: duration,
+          );
           break;
         }
       }
@@ -539,7 +602,7 @@ class AiService {
       );
 
       NotificationService().showError('流式聊天失败: $e');
-      yield '[错误] 流式聊天失败: $e';
+      yield AiStreamResponse(error: '流式聊天失败: $e');
     }
   }
 
@@ -1006,18 +1069,5 @@ class AiService {
     }
 
     return cleaned;
-  }
-
-  /// 合并思考内容和回复内容
-  String? _combineContentWithThinking(String? content, String? thinking) {
-    if (content == null) return null;
-
-    // 如果没有思考内容，直接返回原内容
-    if (thinking == null || thinking.trim().isEmpty) {
-      return content;
-    }
-
-    // 将思考内容包装在 <think>...</think> 标签中，然后与回复内容合并
-    return '<think>\n$thinking\n</think>\n\n$content';
   }
 }

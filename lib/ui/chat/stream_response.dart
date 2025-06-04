@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../../services/ai_service.dart';
 
 /// 流式响应处理器 - 管理AI流式输出
 class StreamResponse {
@@ -8,7 +9,7 @@ class StreamResponse {
   }
 
   /// 流式数据源
-  final Stream<String> stream;
+  final Stream<AiStreamResponse> stream;
 
   /// 内容更新回调
   final VoidCallback? onUpdate;
@@ -17,12 +18,24 @@ class StreamResponse {
   final void Function(String? error)? onDone;
 
   String _content = '';
-  StreamSubscription<String>? _subscription;
+  String _thinking = '';
+  StreamSubscription<AiStreamResponse>? _subscription;
   bool _isCanceled = false;
   bool _isDone = false;
 
   /// 获取当前累积的内容
   String get content => _content;
+
+  /// 获取当前累积的思考内容
+  String get thinking => _thinking;
+
+  /// 获取完整的内容（包含思考内容）
+  String get fullContent {
+    if (_thinking.isNotEmpty) {
+      return '<think>\n$_thinking\n</think>\n\n$_content';
+    }
+    return _content;
+  }
 
   /// 是否已被取消
   bool get isCanceled => _isCanceled;
@@ -32,11 +45,22 @@ class StreamResponse {
 
   void _startListening() {
     _subscription = stream.listen(
-      (chunk) {
+      (event) {
         if (_isCanceled || _isDone) return;
 
-        _content += chunk;
-        onUpdate?.call();
+        if (event.isError) {
+          _isDone = true;
+          onDone?.call(event.error);
+        } else if (event.isContent) {
+          _content += event.contentDelta!;
+          onUpdate?.call();
+        } else if (event.isThinking) {
+          _thinking += event.thinkingDelta!;
+          onUpdate?.call();
+        } else if (event.isDone) {
+          _isDone = true;
+          onDone?.call(null);
+        }
       },
       onError: (error) {
         if (_isCanceled || _isDone) return;

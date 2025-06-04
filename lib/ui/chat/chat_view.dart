@@ -323,7 +323,7 @@ class _ChatViewState extends ConsumerState<ChatView>
             // 更新流式消息内容
             if (_streamingMessage != null) {
               final updatedMessage = Message(
-                content: _pendingStreamResponse!.content,
+                content: _pendingStreamResponse!.fullContent,
                 timestamp: _streamingMessage!.timestamp,
                 isFromUser: false,
                 author: _streamingMessage!.author,
@@ -400,9 +400,9 @@ class _ChatViewState extends ConsumerState<ChatView>
       selectedModelName: modelName,
     );
 
-    if (response != null) {
+    if (response.isSuccess) {
       final aiMessage = Message(
-        content: response,
+        content: response.content,
         timestamp: DateTime.now(),
         isFromUser: false,
         author: assistant.name,
@@ -413,6 +413,8 @@ class _ChatViewState extends ConsumerState<ChatView>
       });
 
       _notifyMessagesChanged();
+    } else {
+      NotificationService().showError(response.error ?? '请求失败');
     }
   }
 
