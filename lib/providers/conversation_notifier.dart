@@ -584,6 +584,9 @@ class CurrentConversationNotifier
 
     // 保存到数据库
     await _saveConversationIfNeeded(updatedConversation);
+
+    // 通知对话列表刷新
+    ref.read(conversationListRefreshProvider.notifier).notifyRefresh();
   }
 }
 
@@ -601,6 +604,22 @@ class _TitleGenerationValidationResult {
     this.modelId,
   });
 }
+
+/// 对话列表刷新通知器
+class ConversationListRefreshNotifier extends StateNotifier<int> {
+  ConversationListRefreshNotifier() : super(0);
+
+  /// 通知对话列表需要刷新
+  void notifyRefresh() {
+    state = state + 1;
+  }
+}
+
+/// 对话列表刷新通知Provider
+final conversationListRefreshProvider =
+    StateNotifierProvider<ConversationListRefreshNotifier, int>(
+      (ref) => ConversationListRefreshNotifier(),
+    );
 
 /// 当前对话状态Provider
 final currentConversationProvider =

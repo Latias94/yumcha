@@ -237,9 +237,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       );
       await conversationNotifier.regenerateTitle(conversation.id);
 
-      // 刷新对话列表以显示新标题
-      _refreshConversations();
-
       NotificationService().showSuccess('标题重新生成成功');
     } catch (e) {
       _logger.error('重新生成标题失败', {
@@ -340,22 +337,35 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      child: Column(
-        children: [
-          // 搜索框
-          _buildSearchHeader(),
+    return Consumer(
+      builder: (context, ref, child) {
+        // 监听对话列表刷新通知
+        ref.listen<int>(conversationListRefreshProvider, (previous, next) {
+          // 当刷新通知发生变化时，刷新对话列表
+          if (mounted && previous != next) {
+            _logger.debug('收到对话列表刷新通知，刷新分页控制器');
+            _refreshConversations();
+          }
+        });
 
-          // 聊天记录列表
-          Expanded(child: _buildChatHistoryList()),
+        return Drawer(
+          child: Column(
+            children: [
+              // 搜索框
+              _buildSearchHeader(),
 
-          // 助手选择下拉框
-          _buildAssistantSelector(),
+              // 聊天记录列表
+              Expanded(child: _buildChatHistoryList()),
 
-          // 底部按钮
-          _buildBottomButtons(),
-        ],
-      ),
+              // 助手选择下拉框
+              _buildAssistantSelector(),
+
+              // 底部按钮
+              _buildBottomButtons(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -696,10 +706,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             );
             widget.onChatClicked(conversation.id);
           },
-          onLongPress: () {
-            // 显示上下文菜单
-            _showContextMenu(context, conversation);
-          },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -780,47 +786,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         ),
       ),
     );
-  }
-
-  // 显示上下文菜单
-  void _showContextMenu(
-    BuildContext context,
-    ConversationUiState conversation,
-  ) {
-    // 显示操作菜单
-    showMenu<String>(
-      context: context,
-      position: const RelativeRect.fromLTRB(200, 200, 0, 0),
-      items: [
-        const PopupMenuItem<String>(
-          value: 'regenerate_title',
-          child: Row(
-            children: [
-              Icon(Icons.auto_awesome, size: 20),
-              SizedBox(width: 12),
-              Text('重新生成标题'),
-            ],
-          ),
-        ),
-        const PopupMenuItem<String>(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete, color: Colors.red, size: 20),
-              SizedBox(width: 12),
-              Text('删除对话'),
-            ],
-          ),
-        ),
-      ],
-      elevation: 8,
-    ).then((value) {
-      if (value == 'regenerate_title') {
-        _regenerateTitle(conversation);
-      } else if (value == 'delete') {
-        _showDeleteConfirmDialog(conversation);
-      }
-    });
   }
 
   Widget _buildAssistantSelector() {
