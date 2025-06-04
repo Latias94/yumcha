@@ -6,7 +6,6 @@ import '../models/ai_model.dart';
 import '../services/notification_service.dart';
 import '../providers/ai_provider_notifier.dart';
 import '../components/model_list_manager.dart';
-import '../src/rust/api/ai_chat.dart' as genai;
 
 class ProviderEditScreen extends ConsumerStatefulWidget {
   final AiProvider? provider;
@@ -139,29 +138,10 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
     }
   }
 
-  /// 将本地提供商类型转换为 GenAI 提供商类型
-  genai.AiProvider _convertToGenaiProvider(ProviderType type) {
-    switch (type) {
-      case ProviderType.openai:
-        return const genai.AiProvider.openAi();
-      case ProviderType.anthropic:
-        return const genai.AiProvider.anthropic();
-      case ProviderType.google:
-        return const genai.AiProvider.gemini();
-      case ProviderType.ollama:
-        return const genai.AiProvider.ollama();
-      case ProviderType.custom:
-        return const genai.AiProvider.custom(name: 'custom');
-    }
-  }
-
   /// 获取提供商能力描述
   String _getProviderCapabilityDescription(ProviderType type) {
-    final genaiProvider = _convertToGenaiProvider(type);
-    final capabilities = genai.getProviderCapabilitiesInfo(
-      provider: genaiProvider,
-    );
-    return capabilities.description;
+    // TODO
+    return 'TODO';
   }
 
   List<String> _getDefaultModels(ProviderType type) {
@@ -341,24 +321,18 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
                   // Base URL
                   Builder(
                     builder: (context) {
-                      final genaiProvider = _convertToGenaiProvider(
-                        _selectedType,
-                      );
-                      final capabilities = genai.getProviderCapabilitiesInfo(
-                        provider: genaiProvider,
-                      );
-
+                      final supportsCustomBaseUrl = true;
                       return TextFormField(
                         controller: _baseUrlController,
                         decoration: InputDecoration(
                           labelText: 'Base URL',
                           hintText: '输入 API 基础地址',
                           border: const OutlineInputBorder(),
-                          helperText: capabilities.supportsCustomBaseUrl
+                          helperText: supportsCustomBaseUrl
                               ? '可自定义API服务器地址，支持代理服务器或本地部署'
                               : '此提供商类型使用固定的官方API地址',
                         ),
-                        enabled: capabilities.supportsCustomBaseUrl,
+                        enabled: supportsCustomBaseUrl,
                       );
                     },
                   ),

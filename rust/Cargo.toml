@@ -8,14 +8,7 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 flutter_rust_bridge = "=2.10.0"
-genai = "0.3.5"
-tokio = { version = "1.45", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1"
 anyhow = "1"
-futures = "0.3.31"
-reqwest = { version = "0.12", features = ["json"] }
-regex = "1.11.1"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

@@ -9,7 +9,6 @@ import 'provider_repository.dart';
 import 'assistant_repository.dart';
 import 'database_service.dart';
 import 'ai_request_service.dart';
-import '../src/rust/api/ai_chat.dart' as genai;
 
 // 调试信息类
 class DebugInfo {
@@ -586,7 +585,7 @@ class AiService {
 
   // === 标题生成功能 ===
 
-  /// 生成聊天标题
+  /// 生成聊天标题（使用 ai_dart 库）
   Future<String?> generateChatTitle({
     required AiProvider provider,
     required String modelName,
@@ -608,38 +607,66 @@ class AiService {
     });
 
     try {
-      // 转换消息格式
-      final chatMessages = messages.map((msg) {
-        return genai.ChatMessage(
-          role: msg.isFromUser ? genai.ChatRole.user : genai.ChatRole.assistant,
-          content: msg.content,
-        );
-      }).toList();
+      // 创建专门用于标题生成的助手配置
+      final titleAssistant = AiAssistant(
+        id: 'title-generator',
+        name: 'Title Generator',
+        avatar: '📝',
+        systemPrompt: customPrompt ?? _getDefaultTitlePrompt(),
+        temperature: 0.7,
+        topP: 1.0,
+        maxTokens: 100, // 限制token数量，标题不需要太长
+        contextLength: 5, // 只使用最近5条消息
+        streamOutput: false,
+        isEnabled: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        description: 'AI标题生成助手',
+        customHeaders: {},
+        customBody: {},
+        stopSequences: [],
+        frequencyPenalty: 0.0,
+        presencePenalty: 0.0,
+        enableCodeExecution: false,
+        enableImageGeneration: false,
+        enableTools: false,
+        enableReasoning: false,
+        enableVision: false,
+        enableEmbedding: false,
+      );
 
-      // 转换提供商类型
-      final aiProvider = _convertToGenaiProvider(provider);
+      // 取最近5条消息作为上下文
+      final recentMessages = messages.length > 5
+          ? messages.sublist(messages.length - 5)
+          : messages;
 
-      // 调用 Rust 标题生成功能
-      final response = await genai.generateChatTitle(
-        provider: aiProvider,
-        model: modelName,
-        apiKey: provider.apiKey,
-        baseUrl: provider.baseUrl?.isNotEmpty == true ? provider.baseUrl : null,
-        messages: chatMessages,
-        customPrompt: customPrompt,
+      // 构建标题生成的用户消息
+      final conversationSummary = _buildConversationSummary(recentMessages);
+
+      // 使用 AiRequestService 发送标题生成请求
+      final result = await _requestService.sendChatRequest(
+        provider: provider,
+        assistant: titleAssistant,
+        modelName: modelName,
+        chatHistory: [], // 不需要历史记录
+        userMessage: conversationSummary,
       );
 
       final duration = DateTime.now().difference(startTime);
 
-      if (response.success) {
+      if (result.isSuccess && result.content != null) {
+        // 清理标题：移除换行符、引号等，限制长度
+        final cleanTitle = _cleanTitle(result.content!);
+
         _logger.info('标题生成成功', {
-          'title': response.title,
+          'title': cleanTitle,
           'duration': '${duration.inMilliseconds}ms',
         });
-        return response.title;
+
+        return cleanTitle;
       } else {
         _logger.error('标题生成失败', {
-          'error': response.errorMessage,
+          'error': result.error,
           'duration': '${duration.inMilliseconds}ms',
         });
         return null;
@@ -654,19 +681,71 @@ class AiService {
     }
   }
 
-  /// 转换提供商类型到 genai 格式
-  genai.AiProvider _convertToGenaiProvider(AiProvider provider) {
-    switch (provider.type) {
-      case ProviderType.openai:
-        return const genai.AiProvider.openAi();
-      case ProviderType.anthropic:
-        return const genai.AiProvider.anthropic();
-      case ProviderType.google:
-        return const genai.AiProvider.gemini();
-      case ProviderType.ollama:
-        return const genai.AiProvider.ollama();
-      case ProviderType.custom:
-        return genai.AiProvider.custom(name: provider.name);
+  /// 获取默认的标题生成提示词
+  String _getDefaultTitlePrompt() {
+    return '''你是一个专业的对话标题生成助手。请根据用户提供的对话内容，生成一个简洁、准确的标题。
+
+要求：
+1. 标题长度不超过20个字符
+2. 使用与对话相同的语言
+3. 准确概括对话的主要内容
+4. 不要使用引号、标点符号或特殊字符
+5. 直接输出标题，不要添加任何解释
+
+请为以下对话生成标题：''';
+  }
+
+  /// 构建对话摘要用于标题生成
+  String _buildConversationSummary(List<Message> messages) {
+    final summary = StringBuffer();
+
+    for (int i = 0; i < messages.length; i++) {
+      final message = messages[i];
+      final rolePrefix = message.isFromUser ? '用户' : '助手';
+      summary.writeln('$rolePrefix: ${message.content}');
+
+      // 限制总长度，避免超出模型上下文
+      if (summary.length > 1000) {
+        summary.writeln('...(对话继续)');
+        break;
+      }
     }
+
+    return summary.toString();
+  }
+
+  /// 清理标题文本
+  String _cleanTitle(String title) {
+    // 移除换行符和多余空格
+    String cleaned = title.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    // 移除开头和结尾的引号
+    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+      cleaned = cleaned.substring(1, cleaned.length - 1);
+    }
+    if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+      cleaned = cleaned.substring(1, cleaned.length - 1);
+    }
+
+    // 移除常见的标题前缀
+    if (cleaned.toLowerCase().startsWith('标题:') ||
+        cleaned.toLowerCase().startsWith('标题：')) {
+      cleaned = cleaned.substring(3).trim();
+    }
+    if (cleaned.toLowerCase().startsWith('title:')) {
+      cleaned = cleaned.substring(6).trim();
+    }
+
+    // 限制长度为30个字符
+    if (cleaned.length > 30) {
+      cleaned = cleaned.substring(0, 30);
+    }
+
+    // 如果标题为空或太短，返回默认标题
+    if (cleaned.isEmpty || cleaned.length < 2) {
+      return '新对话';
+    }
+
+    return cleaned;
   }
 }

@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面端和移动端。应用采用 Material Design 3 设计规范，通过 Flutter Rust Bridge 集成 Rust 后端，使用 genai crate 提供强大的 AI 聊天功能。
+YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面端和移动端。应用采用 Material Design 3 设计规范，通过 Flutter Rust Bridge 集成 Rust 后端，使用 ai_dart 提供 AI 聊天功能。
 
 ### 核心功能
 - **AI 助手聊天**：支持多种 AI 提供商（OpenAI、DeepSeek、Anthropic、Google、Ollama 等）
@@ -23,7 +23,6 @@ YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面
 
 ### 后端技术栈
 - **Rust**：高性能后端语言
-- **genai 0.3.5**：AI 服务集成 crate
 - **tokio**：异步运行时
 - **serde**：序列化/反序列化
 
@@ -187,7 +186,7 @@ final providers = await providerRepo.getAllProviders();
 #### 2. AI 相关服务
 - `AiService`: AI 聊天功能的主要服务类
 - `AiRequestService`: 处理 AI 请求的具体实现
-- 通过 Flutter Rust Bridge 调用 Rust 后端的 genai crate
+- 通过 ai_dart 库封装 AI 请求逻辑
 
 #### 3. Repository 层
 - `ProviderRepository`: 提供商数据访问层

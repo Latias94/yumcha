@@ -195,7 +195,6 @@ void main() {
 
     test('验证标题生成客户端函数存在', () {
       // 测试标题生成客户端函数是否存在（不实际调用）
-      expect(genai.createTitleGenerationClient, isA<Function>());
       expect(genai.generateChatTitle, isA<Function>());
     });
   });
