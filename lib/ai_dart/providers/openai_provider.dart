@@ -172,6 +172,22 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     return dio;
   }
 
+  /// Get provider ID based on base URL
+  String _getProviderId() {
+    final baseUrl = config.baseUrl.toLowerCase();
+    if (baseUrl.contains('openrouter')) {
+      return 'openrouter';
+    } else if (baseUrl.contains('groq')) {
+      return 'groq';
+    } else if (baseUrl.contains('deepseek')) {
+      return 'deepseek';
+    } else if (baseUrl.contains('openai')) {
+      return 'openai';
+    } else {
+      return 'openai'; // Default fallback
+    }
+  }
+
   @override
   Future<ChatResponse> chatWithTools(
     List<ChatMessage> messages,
@@ -216,7 +232,61 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         );
       }
 
-      return OpenAIChatResponse(responseData);
+      // Extract thinking/reasoning content from non-streaming response
+      String? thinkingContent;
+
+      // Check for reasoning content in the response
+      final choices = responseData['choices'] as List?;
+      if (choices != null && choices.isNotEmpty) {
+        final choice = choices.first as Map<String, dynamic>;
+        final message = choice['message'] as Map<String, dynamic>?;
+
+        if (message != null) {
+          // Check for reasoning content in various possible fields
+          // Different providers use different field names for reasoning content
+          thinkingContent =
+              message['reasoning'] as String? ??
+              message['thinking'] as String? ??
+              message['reasoning_content'] as String?;
+
+          // For models that use <think> tags, extract thinking content
+          final content = message['content'] as String?;
+          if (content != null && ReasoningUtils.containsThinkingTags(content)) {
+            // Extract thinking content from <think> tags
+            final thinkMatch = RegExp(
+              r'<think>(.*?)</think>',
+              dotAll: true,
+            ).firstMatch(content);
+            if (thinkMatch != null) {
+              thinkingContent = thinkMatch.group(1)?.trim();
+              // Update the message content to remove thinking tags for clean response
+              message['content'] = ReasoningUtils.filterThinkingContent(
+                content,
+              );
+            }
+          }
+
+          // For OpenRouter with deepseek-r1, check if include_reasoning was used
+          if (thinkingContent == null && config.model.contains('deepseek-r1')) {
+            // OpenRouter might return reasoning in a separate field
+            final reasoning = responseData['reasoning'] as String?;
+            if (reasoning != null && reasoning.isNotEmpty) {
+              thinkingContent = reasoning;
+            }
+          }
+
+          // Log for debugging
+          if (thinkingContent != null) {
+            _logger.fine(
+              'Extracted thinking content: ${thinkingContent.length} characters',
+            );
+          } else {
+            _logger.fine('No thinking content found in non-streaming response');
+          }
+        }
+      }
+
+      return OpenAIChatResponse(responseData, thinkingContent);
     } on DioException catch (e) {
       throw _handleDioError(e);
     } catch (e) {
@@ -369,13 +439,19 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     if (config.topK != null) body['top_k'] = config.topK;
 
     // Add reasoning effort parameters
+    final providerId = _getProviderId();
     body.addAll(
       ReasoningUtils.getReasoningEffortParams(
-        providerId: 'openai', // or extract from config.baseUrl
+        providerId: providerId,
         model: config.model,
         reasoningEffort: config.reasoningEffort,
       ),
     );
+
+    // Add provider-specific reasoning parameters
+    if (providerId == 'openrouter' && config.model.contains('deepseek-r1')) {
+      body['include_reasoning'] = true;
+    }
 
     // Add tools if provided
     final effectiveTools = tools ?? config.tools;

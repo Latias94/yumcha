@@ -5,16 +5,34 @@ import '../core/chat_provider.dart';
 import '../models/chat_models.dart';
 
 /// Example demonstrating how to use reasoning models (o1, o3, o4 series) with thinking support
+///
+/// Usage Instructions:
+/// 1. Comment out one of the examples to test individually
+/// 2. streamingExample() - Streaming output example, shows thinking process in real-time
+/// 3. nonStreamingExample() - Non-streaming output example, returns complete result at once
 void main() async {
-  // Get OpenAI API key from environment variable or use test key as fallback
-  final apiKey = 'sk-ngt7SAfEo154u80l8Yc7T7R8xAwCQE9yd9MhnEqxKCdjZxV9';
+  // Test streaming output - comment out the line below to disable streaming test
+  await streamingExample();
 
-  // Initialize and configure the LLM client for reasoning model
+  print('\n${'=' * 80}\n');
+
+  // Test non-streaming output - comment out the line below to disable non-streaming test
+  await nonStreamingExample();
+}
+
+/// Streaming output example - shows AI thinking process in real-time
+Future<void> streamingExample() async {
+  print('🌊 Streaming Example');
+  print('=' * 50);
+
+  // Get OpenAI API key from environment variable or use test key as fallback
+  final apiKey = Platform.environment['OPENAI_API_KEY'] ?? 'sk-OPENAI';
+
+  // Initialize and configure the LLM client for streaming
   final llm = await LLMBuilder()
       .backend(LLMBackend.openai) // Use OpenAI as the LLM provider
       .apiKey(apiKey) // Set the API key
-      .baseUrl('https://api.mnapi.com/v1/')
-      .model('deepseek-r1') // Use o1-preview reasoning model
+      .model('deepseek-r1') // Use reasoning model
       .reasoningEffort('high') // Set reasoning effort level
       .maxTokens(2000) // Limit response length
       .stream(true) // Enable streaming to see thinking process
@@ -48,7 +66,7 @@ void main() async {
           case TextDeltaEvent(delta: final delta):
             // This is the actual response after thinking
             if (isThinking) {
-              print('\n\n🎯 Response:');
+              print('\n\n🎯 Final Answer:');
               isThinking = false;
             }
             responseContent.write(delta);
@@ -61,12 +79,6 @@ void main() async {
           case CompletionEvent(response: final response):
             // Handle completion
             print('\n\n✅ Reasoning completed!');
-
-            // Show thinking content if available
-            if (response.thinking != null && response.thinking!.isNotEmpty) {
-              print('\n🧠 Thinking process:');
-              print('\x1B[90m${response.thinking}\x1B[0m');
-            }
 
             if (response.usage != null) {
               final usage = response.usage!;
@@ -83,25 +95,71 @@ void main() async {
       }
 
       // Summary
-      print('\n' + '=' * 50);
-      print('📝 Summary:');
-      print('Thinking tokens: ${thinkingContent.length} characters');
-      print('Response tokens: ${responseContent.length} characters');
+      print('\n📝 Streaming Summary:');
+      print('Thinking content length: ${thinkingContent.length} characters');
+      print('Response content length: ${responseContent.length} characters');
     } else {
       print('❌ Provider does not support streaming');
-
-      // Fallback to regular chat
-      print('Falling back to regular chat...');
-      final response = await llm.chat(messages);
-      print('Response: ${response.text}');
-
-      // Show thinking content if available
-      if (response.thinking != null && response.thinking!.isNotEmpty) {
-        print('\n🧠 Thinking process:');
-        print('\x1B[90m${response.thinking}\x1B[0m');
-      }
     }
   } catch (e) {
-    print('❌ Error: $e');
+    print('❌ Streaming example error: $e');
+  }
+}
+
+/// Non-streaming output example - returns complete result at once
+Future<void> nonStreamingExample() async {
+  print('📄 Non-Streaming Example');
+  print('=' * 50);
+
+  // Get OpenAI API key from environment variable or use test key as fallback
+  final apiKey = Platform.environment['OPENAI_API_KEY'] ?? 'sk-OPENAI';
+
+  // Initialize and configure the LLM client for non-streaming
+  final llm = await LLMBuilder()
+      .backend(LLMBackend.openai) // Use OpenAI as the LLM provider
+      .apiKey(apiKey) // Set the API key
+      .model('deepseek-r1') // Use reasoning model
+      .reasoningEffort('high') // Set reasoning effort level
+      .maxTokens(2000) // Limit response length
+      .stream(false) // Disable streaming for complete response
+      .build();
+
+  // Create a complex reasoning task
+  final messages = [ChatMessage.user('hello')];
+
+  try {
+    print('🧠 Starting reasoning model chat, waiting for complete answer...\n');
+
+    // Send non-streaming chat request
+    final response = await llm.chat(messages);
+
+    // Show thinking content if available
+    if (response.thinking != null && response.thinking!.isNotEmpty) {
+      print('🧠 Thinking Process:');
+      print(
+        '\x1B[90m${response.thinking}\x1B[0m',
+      ); // Gray color for thinking content
+      print('\n${'-' * 50}\n');
+    }
+
+    // Show the final response
+    print('🎯 Final Answer:');
+    print(response.text);
+
+    // Show usage information
+    if (response.usage != null) {
+      final usage = response.usage!;
+      print(
+        '\n📊 Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total tokens',
+      );
+    }
+
+    print('\n📝 Non-Streaming Summary:');
+    print(
+      'Thinking content length: ${response.thinking?.length ?? 0} characters',
+    );
+    print('Response content length: ${response.text?.length ?? 0} characters');
+  } catch (e) {
+    print('❌ Non-streaming example error: $e');
   }
 }
