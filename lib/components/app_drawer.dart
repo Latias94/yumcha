@@ -68,7 +68,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       getNextPageKey: (state) {
         if (state.pages?.isNotEmpty == true) {
           final lastPage = state.pages!.last;
-          if (lastPage.isEmpty) {
+          if (lastPage.isEmpty || lastPage.length < _pageSize) {
             return null; // 没有更多数据
           }
           return (state.keys?.last ?? 0) + _pageSize;
@@ -515,21 +515,27 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       fetchNextPage: fetchNextPage,
       builderDelegate: PagedChildBuilderDelegate<ConversationUiState>(
         itemBuilder: (context, conversation, globalIndex) {
-          return AnimationConfiguration.staggeredList(
-            position: globalIndex,
-            duration: const Duration(milliseconds: 375),
-            child: SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(
-                child: _buildConversationItemWithGroup(
-                  conversation,
-                  globalIndex,
-                  allItems,
-                  groups,
-                ),
-              ),
-            ),
+          final conversationWidget = _buildConversationItemWithGroup(
+            conversation,
+            globalIndex,
+            allItems,
+            groups,
           );
+
+          // 只在搜索时显示动画
+          if (_searchQuery.trim().isNotEmpty) {
+            return AnimationConfiguration.staggeredList(
+              position: globalIndex,
+              duration: const Duration(milliseconds: 375),
+              child: SlideAnimation(
+                verticalOffset: 50.0,
+                child: FadeInAnimation(child: conversationWidget),
+              ),
+            );
+          } else {
+            // 正常加载时不显示动画
+            return conversationWidget;
+          }
         },
         firstPageErrorIndicatorBuilder: (context) => Center(
           child: Column(

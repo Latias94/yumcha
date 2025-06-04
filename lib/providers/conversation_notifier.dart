@@ -449,14 +449,26 @@ class CurrentConversationNotifier
         }
       }
 
-      // 首先尝试使用默认模型生成标题
-      String? generatedTitle = await _aiService.generateChatTitleWithDefaults(
-        messages: conversation.messages,
-      );
+      String? generatedTitle;
 
-      // 如果默认模型生成失败，回退到使用当前对话的模型
+      // 首先检查是否配置了默认标题生成模型
+      final hasDefaultTitleModel = await _aiService.hasDefaultTitleModel();
+
+      if (hasDefaultTitleModel) {
+        // 使用默认模型生成标题
+        _logger.info('使用默认模型生成标题');
+        generatedTitle = await _aiService.generateChatTitleWithDefaults(
+          messages: conversation.messages,
+        );
+      }
+
+      // 如果没有默认模型或默认模型生成失败，回退到使用当前对话的模型
       if (generatedTitle == null) {
-        _logger.info('默认模型生成标题失败，回退到当前对话模型');
+        if (hasDefaultTitleModel) {
+          _logger.info('默认模型生成标题失败，回退到当前对话模型');
+        } else {
+          _logger.info('未配置默认标题生成模型，使用当前对话模型');
+        }
 
         // 验证提供商和模型信息
         final validationResult = _validateTitleGenerationRequirements(

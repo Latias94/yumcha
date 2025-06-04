@@ -595,6 +595,11 @@ class AiService {
         'provider': provider.name,
         'type': provider.type.toString(),
         'baseUrl': provider.baseUrl ?? '默认端点',
+        'apiKey': provider.apiKey.isNotEmpty
+            ? '${provider.apiKey.substring(0, 8)}...'
+            : '空',
+        'hasApiKey': provider.apiKey.isNotEmpty,
+        'hasBaseUrl': provider.baseUrl?.isNotEmpty == true,
       });
 
       // 检查提供商是否支持模型列表功能
@@ -731,6 +736,44 @@ class AiService {
 
   // === 标题生成功能 ===
 
+  /// 检查是否配置了默认标题生成模型
+  Future<bool> hasDefaultTitleModel() async {
+    try {
+      // 获取设置仓库
+      final settingRepository = SettingRepository(
+        DatabaseService.instance.database,
+      );
+
+      // 获取默认标题生成模型配置
+      final defaultConfig = await settingRepository.getDefaultTitleModel();
+
+      if (defaultConfig?.isConfigured != true) {
+        return false;
+      }
+
+      // 获取提供商信息
+      final providerRepository = ProviderRepository(
+        DatabaseService.instance.database,
+      );
+      final provider = await providerRepository.getProvider(
+        defaultConfig!.providerId!,
+      );
+
+      if (provider == null) {
+        return false;
+      }
+
+      if (!provider.isEnabled) {
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      _logger.error('检查默认标题生成模型配置失败', {'error': e.toString()});
+      return false;
+    }
+  }
+
   /// 使用默认模型生成聊天标题
   Future<String?> generateChatTitleWithDefaults({
     required List<Message> messages,
@@ -746,7 +789,6 @@ class AiService {
       final defaultConfig = await settingRepository.getDefaultTitleModel();
 
       if (defaultConfig?.isConfigured != true) {
-        _logger.warning('未配置默认标题生成模型，跳过自动生成');
         return null;
       }
 

@@ -58,6 +58,17 @@ class AiDartService {
     String modelName, {
     required bool enableStreaming,
   }) async {
+    _logger.info('构建AI Dart提供商', {
+      'providerName': provider.name,
+      'providerType': provider.type.toString(),
+      'modelName': modelName,
+      'apiKey': provider.apiKey.isNotEmpty
+          ? '${provider.apiKey.substring(0, 8)}...'
+          : '空',
+      'baseUrl': provider.baseUrl ?? '默认',
+      'enableStreaming': enableStreaming,
+    });
+
     // Map provider type to LLMBackend
     final LLMBackend backend;
     switch (provider.type) {
@@ -92,6 +103,7 @@ class AiDartService {
 
     // Add optional parameters if they exist
     if (provider.baseUrl?.isNotEmpty == true) {
+      _logger.info('使用自定义BaseURL', {'baseUrl': provider.baseUrl});
       builder.baseUrl(provider.baseUrl!);
     }
 

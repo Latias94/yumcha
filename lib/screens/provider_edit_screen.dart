@@ -5,7 +5,7 @@ import '../models/ai_provider.dart';
 import '../models/ai_model.dart';
 import '../services/notification_service.dart';
 import '../providers/ai_provider_notifier.dart';
-import '../components/model_list_manager.dart';
+import '../components/model_list_widget.dart';
 
 class ProviderEditScreen extends ConsumerStatefulWidget {
   final AiProvider? provider;
@@ -309,6 +309,7 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
                       helperText: '从AI提供商官网获取的API密钥，用于身份验证和计费',
                     ),
                     obscureText: true,
+
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return '请输入 API Key';
@@ -353,10 +354,7 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
-              child: ModelListManager(
-                key: ValueKey(
-                  '${_apiKeyController.text.trim()}_${_baseUrlController.text.trim()}_${_selectedType.name}',
-                ),
+              child: ModelListWidget(
                 models: _models,
                 onModelsChanged: (models) {
                   setState(() {

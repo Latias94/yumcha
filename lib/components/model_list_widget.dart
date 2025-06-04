@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import '../models/ai_model.dart';
 import '../models/ai_provider.dart';
+import '../services/model_management_service.dart';
 import '../services/notification_service.dart';
-import '../services/ai_request_service.dart';
-import '../services/ai_service.dart';
-import '../services/logger_service.dart';
 import 'model_edit_dialog.dart';
 import 'model_selection_dialog.dart';
 
-class ModelListManager extends StatefulWidget {
+/// 模型列表 UI 组件 - 纯 UI，不包含业务逻辑
+class ModelListWidget extends StatefulWidget {
   final List<AiModel> models;
   final Function(List<AiModel>) onModelsChanged;
   final AiProvider? provider; // 用于获取模型列表
 
-  const ModelListManager({
+  const ModelListWidget({
     super.key,
     required this.models,
     required this.onModelsChanged,
@@ -21,13 +20,13 @@ class ModelListManager extends StatefulWidget {
   });
 
   @override
-  State<ModelListManager> createState() => _ModelListManagerState();
+  State<ModelListWidget> createState() => _ModelListWidgetState();
 }
 
-class _ModelListManagerState extends State<ModelListManager> {
+class _ModelListWidgetState extends State<ModelListWidget> {
   late List<AiModel> _models;
   bool _isLoading = false;
-  final _logger = LoggerService();
+  final _modelManagementService = ModelManagementService();
 
   @override
   void initState() {
@@ -36,7 +35,7 @@ class _ModelListManagerState extends State<ModelListManager> {
   }
 
   @override
-  void didUpdateWidget(ModelListManager oldWidget) {
+  void didUpdateWidget(ModelListWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     // 当模型列表发生变化时更新本地状态
@@ -101,193 +100,32 @@ class _ModelListManagerState extends State<ModelListManager> {
     );
   }
 
-  /// 检查提供商是否支持获取模型列表
-  bool _providerSupportsListModels(ProviderType type) {
-    switch (type) {
-      case ProviderType.openai:
-      case ProviderType.custom:
-        return true; // OpenAI兼容接口支持列出模型
-      case ProviderType.anthropic:
-      case ProviderType.google:
-      case ProviderType.ollama:
-        return false; // 这些提供商暂不支持动态获取模型列表
-    }
-  }
-
   Future<void> _fetchModelsFromProvider() async {
     if (widget.provider == null) {
       NotificationService().showWarning('请先填写提供商配置信息');
       return;
     }
 
-    // 获取当前的 provider 信息
-    final currentProvider = widget.provider!;
-
-    // 检查 API Key 是否已填写
-    if (currentProvider.apiKey.isEmpty) {
-      NotificationService().showWarning('请先填写 API Key');
-      return;
-    }
-
-    // 检查提供商是否支持列出模型
-    if (!_providerSupportsListModels(currentProvider.type)) {
-      NotificationService().showWarning(
-        '${currentProvider.name} 不支持动态获取模型列表，请手动添加模型',
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
-      List<AiModel> availableModels = [];
-
-      // 首先尝试从提供商API获取模型列表
-      try {
-        final aiService = AiService();
-        availableModels = await aiService.fetchModelsFromProvider(
-          currentProvider,
-        );
-
-        if (availableModels.isNotEmpty) {
-          // 成功从API获取模型
-          if (mounted) {
-            _showModelSelectionDialog(availableModels);
-            NotificationService().showSuccess(
-              '从API成功获取 ${availableModels.length} 个模型',
-            );
-          }
-          return;
-        }
-      } catch (e) {
-        // API获取失败，记录错误但继续使用通用模型
-        _logger.warning('从API获取模型失败', {'error': e.toString()});
-      }
-
-      // 如果API获取失败或返回空列表，使用AI请求服务测试连接并使用通用模型
-      final aiRequestService = AiRequestService();
-      final isConnected = await aiRequestService.testProvider(
-        provider: currentProvider,
+      final result = await _modelManagementService.fetchModelsFromProvider(
+        widget.provider!,
       );
 
-      if (!isConnected) {
-        throw Exception('无法连接到提供商，请检查API密钥和网络连接');
-      }
-
-      // 使用通用模型作为回退
-      final commonModels = _getCommonModelsForProvider(currentProvider.type);
-
-      if (commonModels.isNotEmpty) {
-        // 显示选择对话框
-        if (mounted) {
-          _showModelSelectionDialog(commonModels);
-          NotificationService().showInfo(
-            '使用预设模型列表 (${commonModels.length} 个模型)',
-          );
-        }
-      } else {
-        NotificationService().showWarning('该提供商暂无预设模型，请手动添加');
-      }
-    } catch (e) {
       if (mounted) {
-        NotificationService().showError('获取模型列表失败: $e');
+        if (result.isSuccess && result.models != null) {
+          _showModelSelectionDialog(result.models!);
+          // NotificationService().showSuccess(result.message);
+        } else {
+          NotificationService().showError(result.message);
+        }
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  /// 获取提供商的常用模型列表
-  List<AiModel> _getCommonModelsForProvider(ProviderType type) {
-    final now = DateTime.now();
-    final models = <AiModel>[];
-
-    switch (type) {
-      case ProviderType.openai:
-        models.addAll([
-          AiModel(
-            id: 'gpt-4o',
-            name: 'gpt-4o',
-            displayName: 'GPT-4o',
-            capabilities: [
-              ModelCapability.reasoning,
-              ModelCapability.vision,
-              ModelCapability.tools,
-            ],
-            metadata: {'contextLength': 128000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-4o-mini',
-            name: 'gpt-4o-mini',
-            displayName: 'GPT-4o Mini',
-            capabilities: [
-              ModelCapability.reasoning,
-              ModelCapability.vision,
-              ModelCapability.tools,
-            ],
-            metadata: {'contextLength': 128000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-4-turbo',
-            name: 'gpt-4-turbo',
-            displayName: 'GPT-4 Turbo',
-            capabilities: [
-              ModelCapability.reasoning,
-              ModelCapability.vision,
-              ModelCapability.tools,
-            ],
-            metadata: {'contextLength': 128000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-3.5-turbo',
-            name: 'gpt-3.5-turbo',
-            displayName: 'GPT-3.5 Turbo',
-            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
-            metadata: {'contextLength': 16385},
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ]);
-        break;
-      case ProviderType.custom:
-        // 对于自定义提供商，提供一些通用的OpenAI兼容模型
-        models.addAll([
-          AiModel(
-            id: 'deepseek-chat',
-            name: 'deepseek-chat',
-            displayName: 'DeepSeek Chat',
-            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
-            metadata: {'contextLength': 32768},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'deepseek-coder',
-            name: 'deepseek-coder',
-            displayName: 'DeepSeek Coder',
-            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
-            metadata: {'contextLength': 16384},
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ]);
-        break;
-      case ProviderType.anthropic:
-      case ProviderType.google:
-      case ProviderType.ollama:
-        // 这些提供商暂不支持动态获取，返回空列表
-        break;
-    }
-
-    return models;
   }
 
   void _showModelSelectionDialog(List<AiModel> availableModels) {
@@ -322,9 +160,8 @@ class _ModelListManagerState extends State<ModelListManager> {
             if (widget.provider != null)
               Builder(
                 builder: (context) {
-                  final supportsListModels = _providerSupportsListModels(
-                    widget.provider!.type,
-                  );
+                  final supportsListModels = _modelManagementService
+                      .providerSupportsListModels(widget.provider!.type);
 
                   return TextButton.icon(
                     onPressed: _isLoading ? null : _fetchModelsFromProvider,
