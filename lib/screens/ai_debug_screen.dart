@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../src/rust/api/ai_chat.dart';
+import '../services/ai_dart_service.dart';
+import '../models/ai_provider.dart' as models;
+import '../models/ai_assistant.dart';
+import '../models/message.dart';
 import 'dart:convert';
 
 class AiDebugScreen extends StatefulWidget {
@@ -28,6 +32,8 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
   AiProvider _selectedProvider = const AiProvider.openAi();
   bool _isLoading = false;
   bool _isStreamMode = false;
+  bool _isResponsePanelExpanded = true; // 响应面板展开状态
+  bool _useAiDartService = false; // 切换调用方式：false=Rust FFI, true=ai_dart service
 
   // 结果显示
   String _response = '';
@@ -255,15 +261,10 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
     });
 
     try {
-      final options = _buildChatOptions();
-      final client = AiChatClient(
-        provider: _selectedProvider,
-        options: options,
-      );
-
-      final messages = [ChatMessage(role: ChatRole.user, content: message)];
-
       _updateDebugInfo('🚀 开始请求...\n');
+      _updateDebugInfo(
+        '调用方式: ${_useAiDartService ? "ai_dart Service" : "Rust FFI"}\n',
+      );
       _updateDebugInfo('提供商: $_selectedProvider\n');
       _updateDebugInfo('模型: ${_modelController.text}\n');
       _updateDebugInfo(
@@ -277,10 +278,12 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
       }
       _updateDebugInfo('\n');
 
-      if (_isStreamMode) {
-        await _handleStreamChat(client, messages);
+      if (_useAiDartService) {
+        // 使用 ai_dart service
+        await _sendMessageWithAiDartService(message);
       } else {
-        await _handleNormalChat(client, messages);
+        // 使用 Rust FFI
+        await _sendMessageWithRustFFI(message);
       }
     } catch (e) {
       _updateDebugInfo('❌ 错误: $e\n');
@@ -301,6 +304,180 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// 使用 Rust FFI 发送消息
+  Future<void> _sendMessageWithRustFFI(String message) async {
+    final options = _buildChatOptions();
+    final client = AiChatClient(provider: _selectedProvider, options: options);
+
+    final messages = [ChatMessage(role: ChatRole.user, content: message)];
+
+    if (_isStreamMode) {
+      await _handleStreamChat(client, messages);
+    } else {
+      await _handleNormalChat(client, messages);
+    }
+  }
+
+  /// 使用 ai_dart service 发送消息
+  Future<void> _sendMessageWithAiDartService(String message) async {
+    final aiService = AiDartService();
+
+    // 转换 provider 类型
+    final models.AiProvider provider = _convertToModelsProvider();
+
+    // 创建测试助手
+    final assistant = AiAssistant(
+      id: 'debug-assistant',
+      name: 'Debug Assistant',
+      description: 'AI Debug Assistant for testing',
+      systemPrompt: _systemPromptController.text.trim().isEmpty
+          ? 'You are a helpful assistant.'
+          : _systemPromptController.text.trim(),
+      temperature: double.tryParse(_temperatureController.text) ?? 0.7,
+      maxTokens: int.tryParse(_maxTokensController.text) ?? 1000,
+      topP: double.tryParse(_topPController.text) ?? 0.9,
+      enableReasoning: false,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final modelName = _modelController.text.trim();
+    final chatHistory = <Message>[];
+
+    if (_isStreamMode) {
+      // 流式请求
+      final stream = aiService.sendChatStreamRequest(
+        provider: provider,
+        assistant: assistant,
+        modelName: modelName,
+        chatHistory: chatHistory,
+        userMessage: message,
+      );
+
+      String fullResponse = '';
+      await for (final event in stream) {
+        if (event.hasContent) {
+          setState(() {
+            _streamChunks.add(event.delta!);
+            fullResponse += event.delta!;
+            _response = fullResponse;
+          });
+          _updateDebugInfo('📝 收到块: ${event.delta!.length} 字符\n');
+        } else if (event.isCompleted) {
+          setState(() {
+            // 注意：这里需要类型转换，因为 UsageInfo 和 TokenUsage 是不同的类型
+            _lastUsage = event.usage != null
+                ? TokenUsage(
+                    promptTokens: event.usage!.promptTokens,
+                    completionTokens: event.usage!.completionTokens,
+                    totalTokens: event.usage!.totalTokens,
+                  )
+                : null;
+            _responseBody = jsonEncode({
+              'ai_dart_service': true,
+              'stream_mode': true,
+              'total_chunks': _streamChunks.length,
+              'total_content': fullResponse,
+              'usage': event.usage != null
+                  ? {
+                      'prompt_tokens': event.usage!.promptTokens,
+                      'completion_tokens': event.usage!.completionTokens,
+                      'total_tokens': event.usage!.totalTokens,
+                    }
+                  : null,
+            });
+          });
+          _updateDebugInfo('✅ ai_dart 流式响应完成\n');
+          if (event.usage != null) {
+            _updateDebugInfo('Token使用情况:\n');
+            _updateDebugInfo('  输入: ${event.usage!.promptTokens}\n');
+            _updateDebugInfo('  输出: ${event.usage!.completionTokens}\n');
+            _updateDebugInfo('  总计: ${event.usage!.totalTokens}\n');
+          }
+        } else if (event.isError) {
+          _updateDebugInfo('❌ ai_dart 流式错误: ${event.error}\n');
+          throw Exception(event.error);
+        }
+      }
+    } else {
+      // 普通请求
+      final response = await aiService.sendChatRequest(
+        provider: provider,
+        assistant: assistant,
+        modelName: modelName,
+        chatHistory: chatHistory,
+        userMessage: message,
+      );
+
+      setState(() {
+        _response = response.content ?? '';
+        _lastUsage = response.usage != null
+            ? TokenUsage(
+                promptTokens: response.usage!.promptTokens,
+                completionTokens: response.usage!.completionTokens,
+                totalTokens: response.usage!.totalTokens,
+              )
+            : null;
+        _responseBody = jsonEncode({
+          'ai_dart_service': true,
+          'stream_mode': false,
+          'content': response.content,
+          'usage': response.usage != null
+              ? {
+                  'prompt_tokens': response.usage!.promptTokens,
+                  'completion_tokens': response.usage!.completionTokens,
+                  'total_tokens': response.usage!.totalTokens,
+                }
+              : null,
+        });
+      });
+
+      _updateDebugInfo('✅ ai_dart 请求完成\n');
+      _updateDebugInfo('响应长度: ${(response.content ?? '').length} 字符\n');
+      if (response.usage != null) {
+        _updateDebugInfo('Token使用情况:\n');
+        _updateDebugInfo('  输入: ${response.usage!.promptTokens}\n');
+        _updateDebugInfo('  输出: ${response.usage!.completionTokens}\n');
+        _updateDebugInfo('  总计: ${response.usage!.totalTokens}\n');
+      }
+    }
+  }
+
+  /// 转换 provider 类型
+  models.AiProvider _convertToModelsProvider() {
+    models.ProviderType providerType;
+    switch (_selectedProvider.runtimeType.toString()) {
+      case 'AiProvider_OpenAi':
+        providerType = models.ProviderType.openai;
+        break;
+      case 'AiProvider_Anthropic':
+        providerType = models.ProviderType.anthropic;
+        break;
+      case 'AiProvider_Gemini':
+        providerType = models.ProviderType.google;
+        break;
+      case 'AiProvider_Groq':
+      case 'AiProvider_Ollama':
+      case 'AiProvider_DeepSeek':
+        providerType = models.ProviderType.openai; // 使用 OpenAI 兼容接口
+        break;
+      default:
+        providerType = models.ProviderType.openai;
+    }
+
+    return models.AiProvider(
+      id: 'debug-provider',
+      name: 'Debug Provider',
+      type: providerType,
+      apiKey: _apiKeyController.text.trim(),
+      baseUrl: _baseUrlController.text.trim().isEmpty
+          ? null
+          : _baseUrlController.text.trim(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 
   Future<void> _handleNormalChat(
@@ -595,7 +772,6 @@ Provider: Test
         children: [
           // 配置面板
           Expanded(
-            flex: 2,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -619,39 +795,119 @@ Provider: Test
 
           const Divider(height: 1),
 
-          // 结果面板
-          Expanded(
-            flex: 3,
-            child: Column(
-              children: [
-                // 结果标签栏
-                Container(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: const TabBar(
-                    tabs: [
-                      Tab(text: '响应内容'),
-                      Tab(text: '请求体'),
-                      Tab(text: '响应体'),
-                      Tab(text: '调试信息'),
-                      Tab(text: 'Token统计'),
-                    ],
-                  ),
-                ),
+          // 可收起的结果面板
+          _buildCollapsibleResponsePanel(),
+        ],
+      ),
+    );
+  }
 
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildResponseTab(),
-                      _buildRequestTab(),
-                      _buildResponseBodyTab(),
-                      _buildDebugTab(),
-                      _buildUsageTab(),
-                    ],
-                  ),
+  Widget _buildCollapsibleResponsePanel() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: _isResponsePanelExpanded ? 400 : 60,
+      child: Column(
+        children: [
+          // 面板头部 - 可点击收起/展开
+          Container(
+            height: 60,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _isResponsePanelExpanded = !_isResponsePanelExpanded;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isResponsePanelExpanded
+                          ? Icons.keyboard_arrow_down
+                          : Icons.keyboard_arrow_up,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '请求响应面板',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (_response.isNotEmpty || _debugInfo.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '有数据',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _isResponsePanelExpanded ? '收起' : '展开',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
+
+          // 面板内容 - 只在展开时显示
+          if (_isResponsePanelExpanded)
+            Expanded(
+              child: Column(
+                children: [
+                  // 标签栏
+                  Container(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    child: const TabBar(
+                      tabs: [
+                        Tab(text: '响应内容'),
+                        Tab(text: '请求体'),
+                        Tab(text: '响应体'),
+                        Tab(text: '调试信息'),
+                        Tab(text: 'Token统计'),
+                      ],
+                    ),
+                  ),
+
+                  // 标签内容
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _buildResponseTab(),
+                        _buildRequestTab(),
+                        _buildResponseBodyTab(),
+                        _buildDebugTab(),
+                        _buildUsageTab(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -927,6 +1183,34 @@ Provider: Test
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 调用方式切换
+            Row(
+              children: [
+                Switch(
+                  value: _useAiDartService,
+                  onChanged: (value) {
+                    setState(() {
+                      _useAiDartService = value;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                Text(_useAiDartService ? 'ai_dart Service' : 'Rust FFI'),
+                const SizedBox(width: 16),
+                Icon(
+                  _useAiDartService ? Icons.code : Icons.memory,
+                  size: 20,
+                  color: _useAiDartService ? Colors.blue : Colors.orange,
+                ),
+                const Spacer(),
+                Text(
+                  _useAiDartService ? '纯Dart实现' : 'Rust原生',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // 流式模式切换
             Row(
               children: [
                 Switch(

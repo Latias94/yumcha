@@ -100,6 +100,8 @@ YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面
 
 ### Riverpod Providers 体系
 
+**重要原则：所有数据库访问必须通过 Riverpod Notifiers 进行，禁止直接访问 DatabaseService.instance.database 或直接创建 Repository 实例。**
+
 #### 1. AI 提供商管理
 - `AiProviderNotifier`: 管理提供商列表的增删改查
 - `aiProviderNotifierProvider`: 提供商列表状态
@@ -119,6 +121,60 @@ YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面
 
 #### 4. 收藏模型管理
 - `FavoriteModelNotifier`: 管理模型收藏功能
+
+### 数据库访问规范
+
+#### 正确的访问方式
+```dart
+// ✅ 正确：通过 Riverpod Notifier 访问数据
+final providers = ref.watch(aiProviderNotifierProvider);
+final assistants = ref.watch(aiAssistantNotifierProvider);
+
+// ✅ 正确：在 Notifier 中调用方法
+ref.read(aiProviderNotifierProvider.notifier).addProvider(provider);
+ref.read(aiAssistantNotifierProvider.notifier).updateAssistant(assistant);
+```
+
+#### 错误的访问方式
+```dart
+// ❌ 错误：直接访问数据库服务
+final db = DatabaseService.instance.database;
+final repository = ProviderRepository(db);
+
+// ❌ 错误：在 UI 组件中直接创建 Repository
+final providerRepo = ProviderRepository(DatabaseService.instance.database);
+final providers = await providerRepo.getAllProviders();
+```
+
+#### 架构层次
+1. **UI 层**：只能通过 Riverpod Providers 访问数据
+2. **Notifier 层**：负责状态管理，内部使用 Repository
+3. **Repository 层**：数据访问层，只能在 Notifier 中使用
+4. **Database 层**：SQLite 数据库，只能在 Repository 中访问
+
+### 必须使用的 Notifiers
+
+当需要访问数据库时，必须使用以下对应的 Notifier：
+
+#### 提供商数据访问
+- 使用 `AiProviderNotifier` (通过 `aiProviderNotifierProvider`)
+- 提供方法：`getAllProviders()`, `addProvider()`, `updateProvider()`, `deleteProvider()`
+
+#### 助手数据访问
+- 使用 `AiAssistantNotifier` (通过 `aiAssistantNotifierProvider`)
+- 提供方法：`getAllAssistants()`, `addAssistant()`, `updateAssistant()`, `deleteAssistant()`
+
+#### 对话数据访问
+- 使用 `ConversationNotifier` (通过 `conversationNotifierProvider`)
+- 提供方法：对话创建、更新、删除和消息管理
+
+#### 收藏模型数据访问
+- 使用 `FavoriteModelNotifier` (通过 `favoriteModelNotifierProvider`)
+- 提供方法：`addFavorite()`, `removeFavorite()`, `isFavorite()`
+
+#### 聊天配置访问
+- 使用 `ChatConfigurationNotifier` (通过 `chatConfigurationNotifierProvider`)
+- 提供方法：助手、提供商、模型选择和配置管理
 
 ## 服务层架构
 

@@ -214,6 +214,42 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     }
   }
 
+  // 重新生成标题
+  Future<void> _regenerateTitle(ConversationUiState conversation) async {
+    try {
+      _logger.info('开始重新生成标题', {
+        'conversationId': conversation.id,
+        'currentTitle': conversation.channelName,
+      });
+
+      // 检查是否有足够的消息
+      if (conversation.messages.length < 2) {
+        NotificationService().showWarning('消息数量不足，无法生成标题');
+        return;
+      }
+
+      // 显示加载提示
+      NotificationService().showInfo('正在重新生成标题...');
+
+      // 通过 Riverpod 调用重新生成标题
+      final conversationNotifier = ref.read(
+        currentConversationProvider.notifier,
+      );
+      await conversationNotifier.regenerateTitle(conversation.id);
+
+      // 刷新对话列表以显示新标题
+      _refreshConversations();
+
+      NotificationService().showSuccess('标题重新生成成功');
+    } catch (e) {
+      _logger.error('重新生成标题失败', {
+        'conversationId': conversation.id,
+        'error': e.toString(),
+      });
+      NotificationService().showError('重新生成标题失败: $e');
+    }
+  }
+
   // 显示删除确认对话框
   void _showDeleteConfirmDialog(ConversationUiState conversation) {
     showDialog(
@@ -660,7 +696,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           },
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Expanded(
@@ -704,6 +740,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   ),
                   itemBuilder: (context) => [
                     const PopupMenuItem<String>(
+                      value: 'regenerate_title',
+                      child: Row(
+                        children: [
+                          Icon(Icons.auto_awesome, size: 20),
+                          SizedBox(width: 12),
+                          Text('重新生成标题'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
                       value: 'delete',
                       child: Row(
                         children: [
@@ -715,7 +761,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     ),
                   ],
                   onSelected: (value) {
-                    if (value == 'delete') {
+                    if (value == 'regenerate_title') {
+                      _regenerateTitle(conversation);
+                    } else if (value == 'delete') {
                       _showDeleteConfirmDialog(conversation);
                     }
                   },
@@ -739,6 +787,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       position: const RelativeRect.fromLTRB(200, 200, 0, 0),
       items: [
         const PopupMenuItem<String>(
+          value: 'regenerate_title',
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 20),
+              SizedBox(width: 12),
+              Text('重新生成标题'),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
           value: 'delete',
           child: Row(
             children: [
@@ -751,7 +809,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       ],
       elevation: 8,
     ).then((value) {
-      if (value == 'delete') {
+      if (value == 'regenerate_title') {
+        _regenerateTitle(conversation);
+      } else if (value == 'delete') {
         _showDeleteConfirmDialog(conversation);
       }
     });

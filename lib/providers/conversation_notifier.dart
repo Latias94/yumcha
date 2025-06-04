@@ -371,69 +371,106 @@ class CurrentConversationNotifier
 
   /// 异步生成标题
   Future<void> _generateTitleAsync(ConversationUiState conversation) async {
+    await _generateTitleForConversation(
+      conversation,
+      forceRegenerate: false,
+      checkDefaultTitle: true,
+    );
+  }
+
+  /// 手动重新生成标题
+  Future<void> regenerateTitle(String conversationId) async {
+    _logger.info('手动重新生成标题', {'conversationId': conversationId});
+
+    // 检查是否已经在生成标题
+    if (_titleGenerationInProgress.contains(conversationId)) {
+      _logger.debug('标题生成已在进行中，跳过重复请求');
+      return;
+    }
+
+    try {
+      // 获取对话信息
+      final conversation = await _conversationRepository.getConversation(
+        conversationId,
+      );
+      if (conversation == null) {
+        _logger.warning('找不到对话，无法重新生成标题', {'conversationId': conversationId});
+        return;
+      }
+
+      // 检查是否有足够的消息
+      if (conversation.messages.length < 2) {
+        _logger.warning('消息数量不足，无法生成标题', {
+          'conversationId': conversationId,
+          'messageCount': conversation.messages.length,
+        });
+        return;
+      }
+
+      // 强制重新生成标题（忽略默认标题检查）
+      await _generateTitleForConversation(
+        conversation,
+        forceRegenerate: true,
+        checkDefaultTitle: false,
+      );
+    } catch (e) {
+      _logger.error('手动重新生成标题失败', {
+        'conversationId': conversationId,
+        'error': e.toString(),
+      });
+    }
+  }
+
+  /// 为指定对话生成标题
+  Future<void> _generateTitleForConversation(
+    ConversationUiState conversation, {
+    bool forceRegenerate = false,
+    bool checkDefaultTitle = true,
+  }) async {
     final conversationId = conversation.id;
 
     // 标记为正在生成
     _titleGenerationInProgress.add(conversationId);
 
     try {
-      _logger.info('开始异步生成标题', {'conversationId': conversationId});
+      _logger.info('为对话生成标题', {
+        'conversationId': conversationId,
+        'forceRegenerate': forceRegenerate,
+        'checkDefaultTitle': checkDefaultTitle,
+      });
 
-      // 获取提供商和模型信息
-      final providerId = conversation.selectedProviderId;
-      final modelId = conversation.selectedModelId;
+      // 如果需要检查默认标题且不是强制重新生成，检查当前标题
+      if (checkDefaultTitle && !forceRegenerate) {
+        final currentConversation = state.conversation;
+        if (currentConversation?.id == conversationId &&
+            currentConversation?.channelName != _defaultTitle) {
+          _logger.debug('标题已被用户修改，取消自动更新');
+          return;
+        }
+      }
 
-      if (providerId.isEmpty || modelId == null || modelId.isEmpty) {
-        _logger.warning('缺少提供商或模型信息，无法生成标题', {
-          'providerId': providerId,
-          'modelId': modelId,
-        });
+      // 验证提供商和模型信息
+      final validationResult = _validateTitleGenerationRequirements(
+        conversation,
+      );
+      if (!validationResult.isValid) {
+        _logger.warning('标题生成验证失败: ${validationResult.errorMessage}');
         return;
       }
 
-      // 通过 provider notifier 获取提供商对象
-      final provider = ref.read(aiProviderProvider(providerId));
-      if (provider == null) {
-        _logger.warning('无法获取提供商信息，无法生成标题', {'providerId': providerId});
-        return;
-      }
-
-      // 调用 AI 服务生成标题
-      final generatedTitle = await _aiService.generateChatTitle(
-        provider: provider,
-        modelName: modelId,
-        messages: conversation.messages,
+      // 生成标题
+      final generatedTitle = await _generateTitle(
+        validationResult.provider!,
+        validationResult.modelId!,
+        conversation.messages,
       );
 
-      // 检查当前对话是否仍然是我们要更新的对话
-      final currentConversation = state.conversation;
-      if (currentConversation?.id != conversationId) {
-        _logger.debug('对话已切换，取消标题更新');
-        return;
-      }
-
-      // 检查标题是否仍然是默认标题（用户可能已经手动修改）
-      if (currentConversation?.channelName != _defaultTitle) {
-        _logger.debug('标题已被用户修改，取消自动更新');
-        return;
-      }
-
       if (generatedTitle != null && generatedTitle.isNotEmpty) {
-        _logger.info('标题生成成功', {
-          'conversationId': conversationId,
-          'title': generatedTitle,
-        });
-
-        // 更新对话标题
-        final updatedConversation = currentConversation!.copyWith(
-          channelName: generatedTitle,
+        await _updateConversationTitle(
+          conversation,
+          generatedTitle,
+          checkDefaultTitle,
         );
-
-        // 更新状态
-        state = state.copyWith(conversation: updatedConversation);
-
-        // 保存到数据库
-        await _saveConversationIfNeeded(updatedConversation);
       } else {
         _logger.warning('标题生成失败或返回空标题');
       }
@@ -447,6 +484,100 @@ class CurrentConversationNotifier
       _titleGenerationInProgress.remove(conversationId);
     }
   }
+
+  /// 验证标题生成的必要条件
+  _TitleGenerationValidationResult _validateTitleGenerationRequirements(
+    ConversationUiState conversation,
+  ) {
+    final providerId = conversation.selectedProviderId;
+    final modelId = conversation.selectedModelId;
+
+    if (providerId.isEmpty || modelId == null || modelId.isEmpty) {
+      return _TitleGenerationValidationResult(
+        isValid: false,
+        errorMessage: '缺少提供商或模型信息',
+      );
+    }
+
+    // 通过 provider notifier 获取提供商对象
+    final provider = ref.read(aiProviderProvider(providerId));
+    if (provider == null) {
+      return _TitleGenerationValidationResult(
+        isValid: false,
+        errorMessage: '无法获取提供商信息',
+      );
+    }
+
+    return _TitleGenerationValidationResult(
+      isValid: true,
+      provider: provider,
+      modelId: modelId,
+    );
+  }
+
+  /// 生成标题
+  Future<String?> _generateTitle(
+    dynamic provider,
+    String modelId,
+    List<Message> messages,
+  ) async {
+    // 直接调用AI服务生成标题，每次都生成新的结果
+    return await _aiService.generateChatTitle(
+      provider: provider,
+      modelName: modelId,
+      messages: messages,
+    );
+  }
+
+  /// 更新对话标题
+  Future<void> _updateConversationTitle(
+    ConversationUiState conversation,
+    String newTitle,
+    bool checkDefaultTitle,
+  ) async {
+    final conversationId = conversation.id;
+
+    _logger.info('标题生成成功', {
+      'conversationId': conversationId,
+      'title': newTitle,
+    });
+
+    // 如果需要检查默认标题，再次验证当前对话状态
+    if (checkDefaultTitle) {
+      final currentConversation = state.conversation;
+      if (currentConversation?.id == conversationId &&
+          currentConversation?.channelName != _defaultTitle) {
+        _logger.debug('标题已被用户修改，取消自动更新');
+        return;
+      }
+    }
+
+    // 更新对话标题
+    final updatedConversation = conversation.copyWith(channelName: newTitle);
+
+    // 如果是当前对话，更新状态
+    if (state.conversation?.id == conversationId) {
+      state = state.copyWith(conversation: updatedConversation);
+    }
+
+    // 保存到数据库
+    await _saveConversationIfNeeded(updatedConversation);
+  }
+}
+
+/// 标题生成验证结果
+class _TitleGenerationValidationResult {
+  final bool isValid;
+  final String? errorMessage;
+  final dynamic provider;
+  final String? modelId;
+
+  const _TitleGenerationValidationResult({
+    required this.isValid,
+    this.errorMessage,
+    this.provider,
+    this.modelId,
+  });
 }
 
 /// 当前对话状态Provider
