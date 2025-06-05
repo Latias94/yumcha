@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import '../models/ai_provider.dart';
 import '../models/ai_assistant.dart';
 import '../models/ai_model.dart';
@@ -12,6 +13,8 @@ import 'database_service.dart';
 import 'ai_request_service.dart';
 import 'ai_dart_service.dart';
 import '../ai_dart/core/chat_provider.dart';
+import '../ai_dart/models/chat_models.dart';
+import 'mcp_service.dart';
 
 /// AI 响应结果，包含完整的响应信息
 class AiResponse {
@@ -20,6 +23,7 @@ class AiResponse {
   final UsageInfo? usage;
   final Duration? duration;
   final String? error;
+  final List<McpToolResult>? toolResults;
 
   const AiResponse({
     required this.content,
@@ -27,10 +31,12 @@ class AiResponse {
     this.usage,
     this.duration,
     this.error,
+    this.toolResults,
   });
 
   bool get isSuccess => error == null;
   bool get hasThinking => thinking?.isNotEmpty == true;
+  bool get hasToolResults => toolResults?.isNotEmpty == true;
 }
 
 /// AI 流式响应事件
@@ -42,6 +48,8 @@ class AiStreamResponse {
   final String? error;
   final UsageInfo? usage;
   final Duration? duration;
+  final McpToolResult? toolResult;
+  final List<McpToolResult>? allToolResults;
 
   const AiStreamResponse({
     this.contentDelta,
@@ -51,12 +59,15 @@ class AiStreamResponse {
     this.error,
     this.usage,
     this.duration,
+    this.toolResult,
+    this.allToolResults,
   });
 
   bool get isContent => contentDelta != null;
   bool get isThinking => thinkingDelta != null;
   bool get isError => error != null;
   bool get isSuccess => error == null;
+  bool get isToolResult => toolResult != null;
 }
 
 // 调试信息类
@@ -96,6 +107,7 @@ class AiService {
   // Logger实例
   final LoggerService _logger = LoggerService();
   final AiRequestService _requestService = AiRequestService();
+  final McpService _mcpService = McpService();
 
   // 调试信息存储
   final List<DebugInfo> _debugLogs = [];
@@ -127,6 +139,119 @@ class AiService {
         _debugLogs.removeAt(0);
       }
     }
+  }
+
+  /// 处理工具调用
+  Future<List<McpToolResult>> _processToolCalls(
+    List<ToolCall> toolCalls,
+  ) async {
+    final results = <McpToolResult>[];
+
+    _logger.info('开始处理工具调用', {'count': toolCalls.length});
+
+    for (final toolCall in toolCalls) {
+      try {
+        // 解析工具参数（从JSON字符串转换为Map）
+        Map<String, dynamic> arguments;
+        try {
+          arguments =
+              jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
+        } catch (e) {
+          _logger.error('解析工具参数失败', {
+            'toolName': toolCall.function.name,
+            'arguments': toolCall.function.arguments,
+            'error': e.toString(),
+          });
+          arguments = {};
+        }
+
+        _logger.info('调用MCP工具', {
+          'toolName': toolCall.function.name,
+          'arguments': arguments,
+        });
+
+        final result = await _mcpService.callTool(
+          toolName: toolCall.function.name,
+          arguments: arguments,
+        );
+
+        results.add(result);
+
+        _logger.info('MCP工具调用${result.isSuccess ? '成功' : '失败'}', {
+          'toolName': toolCall.function.name,
+          'duration': '${result.duration.inMilliseconds}ms',
+          'error': result.error,
+        });
+      } catch (e) {
+        _logger.error('MCP工具调用异常', {
+          'toolName': toolCall.function.name,
+          'error': e.toString(),
+        });
+
+        // 尝试解析参数用于错误记录
+        Map<String, dynamic> arguments;
+        try {
+          arguments =
+              jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
+        } catch (_) {
+          arguments = {'raw_arguments': toolCall.function.arguments};
+        }
+
+        results.add(
+          McpToolResult(
+            toolName: toolCall.function.name,
+            arguments: arguments,
+            result: '',
+            error: '工具调用异常: $e',
+            duration: Duration.zero,
+          ),
+        );
+      }
+    }
+
+    _logger.info('工具调用处理完成', {
+      'totalCalls': toolCalls.length,
+      'successfulCalls': results.where((r) => r.isSuccess).length,
+      'failedCalls': results.where((r) => !r.isSuccess).length,
+    });
+
+    return results;
+  }
+
+  /// 获取可用的MCP工具列表
+  List<String> getAvailableMcpTools() {
+    if (!_mcpService.isEnabled) {
+      return [];
+    }
+
+    final tools = _mcpService.getAllAvailableTools();
+    return tools.map((tool) => tool.name).toList();
+  }
+
+  /// 检查MCP服务是否启用且有可用工具
+  bool get hasMcpToolsAvailable {
+    return _mcpService.isEnabled &&
+        _mcpService.getAllAvailableTools().isNotEmpty;
+  }
+
+  /// 获取MCP工具的详细信息
+  Map<String, dynamic> getMcpToolInfo(String toolName) {
+    if (!_mcpService.isEnabled) {
+      return {};
+    }
+
+    final tools = _mcpService.getAllAvailableTools();
+    final tool = tools.where((t) => t.name == toolName).firstOrNull;
+
+    if (tool == null) {
+      return {};
+    }
+
+    return {
+      'name': tool.name,
+      'description': tool.description,
+      'inputSchema': tool.inputSchema.toJson(),
+    };
   }
 
   // 初始化默认数据
@@ -319,9 +444,19 @@ class AiService {
       final duration = DateTime.now().difference(startTime);
 
       if (result.isSuccess) {
+        // 处理工具调用（如果有）
+        List<McpToolResult>? toolResults;
+        if (result.toolCalls?.isNotEmpty == true &&
+            assistant.enableTools &&
+            _mcpService.isEnabled) {
+          toolResults = await _processToolCalls(result.toolCalls!);
+        }
+
         _logger.info('AI聊天请求成功', {
           'duration': '${duration.inMilliseconds}ms',
           'usage': result.usage?.totalTokens,
+          'toolCallsCount': result.toolCalls?.length ?? 0,
+          'toolResultsCount': toolResults?.length ?? 0,
         });
 
         _addDebugLog(
@@ -335,6 +470,7 @@ class AiService {
               'top_p': assistant.topP,
               'max_tokens': assistant.maxTokens,
               'user_message': userMessage,
+              'toolCallsCount': result.toolCalls?.length ?? 0,
             },
             statusCode: 200,
             response: result.content,
@@ -348,6 +484,7 @@ class AiService {
           thinking: result.thinking,
           usage: result.usage,
           duration: duration,
+          toolResults: toolResults,
         );
       } else {
         _logger.error('AI聊天请求失败', {
@@ -513,6 +650,7 @@ class AiService {
       var fullThinking = '';
       var chunkCount = 0;
       bool hasError = false;
+      final toolResults = <McpToolResult>[];
 
       await for (final event in streamEvents) {
         if (event.content != null) {
@@ -533,6 +671,54 @@ class AiService {
           });
 
           yield AiStreamResponse(thinkingDelta: event.thinkingDelta!);
+        } else if (event.isToolCall && event.toolCall != null) {
+          // 处理工具调用
+          if (assistant.enableTools && _mcpService.isEnabled) {
+            _logger.info('收到工具调用', {
+              'toolName': event.toolCall!.function.name,
+              'arguments': event.toolCall!.function.arguments,
+            });
+
+            try {
+              // 解析工具参数
+              Map<String, dynamic> arguments;
+              try {
+                arguments =
+                    jsonDecode(event.toolCall!.function.arguments)
+                        as Map<String, dynamic>;
+              } catch (e) {
+                arguments = {};
+                _logger.error('解析工具参数失败', {
+                  'toolName': event.toolCall!.function.name,
+                  'arguments': event.toolCall!.function.arguments,
+                  'error': e.toString(),
+                });
+              }
+
+              final toolResult = await _mcpService.callTool(
+                toolName: event.toolCall!.function.name,
+                arguments: arguments,
+              );
+
+              toolResults.add(toolResult);
+              yield AiStreamResponse(toolResult: toolResult);
+            } catch (e) {
+              _logger.error('流式工具调用异常', {
+                'toolName': event.toolCall!.function.name,
+                'error': e.toString(),
+              });
+
+              final errorResult = McpToolResult(
+                toolName: event.toolCall!.function.name,
+                arguments: {},
+                result: '',
+                error: '工具调用异常: $e',
+                duration: Duration.zero,
+              );
+              toolResults.add(errorResult);
+              yield AiStreamResponse(toolResult: errorResult);
+            }
+          }
         } else if (event.error != null) {
           hasError = true;
           _logger.error('流式聊天错误', {'error': event.error});
@@ -546,6 +732,8 @@ class AiService {
             'totalLength': fullResponse.length,
             'thinkingLength': fullThinking.length,
             'usage': event.usage?.totalTokens,
+            'toolCallsCount': toolResults.length,
+            'successfulToolCalls': toolResults.where((r) => r.isSuccess).length,
           });
 
           _addDebugLog(
@@ -560,6 +748,7 @@ class AiService {
                 'max_tokens': assistant.maxTokens,
                 'user_message': userMessage,
                 'stream': true,
+                'toolCallsCount': toolResults.length,
               },
               statusCode: hasError ? null : 200,
               response: fullResponse,
@@ -574,6 +763,7 @@ class AiService {
             finalThinking: event.finalThinking ?? fullThinking,
             usage: event.usage,
             duration: duration,
+            allToolResults: toolResults.isNotEmpty ? toolResults : null,
           );
           break;
         }

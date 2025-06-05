@@ -13,6 +13,7 @@ class AiRequestResult {
   final Duration? duration;
   final UsageInfo? usage;
   final bool wasCancelled;
+  final List<ToolCall>? toolCalls;
 
   const AiRequestResult({
     this.content,
@@ -21,9 +22,11 @@ class AiRequestResult {
     this.duration,
     this.usage,
     this.wasCancelled = false,
+    this.toolCalls,
   });
 
   bool get isSuccess => content != null && error == null;
+  bool get hasToolCalls => toolCalls?.isNotEmpty == true;
 }
 
 /// AI 流式请求事件
@@ -35,6 +38,8 @@ class AiStreamEvent {
   final bool isDone;
   final UsageInfo? usage;
   final bool wasCancelled;
+  final ToolCall? toolCall;
+  final List<ToolCall>? allToolCalls;
 
   const AiStreamEvent({
     this.content,
@@ -44,11 +49,14 @@ class AiStreamEvent {
     this.isDone = false,
     this.usage,
     this.wasCancelled = false,
+    this.toolCall,
+    this.allToolCalls,
   });
 
   bool get isContent => content != null && !isDone;
   bool get isThinking => thinkingDelta != null;
   bool get isError => error != null;
+  bool get isToolCall => toolCall != null;
 }
 
 /// AI 请求服务 - 使用新的 AI Dart 库处理请求
@@ -83,6 +91,7 @@ class AiRequestService {
         error: result.error,
         duration: result.duration,
         usage: result.usage,
+        toolCalls: result.toolCalls,
       );
     } catch (e) {
       _logger.error('AI 请求服务异常', {'error': e.toString()});
@@ -115,6 +124,7 @@ class AiRequestService {
           error: event.error,
           isDone: event.isCompleted,
           usage: event.usage,
+          toolCall: event.toolCall,
         );
       }
     } catch (e) {
