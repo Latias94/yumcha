@@ -172,7 +172,7 @@ class AnthropicChatResponse implements ChatResponse {
 }
 
 /// Anthropic provider implementation
-class AnthropicProvider implements StreamingChatProvider {
+class AnthropicProvider implements StreamingChatProvider, LLMProvider {
   final AnthropicConfig config;
   final Dio _dio;
   final Logger _logger = Logger('AnthropicProvider');
@@ -561,4 +561,63 @@ class AnthropicProvider implements StreamingChatProvider {
         return error;
     }
   }
+
+  // CompletionProvider methods
+  @override
+  Future<CompletionResponse> complete(CompletionRequest request) async {
+    // Convert completion request to chat format (similar to Rust implementation)
+    final messages = [ChatMessage.user(request.prompt)];
+
+    // Create a temporary config for completion
+    final completionConfig = config.copyWith(
+      maxTokens: request.maxTokens ?? config.maxTokens,
+      temperature: request.temperature ?? config.temperature,
+      topP: request.topP ?? config.topP,
+      topK: request.topK ?? config.topK,
+    );
+
+    // Create temporary provider with completion config
+    final tempProvider = AnthropicProvider(completionConfig);
+    final response = await tempProvider.chat(messages);
+
+    final text = response.text;
+    if (text == null) {
+      throw const GenericError('No text in completion response');
+    }
+
+    return CompletionResponse(text: text, usage: response.usage);
+  }
+
+  // EmbeddingProvider methods
+  @override
+  Future<List<List<double>>> embed(List<String> input) async {
+    throw const ProviderError('Embedding not supported by Anthropic');
+  }
+
+  // SpeechToTextProvider methods
+  @override
+  Future<String> transcribe(List<int> audio) async {
+    throw const ProviderError('Speech to text not supported by Anthropic');
+  }
+
+  @override
+  Future<String> transcribeFile(String filePath) async {
+    throw const ProviderError('Speech to text not supported by Anthropic');
+  }
+
+  // TextToSpeechProvider methods
+  @override
+  Future<List<int>> speech(String text) async {
+    throw const ProviderError('Text to speech not supported by Anthropic');
+  }
+
+  // ModelProvider methods
+  @override
+  Future<List<AIModel>> models() async {
+    throw const ProviderError('Model listing not supported by Anthropic');
+  }
+
+  // LLMProvider methods
+  @override
+  List<Tool>? get tools => config.tools;
 }

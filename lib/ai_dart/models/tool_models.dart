@@ -152,54 +152,6 @@ class Tool {
   );
 }
 
-/// Represents an AI model with its metadata
-class AIModel {
-  /// The unique identifier of the model
-  final String id;
-
-  /// Human-readable description of the model
-  final String? description;
-
-  /// The object type (typically "model")
-  final String object;
-
-  /// The organization that owns the model
-  final String? ownedBy;
-
-  const AIModel({
-    required this.id,
-    this.description,
-    this.object = 'model',
-    this.ownedBy,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    if (description != null) 'description': description,
-    'object': object,
-    if (ownedBy != null) 'owned_by': ownedBy,
-  };
-
-  factory AIModel.fromJson(Map<String, dynamic> json) => AIModel(
-    id: json['id'] as String,
-    description: json['description'] as String?,
-    object: json['object'] as String? ?? 'model',
-    ownedBy: json['owned_by'] as String?,
-  );
-
-  @override
-  String toString() =>
-      'AIModel(id: $id, description: $description, ownedBy: $ownedBy)';
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AIModel && runtimeType == other.runtimeType && id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-}
-
 /// Tool choice determines how the LLM uses available tools.
 /// The behavior is standardized across different LLM providers.
 sealed class ToolChoice {

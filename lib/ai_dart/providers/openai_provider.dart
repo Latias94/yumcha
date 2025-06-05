@@ -9,6 +9,20 @@ import '../models/chat_models.dart';
 import '../models/tool_models.dart';
 import '../utils/reasoning_utils.dart';
 
+/// OpenAI provider implementation with enhanced features:
+///
+/// **Recent Improvements (aligned with Rust implementation):**
+/// 1. **Dedicated SSE parsing**: Added _parseSSEChunk() method for better stream handling
+/// 2. **Enhanced error handling**: Specific error types for different HTTP status codes
+/// 3. **Optimized logging**: Conditional logging checks to improve performance
+///
+/// **Features:**
+/// - All standard LLM provider interfaces (chat, embeddings, TTS, STT, models)
+/// - Advanced reasoning model support via ReasoningUtils
+/// - Streaming chat with thinking/reasoning content tracking
+/// - Multiple provider support (OpenAI, OpenRouter, Groq, DeepSeek)
+/// - Comprehensive error handling with detailed status code classification
+
 /// OpenAI provider configuration
 class OpenAIConfig {
   final String apiKey;
@@ -200,7 +214,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
 
-      // Trace logging for request payload (similar to Rust implementation)
+      // Optimized trace logging with condition check (similar to Rust implementation)
       if (_logger.isLoggable(Level.FINEST)) {
         _logger.finest('OpenAI request payload: ${jsonEncode(requestBody)}');
       }
@@ -218,10 +232,29 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
 
       _logger.fine('OpenAI HTTP status: ${response.statusCode}');
 
+      // Enhanced error handling with detailed information
       if (response.statusCode != 200) {
-        throw ProviderError(
-          'OpenAI API returned status ${response.statusCode}: ${response.data}',
-        );
+        final statusCode = response.statusCode;
+        final errorData = response.data;
+
+        // Provide specific error messages based on status codes
+        if (statusCode == 401) {
+          throw const AuthError('Invalid OpenAI API key');
+        } else if (statusCode == 429) {
+          throw const ProviderError('Rate limit exceeded');
+        } else if (statusCode == 400) {
+          throw ResponseFormatError(
+            'Bad request - check your parameters',
+            errorData?.toString() ?? '',
+          );
+        } else if (statusCode == 500) {
+          throw const ProviderError('OpenAI server error');
+        } else {
+          throw ResponseFormatError(
+            'OpenAI API returned error status: $statusCode',
+            errorData?.toString() ?? '',
+          );
+        }
       }
 
       final responseData = response.data;
@@ -328,48 +361,35 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
       final thinkingBuffer = StringBuffer();
 
       await for (final chunk in stream.stream.map(utf8.decode)) {
-        final lines = chunk.split('\n');
-        for (final line in lines) {
-          final trimmedLine = line.trim();
-          if (trimmedLine.startsWith('data: ')) {
-            final data = trimmedLine.substring(6).trim();
-            if (data == '[DONE]') {
-              return;
-            }
+        // Use the dedicated SSE parsing method
+        final json = _parseSSEChunk(chunk);
 
-            if (data.isEmpty) {
-              continue;
-            }
+        // Handle completion signal
+        if (json == null) {
+          return;
+        }
 
-            try {
-              final json = jsonDecode(data) as Map<String, dynamic>;
-              final events = _parseStreamEventWithReasoning(
-                json,
-                hasReasoningContent,
-                lastChunk,
-                thinkingBuffer,
-              );
+        final events = _parseStreamEventWithReasoning(
+          json,
+          hasReasoningContent,
+          lastChunk,
+          thinkingBuffer,
+        );
 
-              // Update tracking variables using reasoning utils
-              final delta = _getDelta(json);
-              if (delta != null) {
-                final reasoningResult = ReasoningUtils.checkReasoningStatus(
-                  delta: delta,
-                  hasReasoningContent: hasReasoningContent,
-                  lastChunk: lastChunk,
-                );
-                hasReasoningContent = reasoningResult.hasReasoningContent;
-                lastChunk = reasoningResult.updatedLastChunk;
-              }
+        // Update tracking variables using reasoning utils
+        final delta = _getDelta(json);
+        if (delta != null) {
+          final reasoningResult = ReasoningUtils.checkReasoningStatus(
+            delta: delta,
+            hasReasoningContent: hasReasoningContent,
+            lastChunk: lastChunk,
+          );
+          hasReasoningContent = reasoningResult.hasReasoningContent;
+          lastChunk = reasoningResult.updatedLastChunk;
+        }
 
-              for (final event in events) {
-                yield event;
-              }
-            } catch (e) {
-              // Skip malformed JSON chunks
-              continue;
-            }
-          }
+        for (final event in events) {
+          yield event;
         }
       }
     } on DioException catch (e) {
@@ -534,6 +554,43 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     }
 
     return result;
+  }
+
+  /// Parse a Server-Sent Events (SSE) chunk from OpenAI's streaming API.
+  /// Similar to the Rust implementation's parse_sse_chunk function.
+  ///
+  /// Returns:
+  /// - `Some(Map)` - Parsed JSON data if found
+  /// - `null` - If chunk should be skipped (e.g., ping, done signal)
+  Map<String, dynamic>? _parseSSEChunk(String chunk) {
+    for (final line in chunk.split('\n')) {
+      final trimmedLine = line.trim();
+
+      if (trimmedLine.startsWith('data: ')) {
+        final data = trimmedLine.substring(6).trim();
+
+        // Handle completion signal
+        if (data == '[DONE]') {
+          return null;
+        }
+
+        // Skip empty data
+        if (data.isEmpty) {
+          continue;
+        }
+
+        try {
+          final json = jsonDecode(data) as Map<String, dynamic>;
+          return json;
+        } catch (e) {
+          // Skip malformed JSON chunks
+          _logger.warning('Failed to parse SSE chunk JSON: $e');
+          continue;
+        }
+      }
+    }
+
+    return null;
   }
 
   /// Get delta from JSON response
@@ -710,16 +767,32 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
           'dimensions': config.embeddingDimensions,
       };
 
-      _logger.fine('OpenAI request: POST /embeddings');
+      // Optimized logging with condition check
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI request: POST /embeddings');
+      }
 
       final response = await _dio.post('embeddings', data: requestBody);
 
-      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
 
+      // Enhanced error handling for embeddings
       if (response.statusCode != 200) {
-        throw ProviderError(
-          'OpenAI API returned status ${response.statusCode}: ${response.data}',
-        );
+        final statusCode = response.statusCode;
+        final errorData = response.data;
+
+        if (statusCode == 401) {
+          throw const AuthError('Invalid OpenAI API key for embeddings');
+        } else if (statusCode == 429) {
+          throw const ProviderError('Rate limit exceeded for embeddings');
+        } else {
+          throw ResponseFormatError(
+            'OpenAI embeddings API returned error status: $statusCode',
+            errorData?.toString() ?? '',
+          );
+        }
       }
 
       final data = response.data as Map<String, dynamic>;
@@ -749,16 +822,32 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         'file': MultipartFile.fromBytes(audio, filename: 'audio.m4a'),
       });
 
-      _logger.fine('OpenAI request: POST /audio/transcriptions');
+      // Optimized logging with condition check
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI request: POST /audio/transcriptions');
+      }
 
       final response = await _dio.post('audio/transcriptions', data: formData);
 
-      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
 
+      // Enhanced error handling for transcription
       if (response.statusCode != 200) {
-        throw ProviderError(
-          'OpenAI API returned status ${response.statusCode}: ${response.data}',
-        );
+        final statusCode = response.statusCode;
+        final errorData = response.data;
+
+        if (statusCode == 401) {
+          throw const AuthError('Invalid OpenAI API key for transcription');
+        } else if (statusCode == 429) {
+          throw const ProviderError('Rate limit exceeded for transcription');
+        } else {
+          throw ResponseFormatError(
+            'OpenAI transcription API returned error status: $statusCode',
+            errorData?.toString() ?? '',
+          );
+        }
       }
 
       return response.data as String;
@@ -782,16 +871,36 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         'file': await MultipartFile.fromFile(filePath),
       });
 
-      _logger.fine('OpenAI request: POST /audio/transcriptions (file)');
+      // Optimized logging with condition check
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI request: POST /audio/transcriptions (file)');
+      }
 
       final response = await _dio.post('audio/transcriptions', data: formData);
 
-      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
 
+      // Enhanced error handling for file transcription
       if (response.statusCode != 200) {
-        throw ProviderError(
-          'OpenAI API returned status ${response.statusCode}: ${response.data}',
-        );
+        final statusCode = response.statusCode;
+        final errorData = response.data;
+
+        if (statusCode == 401) {
+          throw const AuthError(
+            'Invalid OpenAI API key for file transcription',
+          );
+        } else if (statusCode == 429) {
+          throw const ProviderError(
+            'Rate limit exceeded for file transcription',
+          );
+        } else {
+          throw ResponseFormatError(
+            'OpenAI file transcription API returned error status: $statusCode',
+            errorData?.toString() ?? '',
+          );
+        }
       }
 
       return response.data as String;
@@ -816,7 +925,10 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         'voice': config.voice ?? 'alloy',
       };
 
-      _logger.fine('OpenAI request: POST /audio/speech');
+      // Optimized logging with condition check
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI request: POST /audio/speech');
+      }
 
       final response = await _dio.post(
         'audio/speech',
@@ -824,12 +936,24 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         options: Options(responseType: ResponseType.bytes),
       );
 
-      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
 
+      // Enhanced error handling for text-to-speech
       if (response.statusCode != 200) {
-        throw ProviderError(
-          'OpenAI API returned status ${response.statusCode}',
-        );
+        final statusCode = response.statusCode;
+
+        if (statusCode == 401) {
+          throw const AuthError('Invalid OpenAI API key for text-to-speech');
+        } else if (statusCode == 429) {
+          throw const ProviderError('Rate limit exceeded for text-to-speech');
+        } else {
+          throw ResponseFormatError(
+            'OpenAI text-to-speech API returned error status: $statusCode',
+            'Binary response data',
+          );
+        }
       }
 
       return response.data as List<int>;
@@ -848,16 +972,32 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     }
 
     try {
-      _logger.fine('OpenAI request: GET /models');
+      // Optimized logging with condition check
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI request: GET /models');
+      }
 
       final response = await _dio.get('models');
 
-      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
 
+      // Enhanced error handling for models endpoint
       if (response.statusCode != 200) {
-        throw ProviderError(
-          'OpenAI API returned status ${response.statusCode}: ${response.data}',
-        );
+        final statusCode = response.statusCode;
+        final errorData = response.data;
+
+        if (statusCode == 401) {
+          throw const AuthError('Invalid OpenAI API key for models endpoint');
+        } else if (statusCode == 429) {
+          throw const ProviderError('Rate limit exceeded for models endpoint');
+        } else {
+          throw ResponseFormatError(
+            'OpenAI models API returned error status: $statusCode',
+            errorData?.toString() ?? '',
+          );
+        }
       }
 
       final responseData = response.data;

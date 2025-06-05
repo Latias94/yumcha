@@ -4,8 +4,10 @@ import 'dart:convert';
 enum ChatRole {
   /// The user/human participant in the conversation
   user,
+
   /// The AI assistant participant in the conversation
   assistant,
+
   /// System message for setting context
   system,
 }
@@ -14,10 +16,13 @@ enum ChatRole {
 enum ImageMime {
   /// JPEG image
   jpeg,
+
   /// PNG image
   png,
+
   /// GIF image
   gif,
+
   /// WebP image
   webp,
 }
@@ -37,12 +42,62 @@ extension ImageMimeExtension on ImageMime {
   }
 }
 
+/// Represents an AI model with its metadata
+class AIModel {
+  /// The unique identifier of the model
+  final String id;
+
+  /// Human-readable description of the model
+  final String? description;
+
+  /// The object type (typically "model")
+  final String object;
+
+  /// The organization that owns the model
+  final String? ownedBy;
+
+  const AIModel({
+    required this.id,
+    this.description,
+    this.object = 'model',
+    this.ownedBy,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    if (description != null) 'description': description,
+    'object': object,
+    if (ownedBy != null) 'owned_by': ownedBy,
+  };
+
+  factory AIModel.fromJson(Map<String, dynamic> json) => AIModel(
+    id: json['id'] as String,
+    description: json['description'] as String?,
+    object: json['object'] as String? ?? 'model',
+    ownedBy: json['owned_by'] as String?,
+  );
+
+  @override
+  String toString() =>
+      'AIModel(id: $id, description: $description, ownedBy: $ownedBy)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AIModel && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
 /// Tool call represents a function call that an LLM wants to make.
 class ToolCall {
   /// The ID of the tool call.
   final String id;
+
   /// The type of the tool call (usually "function").
   final String callType;
+
   /// The function to call.
   final FunctionCall function;
 
@@ -72,18 +127,13 @@ class ToolCall {
 class FunctionCall {
   /// The name of the function to call.
   final String name;
+
   /// The arguments to pass to the function, typically serialized as a JSON string.
   final String arguments;
 
-  const FunctionCall({
-    required this.name,
-    required this.arguments,
-  });
+  const FunctionCall({required this.name, required this.arguments});
 
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'arguments': arguments,
-  };
+  Map<String, dynamic> toJson() => {'name': name, 'arguments': arguments};
 
   factory FunctionCall.fromJson(Map<String, dynamic> json) => FunctionCall(
     name: json['name'] as String,
@@ -144,8 +194,10 @@ class ToolResultMessage extends MessageType {
 class ChatMessage {
   /// The role of who sent this message (user or assistant)
   final ChatRole role;
+
   /// The type of the message (text, image, audio, video, etc)
   final MessageType messageType;
+
   /// The text content of the message
   final String content;
 
