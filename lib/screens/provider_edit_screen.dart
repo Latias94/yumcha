@@ -144,21 +144,6 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
     return 'TODO';
   }
 
-  List<String> _getDefaultModels(ProviderType type) {
-    switch (type) {
-      case ProviderType.openai:
-        return ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'];
-      case ProviderType.anthropic:
-        return ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'];
-      case ProviderType.google:
-        return ['gemini-pro', 'gemini-pro-vision'];
-      case ProviderType.ollama:
-        return ['llama2', 'codellama', 'mistral'];
-      case ProviderType.custom:
-        return [];
-    }
-  }
-
   void _onTypeChanged(ProviderType? type) {
     if (type == null) return;
 
@@ -171,11 +156,7 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
         if (defaultBaseUrl != null) {
           _baseUrlController.text = defaultBaseUrl;
         }
-
-        final defaultModels = _getDefaultModels(type);
-        if (defaultModels.isNotEmpty) {
-          _modelsController.text = defaultModels.join(', ');
-        }
+        // 不再自动填充默认模型，让用户手动添加或从API获取
       }
     });
   }

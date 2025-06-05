@@ -91,41 +91,6 @@ class AiProvider {
     }
   }
 
-  // 获取默认支持的模型
-  static List<String> getDefaultModels(ProviderType type) {
-    switch (type) {
-      case ProviderType.openai:
-        return [
-          'gpt-4o',
-          'gpt-4o-mini',
-          'gpt-4-turbo',
-          'gpt-4',
-          'gpt-3.5-turbo',
-        ];
-      case ProviderType.anthropic:
-        return [
-          'claude-3-5-sonnet-20241022',
-          'claude-3-5-haiku-20241022',
-          'claude-3-opus-20240229',
-          'claude-3-sonnet-20240229',
-          'claude-3-haiku-20240307',
-        ];
-      case ProviderType.google:
-        return ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.0-pro'];
-      case ProviderType.ollama:
-        return [
-          'llama2',
-          'llama2:13b',
-          'llama2:70b',
-          'mistral',
-          'codellama',
-          'qwen2',
-        ];
-      case ProviderType.custom:
-        return [];
-    }
-  }
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

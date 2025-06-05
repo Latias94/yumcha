@@ -5,23 +5,19 @@ import '../services/logger_service.dart';
 
 /// 模型管理服务 - 负责从提供商获取和管理模型列表
 class ModelManagementService {
-  static final ModelManagementService _instance = ModelManagementService._internal();
+  static final ModelManagementService _instance =
+      ModelManagementService._internal();
   factory ModelManagementService() => _instance;
   ModelManagementService._internal();
 
   final LoggerService _logger = LoggerService();
 
   /// 检查提供商是否支持获取模型列表
+  /// 注意：这个方法现在总是返回true，因为我们不再基于提供商类型做硬编码判断
+  /// 具体是否支持应该通过实际API调用来确定
   bool providerSupportsListModels(ProviderType type) {
-    switch (type) {
-      case ProviderType.openai:
-      case ProviderType.custom:
-        return true; // OpenAI兼容接口支持列出模型
-      case ProviderType.anthropic:
-      case ProviderType.google:
-      case ProviderType.ollama:
-        return false; // 这些提供商暂不支持动态获取模型列表
-    }
+    // 移除硬编码的提供商类型判断，让用户自己尝试获取模型列表
+    return true;
   }
 
   /// 从提供商API获取模型列表
@@ -43,9 +39,7 @@ class ModelManagementService {
 
     // 检查提供商是否支持列出模型
     if (!providerSupportsListModels(provider.type)) {
-      return ModelFetchResult.error(
-        '${provider.name} 不支持动态获取模型列表，请手动添加模型',
-      );
+      return ModelFetchResult.error('${provider.name} 不支持动态获取模型列表，请手动添加模型');
     }
 
     // 创建一个不包含现有模型的临时副本用于测试
@@ -81,128 +75,27 @@ class ModelManagementService {
       } catch (e) {
         // API获取失败，记录错误并显示具体错误信息
         _logger.warning('从API获取模型失败', {'error': e.toString()});
-        
+
         // 检查是否是认证错误
         final errorMessage = e.toString().toLowerCase();
-        if (errorMessage.contains('auth') || 
-            errorMessage.contains('api key') || 
+        if (errorMessage.contains('auth') ||
+            errorMessage.contains('api key') ||
             errorMessage.contains('unauthorized')) {
           return ModelFetchResult.error('API密钥无效或已过期，请检查API密钥是否正确');
-        } else if (errorMessage.contains('network') || 
-                   errorMessage.contains('connection')) {
+        } else if (errorMessage.contains('network') ||
+            errorMessage.contains('connection')) {
           return ModelFetchResult.error('网络连接失败，请检查网络连接和Base URL设置');
         } else {
           return ModelFetchResult.error('获取模型列表失败: ${e.toString()}');
         }
       }
 
-      // 使用通用模型作为回退
-      final commonModels = _getCommonModelsForProvider(provider.type);
-
-      if (commonModels.isNotEmpty) {
-        _logger.info('使用预设模型列表', {'count': commonModels.length});
-        return ModelFetchResult.success(
-          commonModels,
-          '使用预设模型列表 (${commonModels.length} 个模型)',
-        );
-      } else {
-        return ModelFetchResult.error('该提供商暂无预设模型，请手动添加');
-      }
+      // 不再提供硬编码的回退模型，让用户手动添加
+      return ModelFetchResult.error('无法从API获取模型列表，请手动添加模型');
     } catch (e) {
       _logger.error('获取模型列表异常', {'error': e.toString()});
       return ModelFetchResult.error('获取模型列表失败: $e');
     }
-  }
-
-  /// 获取提供商的常用模型列表
-  List<AiModel> _getCommonModelsForProvider(ProviderType type) {
-    final now = DateTime.now();
-    final models = <AiModel>[];
-
-    switch (type) {
-      case ProviderType.openai:
-        models.addAll([
-          AiModel(
-            id: 'gpt-4o',
-            name: 'gpt-4o',
-            displayName: 'GPT-4o',
-            capabilities: [
-              ModelCapability.reasoning,
-              ModelCapability.vision,
-              ModelCapability.tools,
-            ],
-            metadata: {'contextLength': 128000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-4o-mini',
-            name: 'gpt-4o-mini',
-            displayName: 'GPT-4o Mini',
-            capabilities: [
-              ModelCapability.reasoning,
-              ModelCapability.vision,
-              ModelCapability.tools,
-            ],
-            metadata: {'contextLength': 128000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-4-turbo',
-            name: 'gpt-4-turbo',
-            displayName: 'GPT-4 Turbo',
-            capabilities: [
-              ModelCapability.reasoning,
-              ModelCapability.vision,
-              ModelCapability.tools,
-            ],
-            metadata: {'contextLength': 128000},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'gpt-3.5-turbo',
-            name: 'gpt-3.5-turbo',
-            displayName: 'GPT-3.5 Turbo',
-            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
-            metadata: {'contextLength': 16385},
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ]);
-        break;
-      case ProviderType.custom:
-        // 对于自定义提供商，提供一些通用的OpenAI兼容模型
-        models.addAll([
-          AiModel(
-            id: 'deepseek-chat',
-            name: 'deepseek-chat',
-            displayName: 'DeepSeek Chat',
-            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
-            metadata: {'contextLength': 32768},
-            createdAt: now,
-            updatedAt: now,
-          ),
-          AiModel(
-            id: 'deepseek-coder',
-            name: 'deepseek-coder',
-            displayName: 'DeepSeek Coder',
-            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
-            metadata: {'contextLength': 16384},
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ]);
-        break;
-      case ProviderType.anthropic:
-      case ProviderType.google:
-      case ProviderType.ollama:
-        // 这些提供商暂不支持动态获取，返回空列表
-        break;
-    }
-
-    return models;
   }
 }
 
@@ -227,10 +120,6 @@ class ModelFetchResult {
   }
 
   factory ModelFetchResult.error(String message) {
-    return ModelFetchResult._(
-      isSuccess: false,
-      models: null,
-      message: message,
-    );
+    return ModelFetchResult._(isSuccess: false, models: null, message: message);
   }
 }

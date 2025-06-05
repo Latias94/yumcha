@@ -140,6 +140,12 @@ class AiDartService {
         'model': modelName,
         'assistant': assistant.name,
         'baseUrl': provider.baseUrl ?? '默认端点',
+        'chatHistoryLength': chatHistory.length,
+      });
+
+      // detail log histroy
+      _logger.debug('AI Dart 聊天请求历史记录', {
+        'history': chatHistory.map((msg) => msg.content).toList(),
       });
 
       // Create provider

@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/message.dart';
-import '../models/ai_provider.dart';
 import '../services/ai_service.dart';
 import '../services/preference_service.dart';
 import '../services/provider_repository.dart';
@@ -109,9 +108,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
       // 检查模型是否在提供商的模型列表中
       final hasModel = provider.models.any((model) => model.name == modelName);
       if (!hasModel) {
-        // 如果没有配置模型，检查是否是默认模型
-        final defaultModels = AiProvider.getDefaultModels(provider.type);
-        return defaultModels.contains(modelName);
+        // 如果没有配置模型，则认为无效
+        return false;
       }
 
       return true;
@@ -135,15 +133,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
         String? firstModel;
         if (enabledProvider.models.isNotEmpty) {
           firstModel = enabledProvider.models.first.name;
-        } else {
-          // 使用默认模型
-          final defaultModels = AiProvider.getDefaultModels(
-            enabledProvider.type,
-          );
-          if (defaultModels.isNotEmpty) {
-            firstModel = defaultModels.first;
-          }
         }
+        // 如果提供商没有配置模型，则跳过该提供商
 
         if (firstModel != null) {
           state = state.copyWith(

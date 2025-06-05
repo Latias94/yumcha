@@ -278,28 +278,9 @@ class AiService {
       (p) => p.id == defaultProviderId,
     );
 
+    // 不再自动创建默认提供商，让用户手动配置
     if (!hasDefaultProvider) {
-      final defaultOpenAiProvider = AiProvider(
-        id: defaultProviderId,
-        name: 'OpenAI (默认)',
-        type: ProviderType.openai,
-        apiKey: 'sk-', // 用户需要替换
-        baseUrl: 'https://api.openai.com/v1',
-        models: [
-          AiModel(
-            id: 'gpt-3.5-turbo',
-            name: 'gpt-3.5-turbo',
-            displayName: 'GPT-3.5 Turbo',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        ],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        isEnabled: true,
-      );
-      await providerRepository.insertProvider(defaultOpenAiProvider);
-      _logger.info('已创建并保存默认OpenAI提供商: ${defaultOpenAiProvider.name}');
+      _logger.info('没有找到默认提供商，用户需要手动配置AI提供商');
     }
 
     // 处理默认助手
@@ -964,16 +945,10 @@ class AiService {
   }
 
   /// 检查提供商是否支持模型列表功能
+  /// 现在总是返回true，让用户自己尝试获取模型列表
   bool _providerSupportsModelListing(ProviderType type) {
-    switch (type) {
-      case ProviderType.openai:
-      case ProviderType.custom: // OpenAI兼容接口
-        return true;
-      case ProviderType.anthropic:
-      case ProviderType.google:
-      case ProviderType.ollama:
-        return false; // 这些提供商暂不支持或不需要动态获取
-    }
+    // 移除硬编码的提供商类型判断，让用户自己尝试获取模型列表
+    return true;
   }
 
   /// 根据模型名称推断模型能力

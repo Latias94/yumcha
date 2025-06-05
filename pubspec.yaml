@@ -63,6 +63,7 @@ dependencies:
   fuzzy: <1.0.0
   markdown_widget: ^2.3.2+8
   flutter_staggered_animations: ^1.1.1
+  mcp_dart: ^0.5.1
 
 dev_dependencies:
   flutter_test:
