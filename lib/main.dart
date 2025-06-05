@@ -28,7 +28,22 @@ void main() async {
   // 初始化主题服务
   await ThemeService().initialize();
 
+  // 初始化 MCP 服务
+  await _initializeMcp();
+
   runApp(ProviderScope(child: const YumchaApp()));
+}
+
+/// 初始化 MCP 服务
+Future<void> _initializeMcp() async {
+  try {
+    // 这里暂时使用默认设置，实际应用中会从设置中读取
+    // 由于在 main 函数中无法直接使用 Riverpod，我们先跳过 MCP 初始化
+    // MCP 将在应用启动后通过设置页面进行配置和初始化
+    LoggerService().info('MCP 服务将在应用启动后进行配置');
+  } catch (e) {
+    LoggerService().error('MCP 初始化失败', {'error': e.toString()});
+  }
 }
 
 class YumchaApp extends StatelessWidget {

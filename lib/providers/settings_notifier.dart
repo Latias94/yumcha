@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_setting.dart';
+import '../models/mcp_server_config.dart';
 import '../data/repositories/setting_repository.dart';
 import '../services/database_service.dart';
 import '../services/logger_service.dart';
@@ -62,10 +63,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       await _loadAllSettings();
     } catch (error) {
       _logger.error('设置初始化失败', {'error': error.toString()});
-      state = state.copyWith(
-        isLoading: false,
-        error: '设置初始化失败: $error',
-      );
+      state = state.copyWith(isLoading: false, error: '设置初始化失败: $error');
     }
   }
 
@@ -78,17 +76,11 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       for (final setting in settingsList) {
         settingsMap[setting.key] = setting;
       }
-      state = state.copyWith(
-        settings: settingsMap,
-        isLoading: false,
-      );
+      state = state.copyWith(settings: settingsMap, isLoading: false);
       _logger.info('设置加载完成', {'count': settingsList.length});
     } catch (error) {
       _logger.error('设置加载失败', {'error': error.toString()});
-      state = state.copyWith(
-        isLoading: false,
-        error: '设置加载失败: $error',
-      );
+      state = state.copyWith(isLoading: false, error: '设置加载失败: $error');
     }
   }
 
@@ -122,10 +114,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 
       _logger.debug('设置已更新', {'key': key, 'value': value.toString()});
     } catch (error) {
-      _logger.error('设置更新失败', {
-        'key': key,
-        'error': error.toString(),
-      });
+      _logger.error('设置更新失败', {'key': key, 'error': error.toString()});
       state = state.copyWith(error: '设置更新失败: $error');
     }
   }
@@ -149,10 +138,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       state = state.copyWith(settings: updatedSettings);
       _logger.debug('设置已删除', {'key': key});
     } catch (error) {
-      _logger.error('设置删除失败', {
-        'key': key,
-        'error': error.toString(),
-      });
+      _logger.error('设置删除失败', {'key': key, 'error': error.toString()});
       state = state.copyWith(error: '设置删除失败: $error');
     }
   }
@@ -208,7 +194,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 
   /// 获取默认翻译模型
   DefaultModelConfig? getDefaultTranslationModel() {
-    final value = getValue<Map<String, dynamic>>(SettingKeys.defaultTranslationModel);
+    final value = getValue<Map<String, dynamic>>(
+      SettingKeys.defaultTranslationModel,
+    );
     return value != null ? DefaultModelConfig.fromJson(value) : null;
   }
 
@@ -223,7 +211,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 
   /// 获取默认摘要模型
   DefaultModelConfig? getDefaultSummaryModel() {
-    final value = getValue<Map<String, dynamic>>(SettingKeys.defaultSummaryModel);
+    final value = getValue<Map<String, dynamic>>(
+      SettingKeys.defaultSummaryModel,
+    );
     return value != null ? DefaultModelConfig.fromJson(value) : null;
   }
 
@@ -309,13 +299,46 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       description: '调试模式启用状态',
     );
   }
+
+  // === MCP 设置方法 ===
+
+  /// 获取 MCP 启用状态
+  bool getMcpEnabled() {
+    return getValueOrDefault<bool>(SettingKeys.mcpEnabled, false);
+  }
+
+  /// 设置 MCP 启用状态
+  Future<void> setMcpEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.mcpEnabled,
+      value: enabled,
+      description: 'MCP 服务启用状态',
+    );
+  }
+
+  /// 获取 MCP 服务器配置
+  McpServersConfig getMcpServers() {
+    final value = getValue<Map<String, dynamic>>(SettingKeys.mcpServers);
+    return value != null
+        ? McpServersConfig.fromJson(value)
+        : McpServersConfig.empty();
+  }
+
+  /// 设置 MCP 服务器配置
+  Future<void> setMcpServers(McpServersConfig config) async {
+    await setSetting(
+      key: SettingKeys.mcpServers,
+      value: config.toJson(),
+      description: 'MCP 服务器配置',
+    );
+  }
 }
 
 /// 设置管理 Provider
 final settingsNotifierProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>(
-  (ref) => SettingsNotifier(),
-);
+      (ref) => SettingsNotifier(),
+    );
 
 /// 获取特定设置值的 Provider
 final settingValueProvider = Provider.family<dynamic, String>((ref, key) {

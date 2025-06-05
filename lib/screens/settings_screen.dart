@@ -5,6 +5,7 @@ import 'providers_screen.dart';
 import 'assistants_screen.dart';
 import 'ai_debug_screen.dart';
 import 'default_models_screen.dart';
+import 'mcp_settings_screen.dart';
 import '../providers/theme_provider.dart';
 import '../ui/debug/thinking_process_demo.dart';
 
@@ -460,7 +461,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text("配置MCP Servers"),
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
-        // TODO: 跳转到MCP配置页面
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const McpSettingsScreen()),
+        );
       },
     );
   }

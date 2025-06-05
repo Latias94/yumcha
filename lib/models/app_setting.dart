@@ -133,10 +133,7 @@ class AppSetting {
 
   @override
   int get hashCode {
-    return key.hashCode ^
-        value.hashCode ^
-        type.hashCode ^
-        description.hashCode;
+    return key.hashCode ^ value.hashCode ^ type.hashCode ^ description.hashCode;
   }
 
   @override
@@ -204,6 +201,10 @@ class SettingKeys {
   static const String defaultTranslationModel = 'default_models.translation';
   static const String defaultSummaryModel = 'default_models.summary';
 
+  // MCP 设置
+  static const String mcpEnabled = 'mcp.enabled';
+  static const String mcpServers = 'mcp.servers';
+
   // 最后使用的配置
   static const String lastUsedAssistantId = 'last_used.assistant_id';
   static const String lastUsedProviderId = 'last_used.provider_id';
@@ -215,10 +216,7 @@ class DefaultModelConfig {
   final String? providerId;
   final String? modelName;
 
-  const DefaultModelConfig({
-    this.providerId,
-    this.modelName,
-  });
+  const DefaultModelConfig({this.providerId, this.modelName});
 
   factory DefaultModelConfig.fromJson(Map<String, dynamic> json) {
     return DefaultModelConfig(
@@ -228,10 +226,7 @@ class DefaultModelConfig {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'providerId': providerId,
-      'modelName': modelName,
-    };
+    return {'providerId': providerId, 'modelName': modelName};
   }
 
   bool get isConfigured => providerId != null && modelName != null;

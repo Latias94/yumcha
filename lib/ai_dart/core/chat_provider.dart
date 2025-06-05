@@ -25,6 +25,15 @@ class UsageInfo {
 
   const UsageInfo({this.promptTokens, this.completionTokens, this.totalTokens});
 
+  /// Adds two UsageInfo instances together for token usage accumulation
+  UsageInfo operator +(UsageInfo other) {
+    return UsageInfo(
+      promptTokens: (promptTokens ?? 0) + (other.promptTokens ?? 0),
+      completionTokens: (completionTokens ?? 0) + (other.completionTokens ?? 0),
+      totalTokens: (totalTokens ?? 0) + (other.totalTokens ?? 0),
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     if (promptTokens != null) 'prompt_tokens': promptTokens,
     if (completionTokens != null) 'completion_tokens': completionTokens,
@@ -36,6 +45,22 @@ class UsageInfo {
     completionTokens: json['completion_tokens'] as int?,
     totalTokens: json['total_tokens'] as int?,
   );
+
+  @override
+  String toString() =>
+      'UsageInfo(prompt: $promptTokens, completion: $completionTokens, total: $totalTokens)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UsageInfo &&
+          runtimeType == other.runtimeType &&
+          promptTokens == other.promptTokens &&
+          completionTokens == other.completionTokens &&
+          totalTokens == other.totalTokens;
+
+  @override
+  int get hashCode => Object.hash(promptTokens, completionTokens, totalTokens);
 }
 
 /// Trait for providers that support chat-style interactions.
