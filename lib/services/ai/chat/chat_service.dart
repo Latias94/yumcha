@@ -6,14 +6,112 @@ import '../core/ai_service_base.dart';
 import '../core/ai_response_models.dart';
 import '../../../ai_dart/ai_dart.dart';
 
-/// 聊天服务，负责处理AI聊天请求
+/// 聊天服务 - AI对话功能的核心实现
+///
+/// ChatService是整个AI聊天系统的核心服务，负责处理所有与AI对话相关的功能：
+///
+/// ## 🎯 核心功能
+///
+/// ### 1. 单次聊天对话
+/// - 发送消息并等待完整响应
+/// - 支持文本、图像等多模态输入
+/// - 自动处理上下文和历史消息
+///
+/// ### 2. 流式聊天对话
+/// - 实时接收AI响应流
+/// - 支持思考过程展示
+/// - 支持工具调用进度显示
+///
+/// ### 3. 提供商管理
+/// - 统一不同AI提供商的接口
+/// - 自动适配提供商特性
+/// - 提供商连接测试和验证
+///
+/// ### 4. 性能监控
+/// - 请求响应时间统计
+/// - 成功率和错误率跟踪
+/// - 详细的日志记录
+///
+/// ## 🏗️ 架构设计
+///
+/// ```
+/// ChatService
+/// ├── AiProviderAdapter    # 提供商适配层
+/// │   ├── OpenAI Adapter
+/// │   ├── Anthropic Adapter
+/// │   └── Other Adapters
+/// ├── Statistics Tracker   # 统计信息收集
+/// └── Request Context      # 请求上下文管理
+/// ```
+///
+/// ## 🔧 支持的AI能力
+/// - ✅ **chat**: 基础聊天对话
+/// - ✅ **streaming**: 流式响应
+/// - ✅ **toolCalling**: 工具调用
+/// - ✅ **reasoning**: 推理思考
+/// - ✅ **vision**: 视觉理解
+///
+/// ## 📊 性能特性
+/// - **适配器缓存**: 复用提供商适配器实例
+/// - **请求统计**: 实时收集性能数据
+/// - **错误恢复**: 自动重试和错误处理
+/// - **资源管理**: 自动清理连接和缓存
+///
+/// ## 🚀 使用示例
+///
+/// ### 单次聊天
+/// ```dart
+/// final response = await chatService.sendMessage(
+///   provider: openaiProvider,
+///   assistant: chatAssistant,
+///   modelName: 'gpt-4',
+///   chatHistory: previousMessages,
+///   userMessage: 'Hello!',
+/// );
+/// ```
+///
+/// ### 流式聊天
+/// ```dart
+/// await for (final event in chatService.sendMessageStream(...)) {
+///   if (event.isContent) {
+///     updateUI(event.contentDelta);
+///   }
+/// }
+/// ```
+///
+/// ### 提供商测试
+/// ```dart
+/// final isWorking = await chatService.testProvider(
+///   provider: provider,
+///   modelName: 'gpt-3.5-turbo',
+/// );
+/// ```
 class ChatService extends AiServiceBase {
+  // 单例模式实现 - 确保全局唯一的聊天服务实例
   static final ChatService _instance = ChatService._internal();
   factory ChatService() => _instance;
   ChatService._internal();
 
+  /// 提供商适配器缓存
+  ///
+  /// 缓存已创建的适配器实例以提升性能。缓存键格式：
+  /// `{providerId}_{assistantId}_{modelName}`
+  ///
+  /// 这样可以：
+  /// - 🚀 **提升性能**：避免重复创建适配器
+  /// - 💾 **节省内存**：复用相同配置的适配器
+  /// - 🔄 **保持状态**：维护适配器的内部状态
   final Map<String, AiProviderAdapter> _adapters = {};
+
+  /// 服务统计信息缓存
+  ///
+  /// 按提供商ID存储统计信息，包括：
+  /// - 📊 **请求统计**：总请求数、成功数、失败数
+  /// - ⏱️ **性能数据**：平均响应时间、最长/最短耗时
+  /// - 🕒 **时间信息**：最后请求时间、服务启动时间
   final Map<String, AiServiceStats> _stats = {};
+
+  /// 服务初始化状态标记
   bool _isInitialized = false;
 
   @override
@@ -21,11 +119,11 @@ class ChatService extends AiServiceBase {
 
   @override
   Set<AiCapability> get supportedCapabilities => {
-    AiCapability.chat,
-    AiCapability.streaming,
-    AiCapability.toolCalling,
-    AiCapability.reasoning,
-    AiCapability.vision,
+    AiCapability.chat, // 基础聊天对话
+    AiCapability.streaming, // 流式响应
+    AiCapability.toolCalling, // 工具调用
+    AiCapability.reasoning, // 推理思考
+    AiCapability.vision, // 视觉理解
   };
 
   @override
