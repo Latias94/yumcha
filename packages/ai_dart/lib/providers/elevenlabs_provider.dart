@@ -41,17 +41,18 @@ class ElevenLabsConfig {
     double? similarityBoost,
     double? style,
     bool? useSpeakerBoost,
-  }) => ElevenLabsConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    voiceId: voiceId ?? this.voiceId,
-    model: model ?? this.model,
-    timeout: timeout ?? this.timeout,
-    stability: stability ?? this.stability,
-    similarityBoost: similarityBoost ?? this.similarityBoost,
-    style: style ?? this.style,
-    useSpeakerBoost: useSpeakerBoost ?? this.useSpeakerBoost,
-  );
+  }) =>
+      ElevenLabsConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        voiceId: voiceId ?? this.voiceId,
+        model: model ?? this.model,
+        timeout: timeout ?? this.timeout,
+        stability: stability ?? this.stability,
+        similarityBoost: similarityBoost ?? this.similarityBoost,
+        style: style ?? this.style,
+        useSpeakerBoost: useSpeakerBoost ?? this.useSpeakerBoost,
+      );
 }
 
 /// Word with timing information from ElevenLabs STT
@@ -63,10 +64,10 @@ class Word {
   const Word({required this.text, required this.start, required this.end});
 
   factory Word.fromJson(Map<String, dynamic> json) => Word(
-    text: json['text'] as String,
-    start: (json['start'] as num?)?.toDouble() ?? 0.0,
-    end: (json['end'] as num?)?.toDouble() ?? 0.0,
-  );
+        text: json['text'] as String,
+        start: (json['start'] as num?)?.toDouble() ?? 0.0,
+        end: (json['end'] as num?)?.toDouble() ?? 0.0,
+      );
 }
 
 /// ElevenLabs response for TTS
@@ -107,7 +108,7 @@ class ElevenLabsSTTResponse {
 }
 
 /// ElevenLabs provider implementation for TTS and STT
-class ElevenLabsProvider implements ChatProvider {
+class ElevenLabsProvider implements ChatCapability {
   final ElevenLabsConfig config;
   final Dio _dio;
   final Logger _logger = Logger('ElevenLabsProvider');
@@ -151,6 +152,15 @@ class ElevenLabsProvider implements ChatProvider {
     throw const ProviderError('ElevenLabs does not support chat functionality');
   }
 
+  @override
+  Stream<ChatStreamEvent> chatStream(
+    List<ChatMessage> messages, {
+    List<Tool>? tools,
+  }) async* {
+    yield ErrorEvent(
+        const ProviderError('ElevenLabs does not support chat functionality'));
+  }
+
   /// Convert text to speech using ElevenLabs TTS
   Future<ElevenLabsTTSResponse> textToSpeech(
     String text, {
@@ -161,8 +171,7 @@ class ElevenLabsProvider implements ChatProvider {
       throw const AuthError('Missing ElevenLabs API key');
     }
 
-    final effectiveVoiceId =
-        voiceId ??
+    final effectiveVoiceId = voiceId ??
         config.voiceId ??
         'JBFqnCBsd6RMkjVDRZzb'; // Default voice to match Rust
     final effectiveModel = model ?? config.model ?? 'eleven_monolingual_v1';

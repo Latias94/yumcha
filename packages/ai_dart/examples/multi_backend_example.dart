@@ -109,15 +109,15 @@ void main() async {
 
 /// Helper function to demonstrate provider registry pattern
 class LLMRegistry {
-  final Map<String, ChatProvider> _providers = {};
+  final Map<String, ChatCapability> _providers = {};
 
   /// Register a provider with a name
-  void register(String name, ChatProvider provider) {
+  void register(String name, ChatCapability provider) {
     _providers[name] = provider;
   }
 
   /// Get a provider by name
-  ChatProvider? get(String name) => _providers[name];
+  ChatCapability? get(String name) => _providers[name];
 
   /// Get all registered provider names
   List<String> get names => _providers.keys.toList();

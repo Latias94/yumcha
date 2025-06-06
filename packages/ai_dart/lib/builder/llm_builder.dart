@@ -1,17 +1,13 @@
 import '../core/chat_provider.dart';
+import '../core/config.dart';
+import '../core/registry.dart';
 import '../core/llm_error.dart';
-import '../providers/openai_provider.dart';
-import '../providers/anthropic_provider.dart';
-import '../providers/google_provider.dart';
-import '../providers/deepseek_provider.dart';
-import '../providers/ollama_provider.dart';
-import '../providers/xai_provider.dart';
-import '../providers/phind_provider.dart';
-import '../providers/groq_provider.dart';
-import '../providers/elevenlabs_provider.dart';
 import '../models/tool_models.dart';
 
 /// Supported LLM backend providers
+///
+/// @Deprecated - Use string provider IDs with LLMProviderRegistry instead
+@Deprecated('Use string provider IDs with LLMProviderRegistry instead')
 enum LLMBackend {
   /// OpenAI API provider (GPT-3, GPT-4, etc.)
   openai,
@@ -41,390 +37,191 @@ enum LLMBackend {
   elevenlabs,
 }
 
+/// Extension to convert enum to string
+extension LLMBackendExtension on LLMBackend {
+  String get providerId {
+    switch (this) {
+      case LLMBackend.openai:
+        return 'openai';
+      case LLMBackend.anthropic:
+        return 'anthropic';
+      case LLMBackend.ollama:
+        return 'ollama';
+      case LLMBackend.deepseek:
+        return 'deepseek';
+      case LLMBackend.xai:
+        return 'xai';
+      case LLMBackend.phind:
+        return 'phind';
+      case LLMBackend.google:
+        return 'google';
+      case LLMBackend.groq:
+        return 'groq';
+      case LLMBackend.elevenlabs:
+        return 'elevenlabs';
+    }
+  }
+}
+
 /// Builder for configuring and instantiating LLM providers
 ///
 /// Provides a fluent interface similar to the Rust llm crate for setting
 /// various configuration options like model selection, API keys, generation parameters, etc.
+///
+/// The new version uses the provider registry system for extensibility.
 class LLMBuilder {
-  /// Selected backend provider
-  LLMBackend? _backend;
+  /// Selected provider ID (replaces backend enum)
+  String? _providerId;
 
-  /// API key for authentication with the provider
-  String? _apiKey;
-
-  /// Base URL for API requests (primarily for self-hosted instances)
-  String? _baseUrl;
-
-  /// Model identifier/name to use
-  String? _model;
-
-  /// Maximum tokens to generate in responses
-  int? _maxTokens;
-
-  /// Temperature parameter for controlling response randomness (0.0-1.0)
-  double? _temperature;
-
-  /// System prompt/context to guide model behavior
-  String? _systemPrompt;
-
-  /// Request timeout duration
-  Duration? _timeout;
-
-  /// Whether to enable streaming responses
-  bool? _stream;
-
-  /// Top-p (nucleus) sampling parameter
-  double? _topP;
-
-  /// Top-k sampling parameter
-  int? _topK;
-
-  /// Function tools
-  List<Tool>? _tools;
-
-  /// Tool choice
-  ToolChoice? _toolChoice;
-
-  /// Reasoning effort level
-  String? _reasoningEffort;
-
-  /// JSON schema for structured output
-  StructuredOutputFormat? _jsonSchema;
-
-  /// Voice for TTS
-  String? _voice;
-
-  /// Embedding encoding format
-  String? _embeddingEncodingFormat;
-
-  /// Embedding dimensions
-  int? _embeddingDimensions;
-
-  /// Search parameters for providers that support search functionality
-  SearchParameters? _searchParameters;
+  /// Unified configuration being built
+  LLMConfig _config = LLMConfig(
+    baseUrl: '',
+    model: '',
+  );
 
   /// Creates a new empty builder instance with default values
   LLMBuilder();
 
-  /// Sets the backend provider to use
-  LLMBuilder backend(LLMBackend backend) {
-    _backend = backend;
+  /// Sets the provider to use (new registry-based approach)
+  LLMBuilder provider(String providerId) {
+    _providerId = providerId;
+
+    // Get default config for this provider if it's registered
+    final factory = LLMProviderRegistry.getFactory(providerId);
+    if (factory != null) {
+      _config = factory.getDefaultConfig();
+    }
+
     return this;
   }
 
+  /// Legacy method for backward compatibility
+  @Deprecated('Use provider(String) instead')
+  LLMBuilder backend(LLMBackend backend) {
+    return provider(backend.providerId);
+  }
+
+  /// Convenience methods for built-in providers
+  LLMBuilder openai() => provider('openai');
+  LLMBuilder anthropic() => provider('anthropic');
+  LLMBuilder google() => provider('google');
+  LLMBuilder deepseek() => provider('deepseek');
+  LLMBuilder ollama() => provider('ollama');
+  LLMBuilder xai() => provider('xai');
+  LLMBuilder phind() => provider('phind');
+  LLMBuilder groq() => provider('groq');
+  LLMBuilder elevenlabs() => provider('elevenlabs');
+
   /// Sets the API key for authentication
   LLMBuilder apiKey(String key) {
-    _apiKey = key;
+    _config = _config.copyWith(apiKey: key);
     return this;
   }
 
   /// Sets the base URL for API requests
   LLMBuilder baseUrl(String url) {
     // Ensure the URL ends with a slash
-    _baseUrl = url.endsWith('/') ? url : '$url/';
+    final normalizedUrl = url.endsWith('/') ? url : '$url/';
+    _config = _config.copyWith(baseUrl: normalizedUrl);
     return this;
   }
 
   /// Sets the model identifier to use
   LLMBuilder model(String model) {
-    _model = model;
+    _config = _config.copyWith(model: model);
     return this;
   }
 
   /// Sets the maximum number of tokens to generate
   LLMBuilder maxTokens(int tokens) {
-    _maxTokens = tokens;
+    _config = _config.copyWith(maxTokens: tokens);
     return this;
   }
 
   /// Sets the temperature for controlling response randomness (0.0-1.0)
   LLMBuilder temperature(double temp) {
-    _temperature = temp;
+    _config = _config.copyWith(temperature: temp);
     return this;
   }
 
   /// Sets the system prompt/context
   LLMBuilder systemPrompt(String prompt) {
-    _systemPrompt = prompt;
+    _config = _config.copyWith(systemPrompt: prompt);
     return this;
   }
 
   /// Sets the request timeout
   LLMBuilder timeout(Duration timeout) {
-    _timeout = timeout;
+    _config = _config.copyWith(timeout: timeout);
     return this;
   }
 
   /// Enables or disables streaming responses
   LLMBuilder stream(bool enable) {
-    _stream = enable;
+    _config = _config.copyWith(stream: enable);
     return this;
   }
 
   /// Sets the top-p (nucleus) sampling parameter
   LLMBuilder topP(double topP) {
-    _topP = topP;
+    _config = _config.copyWith(topP: topP);
     return this;
   }
 
   /// Sets the top-k sampling parameter
   LLMBuilder topK(int topK) {
-    _topK = topK;
+    _config = _config.copyWith(topK: topK);
     return this;
   }
 
   /// Sets the function tools
   LLMBuilder tools(List<Tool> tools) {
-    _tools = tools;
+    _config = _config.copyWith(tools: tools);
     return this;
   }
 
   /// Sets the tool choice
   LLMBuilder toolChoice(ToolChoice choice) {
-    _toolChoice = choice;
+    _config = _config.copyWith(toolChoice: choice);
     return this;
   }
 
-  /// Sets the reasoning effort level
-  LLMBuilder reasoningEffort(String effort) {
-    _reasoningEffort = effort;
+  /// Sets provider-specific extension
+  LLMBuilder extension(String key, dynamic value) {
+    _config = _config.withExtension(key, value);
     return this;
   }
 
-  /// Sets the JSON schema for structured output
-  LLMBuilder jsonSchema(StructuredOutputFormat schema) {
-    _jsonSchema = schema;
-    return this;
-  }
-
-  /// Sets the voice for TTS
-  LLMBuilder voice(String voice) {
-    _voice = voice;
-    return this;
-  }
-
-  /// Sets the encoding format for embeddings
-  LLMBuilder embeddingEncodingFormat(String format) {
-    _embeddingEncodingFormat = format;
-    return this;
-  }
-
-  /// Sets the dimensions for embeddings
-  LLMBuilder embeddingDimensions(int dimensions) {
-    _embeddingDimensions = dimensions;
-    return this;
-  }
-
-  /// Sets the search parameters for providers that support search functionality
-  LLMBuilder searchParameters(SearchParameters parameters) {
-    _searchParameters = parameters;
-    return this;
-  }
+  /// Convenience methods for common extensions
+  LLMBuilder reasoningEffort(String effort) =>
+      extension('reasoningEffort', effort);
+  LLMBuilder jsonSchema(StructuredOutputFormat schema) =>
+      extension('jsonSchema', schema);
+  LLMBuilder voice(String voice) => extension('voice', voice);
+  LLMBuilder embeddingEncodingFormat(String format) =>
+      extension('embeddingEncodingFormat', format);
+  LLMBuilder embeddingDimensions(int dimensions) =>
+      extension('embeddingDimensions', dimensions);
 
   /// Builds and returns a configured LLM provider instance
   ///
-  /// Returns a unified ChatProvider interface that can be used consistently
-  /// regardless of the underlying backend provider.
+  /// Returns a unified ChatCapability interface that can be used consistently
+  /// across different LLM providers. The actual implementation will vary based
+  /// on the selected provider.
   ///
-  /// Note: Some providers may implement additional interfaces like ModelProvider,
-  /// StreamingChatProvider, etc. Use dynamic casting to access these features.
+  /// Note: Some providers may implement additional interfaces like EmbeddingCapability,
+  /// ModelListingCapability, etc. Use dynamic casting to access these features.
   ///
   /// Throws [LLMError] if:
-  /// - No backend is specified
+  /// - No provider is specified
+  /// - Provider is not registered
   /// - Required configuration like API keys are missing
-  Future<ChatProvider> build() async {
-    if (_backend == null) {
-      throw const GenericError('No backend specified');
+  Future<ChatCapability> build() async {
+    if (_providerId == null) {
+      throw const GenericError('No provider specified');
     }
 
-    switch (_backend!) {
-      case LLMBackend.openai:
-        if (_apiKey == null) {
-          throw const AuthError('No API key provided for OpenAI');
-        }
-        return OpenAIProvider(
-          OpenAIConfig(
-            apiKey: _apiKey!,
-            baseUrl: _baseUrl ?? 'https://api.openai.com/v1/',
-            model: _model ?? 'gpt-3.5-turbo',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            toolChoice: _toolChoice,
-            reasoningEffort: _reasoningEffort,
-            jsonSchema: _jsonSchema,
-            voice: _voice,
-            embeddingEncodingFormat: _embeddingEncodingFormat,
-            embeddingDimensions: _embeddingDimensions,
-          ),
-        );
-
-      case LLMBackend.anthropic:
-        if (_apiKey == null) {
-          throw const AuthError('No API key provided for Anthropic');
-        }
-        return AnthropicProvider(
-          AnthropicConfig(
-            apiKey: _apiKey!,
-            baseUrl: _baseUrl ?? 'https://api.anthropic.com/v1/',
-            model: _model ?? 'claude-3-5-sonnet-20241022',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            toolChoice: _toolChoice,
-            reasoning: _reasoningEffort != null,
-            thinkingBudgetTokens: _reasoningEffort != null ? 16000 : null,
-          ),
-        );
-
-      case LLMBackend.deepseek:
-        if (_apiKey == null) {
-          throw const AuthError('No API key provided for DeepSeek');
-        }
-        return DeepSeekProvider(
-          DeepSeekConfig(
-            apiKey: _apiKey!,
-            baseUrl: _baseUrl ?? 'https://api.deepseek.com/v1/',
-            model: _model ?? 'deepseek-chat',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            toolChoice: _toolChoice,
-          ),
-        );
-
-      case LLMBackend.google:
-        if (_apiKey == null) {
-          throw const AuthError('No API key provided for Google');
-        }
-        return GoogleProvider(
-          GoogleConfig(
-            apiKey: _apiKey!,
-            baseUrl:
-                _baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta/',
-            model: _model ?? 'gemini-1.5-flash',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            jsonSchema: _jsonSchema,
-          ),
-        );
-
-      case LLMBackend.ollama:
-        return OllamaProvider(
-          OllamaConfig(
-            baseUrl: _baseUrl ?? 'http://localhost:11434',
-            apiKey: _apiKey,
-            model: _model ?? 'llama3.1',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            jsonSchema: _jsonSchema,
-          ),
-        );
-
-      case LLMBackend.xai:
-        if (_apiKey == null) {
-          throw const AuthError('No API key provided for XAI');
-        }
-        return XAIProvider(
-          XAIConfig(
-            apiKey: _apiKey!,
-            baseUrl: _baseUrl ?? 'https://api.x.ai/v1/',
-            model: _model ?? 'grok-2-latest',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            toolChoice: _toolChoice,
-            jsonSchema: _jsonSchema,
-            embeddingEncodingFormat: _embeddingEncodingFormat,
-            embeddingDimensions: _embeddingDimensions,
-            searchParameters: _searchParameters,
-          ),
-        );
-
-      case LLMBackend.phind:
-        return PhindProvider(
-          PhindConfig(
-            apiKey: _apiKey ?? '',
-            baseUrl: _baseUrl ?? 'https://https.extension.phind.com',
-            model: _model ?? 'Phind-70B',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            toolChoice: _toolChoice,
-          ),
-        );
-
-      case LLMBackend.groq:
-        if (_apiKey == null) {
-          throw const AuthError('No API key provided for Groq');
-        }
-        return GroqProvider(
-          GroqConfig(
-            apiKey: _apiKey!,
-            baseUrl: _baseUrl ?? 'https://api.groq.com/openai/v1',
-            model: _model ?? 'llama3-8b-8192',
-            maxTokens: _maxTokens,
-            temperature: _temperature,
-            systemPrompt: _systemPrompt,
-            timeout: _timeout,
-            stream: _stream ?? false,
-            topP: _topP,
-            topK: _topK,
-            tools: _tools,
-            toolChoice: _toolChoice,
-          ),
-        );
-
-      case LLMBackend.elevenlabs:
-        if (_apiKey == null) {
-          throw const AuthError('No API key provided for ElevenLabs');
-        }
-        return ElevenLabsProvider(
-          ElevenLabsConfig(
-            apiKey: _apiKey!,
-            baseUrl: _baseUrl ?? 'https://api.elevenlabs.io/v1',
-            model: _model ?? 'eleven_multilingual_v2',
-            timeout: _timeout,
-            voiceId: _voice,
-          ),
-        );
-    }
+    // Use the registry to create the provider
+    return LLMProviderRegistry.createProvider(_providerId!, _config);
   }
 }

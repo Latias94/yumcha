@@ -41,18 +41,27 @@ dependencies:
 ### Basic Usage
 
 ```dart
-import 'package:your_app/ai_dart/ai_dart.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 void main() async {
-  // Using builder pattern
-  final provider = ai()
+  // Method 1: Using the new ai() builder with provider methods
+  final provider = await ai()
+      .openai()
       .apiKey('your-api-key')
       .model('gpt-4')
       .temperature(0.7)
-      .buildOpenAI();
+      .build();
 
-  // Or using convenience function
-  final directProvider = openai(
+  // Method 2: Using provider() with string ID (extensible)
+  final provider2 = await ai()
+      .provider('openai')
+      .apiKey('your-api-key')
+      .model('gpt-4')
+      .temperature(0.7)
+      .build();
+
+  // Method 3: Using convenience function
+  final directProvider = await openai(
     apiKey: 'your-api-key',
     model: 'gpt-4',
     temperature: 0.7,
@@ -60,7 +69,7 @@ void main() async {
 
   // Simple chat
   final messages = [ChatMessage.user('Hello, world!')];
-  final response = await provider.chatWithTools(messages, null);
+  final response = await provider.chat(messages);
   print(response.text);
 }
 ```
@@ -176,6 +185,72 @@ try {
 }
 ```
 
+## Architecture
+
+### Capability-Based Design
+
+The library uses a capability-based interface design instead of monolithic "god interfaces":
+
+```dart
+// Core capabilities
+abstract class ChatCapability {
+  Future<ChatResponse> chat(List<ChatMessage> messages);
+  Stream<ChatStreamEvent> chatStream(List<ChatMessage> messages);
+}
+
+abstract class EmbeddingCapability {
+  Future<List<List<double>>> embed(List<String> input);
+}
+
+// Providers implement only the capabilities they support
+class OpenAIProvider implements ChatCapability, EmbeddingCapability {
+  // Implementation
+}
+```
+
+### Provider Registry
+
+The library includes an extensible provider registry system:
+
+```dart
+// Check available providers
+final providers = LLMProviderRegistry.getRegisteredProviders();
+print('Available: $providers'); // ['openai', 'anthropic', ...]
+
+// Check capabilities
+final supportsChat = LLMProviderRegistry.supportsCapability('openai', LLMCapability.chat);
+print('OpenAI supports chat: $supportsChat'); // true
+
+// Create providers dynamically
+final provider = LLMProviderRegistry.createProvider('openai', config);
+```
+
+### Custom Providers
+
+You can register custom providers:
+
+```dart
+// Create a custom provider factory
+class MyCustomProviderFactory implements LLMProviderFactory<ChatCapability> {
+  @override
+  String get providerId => 'my_custom';
+
+  @override
+  Set<LLMCapability> get supportedCapabilities => {LLMCapability.chat};
+
+  @override
+  ChatCapability create(LLMConfig config) => MyCustomProvider(config);
+
+  // ... other methods
+}
+
+// Register it
+LLMProviderRegistry.register(MyCustomProviderFactory());
+
+// Use it
+final provider = await ai().provider('my_custom').build();
+```
+
 ## Configuration
 
 All providers support common configuration options:
@@ -189,6 +264,20 @@ All providers support common configuration options:
 - `timeout`: Request timeout
 - `stream`: Enable streaming
 - `topP`, `topK`: Sampling parameters
+
+### Provider-Specific Extensions
+
+Use the extension system for provider-specific features:
+
+```dart
+final provider = await ai()
+    .openai()
+    .apiKey('your-key')
+    .model('gpt-4')
+    .extension('reasoningEffort', 'high')  // OpenAI-specific
+    .extension('voice', 'alloy')           // OpenAI TTS voice
+    .build();
+```
 
 ## Examples
 

@@ -2,6 +2,36 @@ import '../models/chat_models.dart';
 import '../models/tool_models.dart';
 import 'llm_error.dart';
 
+/// Enumeration of LLM capabilities that providers can support
+enum LLMCapability {
+  /// Basic chat functionality
+  chat,
+
+  /// Streaming chat responses
+  streaming,
+
+  /// Vector embeddings generation
+  embedding,
+
+  /// Text-to-speech conversion
+  textToSpeech,
+
+  /// Speech-to-text conversion
+  speechToText,
+
+  /// Model listing
+  modelListing,
+
+  /// Function/tool calling
+  toolCalling,
+
+  /// Reasoning/thinking capabilities
+  reasoning,
+
+  /// Text completion (non-chat)
+  completion,
+}
+
 /// Response from a chat provider
 abstract class ChatResponse {
   /// Get the text content of the response
@@ -35,16 +65,16 @@ class UsageInfo {
   }
 
   Map<String, dynamic> toJson() => {
-    if (promptTokens != null) 'prompt_tokens': promptTokens,
-    if (completionTokens != null) 'completion_tokens': completionTokens,
-    if (totalTokens != null) 'total_tokens': totalTokens,
-  };
+        if (promptTokens != null) 'prompt_tokens': promptTokens,
+        if (completionTokens != null) 'completion_tokens': completionTokens,
+        if (totalTokens != null) 'total_tokens': totalTokens,
+      };
 
   factory UsageInfo.fromJson(Map<String, dynamic> json) => UsageInfo(
-    promptTokens: json['prompt_tokens'] as int?,
-    completionTokens: json['completion_tokens'] as int?,
-    totalTokens: json['total_tokens'] as int?,
-  );
+        promptTokens: json['prompt_tokens'] as int?,
+        completionTokens: json['completion_tokens'] as int?,
+        totalTokens: json['total_tokens'] as int?,
+      );
 
   @override
   String toString() =>
@@ -63,8 +93,8 @@ class UsageInfo {
   int get hashCode => Object.hash(promptTokens, completionTokens, totalTokens);
 }
 
-/// Trait for providers that support chat-style interactions.
-abstract class ChatProvider {
+/// Core chat capability interface that most LLM providers implement
+abstract class ChatCapability {
   /// Sends a chat request to the provider with a sequence of messages.
   ///
   /// [messages] - The conversation history as a list of chat messages
@@ -84,6 +114,17 @@ abstract class ChatProvider {
     List<ChatMessage> messages,
     List<Tool>? tools,
   );
+
+  /// Sends a streaming chat request to the provider
+  ///
+  /// [messages] - The conversation history as a list of chat messages
+  /// [tools] - Optional list of tools to use in the chat
+  ///
+  /// Returns a stream of chat events
+  Stream<ChatStreamEvent> chatStream(
+    List<ChatMessage> messages, {
+    List<Tool>? tools,
+  });
 
   /// Get current memory contents if provider supports memory
   Future<List<ChatMessage>?> memoryContents() async => null;
@@ -105,6 +146,10 @@ abstract class ChatProvider {
     return text;
   }
 }
+
+/// Legacy interface for backward compatibility
+@Deprecated('Use ChatCapability instead')
+abstract class ChatProvider extends ChatCapability {}
 
 /// Stream event for streaming chat responses
 sealed class ChatStreamEvent {
@@ -146,7 +191,9 @@ class ErrorEvent extends ChatStreamEvent {
   const ErrorEvent(this.error);
 }
 
-/// Trait for providers that support streaming chat interactions
+/// Legacy interface for backward compatibility
+@Deprecated(
+    'Use ChatCapability instead - streaming is now part of the core interface')
 abstract class StreamingChatProvider extends ChatProvider {
   /// Sends a streaming chat request to the provider
   ///
@@ -154,6 +201,7 @@ abstract class StreamingChatProvider extends ChatProvider {
   /// [tools] - Optional list of tools to use in the chat
   ///
   /// Returns a stream of chat events
+  @override
   Stream<ChatStreamEvent> chatStream(
     List<ChatMessage> messages, {
     List<Tool>? tools,
@@ -179,13 +227,13 @@ class CompletionRequest {
   });
 
   Map<String, dynamic> toJson() => {
-    'prompt': prompt,
-    if (maxTokens != null) 'max_tokens': maxTokens,
-    if (temperature != null) 'temperature': temperature,
-    if (topP != null) 'top_p': topP,
-    if (topK != null) 'top_k': topK,
-    if (stop != null) 'stop': stop,
-  };
+        'prompt': prompt,
+        if (maxTokens != null) 'max_tokens': maxTokens,
+        if (temperature != null) 'temperature': temperature,
+        if (topP != null) 'top_p': topP,
+        if (topK != null) 'top_k': topK,
+        if (stop != null) 'stop': stop,
+      };
 }
 
 /// Completion response from text completion providers
@@ -199,18 +247,8 @@ class CompletionResponse {
   String toString() => text;
 }
 
-/// Trait for providers that support text completion
-abstract class CompletionProvider {
-  /// Sends a completion request to generate text
-  ///
-  /// [request] - The completion request parameters
-  ///
-  /// Returns the generated completion text or throws an LLMError
-  Future<CompletionResponse> complete(CompletionRequest request);
-}
-
-/// Trait for providers that support vector embeddings
-abstract class EmbeddingProvider {
+/// Capability interface for vector embeddings
+abstract class EmbeddingCapability {
   /// Generate embeddings for the given input texts
   ///
   /// [input] - List of strings to generate embeddings for
@@ -219,8 +257,8 @@ abstract class EmbeddingProvider {
   Future<List<List<double>>> embed(List<String> input);
 }
 
-/// Trait for providers that support speech-to-text conversion
-abstract class SpeechToTextProvider {
+/// Capability interface for speech-to-text conversion
+abstract class SpeechToTextCapability {
   /// Transcribe audio data to text
   ///
   /// [audio] - Raw audio data as bytes
@@ -236,8 +274,8 @@ abstract class SpeechToTextProvider {
   Future<String> transcribeFile(String filePath);
 }
 
-/// Trait for providers that support text-to-speech conversion
-abstract class TextToSpeechProvider {
+/// Capability interface for text-to-speech conversion
+abstract class TextToSpeechCapability {
   /// Convert text to speech audio
   ///
   /// [text] - Text to convert to speech
@@ -246,24 +284,85 @@ abstract class TextToSpeechProvider {
   Future<List<int>> speech(String text);
 }
 
-/// Trait for providers that support model listing
-abstract class ModelProvider {
+/// Capability interface for model listing
+abstract class ModelListingCapability {
   /// Get available models from the provider
   ///
   /// Returns a list of available models or throws an LLMError
   Future<List<AIModel>> models();
 }
 
-/// Core trait that all LLM providers should implement
-/// Combines chat, completion, embedding, speech, and model capabilities
+/// Capability interface for text completion (non-chat)
+abstract class CompletionCapability {
+  /// Sends a completion request to generate text
+  ///
+  /// [request] - The completion request parameters
+  ///
+  /// Returns the generated completion text or throws an LLMError
+  Future<CompletionResponse> complete(CompletionRequest request);
+}
+
+/// Legacy interfaces for backward compatibility
+@Deprecated('Use EmbeddingCapability instead')
+abstract class EmbeddingProvider extends EmbeddingCapability {}
+
+@Deprecated('Use SpeechToTextCapability instead')
+abstract class SpeechToTextProvider extends SpeechToTextCapability {}
+
+@Deprecated('Use TextToSpeechCapability instead')
+abstract class TextToSpeechProvider extends TextToSpeechCapability {}
+
+@Deprecated('Use ModelListingCapability instead')
+abstract class ModelProvider extends ModelListingCapability {}
+
+@Deprecated('Use CompletionCapability instead')
+abstract class CompletionProvider extends CompletionCapability {}
+
+/// Legacy "god interface" - deprecated in favor of capability-based interfaces
+@Deprecated(
+    'Use specific capability interfaces instead (ChatCapability, EmbeddingCapability, etc.)')
 abstract class LLMProvider
     implements
-        ChatProvider,
-        CompletionProvider,
-        EmbeddingProvider,
-        SpeechToTextProvider,
-        TextToSpeechProvider,
-        ModelProvider {
+        ChatCapability,
+        CompletionCapability,
+        EmbeddingCapability,
+        SpeechToTextCapability,
+        TextToSpeechCapability,
+        ModelListingCapability {
   /// Get available tools for this provider
   List<Tool>? get tools => null;
 }
+
+/// Provider capability declaration interface
+abstract class ProviderCapabilities {
+  /// Set of capabilities this provider supports
+  Set<LLMCapability> get supportedCapabilities;
+
+  /// Check if this provider supports a specific capability
+  bool supports(LLMCapability capability) =>
+      supportedCapabilities.contains(capability);
+}
+
+/// Basic LLM provider with just chat capability
+abstract class BasicLLMProvider
+    implements ChatCapability, ProviderCapabilities {}
+
+/// LLM provider with chat and embedding capabilities
+abstract class EmbeddingLLMProvider
+    implements ChatCapability, EmbeddingCapability, ProviderCapabilities {}
+
+/// LLM provider with voice capabilities
+abstract class VoiceLLMProvider
+    implements
+        ChatCapability,
+        TextToSpeechCapability,
+        SpeechToTextCapability,
+        ProviderCapabilities {}
+
+/// Full-featured LLM provider with all common capabilities
+abstract class FullLLMProvider
+    implements
+        ChatCapability,
+        EmbeddingCapability,
+        ModelListingCapability,
+        ProviderCapabilities {}
