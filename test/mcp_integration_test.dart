@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yumcha/services/ai/core/ai_response_models.dart';
-import 'package:yumcha/services/mcp_service.dart';
-import 'package:yumcha/models/ai_assistant.dart';
+import 'package:yumcha/shared/infrastructure/services/ai/core/ai_response_models.dart';
+import 'package:yumcha/features/settings/domain/usecases/manage_mcp_server_usecase.dart';
+import 'package:yumcha/features/ai_management/domain/entities/ai_assistant.dart';
 import 'package:ai_dart/ai_dart.dart';
 
 void main() {
   group('AI Service Integration Tests', () {
-    late McpService mcpService;
+    late ManageMcpServerUseCase mcpService;
 
     setUp(() {
-      mcpService = McpService();
+      mcpService = ManageMcpServerUseCase();
     });
 
     test('should check MCP tools availability', () {

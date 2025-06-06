@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'theme/app_theme.dart';
-import 'navigation/app_router.dart';
-import 'services/ai/ai_service_manager.dart';
-import 'services/notification_service.dart';
-import 'services/logger_service.dart';
-import 'services/database_service.dart';
-import 'services/theme_service.dart';
-import 'services/preference_service.dart';
-import 'screens/config_screen.dart';
+import 'app/theme/app_theme.dart';
+import 'app/navigation/app_router.dart';
+import 'shared/infrastructure/services/ai/ai_service_manager.dart';
+import 'shared/infrastructure/services/notification_service.dart';
+import 'shared/infrastructure/services/logger_service.dart';
+import 'shared/infrastructure/services/database_service.dart';
+import 'shared/infrastructure/services/theme_service.dart';
+import 'shared/infrastructure/services/preference_service.dart';
+import 'features/settings/presentation/screens/quick_setup_screen.dart';
 import 'package:yumcha/src/rust/frb_generated.dart';
 
 void main() async {

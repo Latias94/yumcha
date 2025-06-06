@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yumcha/models/message.dart';
+import 'package:yumcha/features/chat/domain/entities/message.dart';
 
 /// 模拟消息过滤逻辑的函数
 List<Message> filterEmptyAiMessages(List<Message> messages) {

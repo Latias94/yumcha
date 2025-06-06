@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yumcha/models/ai_assistant.dart';
+import 'package:yumcha/features/ai_management/domain/entities/ai_assistant.dart';
 
 void main() {
   group('Context Length Tests', () {
