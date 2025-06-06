@@ -6,9 +6,9 @@
 /// - Use the same interface regardless of provider
 
 import 'dart:io';
-import '../builder/llm_builder.dart';
-import '../models/chat_models.dart';
-import '../core/chat_provider.dart';
+import '../lib/builder/llm_builder.dart';
+import '../lib/models/chat_models.dart';
+import '../lib/core/chat_provider.dart';
 
 void main() async {
   try {

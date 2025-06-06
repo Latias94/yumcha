@@ -3,7 +3,7 @@ import '../models/ai_assistant.dart';
 import '../models/message.dart';
 import 'logger_service.dart';
 import 'ai_dart_service.dart';
-import '../ai_dart/ai_dart.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// AI 请求响应结果
 class AiRequestResult {

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import '../../../models/ai_provider.dart' as models;
 import '../../../models/ai_assistant.dart';
 import '../core/ai_service_base.dart';
-import '../../../ai_dart/ai_dart.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// 语音服务，负责处理TTS和STT功能
 class SpeechService extends AiServiceBase {

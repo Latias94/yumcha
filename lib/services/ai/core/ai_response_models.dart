@@ -1,4 +1,4 @@
-import '../../../ai_dart/ai_dart.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// 统一的AI响应结果
 class AiResponse {

@@ -3,7 +3,7 @@ import '../../../models/ai_provider.dart' as models;
 import '../../../models/ai_assistant.dart';
 import '../../../models/ai_model.dart';
 import '../core/ai_service_base.dart';
-import '../../../ai_dart/ai_dart.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// 嵌入向量服务，负责处理文本向量化
 class EmbeddingService extends AiServiceBase {

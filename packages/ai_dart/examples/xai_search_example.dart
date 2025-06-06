@@ -1,8 +1,8 @@
 // Import required modules from the AI Dart library for xAI search integration
 import 'dart:io';
-import '../builder/llm_builder.dart';
-import '../models/chat_models.dart';
-import '../providers/xai_provider.dart';
+import '../lib/builder/llm_builder.dart';
+import '../lib/models/chat_models.dart';
+import '../lib/providers/xai_provider.dart';
 
 /// Example demonstrating how to use the xAI provider with search functionality
 void main() async {

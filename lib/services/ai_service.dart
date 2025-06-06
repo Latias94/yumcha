@@ -12,8 +12,7 @@ import '../data/repositories/setting_repository.dart';
 import 'database_service.dart';
 import 'ai_request_service.dart';
 import 'ai_dart_service.dart';
-import '../ai_dart/core/chat_provider.dart';
-import '../ai_dart/models/chat_models.dart';
+import 'package:ai_dart/ai_dart.dart';
 import 'mcp_service.dart';
 
 /// AI 响应结果，包含完整的响应信息
@@ -637,19 +636,19 @@ class AiService {
         if (event.content != null) {
           fullResponse += event.content!;
           chunkCount++;
-          _logger.debug('收到流式内容块', {
-            'chunk': chunkCount,
-            'content': event.content!,
-            'totalLength': fullResponse.length,
-          });
+          // _logger.debug('收到流式内容块', {
+          //   'chunk': chunkCount,
+          //   'content': event.content!,
+          //   'totalLength': fullResponse.length,
+          // });
 
           yield AiStreamResponse(contentDelta: event.content!);
         } else if (event.thinkingDelta != null) {
           fullThinking += event.thinkingDelta!;
-          _logger.debug('收到思考内容块', {
-            'thinkingDelta': event.thinkingDelta!,
-            'totalThinkingLength': fullThinking.length,
-          });
+          // _logger.debug('收到思考内容块', {
+          //   'thinkingDelta': event.thinkingDelta!,
+          //   'totalThinkingLength': fullThinking.length,
+          // });
 
           yield AiStreamResponse(thinkingDelta: event.thinkingDelta!);
         } else if (event.isToolCall && event.toolCall != null) {

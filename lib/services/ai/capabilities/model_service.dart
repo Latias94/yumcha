@@ -5,7 +5,7 @@ import '../../../models/ai_model.dart';
 import '../../../models/provider_model_config.dart';
 import '../../../services/provider_config_service.dart';
 import '../core/ai_service_base.dart';
-import '../../../ai_dart/ai_dart.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// 模型管理服务，负责获取和管理AI模型
 class ModelService extends AiServiceBase {

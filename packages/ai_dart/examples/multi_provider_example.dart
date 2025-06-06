@@ -1,8 +1,8 @@
 // Import required modules from the AI Dart library for multiple providers
 import 'dart:io';
-import '../builder/llm_builder.dart';
-import '../models/chat_models.dart';
-import '../core/chat_provider.dart';
+import '../lib/builder/llm_builder.dart';
+import '../lib/models/chat_models.dart';
+import '../lib/core/chat_provider.dart';
 
 /// Example demonstrating how to use multiple AI providers with LLMBuilder
 void main() async {

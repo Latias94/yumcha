@@ -2,11 +2,7 @@ import 'dart:async';
 import '../models/ai_provider.dart' as models;
 import '../models/ai_assistant.dart';
 import '../models/message.dart';
-import '../ai_dart/builder/llm_builder.dart';
-import '../ai_dart/models/chat_models.dart';
-import '../ai_dart/core/chat_provider.dart';
-import '../ai_dart/core/llm_error.dart';
-import '../ai_dart/utils/reasoning_utils.dart';
+import 'package:ai_dart/ai_dart.dart';
 import 'logger_service.dart';
 
 /// AI Dart 服务适配器
@@ -223,6 +219,12 @@ class AiDartService {
         'model': modelName,
         'assistant': assistant.name,
         'baseUrl': provider.baseUrl ?? '默认端点',
+        'chatHistoryLength': chatHistory.length,
+      });
+
+      // detail log histroy
+      _logger.debug('AI Dart 流式聊天请求历史记录', {
+        'history': chatHistory.map((msg) => msg.content).toList(),
       });
 
       // Create streaming provider with stream enabled

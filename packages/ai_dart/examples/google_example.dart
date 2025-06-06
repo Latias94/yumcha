@@ -1,7 +1,7 @@
 // Import required modules from the AI Dart library for Google Gemini integration
 import 'dart:io';
-import '../builder/llm_builder.dart';
-import '../models/chat_models.dart';
+import '../lib/builder/llm_builder.dart';
+import '../lib/models/chat_models.dart';
 
 /// Example demonstrating how to use the Google provider with LLMBuilder
 void main() async {

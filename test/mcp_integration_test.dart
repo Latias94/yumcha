@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yumcha/services/ai_service.dart';
 import 'package:yumcha/services/mcp_service.dart';
 import 'package:yumcha/models/ai_assistant.dart';
-import 'package:yumcha/ai_dart/models/chat_models.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 void main() {
   group('MCP Integration Tests', () {

@@ -4,7 +4,7 @@ import '../../../models/ai_assistant.dart';
 import '../../../models/message.dart';
 import '../core/ai_service_base.dart';
 import '../core/ai_response_models.dart';
-import '../../../ai_dart/ai_dart.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// 聊天服务 - AI对话功能的核心实现
 ///
