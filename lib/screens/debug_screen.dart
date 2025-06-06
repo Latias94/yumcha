@@ -31,343 +31,264 @@
 // - 错误排查和修复
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
-import '../services/ai_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/ai/ai_service_manager.dart' as manager;
+import '../services/ai/providers/ai_service_provider.dart';
 import '../services/notification_service.dart';
 
-class DebugScreen extends StatefulWidget {
+class DebugScreen extends ConsumerStatefulWidget {
   const DebugScreen({super.key});
 
   @override
-  State<DebugScreen> createState() => _DebugScreenState();
+  ConsumerState<DebugScreen> createState() => _DebugScreenState();
 }
 
-class _DebugScreenState extends State<DebugScreen> {
-  final AiService _aiService = AiService();
-
+class _DebugScreenState extends ConsumerState<DebugScreen> {
   @override
   Widget build(BuildContext context) {
-    final debugLogs = _aiService.debugLogs.reversed.toList(); // 最新的在前面
+    final stats = ref.watch(manager.aiServiceStatsProvider);
+    final healthAsync = ref.watch(manager.aiServiceHealthProvider);
+    final cacheStats = ref.watch(modelCacheStatsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI调试日志'),
+        title: const Text('AI服务监控'),
         actions: [
-          Switch(
-            value: _aiService.debugMode,
-            onChanged: (value) {
-              setState(() {
-                _aiService.setDebugMode(value);
-              });
-              NotificationService().showInfo(value ? '调试模式已开启' : '调试模式已关闭');
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref.invalidate(manager.aiServiceStatsProvider);
+              ref.invalidate(manager.aiServiceHealthProvider);
+              ref.invalidate(modelCacheStatsProvider);
+              NotificationService().showSuccess('数据已刷新');
             },
           ),
-          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.clear_all),
             onPressed: () {
-              _aiService.clearDebugLogs();
-              setState(() {});
-              NotificationService().showSuccess('调试日志已清空');
+              // 清空所有提供商的缓存
+              ref.read(clearModelCacheProvider(null));
+              // 刷新缓存统计
+              ref.invalidate(modelCacheStatsProvider);
+              NotificationService().showSuccess('缓存已清空');
             },
           ),
         ],
       ),
-      body: debugLogs.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              itemCount: debugLogs.length,
-              itemBuilder: (context, index) {
-                final log = debugLogs[index];
-                return _buildLogCard(log);
-              },
-            ),
-    );
-  }
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 服务健康状态
+            _buildHealthSection(healthAsync),
+            const SizedBox(height: 16),
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.bug_report_outlined,
-            size: 64,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '暂无调试日志',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _aiService.debugMode ? '发送AI消息后，调试信息将显示在这里' : '请先开启调试模式',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (!_aiService.debugMode) ...[
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _aiService.setDebugMode(true);
-                });
-                NotificationService().showSuccess('调试模式已开启');
-              },
-              icon: const Icon(Icons.bug_report),
-              label: const Text('开启调试模式'),
-            ),
+            // 服务统计信息
+            _buildStatsSection(stats),
+            const SizedBox(height: 16),
+
+            // 缓存统计信息
+            _buildCacheSection(AsyncValue.data(cacheStats)),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildLogCard(DebugInfo log) {
-    final hasError = log.error != null;
-    final duration = log.duration?.inMilliseconds ?? 0;
-
+  Widget _buildHealthSection(AsyncValue<Map<String, bool>> healthAsync) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          backgroundColor: hasError
-              ? Theme.of(context).colorScheme.errorContainer
-              : Theme.of(context).colorScheme.primaryContainer,
-          child: Icon(
-            hasError ? Icons.error_outline : Icons.check_circle_outline,
-            color: hasError
-                ? Theme.of(context).colorScheme.onErrorContainer
-                : Theme.of(context).colorScheme.onPrimaryContainer,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          '${log.assistantId} • ${log.modelName}',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: hasError ? Theme.of(context).colorScheme.error : null,
-          ),
-        ),
-        subtitle: Text(
-          '${_formatTime(log.timestamp)} • ${duration}ms${hasError ? ' • 失败' : ' • 成功'}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                // 基本信息
-                _buildInfoSection('基本信息', {
-                  '助手ID': log.assistantId,
-                  '提供商ID': log.providerId,
-                  '模型名称': log.modelName,
-                  '时间戳': log.timestamp.toString(),
-                  '耗时': '${duration}ms',
-                  if (log.statusCode != null) '状态码': log.statusCode.toString(),
-                }),
-
-                const SizedBox(height: 16),
-
-                // 请求体
-                _buildJsonSection('请求体', log.requestBody),
-
-                if (log.response != null) ...[
-                  const SizedBox(height: 16),
-                  _buildTextSection('响应内容', log.response!),
-                ],
-
-                if (log.error != null) ...[
-                  const SizedBox(height: 16),
-                  _buildTextSection('错误信息', log.error!, isError: true),
-                ],
+                Icon(
+                  Icons.health_and_safety,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '服务健康状态',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoSection(String title, Map<String, String> info) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.copy, size: 16),
-              onPressed: () => _copyToClipboard(info.toString()),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ...info.entries.map(
-          (entry) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 80,
-                  child: Text(
-                    entry.key,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+            const SizedBox(height: 16),
+            healthAsync.when(
+              data: (health) => Column(
+                children: health.entries.map((entry) {
+                  final isHealthy = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isHealthy ? Icons.check_circle : Icons.error,
+                          color: isHealthy
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.error,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            entry.key,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                        Text(
+                          isHealthy ? '正常' : '异常',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: isHealthy
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.error,
+                              ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    entry.value,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildJsonSection(String title, Map<String, dynamic> data) {
-    final jsonString = _prettyPrintJson(data);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.copy, size: 16),
-              onPressed: () => _copyToClipboard(jsonString),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Text(
-            jsonString,
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextSection(
-    String title,
-    String content, {
-    bool isError = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: isError ? Theme.of(context).colorScheme.error : null,
+                  );
+                }).toList(),
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Text(
+                '加载失败: $error',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.copy, size: 16),
-              onPressed: () => _copyToClipboard(content),
-            ),
           ],
         ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isError
-                ? Theme.of(
-                    context,
-                  ).colorScheme.errorContainer.withValues(alpha: 0.3)
-                : Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isError
-                  ? Theme.of(context).colorScheme.error.withValues(alpha: 0.3)
-                  : Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Text(
-            content,
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12,
-              color: isError
-                  ? Theme.of(context).colorScheme.onErrorContainer
-                  : Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  String _prettyPrintJson(Map<String, dynamic> json) {
-    try {
-      const encoder = JsonEncoder.withIndent('  ');
-      return encoder.convert(json);
-    } catch (e) {
-      return json.toString();
-    }
+  Widget _buildStatsSection(Map<String, dynamic> stats) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.analytics,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '服务统计信息',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...stats.entries.map((entry) {
+              final serviceName = entry.key;
+              final serviceStats = entry.value as Map<String, dynamic>;
+
+              return ExpansionTile(
+                title: Text(serviceName),
+                subtitle: Text(
+                  '状态: ${serviceStats['initialized'] ? '已初始化' : '未初始化'}',
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: serviceStats.entries.map((statEntry) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  statEntry.key,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                              Text(
+                                statEntry.value.toString(),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(fontFamily: 'monospace'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 
-  String _formatTime(DateTime dateTime) {
-    return "${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} "
-        "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
-  }
-
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    NotificationService().showSuccess('已复制到剪贴板');
+  Widget _buildCacheSection(AsyncValue<Map<String, dynamic>> cacheStatsAsync) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.storage,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '缓存统计信息',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            cacheStatsAsync.when(
+              data: (cacheStats) => Column(
+                children: cacheStats.entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            entry.key,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                        Text(
+                          entry.value.toString(),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontFamily: 'monospace'),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Text(
+                '加载失败: $error',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

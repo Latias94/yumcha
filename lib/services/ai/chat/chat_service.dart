@@ -250,17 +250,14 @@ class ChatService extends AiServiceBase {
       // 创建流式提供商实例
       final chatProvider = await adapter.createProvider(enableStreaming: true);
 
-      if (chatProvider is! StreamingChatProvider) {
-        yield AiStreamEvent.error('提供商不支持流式聊天');
-        return;
-      }
+      // 新API中所有ChatCapability都支持流式聊天
+      // 不需要额外的类型检查
 
       // 构建消息列表
       final messages = _buildMessageList(adapter, chatHistory, userMessage);
 
       // 发送流式请求
-      final streamProvider = chatProvider;
-      final stream = streamProvider.chatStream(messages);
+      final stream = chatProvider.chatStream(messages);
 
       String? finalThinking;
       List<ToolCall>? allToolCalls;

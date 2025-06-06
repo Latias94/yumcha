@@ -6,7 +6,7 @@ import '../services/conversation_repository.dart';
 import '../services/assistant_repository.dart';
 import '../services/database_service.dart';
 import '../services/logger_service.dart';
-import '../services/ai_service.dart';
+import '../services/ai/providers/ai_service_provider.dart';
 import 'ai_provider_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -85,7 +85,6 @@ class CurrentConversationNotifier
   late final AssistantRepository _assistantRepository;
   final _uuid = const Uuid();
   final LoggerService _logger = LoggerService();
-  final AiService _aiService = AiService();
 
   // 记住上次的配置
   String? _lastUsedAssistantId;
@@ -482,24 +481,20 @@ class CurrentConversationNotifier
 
       String? generatedTitle;
 
-      // 首先检查是否配置了默认标题生成模型
-      final hasDefaultTitleModel = await _aiService.hasDefaultTitleModel();
-
-      if (hasDefaultTitleModel) {
-        // 使用默认模型生成标题
-        _logger.info('使用默认模型生成标题');
-        generatedTitle = await _aiService.generateChatTitleWithDefaults(
-          messages: conversation.messages,
+      // 使用新AI模块的智能聊天功能生成标题
+      try {
+        _logger.info('使用新AI模块生成标题');
+        generatedTitle = await _generateTitleWithSmartChat(
+          conversation.messages,
         );
+      } catch (e) {
+        _logger.warning('智能聊天生成标题失败', {'error': e.toString()});
+        generatedTitle = null;
       }
 
-      // 如果没有默认模型或默认模型生成失败，回退到使用当前对话的模型
+      // 如果智能聊天生成失败，回退到使用当前对话的模型
       if (generatedTitle == null) {
-        if (hasDefaultTitleModel) {
-          _logger.info('默认模型生成标题失败，回退到当前对话模型');
-        } else {
-          _logger.info('未配置默认标题生成模型，使用当前对话模型');
-        }
+        _logger.info('智能聊天生成标题失败，回退到当前对话模型');
 
         // 验证提供商和模型信息
         final validationResult = _validateTitleGenerationRequirements(
@@ -515,6 +510,7 @@ class CurrentConversationNotifier
           validationResult.provider!,
           validationResult.modelId!,
           conversation.messages,
+          conversation.selectedProviderId,
         );
       }
 
@@ -568,18 +564,105 @@ class CurrentConversationNotifier
     );
   }
 
-  /// 生成标题
+  /// 使用智能聊天生成标题
+  Future<String?> _generateTitleWithSmartChat(
+    List<Message> messages, {
+    String? providerId,
+    String? modelName,
+  }) async {
+    if (messages.isEmpty) return null;
+
+    // 构建标题生成提示
+    final titlePrompt = _buildTitleGenerationPrompt(messages);
+
+    try {
+      final response = await ref.read(
+        smartChatProvider(
+          SmartChatParams(
+            chatHistory: [], // 不需要历史记录
+            userMessage: titlePrompt,
+            providerId: providerId, // 使用指定的提供商
+            modelName: modelName, // 使用指定的模型
+          ),
+        ).future,
+      );
+
+      if (response.isSuccess && response.content.isNotEmpty) {
+        return _cleanTitle(response.content);
+      }
+    } catch (e) {
+      // 如果没有指定提供商和模型，说明是使用默认配置失败，这是正常情况
+      if (providerId == null && modelName == null) {
+        _logger.debug('默认配置不可用，将使用当前对话配置', {'error': e.toString()});
+      } else {
+        _logger.warning('使用指定配置生成标题失败', {
+          'providerId': providerId,
+          'modelName': modelName,
+          'error': e.toString(),
+        });
+      }
+    }
+
+    return null;
+  }
+
+  /// 生成标题（回退方法）
   Future<String?> _generateTitle(
     dynamic provider,
     String modelId,
     List<Message> messages,
+    String providerId,
   ) async {
-    // 直接调用AI服务生成标题，每次都生成新的结果
-    return await _aiService.generateChatTitle(
-      provider: provider,
+    // 使用当前对话的提供商和模型生成标题
+    return await _generateTitleWithSmartChat(
+      messages,
+      providerId: providerId,
       modelName: modelId,
-      messages: messages,
     );
+  }
+
+  /// 构建标题生成提示
+  String _buildTitleGenerationPrompt(List<Message> messages) {
+    // 获取最近的几条消息作为上下文
+    final recentMessages = messages.take(6).toList();
+
+    final conversationSummary = recentMessages
+        .map((msg) {
+          final author = msg.isFromUser ? '用户' : 'AI';
+          return '$author: ${msg.content}';
+        })
+        .join('\n');
+
+    return '''请为以下对话生成一个简洁的标题（不超过20个字符）：
+
+$conversationSummary
+
+要求：
+1. 标题要简洁明了，能概括对话主题
+2. 不要包含引号或特殊符号
+3. 直接返回标题，不要其他解释
+4. 标题长度控制在20个字符以内''';
+  }
+
+  /// 清理标题文本
+  String _cleanTitle(String title) {
+    // 移除换行符和多余空格
+    String cleaned = title.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    // 移除引号
+    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+      cleaned = cleaned.substring(1, cleaned.length - 1);
+    }
+    if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+      cleaned = cleaned.substring(1, cleaned.length - 1);
+    }
+
+    // 限制长度
+    if (cleaned.length > 20) {
+      cleaned = '${cleaned.substring(0, 17)}...';
+    }
+
+    return cleaned;
   }
 
   /// 更新对话标题

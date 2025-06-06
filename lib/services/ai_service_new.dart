@@ -1,3 +1,7 @@
+// @deprecated 此服务已废弃，请使用 lib/services/ai/ 目录下的新架构
+// 迁移指南：参考 lib/services/ai/MIGRATION_GUIDE.md
+// 推荐直接使用: lib/services/ai/providers/ai_service_provider.dart 中的Providers
+
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/ai_provider.dart' as models;
@@ -32,6 +36,9 @@ import 'logger_service.dart';
 /// - 迁移期间的向后兼容
 /// - 服务健康检查和统计
 /// - 缓存管理操作
+@Deprecated(
+  '此服务已废弃，请直接使用 lib/services/ai/providers/ai_service_provider.dart 中的Providers',
+)
 class AiService {
   static final AiService _instance = AiService._internal();
   factory AiService() => _instance;

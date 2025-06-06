@@ -2,14 +2,12 @@ import 'package:flutter/foundation.dart';
 import '../../models/ai_assistant.dart';
 import '../../models/ai_provider.dart';
 import '../../models/message.dart';
-import '../../services/ai_service.dart';
 
 /// 聊天视图模型 - 管理聊天状态和AI交互
 @immutable
 class ChatViewModel {
   /// 创建聊天视图模型实例
   const ChatViewModel({
-    required this.aiService,
     required this.assistantId,
     required this.selectedProviderId,
     required this.selectedModelName,
@@ -21,9 +19,6 @@ class ChatViewModel {
     this.enableAttachments = false,
     this.enableVoiceNotes = false,
   });
-
-  /// AI服务实例
-  final AiService aiService;
 
   /// 当前选择的助手ID
   final String assistantId;
@@ -58,7 +53,6 @@ class ChatViewModel {
   /// 复制并更新消息列表
   ChatViewModel copyWithMessages(List<Message> newMessages) {
     return ChatViewModel(
-      aiService: aiService,
       assistantId: assistantId,
       selectedProviderId: selectedProviderId,
       selectedModelName: selectedModelName,
@@ -79,7 +73,6 @@ class ChatViewModel {
     AiProvider? newProvider,
   }) {
     return ChatViewModel(
-      aiService: aiService,
       assistantId: assistantId,
       selectedProviderId: newProviderId ?? selectedProviderId,
       selectedModelName: newModelName ?? selectedModelName,
@@ -97,7 +90,6 @@ class ChatViewModel {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ChatViewModel &&
-          other.aiService == aiService &&
           other.assistantId == assistantId &&
           other.selectedProviderId == selectedProviderId &&
           other.selectedModelName == selectedModelName &&
@@ -111,7 +103,6 @@ class ChatViewModel {
 
   @override
   int get hashCode => Object.hash(
-    aiService,
     assistantId,
     selectedProviderId,
     selectedModelName,

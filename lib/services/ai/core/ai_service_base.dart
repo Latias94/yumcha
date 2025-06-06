@@ -319,7 +319,7 @@ abstract class AiProviderAdapter {
   /// - ⚙️ **模型参数**：配置温度、top-p、最大token等参数
   ///
   /// @param enableStreaming 是否启用流式响应
-  /// @returns 配置好的ChatProvider实例
+  /// @returns 配置好的ChatCapability实例
   /// @throws Exception 如果创建失败
   ///
   /// ## 实现要求
@@ -327,20 +327,20 @@ abstract class AiProviderAdapter {
   /// - 必须正确设置所有必要的参数
   /// - 必须处理认证和网络配置
   /// - 失败时必须抛出有意义的异常
-  Future<ChatProvider> createProvider({bool enableStreaming = false});
+  Future<ChatCapability> createProvider({bool enableStreaming = false});
 
   /// 检测提供商支持的能力
   ///
-  /// 通过分析ChatProvider实例和模型配置来检测支持的AI能力。
+  /// 通过分析ChatCapability实例和模型配置来检测支持的AI能力。
   /// 检测逻辑分为两个层次：
   ///
   /// ### 1. 接口检测（动态检测）
-  /// 通过检查ChatProvider实现的接口来判断能力：
-  /// - `StreamingChatProvider`: 支持流式聊天
-  /// - `ModelProvider`: 支持模型列表获取
-  /// - `EmbeddingProvider`: 支持向量嵌入
-  /// - `SpeechToTextProvider`: 支持语音转文字
-  /// - `TextToSpeechProvider`: 支持文字转语音
+  /// 通过检查ChatCapability实现的接口来判断能力：
+  /// - `ChatCapability`: 基础聊天和流式聊天（所有provider都支持）
+  /// - `ModelListingCapability`: 支持模型列表获取
+  /// - `EmbeddingCapability`: 支持向量嵌入
+  /// - `SpeechToTextCapability`: 支持语音转文字
+  /// - `TextToSpeechCapability`: 支持文字转语音
   ///
   /// ### 2. 配置推断（静态检测）
   /// 根据模型配置中的能力信息进行推断：
@@ -349,7 +349,7 @@ abstract class AiProviderAdapter {
   /// - `ModelCapability.tools` → `AiCapability.toolCalling`
   /// - `ModelCapability.embedding` → `AiCapability.embedding`
   ///
-  /// @param chatProvider 已创建的ChatProvider实例
+  /// @param chatProvider 已创建的ChatCapability实例
   /// @returns 检测到的能力集合
   ///
   /// ## 使用示例
@@ -361,34 +361,32 @@ abstract class AiProviderAdapter {
   ///   print('✅ 支持视觉理解');
   /// }
   /// ```
-  Set<AiCapability> detectCapabilities(ChatProvider chatProvider) {
+  Set<AiCapability> detectCapabilities(ChatCapability chatProvider) {
     final capabilities = <AiCapability>{};
 
-    // 基础聊天能力 - 所有提供商都支持
+    // 基础聊天能力 - 所有ChatCapability都支持
     capabilities.add(AiCapability.chat);
 
-    // 检测流式能力 - 通过接口类型判断
-    if (chatProvider is StreamingChatProvider) {
-      capabilities.add(AiCapability.streaming);
-    }
+    // 检测流式能力 - 新API中所有ChatCapability都支持流式
+    capabilities.add(AiCapability.streaming);
 
-    // 检测模型列表能力 - 通过接口类型判断
-    if (chatProvider is ModelProvider) {
+    // 检测其他能力 - 通过接口类型判断
+    if (chatProvider is ModelListingCapability) {
       capabilities.add(AiCapability.models);
     }
 
     // 检测嵌入能力 - 通过接口类型判断
-    if (chatProvider is EmbeddingProvider) {
+    if (chatProvider is EmbeddingCapability) {
       capabilities.add(AiCapability.embedding);
     }
 
     // 检测语音转文字能力 - 通过接口类型判断
-    if (chatProvider is SpeechToTextProvider) {
+    if (chatProvider is SpeechToTextCapability) {
       capabilities.add(AiCapability.speechToText);
     }
 
     // 检测文字转语音能力 - 通过接口类型判断
-    if (chatProvider is TextToSpeechProvider) {
+    if (chatProvider is TextToSpeechCapability) {
       capabilities.add(AiCapability.textToSpeech);
     }
 
@@ -524,12 +522,12 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
   });
 
   @override
-  Future<ChatProvider> createProvider({bool enableStreaming = false}) async {
+  Future<ChatCapability> createProvider({bool enableStreaming = false}) async {
     try {
-      final backend = _mapProviderType(provider.type.name);
+      final providerId = _mapProviderType(provider.type.name);
 
-      final builder = LLMBuilder()
-          .backend(backend)
+      final builder = ai()
+          .provider(providerId)
           .model(modelName)
           .temperature(assistant.temperature)
           .topP(assistant.topP)
@@ -549,7 +547,7 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
 
       // 设置推理参数（针对支持的模型）
       if (assistant.enableReasoning && _supportsReasoning()) {
-        builder.reasoningEffort('medium');
+        builder.extension('reasoningEffort', 'medium');
       }
 
       return await builder.build();
@@ -563,27 +561,27 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
     }
   }
 
-  /// 映射提供商类型到AI Dart后端
-  LLMBackend _mapProviderType(String type) {
+  /// 映射提供商类型到AI Dart提供商ID
+  String _mapProviderType(String type) {
     switch (type.toLowerCase()) {
       case 'openai':
-        return LLMBackend.openai;
+        return 'openai';
       case 'anthropic':
-        return LLMBackend.anthropic;
+        return 'anthropic';
       case 'google':
-        return LLMBackend.google;
+        return 'google';
       case 'deepseek':
-        return LLMBackend.deepseek;
+        return 'deepseek';
       case 'ollama':
-        return LLMBackend.ollama;
+        return 'ollama';
       case 'xai':
-        return LLMBackend.xai;
+        return 'xai';
       case 'phind':
-        return LLMBackend.phind;
+        return 'phind';
       case 'groq':
-        return LLMBackend.groq;
+        return 'groq';
       case 'elevenlabs':
-        return LLMBackend.elevenlabs;
+        return 'elevenlabs';
       default:
         throw ArgumentError('不支持的提供商类型: $type');
     }

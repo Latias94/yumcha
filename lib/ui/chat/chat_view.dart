@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/ai_assistant.dart';
 import '../../models/message.dart';
-import '../../services/ai_service.dart';
 import '../../services/notification_service.dart';
 import '../../providers/providers.dart';
 import '../../providers/chat_configuration_notifier.dart';
@@ -64,7 +63,6 @@ class _ChatViewState extends ConsumerState<ChatView>
   @override
   bool get wantKeepAlive => true;
 
-  final AiService _aiService = AiService();
   late List<Message> _messages;
 
   // 流式响应相关
@@ -117,7 +115,6 @@ class _ChatViewState extends ConsumerState<ChatView>
                 .firstOrNull;
 
             final viewModel = ChatViewModel(
-              aiService: _aiService,
               assistantId: widget.assistantId,
               selectedProviderId: widget.selectedProviderId,
               selectedModelName: widget.selectedModelName,
@@ -308,12 +305,30 @@ class _ChatViewState extends ConsumerState<ChatView>
       final modelName =
           chatConfig.selectedModel?.name ?? widget.selectedModelName;
 
-      final stream = _aiService.sendMessageStream(
-        assistantId: widget.assistantId,
+      // 使用新的智能流式聊天Provider
+      final params = SmartChatParams(
         chatHistory: _messages.where((m) => m != aiMessage).toList(),
         userMessage: userMessage.content,
-        selectedProviderId: providerId,
-        selectedModelName: modelName,
+        assistantId: widget.assistantId,
+        providerId: providerId,
+        modelName: modelName,
+      );
+
+      // 使用传统的流式监听方式
+      final chatService = ref.read(aiChatServiceProvider);
+      final provider = ref.read(aiProviderProvider(providerId));
+      final assistant = ref.read(aiAssistantProvider(widget.assistantId));
+
+      if (provider == null || assistant == null) {
+        throw Exception('Provider or assistant not found');
+      }
+
+      final stream = chatService.sendMessageStream(
+        provider: provider,
+        assistant: assistant,
+        modelName: modelName,
+        chatHistory: params.chatHistory,
+        userMessage: params.userMessage,
       );
 
       _pendingStreamResponse = StreamResponse(
@@ -392,29 +407,36 @@ class _ChatViewState extends ConsumerState<ChatView>
     final modelName =
         chatConfig.selectedModel?.name ?? widget.selectedModelName;
 
-    final response = await _aiService.sendMessage(
-      assistantId: widget.assistantId,
+    // 使用新的智能聊天Provider
+    final params = SmartChatParams(
       chatHistory: _messages,
       userMessage: userMessage.content,
-      selectedProviderId: providerId,
-      selectedModelName: modelName,
+      assistantId: widget.assistantId,
+      providerId: providerId,
+      modelName: modelName,
     );
 
-    if (response.isSuccess) {
-      final aiMessage = Message(
-        content: response.content,
-        timestamp: DateTime.now(),
-        isFromUser: false,
-        author: assistant.name,
-      );
+    try {
+      final response = await ref.read(smartChatProvider(params).future);
 
-      setState(() {
-        _messages.add(aiMessage);
-      });
+      if (response.isSuccess) {
+        final aiMessage = Message(
+          content: response.content,
+          timestamp: DateTime.now(),
+          isFromUser: false,
+          author: assistant.name,
+        );
 
-      _notifyMessagesChanged();
-    } else {
-      NotificationService().showError(response.error ?? '请求失败');
+        setState(() {
+          _messages.add(aiMessage);
+        });
+
+        _notifyMessagesChanged();
+      } else {
+        NotificationService().showError(response.error ?? '请求失败');
+      }
+    } catch (e) {
+      NotificationService().showError('请求失败: $e');
     }
   }
 

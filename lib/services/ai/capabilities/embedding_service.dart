@@ -78,11 +78,11 @@ class EmbeddingService extends AiServiceBase {
       final chatProvider = await adapter.createProvider();
 
       // 检查是否支持嵌入功能
-      if (chatProvider is! EmbeddingProvider) {
+      if (chatProvider is! EmbeddingCapability) {
         throw Exception('提供商不支持嵌入功能: ${provider.name}');
       }
 
-      final embeddingProvider = chatProvider as EmbeddingProvider;
+      final embeddingProvider = chatProvider as EmbeddingCapability;
       final embeddings = await embeddingProvider.embed(texts);
 
       // 更新缓存

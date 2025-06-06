@@ -369,14 +369,20 @@ final smartChatProvider = FutureProvider.family<AiResponse, SmartChatParams>((
     throw Exception('No default chat configuration found');
   }
 
-  final provider = ref.read(aiProviderProvider(config.providerId));
-  // 使用默认助手或从参数中获取
+  // 优先使用参数中的providerId，否则使用默认配置
+  final providerId = params.providerId ?? config.providerId;
+  final provider = ref.read(aiProviderProvider(providerId));
+
+  // 优先使用参数中的assistantId，否则使用第一个可用助手
   final assistant = params.assistantId != null
       ? ref.read(aiAssistantProvider(params.assistantId!))
       : ref.read(aiAssistantNotifierProvider).value?.firstOrNull;
 
+  // 优先使用参数中的modelName，否则使用默认配置
+  final modelName = params.modelName ?? config.modelName;
+
   if (provider == null) {
-    throw Exception('Provider not found: ${config.providerId}');
+    throw Exception('Provider not found: $providerId');
   }
 
   if (assistant == null) {
@@ -388,7 +394,7 @@ final smartChatProvider = FutureProvider.family<AiResponse, SmartChatParams>((
   return await chatService.sendMessage(
     provider: provider,
     assistant: assistant,
-    modelName: config.modelName,
+    modelName: modelName,
     chatHistory: params.chatHistory,
     userMessage: params.userMessage,
   );
@@ -465,14 +471,20 @@ final smartChatStreamProvider =
         throw Exception('No default chat configuration found');
       }
 
-      final provider = ref.read(aiProviderProvider(config.providerId));
-      // 使用默认助手或从参数中获取
+      // 优先使用参数中的providerId，否则使用默认配置
+      final providerId = params.providerId ?? config.providerId;
+      final provider = ref.read(aiProviderProvider(providerId));
+
+      // 优先使用参数中的assistantId，否则使用第一个可用助手
       final assistant = params.assistantId != null
           ? ref.read(aiAssistantProvider(params.assistantId!))
           : ref.read(aiAssistantNotifierProvider).value?.firstOrNull;
 
+      // 优先使用参数中的modelName，否则使用默认配置
+      final modelName = params.modelName ?? config.modelName;
+
       if (provider == null) {
-        throw Exception('Provider not found: ${config.providerId}');
+        throw Exception('Provider not found: $providerId');
       }
 
       if (assistant == null) {
@@ -484,10 +496,122 @@ final smartChatStreamProvider =
       return chatService.sendMessageStream(
         provider: provider,
         assistant: assistant,
-        modelName: config.modelName,
+        modelName: modelName,
         chatHistory: params.chatHistory,
         userMessage: params.userMessage,
       );
+    });
+
+// ============================================================================
+// 对话聊天Providers - 包含完整聊天业务逻辑的高级接口
+// ============================================================================
+
+/// 对话聊天Provider - 包含标题生成、对话保存等完整业务逻辑
+///
+/// 这是正常聊天场景的专用接口，包含完整的聊天业务流程：
+/// - 🤖 **AI聊天响应**：调用AI服务获取回复
+/// - 📝 **自动生成标题**：为新对话自动生成合适的标题
+/// - 💾 **对话保存**：将消息保存到数据库
+/// - 🔄 **状态更新**：更新相关的UI状态
+///
+/// ## 🎯 适用场景
+/// - **正常聊天界面**：用户与AI的日常对话
+/// - **对话管理**：需要保存和管理对话历史
+/// - **标题生成**：需要为对话自动生成标题
+/// - **完整流程**：需要完整聊天业务逻辑的场景
+///
+/// ## 📋 参数说明
+/// 通过`ConversationChatParams`传递参数：
+/// - `conversationId`: 对话ID（新对话可为null）
+/// - `assistantId`: 助手ID
+/// - `userMessage`: 用户消息
+/// - `generateTitle`: 是否生成标题（默认true）
+///
+/// ## 🚀 使用示例
+/// ```dart
+/// // 新对话
+/// final response = await ref.read(conversationChatProvider(
+///   ConversationChatParams(
+///     conversationId: null, // 新对话
+///     assistantId: 'assistant-id',
+///     userMessage: 'Hello!',
+///     generateTitle: true,
+///   ),
+/// ).future);
+///
+/// // 继续现有对话
+/// final response = await ref.read(conversationChatProvider(
+///   ConversationChatParams(
+///     conversationId: 'existing-conversation-id',
+///     assistantId: 'assistant-id',
+///     userMessage: 'Continue our chat',
+///     generateTitle: false, // 已有标题，不需要生成
+///   ),
+/// ).future);
+/// ```
+///
+/// ## 💡 业务流程
+/// 1. **验证参数**：检查助手和对话配置
+/// 2. **获取历史**：加载对话历史消息
+/// 3. **调用AI**：发送请求获取AI回复
+/// 4. **保存消息**：将用户消息和AI回复保存到数据库
+/// 5. **生成标题**：如果是新对话且需要，生成对话标题
+/// 6. **更新状态**：通知相关Provider更新状态
+///
+/// ## ⚠️ 注意事项
+/// - 这是高级业务接口，包含完整的聊天流程
+/// - 调试和测试场景请使用 sendChatMessageProvider
+/// - 自动处理对话创建、消息保存、标题生成等业务逻辑
+final conversationChatProvider =
+    FutureProvider.family<ConversationChatResponse, ConversationChatParams>((
+      ref,
+      params,
+    ) async {
+      // TODO: 实现完整的对话聊天逻辑
+      // 1. 验证参数和配置
+      // 2. 获取对话历史
+      // 3. 调用AI服务
+      // 4. 保存消息到数据库
+      // 5. 生成标题（如果需要）
+      // 6. 更新相关状态
+
+      throw UnimplementedError('conversationChatProvider 待实现');
+    });
+
+/// 对话流式聊天Provider - 包含完整业务逻辑的流式聊天接口
+///
+/// 这是对话聊天的流式版本，提供实时响应和完整业务逻辑。
+///
+/// ## 🎯 适用场景
+/// - **实时聊天界面**：需要即时反馈的对话场景
+/// - **长文本生成**：逐步显示AI生成的长内容
+/// - **完整业务流程**：包含保存、标题生成等业务逻辑
+///
+/// ## 📡 流事件处理
+/// ```dart
+/// ref.listen(conversationChatStreamProvider(params), (previous, next) {
+///   next.when(
+///     data: (event) {
+///       if (event.isContent) {
+///         // 实时更新聊天内容
+///         updateChatContent(event.contentDelta);
+///       } else if (event.isCompleted) {
+///         // 处理完成事件，包括保存和标题生成
+///         handleChatCompletion(event);
+///       }
+///     },
+///     loading: () => showTypingIndicator(),
+///     error: (error, stack) => showErrorMessage(error),
+///   );
+/// });
+/// ```
+final conversationChatStreamProvider =
+    StreamProvider.family<ConversationChatStreamEvent, ConversationChatParams>((
+      ref,
+      params,
+    ) {
+      // TODO: 实现完整的对话流式聊天逻辑
+      throw UnimplementedError('conversationChatStreamProvider 待实现');
     });
 
 /// 清除模型缓存的Provider
@@ -772,6 +896,28 @@ class SmartChatParams {
   /// - 'writing-assistant': 写作专用助手
   final String? assistantId;
 
+  /// 可选的提供商ID
+  ///
+  /// 如果指定，将使用对应ID的提供商配置；
+  /// 如果不指定（null），将使用默认聊天配置中的提供商。
+  ///
+  /// 这允许用户临时切换提供商，例如：
+  /// - 'openai-gpt4': 使用OpenAI GPT-4
+  /// - 'anthropic-claude': 使用Anthropic Claude
+  /// - 'google-gemini': 使用Google Gemini
+  final String? providerId;
+
+  /// 可选的模型名称
+  ///
+  /// 如果指定，将使用指定的模型；
+  /// 如果不指定（null），将使用默认聊天配置中的模型。
+  ///
+  /// 这允许用户临时切换模型，例如：
+  /// - 'gpt-4': OpenAI GPT-4
+  /// - 'claude-3-opus': Anthropic Claude 3 Opus
+  /// - 'gemini-pro': Google Gemini Pro
+  final String? modelName;
+
   /// 构造函数
   ///
   /// 创建智能聊天参数实例。
@@ -779,15 +925,19 @@ class SmartChatParams {
   /// @param chatHistory 聊天历史消息（必需）
   /// @param userMessage 用户消息内容（必需）
   /// @param assistantId 助手ID（可选）
+  /// @param providerId 提供商ID（可选）
+  /// @param modelName 模型名称（可选）
   const SmartChatParams({
     required this.chatHistory,
     required this.userMessage,
     this.assistantId,
+    this.providerId,
+    this.modelName,
   });
 
   /// 相等性比较
   ///
-  /// 用于Riverpod缓存优化。只比较用户消息和助手ID，
+  /// 用于Riverpod缓存优化。比较用户消息、助手ID、提供商ID和模型名称，
   /// 不包括聊天历史以提升性能。
   @override
   bool operator ==(Object other) =>
@@ -795,12 +945,145 @@ class SmartChatParams {
       other is SmartChatParams &&
           runtimeType == other.runtimeType &&
           userMessage == other.userMessage &&
-          assistantId == other.assistantId;
+          assistantId == other.assistantId &&
+          providerId == other.providerId &&
+          modelName == other.modelName;
 
   /// 哈希码计算
   ///
-  /// 基于用户消息和助手ID计算哈希码，
+  /// 基于用户消息、助手ID、提供商ID和模型名称计算哈希码，
   /// 用于高效的缓存查找和去重。
   @override
-  int get hashCode => userMessage.hashCode ^ assistantId.hashCode;
+  int get hashCode =>
+      Object.hash(userMessage, assistantId, providerId, modelName);
+}
+
+/// 对话聊天的参数类
+///
+/// 用于包含完整业务逻辑的对话聊天接口。
+class ConversationChatParams {
+  /// 对话ID（新对话时为null）
+  final String? conversationId;
+
+  /// 助手ID
+  final String assistantId;
+
+  /// 用户消息
+  final String userMessage;
+
+  /// 是否生成标题（默认true）
+  final bool generateTitle;
+
+  const ConversationChatParams({
+    this.conversationId,
+    required this.assistantId,
+    required this.userMessage,
+    this.generateTitle = true,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConversationChatParams &&
+          runtimeType == other.runtimeType &&
+          conversationId == other.conversationId &&
+          assistantId == other.assistantId &&
+          userMessage == other.userMessage &&
+          generateTitle == other.generateTitle;
+
+  @override
+  int get hashCode =>
+      conversationId.hashCode ^
+      assistantId.hashCode ^
+      userMessage.hashCode ^
+      generateTitle.hashCode;
+}
+
+/// 对话聊天的响应类
+///
+/// 包含AI响应和业务处理结果。
+class ConversationChatResponse {
+  /// AI响应内容
+  final String content;
+
+  /// 思考过程（如果有）
+  final String? thinking;
+
+  /// 对话ID
+  final String conversationId;
+
+  /// 消息ID
+  final String messageId;
+
+  /// 是否生成了新标题
+  final bool titleGenerated;
+
+  /// 生成的标题（如果有）
+  final String? generatedTitle;
+
+  /// 是否成功
+  final bool isSuccess;
+
+  /// 错误信息（如果失败）
+  final String? error;
+
+  const ConversationChatResponse({
+    required this.content,
+    this.thinking,
+    required this.conversationId,
+    required this.messageId,
+    this.titleGenerated = false,
+    this.generatedTitle,
+    this.isSuccess = true,
+    this.error,
+  });
+}
+
+/// 对话流式聊天的事件类
+///
+/// 包含流式响应和业务处理事件。
+class ConversationChatStreamEvent {
+  /// 内容增量
+  final String? contentDelta;
+
+  /// 思考增量
+  final String? thinkingDelta;
+
+  /// 是否完成
+  final bool isCompleted;
+
+  /// 对话ID（完成时提供）
+  final String? conversationId;
+
+  /// 消息ID（完成时提供）
+  final String? messageId;
+
+  /// 是否生成了标题（完成时提供）
+  final bool? titleGenerated;
+
+  /// 生成的标题（完成时提供）
+  final String? generatedTitle;
+
+  /// 错误信息
+  final String? error;
+
+  const ConversationChatStreamEvent({
+    this.contentDelta,
+    this.thinkingDelta,
+    this.isCompleted = false,
+    this.conversationId,
+    this.messageId,
+    this.titleGenerated,
+    this.generatedTitle,
+    this.error,
+  });
+
+  /// 是否为内容事件
+  bool get isContent => contentDelta != null;
+
+  /// 是否为思考事件
+  bool get isThinking => thinkingDelta != null;
+
+  /// 是否为错误事件
+  bool get isError => error != null;
 }

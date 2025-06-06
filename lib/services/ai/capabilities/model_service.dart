@@ -76,12 +76,14 @@ class ModelService extends AiServiceBase {
       final chatProvider = await adapter.createProvider();
 
       // 检查是否支持模型列表功能
-      if (chatProvider is! ModelProvider) {
-        logger.warning('提供商不支持ModelProvider接口', {'provider': provider.name});
+      if (chatProvider is! ModelListingCapability) {
+        logger.warning('提供商不支持ModelListingCapability接口', {
+          'provider': provider.name,
+        });
         return [];
       }
 
-      final modelProvider = chatProvider as ModelProvider;
+      final modelProvider = chatProvider as ModelListingCapability;
       final aiModels = await modelProvider.models();
 
       // 转换AI Dart模型到应用模型格式

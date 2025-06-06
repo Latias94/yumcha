@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/message.dart';
-import '../services/ai_service.dart';
+import '../services/ai/providers/ai_service_provider.dart';
+import 'ai_provider_notifier.dart'; // AI提供商Provider
+import 'ai_assistant_notifier.dart'; // AI助手Provider
 import '../services/preference_service.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
@@ -44,15 +46,14 @@ class ChatState {
   }
 }
 
-/// 聊天状态管理器
+/// 聊天状态管理器（已迁移到新AI架构）
 ///
-/// 负责管理聊天界面的状态和聊天逻辑。这是一个较旧的聊天管理器，
-/// 主要用于向后兼容，新的聊天功能建议使用 ConversationNotifier。
+/// 负责管理聊天界面的状态和聊天逻辑。已迁移到使用新的AI服务架构。
 ///
 /// 核心功能：
 /// - 💬 **消息管理**: 管理聊天消息的发送、接收和显示
 /// - 🔄 **配置管理**: 管理助手、提供商、模型的选择
-/// - 📡 **流式聊天**: 支持实时流式 AI 响应
+/// - 📡 **流式聊天**: 支持实时流式 AI 响应（使用新架构）
 /// - 💾 **偏好保存**: 保存用户的模型选择偏好
 /// - ⚙️ **自动配置**: 自动选择可用的模型配置
 /// - 🛡️ **错误处理**: 处理聊天过程中的各种错误情况
@@ -63,21 +64,23 @@ class ChatState {
 /// - 支持普通聊天和流式聊天两种模式
 /// - 自动保存用户的模型选择偏好
 ///
-/// 注意：
-/// - 这是较旧的实现，建议新功能使用 ConversationNotifier
-/// - 主要用于向后兼容和特定场景的聊天功能
+/// 迁移说明：
+/// - 已迁移到新的AI服务架构
+/// - 使用 smartChatProvider 和 smartChatStreamProvider
+/// - 保持向后兼容的API接口
 ///
 /// 使用场景：
 /// - 简单的聊天界面
 /// - 向后兼容的聊天功能
 /// - 特定场景的聊天逻辑
-class ChatNotifier extends StateNotifier<ChatState> {
-  ChatNotifier() : super(const ChatState()) {
-    _initializeDefaults();
-  }
-
-  final AiService _aiService = AiService();
+class ChatNotifier extends AutoDisposeNotifier<ChatState> {
   final PreferenceService _preferenceService = PreferenceService();
+
+  @override
+  ChatState build() {
+    _initializeDefaults();
+    return const ChatState();
+  }
 
   /// 初始化默认配置
   Future<void> _initializeDefaults() async {
@@ -244,7 +247,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = state.copyWith(messages: []);
   }
 
-  /// 发送消息
+  /// 发送消息（使用新AI架构）
   Future<void> sendMessage(String userMessage) async {
     // 确保有有效的模型配置
     await ensureValidModelConfiguration();
@@ -269,13 +272,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 发送请求到AI服务
-      final response = await _aiService.sendMessage(
-        assistantId: state.selectedAssistantId!,
-        chatHistory: state.messages,
-        userMessage: userMessage,
-        selectedProviderId: state.selectedProviderId!,
-        selectedModelName: state.selectedModelName!,
+      // 使用新的智能聊天Provider
+      final response = await ref.read(
+        smartChatProvider(
+          SmartChatParams(
+            chatHistory: state.messages
+                .where((m) => !m.isFromUser || m != userMsg)
+                .toList(),
+            userMessage: userMessage,
+            assistantId: state.selectedAssistantId,
+          ),
+        ).future,
       );
 
       if (response.isSuccess) {
@@ -297,7 +304,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
-  /// 发送流式消息
+  /// 发送流式消息（使用新AI架构的真正流式实现）
+  ///
+  /// 注意：这个方法现在使用 smartChatStreamProvider 提供真正的流式体验
   Stream<String> sendStreamMessage(String userMessage) async* {
     // 确保有有效的模型配置
     await ensureValidModelConfiguration();
@@ -306,6 +315,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         state.selectedProviderId == null ||
         state.selectedModelName == null) {
       state = state.copyWith(error: '请先选择AI助手、提供商和模型');
+      yield '[错误] 请先选择AI助手、提供商和模型';
       return;
     }
 
@@ -325,24 +335,43 @@ class ChatNotifier extends StateNotifier<ChatState> {
       var fullResponse = '';
       var fullThinking = '';
 
-      await for (final event in _aiService.sendMessageStream(
-        assistantId: state.selectedAssistantId!,
-        chatHistory: state.messages,
+      // 直接使用底层的聊天服务流式接口
+      final chatService = ref.read(aiChatServiceProvider);
+      final config = ref.read(defaultChatConfigProvider);
+
+      if (config == null) {
+        yield '[错误] 未找到默认聊天配置';
+        return;
+      }
+
+      final provider = ref.read(aiProviderProvider(config.providerId));
+      final assistant = state.selectedAssistantId != null
+          ? ref.read(aiAssistantProvider(state.selectedAssistantId!))
+          : ref.read(aiAssistantNotifierProvider).value?.firstOrNull;
+
+      if (provider == null || assistant == null) {
+        yield '[错误] 配置不完整';
+        return;
+      }
+
+      // 使用真正的流式聊天
+      await for (final event in chatService.sendMessageStream(
+        provider: provider,
+        assistant: assistant,
+        modelName: config.modelName,
+        chatHistory: state.messages
+            .where((m) => !m.isFromUser || m != userMsg)
+            .toList(),
         userMessage: userMessage,
-        selectedProviderId: state.selectedProviderId!,
-        selectedModelName: state.selectedModelName!,
       )) {
-        if (event.isError) {
-          state = state.copyWith(error: event.error);
-          yield '[错误] ${event.error}';
-          break;
-        } else if (event.isContent) {
+        if (event.isContent) {
           fullResponse += event.contentDelta!;
           yield event.contentDelta!;
         } else if (event.isThinking) {
           fullThinking += event.thinkingDelta!;
-          yield event.thinkingDelta!;
-        } else if (event.isDone) {
+          // 可以选择是否向用户显示思考过程
+          // yield '[思考] ${event.thinkingDelta!}';
+        } else if (event.isCompleted) {
           // 流式完成，添加完整的AI回复到聊天历史
           final content = fullThinking.isNotEmpty
               ? '<think>\n$fullThinking\n</think>\n\n$fullResponse'
@@ -355,6 +384,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
             timestamp: DateTime.now(),
           );
           addMessage(aiMsg);
+
+          // 流式完成
+          break;
+        } else if (event.isError) {
+          state = state.copyWith(error: event.error);
+          yield '[错误] ${event.error}';
           break;
         }
       }
@@ -372,7 +407,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 }
 
-/// 聊天状态Provider
-final chatNotifierProvider = StateNotifierProvider<ChatNotifier, ChatState>(
-  (ref) => ChatNotifier(),
-);
+/// 聊天状态Provider（已迁移到新架构）
+final chatNotifierProvider =
+    NotifierProvider.autoDispose<ChatNotifier, ChatState>(ChatNotifier.new);

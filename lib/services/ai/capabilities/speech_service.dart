@@ -86,11 +86,11 @@ class SpeechService extends AiServiceBase {
       final chatProvider = await adapter.createProvider();
 
       // 检查是否支持TTS功能
-      if (chatProvider is! TextToSpeechProvider) {
+      if (chatProvider is! TextToSpeechCapability) {
         throw Exception('提供商不支持TTS功能: ${provider.name}');
       }
 
-      final ttsProvider = chatProvider as TextToSpeechProvider;
+      final ttsProvider = chatProvider as TextToSpeechCapability;
       final audioBytes = await ttsProvider.speech(text);
       final audioData = Uint8List.fromList(audioBytes);
 
@@ -153,11 +153,11 @@ class SpeechService extends AiServiceBase {
       final chatProvider = await adapter.createProvider();
 
       // 检查是否支持STT功能
-      if (chatProvider is! SpeechToTextProvider) {
+      if (chatProvider is! SpeechToTextCapability) {
         throw Exception('提供商不支持STT功能: ${provider.name}');
       }
 
-      final sttProvider = chatProvider as SpeechToTextProvider;
+      final sttProvider = chatProvider as SpeechToTextCapability;
       final transcription = await sttProvider.transcribe(audioData);
 
       // 更新缓存
@@ -208,11 +208,11 @@ class SpeechService extends AiServiceBase {
       final chatProvider = await adapter.createProvider();
 
       // 检查是否支持STT功能
-      if (chatProvider is! SpeechToTextProvider) {
+      if (chatProvider is! SpeechToTextCapability) {
         throw Exception('提供商不支持STT功能: ${provider.name}');
       }
 
-      final sttProvider = chatProvider as SpeechToTextProvider;
+      final sttProvider = chatProvider as SpeechToTextCapability;
       final transcription = await sttProvider.transcribeFile(filePath);
 
       logger.info('文件STT转换完成', {

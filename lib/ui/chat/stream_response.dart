@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../services/ai_service.dart';
+import '../../services/ai/core/ai_response_models.dart';
 
 /// 流式响应处理器 - 管理AI流式输出
 class StreamResponse {
@@ -9,7 +9,7 @@ class StreamResponse {
   }
 
   /// 流式数据源
-  final Stream<AiStreamResponse> stream;
+  final Stream<AiStreamEvent> stream;
 
   /// 内容更新回调
   final VoidCallback? onUpdate;
@@ -19,7 +19,7 @@ class StreamResponse {
 
   String _content = '';
   String _thinking = '';
-  StreamSubscription<AiStreamResponse>? _subscription;
+  StreamSubscription<AiStreamEvent>? _subscription;
   bool _isCanceled = false;
   bool _isDone = false;
 
@@ -48,13 +48,13 @@ class StreamResponse {
       (event) {
         if (_isCanceled || _isDone) return;
 
-        if (event.isError) {
+        if (event.error != null) {
           _isDone = true;
           onDone?.call(event.error);
-        } else if (event.isContent) {
+        } else if (event.contentDelta != null) {
           _content += event.contentDelta!;
           onUpdate?.call();
-        } else if (event.isThinking) {
+        } else if (event.thinkingDelta != null) {
           _thinking += event.thinkingDelta!;
           onUpdate?.call();
         } else if (event.isDone) {

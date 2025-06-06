@@ -1,31 +1,31 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yumcha/services/ai_service.dart';
+import 'package:yumcha/services/ai/core/ai_response_models.dart';
 import 'package:yumcha/services/mcp_service.dart';
 import 'package:yumcha/models/ai_assistant.dart';
 import 'package:ai_dart/ai_dart.dart';
 
 void main() {
-  group('MCP Integration Tests', () {
-    late AiService aiService;
+  group('AI Service Integration Tests', () {
+    late McpService mcpService;
 
     setUp(() {
-      aiService = AiService();
+      mcpService = McpService();
     });
 
     test('should check MCP tools availability', () {
       // 测试 MCP 工具可用性检查
-      expect(aiService.hasMcpToolsAvailable, isFalse);
+      expect(mcpService.isEnabled, isFalse);
 
       // 获取可用工具列表
-      final tools = aiService.getAvailableMcpTools();
+      final tools = mcpService.getAllAvailableTools();
       expect(tools, isEmpty);
     });
 
     test('should get MCP tool info', () {
       // 测试获取工具信息
-      final toolInfo = aiService.getMcpToolInfo('calculator');
-      expect(toolInfo, isEmpty);
+      final tools = mcpService.getAllAvailableTools();
+      expect(tools, isEmpty);
     });
 
     test('should create tool call objects correctly', () {
@@ -64,43 +64,36 @@ void main() {
       expect(() => jsonDecode(invalidJson), throwsException);
     });
 
-    test('should create AI response with tool results', () {
-      // 测试创建包含工具结果的 AI 响应
-      final toolResults = [
-        McpToolResult(
-          toolName: 'calculator',
-          arguments: {'operation': 'add', 'a': 2, 'b': 3},
-          result: '5',
-          duration: Duration(milliseconds: 100),
+    test('should create AI response with tool calls', () {
+      // 测试创建包含工具调用的 AI 响应
+      final toolCalls = [
+        ToolCall(
+          id: 'call_123',
+          callType: 'function',
+          function: FunctionCall(
+            name: 'calculator',
+            arguments: '{"operation": "add", "a": 2, "b": 3}',
+          ),
         ),
       ];
 
       final response = AiResponse(
         content: 'The result is 5',
-        toolResults: toolResults,
+        toolCalls: toolCalls,
       );
 
-      expect(response.hasToolResults, isTrue);
-      expect(response.toolResults!.length, equals(1));
-      expect(response.toolResults!.first.toolName, equals('calculator'));
-      expect(response.toolResults!.first.result, equals('5'));
-      expect(response.toolResults!.first.isSuccess, isTrue);
+      expect(response.toolCalls?.length, equals(1));
+      expect(response.toolCalls!.first.function.name, equals('calculator'));
+      expect(response.isSuccess, isTrue);
     });
 
-    test('should create AI stream response with tool result', () {
-      // 测试创建包含工具结果的流式响应
-      final toolResult = McpToolResult(
-        toolName: 'text_processor',
-        arguments: {'text': 'hello', 'operation': 'uppercase'},
-        result: 'HELLO',
-        duration: Duration(milliseconds: 50),
-      );
+    test('should create AI stream event with content', () {
+      // 测试创建包含内容的流式事件
+      final streamEvent = AiStreamEvent(contentDelta: 'Hello', isDone: false);
 
-      final streamResponse = AiStreamResponse(toolResult: toolResult);
-
-      expect(streamResponse.isToolResult, isTrue);
-      expect(streamResponse.toolResult!.toolName, equals('text_processor'));
-      expect(streamResponse.toolResult!.result, equals('HELLO'));
+      expect(streamEvent.contentDelta, equals('Hello'));
+      expect(streamEvent.isDone, isFalse);
+      expect(streamEvent.error, isNull);
     });
 
     test('should handle tool call errors', () {

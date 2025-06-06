@@ -37,20 +37,21 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/ai_dart_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/ai/providers/ai_service_provider.dart';
 import '../models/ai_provider.dart' as models;
 import '../models/ai_assistant.dart';
 import '../models/message.dart';
 import 'dart:convert';
 
-class AiDebugScreen extends StatefulWidget {
+class AiDebugScreen extends ConsumerStatefulWidget {
   const AiDebugScreen({super.key});
 
   @override
-  State<AiDebugScreen> createState() => _AiDebugScreenState();
+  ConsumerState<AiDebugScreen> createState() => _AiDebugScreenState();
 }
 
-class _AiDebugScreenState extends State<AiDebugScreen> {
+class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   // 表单控制器
   final _apiKeyController = TextEditingController();
   final _baseUrlController = TextEditingController();
@@ -235,140 +236,133 @@ class _AiDebugScreenState extends State<AiDebugScreen> {
     }
   }
 
-  /// 使用 ai_dart service 发送消息
+  /// 使用基础AI接口发送消息（调试专用）
+  ///
+  /// 注意：此方法使用 sendChatMessageProvider，这是基础的AI接口，
+  /// 不包含标题生成、对话保存等业务逻辑，专门用于API测试和调试。
+  ///
+  /// 正常聊天请使用 conversationChatProvider。
   Future<void> _sendMessageWithAiDartService(String message) async {
-    final aiService = AiDartService();
+    _updateDebugInfo('🔄 开始请求（使用基础AI接口）...\n');
 
-    // 转换 provider 类型
-    final provider = _convertToModelsProvider();
+    try {
+      // 转换 provider 类型
+      final provider = _convertToModelsProvider();
 
-    // 创建测试助手
-    final assistant = AiAssistant(
-      id: 'debug-assistant',
-      name: 'Debug Assistant',
-      description: 'AI Debug Assistant for testing',
-      systemPrompt: _systemPromptController.text.trim().isEmpty
-          ? 'You are a helpful assistant.'
-          : _systemPromptController.text.trim(),
-      temperature: double.tryParse(_temperatureController.text) ?? 0.7,
-      maxTokens: int.tryParse(_maxTokensController.text) ?? 1000,
-      topP: double.tryParse(_topPController.text) ?? 0.9,
-      enableReasoning: false,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    final modelName = _modelController.text.trim();
-    final chatHistory = <Message>[];
-
-    if (_isStreamMode) {
-      // 流式请求
-      final stream = aiService.sendChatStreamRequest(
-        provider: provider,
-        assistant: assistant,
-        modelName: modelName,
-        chatHistory: chatHistory,
-        userMessage: message,
+      // 创建测试助手
+      final assistant = AiAssistant(
+        id: 'debug-assistant',
+        name: 'Debug Assistant',
+        description: 'AI Debug Assistant for testing',
+        systemPrompt: _systemPromptController.text.trim().isEmpty
+            ? 'You are a helpful assistant.'
+            : _systemPromptController.text.trim(),
+        temperature: double.tryParse(_temperatureController.text) ?? 0.7,
+        maxTokens: int.tryParse(_maxTokensController.text) ?? 1000,
+        topP: double.tryParse(_topPController.text) ?? 0.9,
+        enableReasoning: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
-      String fullResponse = '';
-      String fullThinking = '';
-      await for (final event in stream) {
-        if (event.hasContent) {
-          setState(() {
-            _streamChunks.add(event.delta!);
-            fullResponse += event.delta!;
-            _response = fullResponse;
-          });
-          _updateDebugInfo('📝 收到内容块: ${event.delta!.length} 字符\n');
-        } else if (event.hasThinking) {
-          setState(() {
-            _thinkingChunks.add(event.thinkingDelta!);
-            fullThinking += event.thinkingDelta!;
-            _thinkingContent = fullThinking;
-          });
-          _updateDebugInfo('🧠 收到思考块: ${event.thinkingDelta!.length} 字符\n');
-        } else if (event.isCompleted) {
-          // 处理完成时的最终思考内容
-          if (event.finalThinking != null && event.finalThinking!.isNotEmpty) {
-            setState(() {
-              _thinkingContent = event.finalThinking!;
-            });
-            _updateDebugInfo(
-              '🧠 收到完整思考内容: ${event.finalThinking!.length} 字符\n',
-            );
-          }
+      final modelName = _modelController.text.trim();
+      final chatHistory = <Message>[];
 
-          setState(() {
-            _responseBody = jsonEncode({
-              'ai_dart_service': true,
-              'stream_mode': true,
-              'total_chunks': _streamChunks.length,
-              'thinking_chunks': _thinkingChunks.length,
-              'total_content': fullResponse,
-              'thinking_content': _thinkingContent.isNotEmpty
-                  ? _thinkingContent
-                  : null,
-              'usage': event.usage != null
-                  ? {
-                      'prompt_tokens': event.usage!.promptTokens,
-                      'completion_tokens': event.usage!.completionTokens,
-                      'total_tokens': event.usage!.totalTokens,
-                    }
-                  : null,
-            });
+      if (_isStreamMode) {
+        // 流式请求（使用新架构）
+        _updateDebugInfo('🔄 开始流式请求（使用新AI架构）...\n');
+
+        // 注意：这是一个简化的实现，实际的流式处理需要在UI层监听
+        _updateDebugInfo('💡 提示：新架构的流式功能需要在UI层使用 ref.listen 监听\n');
+
+        // 作为演示，使用普通请求
+        final response = await ref.read(
+          sendChatMessageProvider(
+            SendChatMessageParams(
+              provider: provider,
+              assistant: assistant,
+              modelName: modelName,
+              chatHistory: chatHistory,
+              userMessage: message,
+              // 使用基础AI接口，不包含业务逻辑
+            ),
+          ).future,
+        );
+
+        setState(() {
+          _response = response.content;
+          _thinkingContent = response.thinking ?? '';
+          _responseBody = jsonEncode({
+            'new_ai_architecture': true,
+            'stream_mode': false, // 简化实现
+            'content': response.content,
+            'thinking_content': response.thinking,
+            'usage': response.usage != null
+                ? {
+                    'prompt_tokens': response.usage!.promptTokens,
+                    'completion_tokens': response.usage!.completionTokens,
+                    'total_tokens': response.usage!.totalTokens,
+                  }
+                : null,
           });
-          _updateDebugInfo('✅ ai_dart 流式响应完成\n');
-          if (event.usage != null) {
-            _updateDebugInfo('Token使用情况:\n');
-            _updateDebugInfo('  输入: ${event.usage!.promptTokens}\n');
-            _updateDebugInfo('  输出: ${event.usage!.completionTokens}\n');
-            _updateDebugInfo('  总计: ${event.usage!.totalTokens}\n');
-          }
-        } else if (event.isError) {
-          _updateDebugInfo('❌ ai_dart 流式错误: ${event.error}\n');
-          throw Exception(event.error);
+        });
+
+        _updateDebugInfo('✅ 新架构请求完成\n');
+        _updateDebugInfo('响应长度: ${response.content.length} 字符\n');
+        if (response.thinking != null && response.thinking!.isNotEmpty) {
+          _updateDebugInfo('🧠 思考内容长度: ${response.thinking!.length} 字符\n');
+        }
+      } else {
+        // 普通请求（使用新架构）
+        final response = await ref.read(
+          sendChatMessageProvider(
+            SendChatMessageParams(
+              provider: provider,
+              assistant: assistant,
+              modelName: modelName,
+              chatHistory: chatHistory,
+              userMessage: message,
+              // 使用基础AI接口，不包含业务逻辑
+            ),
+          ).future,
+        );
+
+        setState(() {
+          _response = response.content;
+          _thinkingContent = response.thinking ?? '';
+          _responseBody = jsonEncode({
+            'ai_dart_service': true,
+            'stream_mode': false,
+            'content': response.content,
+            'thinking_content': response.thinking,
+            'usage': response.usage != null
+                ? {
+                    'prompt_tokens': response.usage!.promptTokens,
+                    'completion_tokens': response.usage!.completionTokens,
+                    'total_tokens': response.usage!.totalTokens,
+                  }
+                : null,
+          });
+        });
+
+        _updateDebugInfo('✅ ai_dart 请求完成\n');
+        _updateDebugInfo('响应长度: ${response.content.length} 字符\n');
+        if (response.thinking != null && response.thinking!.isNotEmpty) {
+          _updateDebugInfo('🧠 思考内容长度: ${response.thinking!.length} 字符\n');
+        }
+        if (response.usage != null) {
+          _updateDebugInfo('Token使用情况:\n');
+          _updateDebugInfo('  输入: ${response.usage!.promptTokens}\n');
+          _updateDebugInfo('  输出: ${response.usage!.completionTokens}\n');
+          _updateDebugInfo('  总计: ${response.usage!.totalTokens}\n');
         }
       }
-    } else {
-      // 普通请求
-      final response = await aiService.sendChatRequest(
-        provider: provider,
-        assistant: assistant,
-        modelName: modelName,
-        chatHistory: chatHistory,
-        userMessage: message,
-      );
-
+    } catch (e) {
+      _updateDebugInfo('❌ 请求失败: $e\n');
       setState(() {
-        _response = response.content ?? '';
-        _thinkingContent = response.thinking ?? '';
-        _responseBody = jsonEncode({
-          'ai_dart_service': true,
-          'stream_mode': false,
-          'content': response.content,
-          'thinking_content': response.thinking,
-          'usage': response.usage != null
-              ? {
-                  'prompt_tokens': response.usage!.promptTokens,
-                  'completion_tokens': response.usage!.completionTokens,
-                  'total_tokens': response.usage!.totalTokens,
-                }
-              : null,
-        });
+        _responseBody = jsonEncode({'error': true, 'message': e.toString()});
       });
-
-      _updateDebugInfo('✅ ai_dart 请求完成\n');
-      _updateDebugInfo('响应长度: ${(response.content ?? '').length} 字符\n');
-      if (response.thinking != null && response.thinking!.isNotEmpty) {
-        _updateDebugInfo('🧠 思考内容长度: ${response.thinking!.length} 字符\n');
-      }
-      if (response.usage != null) {
-        _updateDebugInfo('Token使用情况:\n');
-        _updateDebugInfo('  输入: ${response.usage!.promptTokens}\n');
-        _updateDebugInfo('  输出: ${response.usage!.completionTokens}\n');
-        _updateDebugInfo('  总计: ${response.usage!.totalTokens}\n');
-      }
+      rethrow;
     }
   }
 
