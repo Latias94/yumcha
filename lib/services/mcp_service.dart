@@ -5,6 +5,29 @@ import '../utils/platform_utils.dart';
 import 'logger_service.dart';
 import 'notification_service.dart';
 
+/// MCP (Model Context Protocol) 服务管理器
+///
+/// 负责管理 MCP 服务器连接和工具调用功能。MCP 是一个开放协议，
+/// 允许 AI 应用连接到外部工具和数据源。
+///
+/// 主要功能：
+/// - 🔌 **服务器管理**: 连接和管理多个 MCP 服务器
+/// - 🛠️ **工具调用**: 调用 MCP 服务器提供的工具
+/// - 🌐 **多协议支持**: 支持 STDIO、HTTP、SSE 连接类型
+/// - 📱 **平台适配**: 根据平台能力自动适配连接方式
+/// - 🔍 **状态监控**: 实时监控服务器连接状态
+/// - ⚙️ **配置验证**: 验证服务器配置的有效性
+///
+/// 支持的连接类型：
+/// - **STDIO**: 本地进程通信（桌面平台）
+/// - **HTTP**: HTTP API 连接（所有平台）
+/// - **SSE**: 服务器发送事件（所有平台）
+///
+/// 使用场景：
+/// - AI 助手需要访问外部工具时
+/// - 扩展 AI 应用的功能边界
+/// - 集成第三方服务和数据源
+
 /// MCP 工具调用结果
 class McpToolResult {
   final String toolName;

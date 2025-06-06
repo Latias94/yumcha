@@ -2,29 +2,33 @@
 
 ## 项目概述
 
-YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面端和移动端。应用采用 Material Design 3 设计规范，通过 Flutter Rust Bridge 集成 Rust 后端，使用 ai_dart 提供 AI 聊天功能。
+YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面端和移动端。应用采用 Material Design 3 设计规范，使用独立的 `ai_dart` 库提供统一的 AI 聊天接口。
+
+用户可以配置多个 AI 提供商，包括 OpenAI、DeepSeek、Anthropic、Google、Ollama、Phind 等，并为每个提供商配置不同的 API 密钥和模型，一个提供商可以配置多个模型。用户可以创建多个 AI 助手，每个助手不绑定提供商和模型，可以设置个性化的系统提示词和温度参数等AI参数。
+用户首先通过 AI 助手创建聊天，在聊天过程中可以切换不同的提供商模型（某个提供商中的某个模型）。
 
 ### 核心功能
-- **AI 助手聊天**：支持多种 AI 提供商（OpenAI、DeepSeek、Anthropic、Google、Ollama 等）
-- **AI 角色聊天**：复刻 SillyTavern 核心功能，支持角色扮演对话
+- **AI 助手聊天**：支持多种 AI 提供商（OpenAI、DeepSeek、Anthropic、Google、Ollama、Phind 等）
 - **多提供商管理**：统一管理不同 AI 服务提供商和模型
-- **实时流式对话**：支持流式和非流式 AI 响应
+- **实时流式对话**：支持流式和非流式 AI 响应，支持推理模型（o1、R1 等）
 - **模型收藏系统**：可收藏常用模型便于快速访问
 - **聊天历史管理**：完整的对话记录和管理功能
+- **聊天搜索功能**：支持搜索聊天记录和对话标题
+- **调试和测试工具**：内置 AI API 测试和调试功能
+
+### 未来功能规划
+- **AI 角色聊天**：计划支持 SillyTavern 兼容的角色扮演对话功能
+- **世界信息系统**：支持复杂的世界设定和角色背景
+- **插件系统**：支持第三方插件和扩展
 
 ## 技术架构
 
-### 前端技术栈
+### 技术栈
 - **Flutter 3.8+**：跨平台 UI 框架
 - **Material Design 3**：现代化 UI 设计系统
 - **Riverpod 2.6+**：状态管理解决方案
 - **Drift 2.16+**：SQLite 数据库 ORM
-- **Flutter Rust Bridge 2.10**：Dart-Rust 互操作桥梁
-
-### 后端技术栈
-- **Rust**：高性能后端语言
-- **tokio**：异步运行时
-- **serde**：序列化/反序列化
+- **ai_dart**：独立的 AI 聊天接口库，支持多种 LLM 提供商
 
 ### 数据库设计
 使用 SQLite 数据库，通过 Drift ORM 管理，包含以下核心表：
@@ -184,9 +188,15 @@ final providers = await providerRepo.getAllProviders();
 - 提供数据库初始化和迁移功能
 
 #### 2. AI 相关服务
-- `AiService`: AI 聊天功能的主要服务类
-- `AiRequestService`: 处理 AI 请求的具体实现
-- 通过 ai_dart 库封装 AI 请求逻辑
+- **新架构** (`lib/services/ai/`): 模块化的 AI 服务架构
+  - `AiServiceManager`: AI 服务管理器，统一管理各种 AI 功能
+  - `ChatService`: 聊天服务，处理对话逻辑
+  - `ModelService`: 模型服务，管理模型信息和能力
+  - `EmbeddingService`: 嵌入服务，处理向量嵌入功能
+- **ai_dart 库**: 独立的 AI 接口库，位于 `packages/ai_dart/`
+  - 支持多种 LLM 提供商的统一接口
+  - 可独立发布和维护
+  - 提供流式和非流式聊天功能
 
 #### 3. Repository 层
 - `ProviderRepository`: 提供商数据访问层
@@ -222,36 +232,55 @@ enum ErrorType { network, database, api, validation, permission, unknown }
 - PermissionError: 权限错误
 ```
 
-## Flutter Rust Bridge 集成
+## ai_dart 库集成
 
-### Rust 后端结构
+### ai_dart 库架构
 ```
-rust/src/
-├── api/
-│   ├── ai_chat.rs      # AI 聊天核心实现
-│   ├── simple.rs       # 简单示例
-│   └── mod.rs
-├── lib.rs
-└── frb_generated.rs    # 自动生成的桥接代码
+packages/ai_dart/
+├── lib/
+│   ├── src/
+│   │   ├── providers/          # AI 提供商实现
+│   │   │   ├── openai/
+│   │   │   ├── anthropic/
+│   │   │   ├── google/
+│   │   │   ├── deepseek/
+│   │   │   ├── ollama/
+│   │   │   └── phind/
+│   │   ├── models/             # 数据模型
+│   │   ├── interfaces/         # 统一接口
+│   │   └── core/               # 核心功能
+│   └── ai_dart.dart           # 主导出文件
+├── pubspec.yaml               # 独立包配置
+└── README.md                  # 独立文档
 ```
 
 ### AI 聊天功能
-- `AiChatClient`: AI 聊天客户端
-- `ChatMessage`: 聊天消息结构
-- `ChatStreamEvent`: 流式聊天事件
-- `AiProvider`: AI 提供商枚举
-- 支持多种 AI 提供商：OpenAI、Anthropic、Cohere、Gemini、Groq、Ollama、Xai、DeepSeek
+- **统一接口**: 为所有 AI 提供商提供一致的 API
+- **流式支持**: 支持实时流式响应
+- **推理模型**: 支持 OpenAI o1、DeepSeek R1 等推理模型
+- **多提供商**: OpenAI、Anthropic、Google、DeepSeek、Ollama、Phind 等
+- **独立发布**: 可作为独立的 Dart 包发布到 pub.dev
 
 ### 关键 API
-```rust
-// 单次聊天
-pub async fn chat(&self, messages: Vec<ChatMessage>) -> Result<ChatResponse>
+```dart
+// 发送聊天消息
+Future<AiResponse> sendMessage({
+  required String providerId,
+  required String modelName,
+  required String message,
+  Map<String, dynamic>? parameters,
+});
 
 // 流式聊天
-pub async fn chat_stream(&self, messages: Vec<ChatMessage>, sink: StreamSink<ChatStreamEvent>) -> Result<()>
+Stream<AiStreamEvent> sendStreamMessage({
+  required String providerId,
+  required String modelName,
+  required String message,
+  Map<String, dynamic>? parameters,
+});
 
-// 快速聊天
-pub async fn quick_chat(provider: AiProvider, model: String, api_key: String, message: String) -> Result<String>
+// 获取模型列表
+Future<List<AiModel>> getModels(String providerId);
 ```
 
 ## UI 界面架构
@@ -318,8 +347,9 @@ enum ColorMode { system, light, dark }
 dependencies:
   flutter_riverpod: ^2.6.1          # 状态管理
   drift: ^2.16.0                    # 数据库 ORM
-  rust_lib_yumcha: path: rust_builder # Rust 集成
-  flutter_rust_bridge: 2.10.0       # Rust 桥接
+  ai_dart:                          # AI 聊天接口库
+    path: packages/ai_dart          # 本地路径（开发时）
+    # ai_dart: ^1.0.0              # 发布版本（生产时）
   dynamic_color: ^1.7.0             # 动态颜色
   markdown_widget: ^2.3.2+8         # Markdown 渲染
   chat_bubbles: ^1.7.0              # 聊天气泡
@@ -327,6 +357,7 @@ dependencies:
   logger: ^2.4.0                    # 日志记录
   uuid: ^4.5.1                     # UUID 生成
   shared_preferences: ^2.5.3        # 偏好设置
+  dio: ^5.3.0                       # HTTP 客户端（ai_dart 依赖）
 ```
 
 ## 开发和调试
@@ -337,14 +368,16 @@ dependencies:
 - 开发和生产环境不同的日志策略
 
 ### 调试功能
-- `DebugScreen`: 通用调试界面
-- `AiDebugScreen`: AI 功能专用调试
+- `AiDebugLogsScreen`: AI 调试日志界面（原 `DebugScreen`）
+- `AiApiTestScreen`: AI API 测试界面（原 `AiDebugScreen`）
+- `QuickSetupScreen`: 快速配置界面（原 `ConfigScreen`）
 - 详细的错误追踪和报告
 
 ### 测试支持
 - 集成测试框架
-- Flutter Rust Bridge 测试
+- ai_dart 库单元测试
 - 数据库迁移测试
+- Riverpod 状态管理测试
 
 ## 部署和构建
 
@@ -358,7 +391,24 @@ dependencies:
 
 ### 构建配置
 - Flutter 3.8+ SDK
-- Rust 工具链
+- Dart 3.0+ SDK
 - 平台特定的构建依赖
+- ai_dart 库的依赖管理
 
-这个项目展现了现代 Flutter 应用开发的最佳实践，结合了强大的 Rust 后端、完善的状态管理、优雅的 UI 设计和健壮的错误处理机制。
+## 项目特色
+
+这个项目展现了现代 Flutter 应用开发的最佳实践，具有以下特色：
+
+### 技术特色
+- **独立 AI 库**: ai_dart 作为独立库，可复用和独立维护
+- **模块化架构**: 清晰的分层架构和模块化设计
+- **完善的状态管理**: 基于 Riverpod 的统一状态管理
+- **优雅的 UI 设计**: Material Design 3 和动态颜色支持
+- **健壮的错误处理**: 统一的错误处理和日志系统
+
+### 功能特色
+- **多提供商支持**: 统一接口支持多种 AI 服务提供商
+- **推理模型支持**: 支持 OpenAI o1、DeepSeek R1 等推理模型
+- **实时流式对话**: 流畅的实时对话体验
+- **跨平台支持**: 支持移动端、桌面端和 Web 端
+- **未来扩展性**: 为角色扮演等高级功能预留架构空间

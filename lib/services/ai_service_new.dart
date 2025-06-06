@@ -11,10 +11,27 @@ import 'ai/ai_service_manager.dart';
 import 'ai/core/ai_response_models.dart';
 import 'logger_service.dart';
 
-/// 新的AI服务 - 基于模块化架构的统一接口
-/// 
-/// 这个类作为应用与AI服务管理器之间的桥梁，
-/// 提供向后兼容的API，同时使用新的模块化架构
+/// 新版 AI 服务 - 模块化架构的统一接口
+///
+/// 这个类作为应用与 AI 服务管理器之间的桥梁，提供向后兼容的 API，
+/// 同时使用新的模块化架构。主要用于迁移期间的兼容性支持。
+///
+/// 主要功能：
+/// - 🔄 **向后兼容**: 为旧版 API 提供兼容接口
+/// - 🏗️ **架构桥梁**: 连接旧版代码和新版模块化架构
+/// - 📊 **服务统计**: 提供服务使用统计和健康检查
+/// - 🧹 **缓存管理**: 统一的缓存清理功能
+/// - ⚠️ **迁移提示**: 引导开发者使用新的 Riverpod API
+///
+/// 注意：
+/// - 大部分聊天功能已标记为 UnimplementedError
+/// - 推荐使用 AiServiceManager 或相应的 Riverpod Provider
+/// - 这个类主要用于迁移期间的兼容性支持
+///
+/// 使用场景：
+/// - 迁移期间的向后兼容
+/// - 服务健康检查和统计
+/// - 缓存管理操作
 class AiService {
   static final AiService _instance = AiService._internal();
   factory AiService() => _instance;
@@ -29,7 +46,7 @@ class AiService {
     if (_isInitialized) return;
 
     _logger.info('初始化AI服务');
-    
+
     try {
       await _serviceManager.initialize();
       _isInitialized = true;
@@ -70,7 +87,7 @@ class AiService {
       // 暂时抛出异常，提示使用新的API
       throw UnimplementedError(
         '请使用 AiServiceManager 或相应的 Riverpod Provider 来发送消息。'
-        '新的API提供更好的状态管理和错误处理。'
+        '新的API提供更好的状态管理和错误处理。',
       );
     } catch (e) {
       _logger.error('发送聊天消息失败', {'error': e.toString()});
@@ -98,7 +115,7 @@ class AiService {
     // 同样，这里需要Riverpod上下文
     throw UnimplementedError(
       '请使用 AiServiceManager 或相应的 Riverpod Provider 来发送流式消息。'
-      '新的API提供更好的状态管理和错误处理。'
+      '新的API提供更好的状态管理和错误处理。',
     );
   }
 
@@ -109,14 +126,11 @@ class AiService {
   }) async {
     await _ensureInitialized();
 
-    _logger.info('测试提供商连接', {
-      'providerId': providerId,
-      'modelName': modelName,
-    });
+    _logger.info('测试提供商连接', {'providerId': providerId, 'modelName': modelName});
 
     // 这里也需要通过某种方式获取provider实例
     throw UnimplementedError(
-      '请使用 AiServiceManager.testProvider 或相应的 Riverpod Provider。'
+      '请使用 AiServiceManager.testProvider 或相应的 Riverpod Provider。',
     );
   }
 
@@ -127,14 +141,11 @@ class AiService {
   }) async {
     await _ensureInitialized();
 
-    _logger.info('获取提供商模型列表', {
-      'providerId': providerId,
-      'useCache': useCache,
-    });
+    _logger.info('获取提供商模型列表', {'providerId': providerId, 'useCache': useCache});
 
     // 同样需要provider实例
     throw UnimplementedError(
-      '请使用 AiServiceManager.getModelsFromProvider 或相应的 Riverpod Provider。'
+      '请使用 AiServiceManager.getModelsFromProvider 或相应的 Riverpod Provider。',
     );
   }
 
@@ -161,7 +172,8 @@ class AiService {
 
   /// 获取支持的AI能力
   Set<String> getSupportedCapabilities() {
-    return _serviceManager.getSupportedCapabilities()
+    return _serviceManager
+        .getSupportedCapabilities()
         .map((capability) => capability.name)
         .toSet();
   }
@@ -188,7 +200,7 @@ final initializeAiServiceProvider = FutureProvider<void>((ref) async {
 /// 使用Riverpod的聊天服务辅助类
 class RiverpodAiService {
   final Ref ref;
-  
+
   RiverpodAiService(this.ref);
 
   /// 发送聊天消息（使用Riverpod状态管理）
@@ -213,7 +225,7 @@ class RiverpodAiService {
 
     // 使用服务管理器发送消息
     final serviceManager = ref.read(aiServiceManagerProvider);
-    
+
     return await serviceManager.sendMessage(
       provider: provider,
       assistant: assistant,
@@ -245,7 +257,7 @@ class RiverpodAiService {
 
     // 使用服务管理器发送流式消息
     final serviceManager = ref.read(aiServiceManagerProvider);
-    
+
     yield* serviceManager.sendMessageStream(
       provider: provider,
       assistant: assistant,
@@ -267,7 +279,7 @@ class RiverpodAiService {
     }
 
     final serviceManager = ref.read(aiServiceManagerProvider);
-    
+
     return await serviceManager.testProvider(
       provider: provider,
       modelName: modelName,
@@ -286,7 +298,7 @@ class RiverpodAiService {
     }
 
     final serviceManager = ref.read(aiServiceManagerProvider);
-    
+
     return await serviceManager.getModelsFromProvider(
       provider,
       useCache: useCache,

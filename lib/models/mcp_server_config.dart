@@ -1,14 +1,54 @@
-/// MCP 服务器配置模型
+/// MCP 服务器配置数据模型
+///
+/// 表示 MCP (Model Context Protocol) 服务器的配置信息。
+/// MCP 是一个开放协议，允许 AI 应用连接到外部工具和数据源。
+///
+/// 核心特性：
+/// - 🔌 **多协议支持**: 支持 STDIO、HTTP、SSE 连接类型
+/// - ⚙️ **命令配置**: 支持自定义启动命令和参数
+/// - 🌐 **环境变量**: 支持自定义环境变量配置
+/// - 📱 **平台适配**: 根据平台能力自动适配连接方式
+/// - ✅ **启用控制**: 可以启用或禁用特定服务器
+/// - 🔄 **序列化支持**: 支持 JSON 序列化和反序列化
+///
+/// 连接类型说明：
+/// - **STDIO**: 本地进程通信（桌面平台）
+/// - **HTTP**: HTTP API 连接（所有平台）
+/// - **SSE**: 服务器发送事件（所有平台）
+///
+/// 使用场景：
+/// - MCP 服务器的配置管理
+/// - 外部工具和服务的集成
+/// - AI 功能的扩展和增强
 class McpServerConfig {
+  /// 服务器唯一标识符
   final String id;
+
+  /// 服务器名称
   final String name;
+
+  /// 服务器描述
   final String description;
+
+  /// 服务器连接类型
   final McpServerType type;
+
+  /// 启动命令
   final String command;
+
+  /// 命令参数列表
   final List<String> args;
+
+  /// 环境变量配置
   final Map<String, String> env;
+
+  /// 是否启用此服务器
   final bool isEnabled;
+
+  /// 创建时间
   final DateTime createdAt;
+
+  /// 最后更新时间
   final DateTime updatedAt;
 
   const McpServerConfig({
@@ -123,10 +163,22 @@ class McpServerConfig {
   int get hashCode => id.hashCode;
 }
 
-/// MCP 服务器类型
+/// MCP 服务器连接类型枚举
+///
+/// 定义 MCP 服务器支持的连接方式，不同类型适用于不同的部署场景。
+///
+/// 连接类型说明：
+/// - **STDIO**: 标准输入输出，适用于本地进程通信
+/// - **HTTP**: HTTP API 接口，适用于远程服务调用
+/// - **SSE**: 服务器发送事件，适用于实时数据推送
 enum McpServerType {
+  /// 标准输入输出连接（本地进程）
   stdio,
+
+  /// HTTP API 连接（远程服务）
   http,
+
+  /// 服务器发送事件连接（实时推送）
   sse;
 
   /// 从字符串创建类型
@@ -169,9 +221,26 @@ enum McpServerType {
   }
 }
 
-/// MCP 服务器列表配置
+/// MCP 服务器列表配置数据模型
+///
+/// 管理多个 MCP 服务器的配置集合，提供统一的服务器管理功能。
+///
+/// 核心功能：
+/// - 📋 **服务器列表**: 管理多个 MCP 服务器配置
+/// - 🔍 **查找功能**: 按 ID 查找特定服务器
+/// - ✅ **筛选功能**: 获取启用的服务器列表
+/// - ➕ **增删改**: 支持服务器的增加、删除、更新操作
+/// - 🔄 **序列化**: 支持整体配置的序列化和反序列化
+///
+/// 使用场景：
+/// - MCP 服务器的批量管理
+/// - 配置的导入导出
+/// - 服务器状态的统一控制
 class McpServersConfig {
+  /// MCP 服务器配置列表
   final List<McpServerConfig> servers;
+
+  /// 配置最后更新时间
   final DateTime updatedAt;
 
   const McpServersConfig({required this.servers, required this.updatedAt});

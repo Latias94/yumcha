@@ -3,7 +3,30 @@ import '../services/favorite_model_repository.dart';
 import '../services/database_service.dart';
 import '../services/logger_service.dart';
 
-/// 收藏模型状态管理类
+/// 收藏模型状态管理器
+///
+/// 负责管理用户收藏的 AI 模型状态和操作。用户可以收藏常用的模型，
+/// 以便在模型选择时快速访问。
+///
+/// 核心功能：
+/// - ⭐ **收藏管理**: 添加、移除、切换模型收藏状态
+/// - 📋 **列表管理**: 获取所有收藏模型或按提供商筛选
+/// - 🔍 **状态查询**: 检查特定模型是否已被收藏
+/// - 🔄 **实时同步**: 实时同步收藏状态变化
+/// - 📊 **异步加载**: 使用 AsyncValue 管理加载状态和错误处理
+/// - 🏷️ **分类查询**: 按提供商查询收藏的模型
+///
+/// 业务逻辑：
+/// - 收藏基于 providerId + modelName 的组合唯一性
+/// - 用户可以在模型选择界面快速收藏/取消收藏模型
+/// - 收藏的模型会在模型选择界面优先显示
+/// - 支持按提供商分类查看收藏的模型
+///
+/// 使用场景：
+/// - 模型选择界面的收藏功能
+/// - 快速访问常用模型
+/// - 个性化模型管理
+/// - 收藏模型的统计和展示
 class FavoriteModelNotifier
     extends StateNotifier<AsyncValue<List<FavoriteModel>>> {
   FavoriteModelNotifier() : super(const AsyncValue.loading()) {

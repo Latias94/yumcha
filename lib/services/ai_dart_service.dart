@@ -9,7 +9,23 @@ import '../ai_dart/core/llm_error.dart';
 import '../ai_dart/utils/reasoning_utils.dart';
 import 'logger_service.dart';
 
-/// Service that adapts the new AI Dart library to the existing service architecture
+/// AI Dart 服务适配器
+///
+/// 这个服务作为新的 ai_dart 库与现有服务架构之间的适配层，
+/// 提供统一的接口来使用 ai_dart 库的功能。
+///
+/// 主要功能：
+/// - 🔄 **适配转换**: 将应用模型转换为 ai_dart 库模型
+/// - 🤖 **提供商管理**: 支持多种 AI 提供商（OpenAI、Anthropic、Google等）
+/// - 💬 **聊天功能**: 提供单次和流式聊天接口
+/// - 🧠 **推理支持**: 支持 AI 推理思考过程显示
+/// - 🔧 **工具调用**: 支持 AI 工具和函数调用
+/// - 🧪 **连接测试**: 提供提供商连接测试功能
+///
+/// 使用场景：
+/// - 替代旧版 AI 服务实现
+/// - 提供更好的错误处理和日志记录
+/// - 支持最新的 AI 功能（推理、工具调用等）
 class AiDartService {
   static final AiDartService _instance = AiDartService._internal();
   factory AiDartService() => _instance;

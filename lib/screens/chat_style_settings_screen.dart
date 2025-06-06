@@ -1,9 +1,36 @@
+// 🎨 聊天样式设置屏幕
+//
+// 用于配置聊天消息的显示样式，提供不同的消息展示方式选择。
+// 用户可以根据个人偏好选择最适合的聊天界面样式。
+//
+// 🎯 **主要功能**:
+// - 🎨 **样式选择**: 在气泡样式和列表样式之间切换
+// - 👀 **实时预览**: 提供样式效果的实时预览
+// - 💾 **偏好保存**: 自动保存用户的样式偏好设置
+// - 📱 **响应式设计**: 适配不同屏幕尺寸的显示效果
+// - ✅ **即时反馈**: 切换样式时提供操作成功提示
+//
+// 🎨 **支持的样式**:
+// - **气泡样式**: 传统聊天气泡，有背景色和圆角，类似微信、QQ
+// - **列表样式**: 无背景色，占满宽度，适合长文本阅读
+//
+// 📱 **界面特点**:
+// - 使用 SliverAppBar 提供大标题效果
+// - 单选按钮组织样式选择
+// - 实时预览区域展示效果
+// - 清晰的样式说明和图标指示
+//
+// 💡 **设计理念**:
+// - 提供个性化的聊天体验
+// - 满足不同用户的阅读习惯
+// - 简化样式切换流程
+// - 直观的效果预览
+
 import 'package:flutter/material.dart';
 import '../models/chat_bubble_style.dart';
 import '../services/preference_service.dart';
 import '../services/notification_service.dart';
 
-/// 显示设置页面
 class DisplaySettingsScreen extends StatefulWidget {
   const DisplaySettingsScreen({super.key});
 

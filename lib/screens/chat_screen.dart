@@ -1,3 +1,32 @@
+// 💬 聊天屏幕
+//
+// YumCha 应用的主要聊天界面，提供与 AI 助手的对话功能。
+// 这是应用的核心屏幕，用户在此与 AI 进行交互。
+//
+// 🎯 **主要功能**:
+// - 💬 **AI 对话**: 与选定的 AI 助手进行实时对话
+// - 🤖 **助手切换**: 在对话中切换不同的 AI 助手
+// - 🔌 **模型切换**: 动态切换 AI 提供商和模型
+// - 📝 **消息管理**: 显示、发送、管理聊天消息
+// - ⚙️ **配置管理**: 自动确保有效的助手和模型配置
+// - 🧹 **对话清空**: 支持清空当前对话记录
+//
+// 🏗️ **架构特点**:
+// - 使用 Riverpod 进行状态管理
+// - 基于 ChatView 组件构建聊天界面
+// - 支持配置变化的回调通知
+// - 自动处理配置的有效性验证
+//
+// 📱 **界面组成**:
+// - AppBar: 显示助手信息和操作按钮
+// - ChatView: 主要的聊天交互区域
+// - 助手设置面板: 底部弹出的助手选择界面
+//
+// 🔄 **状态管理**:
+// - 接收外部传入的对话状态
+// - 自动同步配置变化到父组件
+// - 处理助手、提供商、模型的选择逻辑
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/conversation_ui_state.dart';
@@ -8,7 +37,6 @@ import '../services/notification_service.dart';
 import '../providers/providers.dart';
 import '../ui/chat/chat_view.dart';
 
-/// 聊天屏幕 - 使用重构后的聊天组件
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
     super.key,

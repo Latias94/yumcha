@@ -5,7 +5,9 @@ import '../services/preference_service.dart';
 import '../services/provider_repository.dart';
 import '../services/database_service.dart';
 
-/// 聊天状态
+/// 聊天状态数据模型
+///
+/// 包含聊天界面的所有状态信息，包括消息列表、加载状态、选择的配置等
 class ChatState {
   final List<Message> messages;
   final bool isLoading;
@@ -42,7 +44,33 @@ class ChatState {
   }
 }
 
-/// 聊天状态管理类
+/// 聊天状态管理器
+///
+/// 负责管理聊天界面的状态和聊天逻辑。这是一个较旧的聊天管理器，
+/// 主要用于向后兼容，新的聊天功能建议使用 ConversationNotifier。
+///
+/// 核心功能：
+/// - 💬 **消息管理**: 管理聊天消息的发送、接收和显示
+/// - 🔄 **配置管理**: 管理助手、提供商、模型的选择
+/// - 📡 **流式聊天**: 支持实时流式 AI 响应
+/// - 💾 **偏好保存**: 保存用户的模型选择偏好
+/// - ⚙️ **自动配置**: 自动选择可用的模型配置
+/// - 🛡️ **错误处理**: 处理聊天过程中的各种错误情况
+///
+/// 业务逻辑：
+/// - 启动时自动恢复用户上次使用的模型配置
+/// - 发送消息前会验证配置的完整性和有效性
+/// - 支持普通聊天和流式聊天两种模式
+/// - 自动保存用户的模型选择偏好
+///
+/// 注意：
+/// - 这是较旧的实现，建议新功能使用 ConversationNotifier
+/// - 主要用于向后兼容和特定场景的聊天功能
+///
+/// 使用场景：
+/// - 简单的聊天界面
+/// - 向后兼容的聊天功能
+/// - 特定场景的聊天逻辑
 class ChatNotifier extends StateNotifier<ChatState> {
   ChatNotifier() : super(const ChatState()) {
     _initializeDefaults();

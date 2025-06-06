@@ -1,35 +1,107 @@
+/// AI 助手数据模型
+///
+/// 表示用户创建的个性化 AI 助手。每个助手都有独特的系统提示词、
+/// AI 参数配置和功能设置，不绑定特定的提供商或模型。
+///
+/// 核心特性：
+/// - 🎭 **个性化配置**: 独特的系统提示词和 AI 参数
+/// - 🔧 **灵活参数**: 温度、Top-P、最大 token 等可调节参数
+/// - 🛠️ **功能开关**: 代码执行、图像生成、工具调用等功能控制
+/// - 🎯 **独立性**: 不绑定特定提供商或模型，可灵活切换
+/// - ✅ **参数验证**: 内置参数范围验证功能
+///
+/// 业务逻辑：
+/// - 用户可以创建多个助手，每个助手代表不同的聊天角色
+/// - 助手配置包括基本信息、AI 参数、功能设置等
+/// - 在聊天时选择助手，然后可以切换不同的提供商模型组合
+/// - 助手的参数会影响 AI 的回复风格和行为
+///
+/// 使用场景：
+/// - 创建专门的编程助手、写作助手、翻译助手等
+/// - 为不同场景配置不同的 AI 参数
+/// - 管理多个个性化的 AI 角色
 class AiAssistant {
+  /// 助手唯一标识符
   final String id;
+
+  /// 助手名称
   final String name;
+
+  /// 助手描述
   final String description;
-  final String avatar; // 头像emoji或图片路径
+
+  /// 头像 emoji 或图片路径
+  final String avatar;
+
+  /// 系统提示词 - 定义助手的角色和行为
   final String systemPrompt;
 
-  // AI参数
-  final double temperature; // 温度 0.0-2.0
-  final double topP; // Top-P 0.0-1.0
-  final int maxTokens; // 最大输出token数
-  final int contextLength; // 上下文长度（消息数量）
-  final bool streamOutput; // 是否流式输出
-  final double? frequencyPenalty; // 频率惩罚 -2.0-2.0
-  final double? presencePenalty; // 存在惩罚 -2.0-2.0
+  // ========== AI 参数配置 ==========
 
-  // 自定义配置
+  /// 温度参数 (0.0-2.0) - 控制回复的随机性和创造性
+  /// 0.0: 最确定性的回复
+  /// 1.0: 平衡的创造性
+  /// 2.0: 最大的随机性和创造性
+  final double temperature;
+
+  /// Top-P 参数 (0.0-1.0) - 核心采样，控制词汇选择的多样性
+  final double topP;
+
+  /// 最大输出 token 数 - 限制 AI 回复的长度
+  final int maxTokens;
+
+  /// 上下文长度（消息数量）- 0 表示无限制，其他值表示保留的历史消息数
+  final int contextLength;
+
+  /// 是否启用流式输出 - 实时显示 AI 回复过程
+  final bool streamOutput;
+
+  /// 频率惩罚 (-2.0-2.0) - 减少重复词汇的使用
+  final double? frequencyPenalty;
+
+  /// 存在惩罚 (-2.0-2.0) - 鼓励谈论新话题
+  final double? presencePenalty;
+
+  // ========== 自定义配置 ==========
+
+  /// 自定义 HTTP 请求头
   final Map<String, String> customHeaders;
+
+  /// 自定义请求体参数
   final Map<String, dynamic> customBody;
-  final List<String> stopSequences; // 停止序列
 
-  // 功能设置
-  final bool enableCodeExecution; // 是否启用代码执行
-  final bool enableImageGeneration; // 是否启用图像生成
-  final bool enableTools; // 是否支持工具调用/函数调用
-  final bool enableReasoning; // 是否支持推理增强
-  final bool enableVision; // 是否支持视觉理解
-  final bool enableEmbedding; // 是否支持向量嵌入
+  /// 停止序列 - AI 遇到这些序列时停止生成
+  final List<String> stopSequences;
 
-  // 元数据
+  // ========== 功能开关 ==========
+
+  /// 是否启用代码执行功能
+  final bool enableCodeExecution;
+
+  /// 是否启用图像生成功能
+  final bool enableImageGeneration;
+
+  /// 是否支持工具调用/函数调用
+  final bool enableTools;
+
+  /// 是否支持推理增强（如 OpenAI o1 系列）
+  final bool enableReasoning;
+
+  /// 是否支持视觉理解（图像输入）
+  final bool enableVision;
+
+  /// 是否支持向量嵌入
+  final bool enableEmbedding;
+
+  // ========== 元数据 ==========
+
+  /// 是否启用此助手
   final bool isEnabled;
+
+  /// 创建时间
   final DateTime createdAt;
+
+  /// 最后更新时间
   final DateTime updatedAt;
 
   const AiAssistant({
@@ -114,23 +186,34 @@ class AiAssistant {
     );
   }
 
-  // 验证参数范围
+  // ========== 参数验证方法 ==========
+
+  /// 验证温度参数是否在有效范围内 (0.0-2.0)
   bool get isTemperatureValid => temperature >= 0.0 && temperature <= 2.0;
+
+  /// 验证 Top-P 参数是否在有效范围内 (0.0-1.0)
   bool get isTopPValid => topP >= 0.0 && topP <= 1.0;
+
+  /// 验证最大 token 数是否在有效范围内 (1-8192)
   bool get isMaxTokensValid => maxTokens > 0 && maxTokens <= 8192;
+
+  /// 验证上下文长度是否有效
+  /// 0 表示无限制，1-256 表示具体的消息数量
   bool get isContextLengthValid =>
       contextLength == 0 || // 0表示无限制
       (contextLength >= 1 && contextLength <= 256); // 1-256表示具体数量
 
+  /// 验证频率惩罚参数是否在有效范围内 (-2.0-2.0)
   bool get isFrequencyPenaltyValid =>
       frequencyPenalty == null ||
       (frequencyPenalty! >= -2.0 && frequencyPenalty! <= 2.0);
 
+  /// 验证存在惩罚参数是否在有效范围内 (-2.0-2.0)
   bool get isPresencePenaltyValid =>
       presencePenalty == null ||
       (presencePenalty! >= -2.0 && presencePenalty! <= 2.0);
 
-  // 获取所有参数是否有效
+  /// 检查所有参数是否都在有效范围内
   bool get isValid =>
       isTemperatureValid &&
       isTopPValid &&

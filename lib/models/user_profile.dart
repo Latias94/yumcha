@@ -1,16 +1,53 @@
 import 'package:flutter/foundation.dart';
 
+/// 用户档案数据模型
+///
+/// 表示用户的个人信息和档案数据，包含基本信息、状态、社交信息等。
+/// 这个模型主要用于用户身份识别和个人信息展示。
+///
+/// 核心特性：
+/// - 👤 **身份信息**: 用户 ID、姓名、显示名称等基本身份信息
+/// - 📊 **状态信息**: 用户状态、职位、描述等动态信息
+/// - 🖼️ **头像支持**: 支持用户头像 URL
+/// - 🌐 **社交信息**: 支持 Twitter 等社交媒体链接
+/// - 🌍 **时区支持**: 支持用户时区设置
+/// - 🔄 **不可变性**: 使用 @immutable 确保数据不可变
+///
+/// 使用场景：
+/// - 用户信息展示
+/// - 个人档案管理
+/// - 社交功能支持
+/// - 多用户系统的身份识别
 @immutable
 class UserProfile {
+  /// 用户唯一标识符
   final String userId;
+
+  /// 用户真实姓名
   final String name;
+
+  /// 用户显示名称（昵称）
   final String displayName;
+
+  /// 用户状态（在线、离线、忙碌等）
   final String status;
+
+  /// 用户职位或角色
   final String position;
+
+  /// 用户描述或个人简介
   final String description;
+
+  /// 用户头像 URL
   final String? avatarUrl;
+
+  /// Twitter 用户名或链接
   final String? twitter;
+
+  /// 用户时区
   final String? timeZone;
+
+  /// 共同频道或群组信息
   final String? commonChannels;
 
   const UserProfile({

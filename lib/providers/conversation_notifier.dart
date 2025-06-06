@@ -11,7 +11,9 @@ import 'ai_provider_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-/// 当前对话状态
+/// 当前对话状态数据模型
+///
+/// 包含当前活跃对话的所有状态信息
 class CurrentConversationState {
   final ConversationUiState? conversation;
   final bool isLoading;
@@ -40,7 +42,36 @@ class CurrentConversationState {
   }
 }
 
-/// 当前对话状态管理
+/// 当前对话状态管理器
+///
+/// 负责管理当前活跃对话的状态和操作。这是主要的对话管理器，
+/// 处理对话的创建、加载、切换和标题生成等核心功能。
+///
+/// 核心功能：
+/// - 💬 **对话管理**: 创建新对话、加载现有对话、切换对话
+/// - 🏷️ **智能标题**: 自动生成对话标题，支持手动重新生成
+/// - 💾 **配置恢复**: 恢复用户上次使用的助手和模型配置
+/// - 🔄 **状态同步**: 实时同步对话状态变化
+/// - 🛡️ **防抖机制**: 防止重复创建对话的操作
+/// - 📊 **持久化**: 自动保存对话到数据库
+///
+/// 业务逻辑：
+/// - 用户通过 AI 助手创建聊天，助手不绑定特定提供商和模型
+/// - 在聊天过程中可以切换不同的提供商模型组合
+/// - 系统会记住用户的配置选择，下次启动时自动恢复
+/// - 当对话有足够内容时，自动生成有意义的标题
+/// - 支持手动重新生成标题功能
+///
+/// 标题生成策略：
+/// - 对话至少有2条消息（用户+AI回复）时触发
+/// - 只对默认标题"新对话"进行自动更新
+/// - 支持使用默认标题生成模型或当前对话模型
+/// - 防止重复生成和并发冲突
+///
+/// 使用场景：
+/// - 主聊天界面的对话管理
+/// - 对话列表的状态同步
+/// - 新建对话和对话切换
 class CurrentConversationNotifier
     extends StateNotifier<CurrentConversationState> {
   CurrentConversationNotifier(this.ref)

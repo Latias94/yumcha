@@ -1,3 +1,37 @@
+// 🔧 AI 提供商编辑屏幕
+//
+// 用于创建和编辑 AI 提供商配置的详细界面。
+// 支持配置多种主流 AI 服务商，包括 API 密钥、模型列表等。
+//
+// 🎯 **主要功能**:
+// - ➕ **添加提供商**: 创建新的 AI 服务提供商配置
+// - ✏️ **编辑提供商**: 修改现有提供商的配置
+// - 🔌 **类型选择**: 支持 OpenAI、Anthropic、Google、Ollama、自定义等类型
+// - 🔑 **API 配置**: 配置 API 密钥和 Base URL
+// - 🧠 **模型管理**: 添加、编辑、删除提供商的模型列表
+// - 🌐 **自定义 URL**: 支持自定义 API 服务器地址
+// - ✅ **配置验证**: 验证配置的完整性和有效性
+// - 💾 **保存配置**: 保存提供商配置到数据库
+//
+// 📱 **界面组织**:
+// - 基本信息：名称、类型、启用状态
+// - API 配置：API 密钥、Base URL 设置
+// - 模型配置：使用 ModelListWidget 管理模型列表
+// - 提供详细的帮助文本和配置说明
+//
+// 🔌 **支持的提供商类型**:
+// - OpenAI: GPT 系列模型，支持自定义 Base URL
+// - Anthropic: Claude 系列模型
+// - Google: Gemini 系列模型
+// - Ollama: 本地部署的开源模型
+// - Custom: 用户自定义的 API 接口
+//
+// 🛠️ **特殊功能**:
+// - 自动填充默认 Base URL
+// - 支持 API 密钥的安全输入（密码模式）
+// - 集成模型管理组件
+// - 实时配置验证和错误提示
+
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

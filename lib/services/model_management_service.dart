@@ -3,7 +3,26 @@ import '../models/ai_provider.dart';
 import '../services/ai_service.dart';
 import '../services/logger_service.dart';
 
-/// 模型管理服务 - 负责从提供商获取和管理模型列表
+/// 模型管理服务
+///
+/// 负责从 AI 提供商获取和管理模型列表的服务。
+///
+/// 主要功能：
+/// - 📋 **模型获取**: 从提供商 API 动态获取可用模型列表
+/// - 🔍 **能力检测**: 检测提供商是否支持模型列表 API
+/// - 🛡️ **错误处理**: 提供详细的错误信息和处理建议
+/// - 🔑 **认证验证**: 验证 API 密钥的有效性
+/// - 🌐 **网络检测**: 检测网络连接和 Base URL 配置
+///
+/// 设计理念：
+/// - 不再提供硬编码的回退模型列表
+/// - 鼓励用户手动添加模型以确保准确性
+/// - 提供清晰的错误信息指导用户解决问题
+///
+/// 使用场景：
+/// - 提供商配置界面的模型获取
+/// - 验证提供商配置的有效性
+/// - 帮助用户诊断连接问题
 class ModelManagementService {
   static final ModelManagementService _instance =
       ModelManagementService._internal();
