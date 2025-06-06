@@ -4,7 +4,7 @@ import '../../core/registry.dart';
 import '../deepseek_provider.dart';
 
 /// Factory for creating DeepSeek provider instances
-class DeepSeekProviderFactory implements LLMProviderFactory<DeepSeekProvider> {
+class DeepSeekProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'deepseek';
 
@@ -24,7 +24,7 @@ class DeepSeekProviderFactory implements LLMProviderFactory<DeepSeekProvider> {
       };
 
   @override
-  DeepSeekProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final deepseekConfig = _transformConfig(config);
     return DeepSeekProvider(deepseekConfig);
   }

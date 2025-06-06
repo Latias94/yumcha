@@ -51,20 +51,21 @@ class PhindConfig {
     int? topK,
     List<Tool>? tools,
     ToolChoice? toolChoice,
-  }) => PhindConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    toolChoice: toolChoice ?? this.toolChoice,
-  );
+  }) =>
+      PhindConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        toolChoice: toolChoice ?? this.toolChoice,
+      );
 }
 
 /// Phind chat response implementation for parsed streaming responses
@@ -83,14 +84,15 @@ class _PhindChatResponse implements ChatResponse {
   UsageInfo? get usage => null; // Phind doesn't provide usage info
 
   @override
-  String? get thinking => null; // Phind doesn't support thinking/reasoning content
+  String? get thinking =>
+      null; // Phind doesn't support thinking/reasoning content
 
   @override
   String toString() => _content;
 }
 
 /// Phind provider implementation
-class PhindProvider implements StreamingChatProvider {
+class PhindProvider implements ChatCapability {
   static final Logger _logger = Logger('PhindProvider');
 
   final PhindConfig config;
@@ -253,9 +255,8 @@ class PhindProvider implements StreamingChatProvider {
     }
 
     // Find the last user message for user_input field
-    final lastUserMessage = messages
-        .where((m) => m.role == ChatRole.user)
-        .lastOrNull;
+    final lastUserMessage =
+        messages.where((m) => m.role == ChatRole.user).lastOrNull;
 
     return {
       'additional_extension_context': '',

@@ -57,22 +57,23 @@ class AnthropicConfig {
     ToolChoice? toolChoice,
     bool? reasoning,
     int? thinkingBudgetTokens,
-  }) => AnthropicConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    toolChoice: toolChoice ?? this.toolChoice,
-    reasoning: reasoning ?? this.reasoning,
-    thinkingBudgetTokens: thinkingBudgetTokens ?? this.thinkingBudgetTokens,
-  );
+  }) =>
+      AnthropicConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        toolChoice: toolChoice ?? this.toolChoice,
+        reasoning: reasoning ?? this.reasoning,
+        thinkingBudgetTokens: thinkingBudgetTokens ?? this.thinkingBudgetTokens,
+      );
 }
 
 /// Anthropic chat response implementation
@@ -113,9 +114,8 @@ class AnthropicChatResponse implements ChatResponse {
     final content = _rawResponse['content'] as List?;
     if (content == null || content.isEmpty) return null;
 
-    final toolUseBlocks = content
-        .where((block) => block['type'] == 'tool_use')
-        .toList();
+    final toolUseBlocks =
+        content.where((block) => block['type'] == 'tool_use').toList();
 
     if (toolUseBlocks.isEmpty) return null;
 
@@ -141,8 +141,7 @@ class AnthropicChatResponse implements ChatResponse {
     return UsageInfo(
       promptTokens: usageData['input_tokens'] as int?,
       completionTokens: usageData['output_tokens'] as int?,
-      totalTokens:
-          (usageData['input_tokens'] as int? ?? 0) +
+      totalTokens: (usageData['input_tokens'] as int? ?? 0) +
           (usageData['output_tokens'] as int? ?? 0),
     );
   }
@@ -172,7 +171,7 @@ class AnthropicChatResponse implements ChatResponse {
 }
 
 /// Anthropic provider implementation
-class AnthropicProvider implements StreamingChatProvider, LLMProvider {
+class AnthropicProvider implements ChatCapability {
   final AnthropicConfig config;
   final Dio _dio;
   final Logger _logger = Logger('AnthropicProvider');
@@ -561,63 +560,4 @@ class AnthropicProvider implements StreamingChatProvider, LLMProvider {
         return error;
     }
   }
-
-  // CompletionProvider methods
-  @override
-  Future<CompletionResponse> complete(CompletionRequest request) async {
-    // Convert completion request to chat format (similar to Rust implementation)
-    final messages = [ChatMessage.user(request.prompt)];
-
-    // Create a temporary config for completion
-    final completionConfig = config.copyWith(
-      maxTokens: request.maxTokens ?? config.maxTokens,
-      temperature: request.temperature ?? config.temperature,
-      topP: request.topP ?? config.topP,
-      topK: request.topK ?? config.topK,
-    );
-
-    // Create temporary provider with completion config
-    final tempProvider = AnthropicProvider(completionConfig);
-    final response = await tempProvider.chat(messages);
-
-    final text = response.text;
-    if (text == null) {
-      throw const GenericError('No text in completion response');
-    }
-
-    return CompletionResponse(text: text, usage: response.usage);
-  }
-
-  // EmbeddingProvider methods
-  @override
-  Future<List<List<double>>> embed(List<String> input) async {
-    throw const ProviderError('Embedding not supported by Anthropic');
-  }
-
-  // SpeechToTextProvider methods
-  @override
-  Future<String> transcribe(List<int> audio) async {
-    throw const ProviderError('Speech to text not supported by Anthropic');
-  }
-
-  @override
-  Future<String> transcribeFile(String filePath) async {
-    throw const ProviderError('Speech to text not supported by Anthropic');
-  }
-
-  // TextToSpeechProvider methods
-  @override
-  Future<List<int>> speech(String text) async {
-    throw const ProviderError('Text to speech not supported by Anthropic');
-  }
-
-  // ModelProvider methods
-  @override
-  Future<List<AIModel>> models() async {
-    throw const ProviderError('Model listing not supported by Anthropic');
-  }
-
-  // LLMProvider methods
-  @override
-  List<Tool>? get tools => config.tools;
 }

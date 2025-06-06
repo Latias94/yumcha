@@ -19,9 +19,9 @@ class SearchSource {
   const SearchSource({required this.sourceType, this.excludedWebsites});
 
   Map<String, dynamic> toJson() => {
-    'type': sourceType,
-    if (excludedWebsites != null) 'excluded_websites': excludedWebsites,
-  };
+        'type': sourceType,
+        if (excludedWebsites != null) 'excluded_websites': excludedWebsites,
+      };
 }
 
 /// Search parameters for LLM providers that support search functionality
@@ -50,12 +50,13 @@ class SearchParameters {
   });
 
   Map<String, dynamic> toJson() => {
-    if (mode != null) 'mode': mode,
-    if (sources != null) 'sources': sources!.map((s) => s.toJson()).toList(),
-    if (maxSearchResults != null) 'max_search_results': maxSearchResults,
-    if (fromDate != null) 'from_date': fromDate,
-    if (toDate != null) 'to_date': toDate,
-  };
+        if (mode != null) 'mode': mode,
+        if (sources != null)
+          'sources': sources!.map((s) => s.toJson()).toList(),
+        if (maxSearchResults != null) 'max_search_results': maxSearchResults,
+        if (fromDate != null) 'from_date': fromDate,
+        if (toDate != null) 'to_date': toDate,
+      };
 }
 
 /// xAI provider configuration
@@ -113,25 +114,26 @@ class XAIConfig {
     String? embeddingEncodingFormat,
     int? embeddingDimensions,
     SearchParameters? searchParameters,
-  }) => XAIConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    toolChoice: toolChoice ?? this.toolChoice,
-    jsonSchema: jsonSchema ?? this.jsonSchema,
-    embeddingEncodingFormat:
-        embeddingEncodingFormat ?? this.embeddingEncodingFormat,
-    embeddingDimensions: embeddingDimensions ?? this.embeddingDimensions,
-    searchParameters: searchParameters ?? this.searchParameters,
-  );
+  }) =>
+      XAIConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        toolChoice: toolChoice ?? this.toolChoice,
+        jsonSchema: jsonSchema ?? this.jsonSchema,
+        embeddingEncodingFormat:
+            embeddingEncodingFormat ?? this.embeddingEncodingFormat,
+        embeddingDimensions: embeddingDimensions ?? this.embeddingDimensions,
+        searchParameters: searchParameters ?? this.searchParameters,
+      );
 }
 
 /// xAI chat response implementation
@@ -164,7 +166,8 @@ class XAIChatResponse implements ChatResponse {
   }
 
   @override
-  String? get thinking => null; // XAI doesn't support thinking/reasoning content
+  String? get thinking =>
+      null; // XAI doesn't support thinking/reasoning content
 
   @override
   String toString() {
@@ -216,7 +219,7 @@ class XAIEmbeddingResponse {
 }
 
 /// xAI provider implementation
-class XAIProvider implements StreamingChatProvider {
+class XAIProvider implements ChatCapability {
   final XAIConfig config;
   final Dio _dio;
   final Logger _logger = Logger('XAIProvider');

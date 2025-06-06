@@ -38,8 +38,8 @@ Future<void> testOpenAIModels(String apiKey) async {
         .build();
 
     // Check if provider supports model listing
-    if (llm is ModelProvider) {
-      final modelProvider = llm as ModelProvider;
+    if (llm is ModelListingCapability) {
+      final modelProvider = llm as ModelListingCapability;
       final models = await modelProvider.models();
 
       if (models.isEmpty) {
@@ -94,8 +94,8 @@ Future<void> testOllamaModels(String baseUrl) async {
         .build();
 
     // Check if provider supports model listing
-    if (llm is ModelProvider) {
-      final modelProvider = llm as ModelProvider;
+    if (llm is ModelListingCapability) {
+      final modelProvider = llm as ModelListingCapability;
       final models = await modelProvider.models();
 
       if (models.isEmpty) {

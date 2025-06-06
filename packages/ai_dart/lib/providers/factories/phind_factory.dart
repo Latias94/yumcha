@@ -5,7 +5,7 @@ import '../../models/tool_models.dart';
 import '../openai_provider.dart';
 
 /// Factory for creating Phind provider instances using OpenAI-compatible interface
-class PhindProviderFactory implements LLMProviderFactory<OpenAIProvider> {
+class PhindProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'phind';
 
@@ -24,7 +24,7 @@ class PhindProviderFactory implements LLMProviderFactory<OpenAIProvider> {
       };
 
   @override
-  OpenAIProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final phindConfig = _transformConfig(config);
     return OpenAIProvider(phindConfig);
   }

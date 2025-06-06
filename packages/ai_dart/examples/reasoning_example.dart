@@ -48,7 +48,7 @@ Future<void> streamingExample() async {
 
   try {
     // Check if provider supports streaming
-    if (llm is StreamingChatProvider) {
+    if (llm is ChatCapability) {
       print('🧠 Starting reasoning model chat with thinking support...\n');
 
       var thinkingContent = StringBuffer();

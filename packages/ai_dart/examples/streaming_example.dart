@@ -29,7 +29,7 @@ void main() async {
 
   try {
     // Check if provider supports streaming
-    if (llm is StreamingChatProvider) {
+    if (llm is ChatCapability) {
       print('🚀 Starting streaming chat...\n');
       print('Response: ');
 

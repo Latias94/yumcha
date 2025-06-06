@@ -51,20 +51,21 @@ class GoogleConfig {
     int? topK,
     List<Tool>? tools,
     StructuredOutputFormat? jsonSchema,
-  }) => GoogleConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    jsonSchema: jsonSchema ?? this.jsonSchema,
-  );
+  }) =>
+      GoogleConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        jsonSchema: jsonSchema ?? this.jsonSchema,
+      );
 }
 
 /// Google chat response implementation
@@ -138,7 +139,8 @@ class GoogleChatResponse implements ChatResponse {
   }
 
   @override
-  String? get thinking => null; // Google doesn't support thinking/reasoning content
+  String? get thinking =>
+      null; // Google doesn't support thinking/reasoning content
 
   @override
   String toString() {
@@ -158,7 +160,7 @@ class GoogleChatResponse implements ChatResponse {
 }
 
 /// Google (Gemini) provider implementation
-class GoogleProvider implements StreamingChatProvider {
+class GoogleProvider implements ChatCapability {
   final GoogleConfig config;
   final Dio _dio;
   static final Logger _logger = Logger('GoogleProvider');
@@ -361,9 +363,8 @@ class GoogleProvider implements StreamingChatProvider {
     if (effectiveTools != null && effectiveTools.isNotEmpty) {
       body['tools'] = [
         {
-          'functionDeclarations': effectiveTools
-              .map((t) => _convertTool(t))
-              .toList(),
+          'functionDeclarations':
+              effectiveTools.map((t) => _convertTool(t)).toList(),
         },
       ];
     }

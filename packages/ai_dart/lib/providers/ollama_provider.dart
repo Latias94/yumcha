@@ -51,20 +51,21 @@ class OllamaConfig {
     int? topK,
     List<Tool>? tools,
     StructuredOutputFormat? jsonSchema,
-  }) => OllamaConfig(
-    baseUrl: baseUrl ?? this.baseUrl,
-    apiKey: apiKey ?? this.apiKey,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    jsonSchema: jsonSchema ?? this.jsonSchema,
-  );
+  }) =>
+      OllamaConfig(
+        baseUrl: baseUrl ?? this.baseUrl,
+        apiKey: apiKey ?? this.apiKey,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        jsonSchema: jsonSchema ?? this.jsonSchema,
+      );
 }
 
 /// Ollama chat response implementation
@@ -118,7 +119,8 @@ class OllamaChatResponse implements ChatResponse {
   UsageInfo? get usage => null; // Ollama doesn't provide usage info
 
   @override
-  String? get thinking => null; // Ollama doesn't support thinking/reasoning content
+  String? get thinking =>
+      null; // Ollama doesn't support thinking/reasoning content
 
   @override
   String toString() {
@@ -140,20 +142,15 @@ class OllamaChatResponse implements ChatResponse {
 /// Ollama provider implementation
 class OllamaProvider
     implements
-        StreamingChatProvider,
-        CompletionProvider,
-        EmbeddingProvider,
-        SpeechToTextProvider,
-        TextToSpeechProvider,
-        LLMProvider {
+        ChatCapability,
+        CompletionCapability,
+        EmbeddingCapability,
+        ModelListingCapability {
   final OllamaConfig config;
   final Dio _dio;
   static final Logger _logger = Logger('OllamaProvider');
 
   OllamaProvider(this.config) : _dio = _createDio(config);
-
-  @override
-  List<Tool>? get tools => config.tools;
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -432,8 +429,7 @@ class OllamaProvider
       }
 
       final responseData = response.data as Map<String, dynamic>;
-      final text =
-          responseData['response'] as String? ??
+      final text = responseData['response'] as String? ??
           responseData['content'] as String?;
 
       if (text == null || text.isEmpty) {
@@ -482,27 +478,6 @@ class OllamaProvider
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
-  }
-
-  @override
-  Future<String> transcribe(List<int> audio) async {
-    throw const ProviderError(
-      'Ollama does not implement speech to text endpoint yet.',
-    );
-  }
-
-  @override
-  Future<String> transcribeFile(String filePath) async {
-    throw const ProviderError(
-      'Ollama does not implement speech to text endpoint yet.',
-    );
-  }
-
-  @override
-  Future<List<int>> speech(String text) async {
-    throw const ProviderError(
-      'Ollama does not implement text to speech endpoint yet.',
-    );
   }
 
   @override

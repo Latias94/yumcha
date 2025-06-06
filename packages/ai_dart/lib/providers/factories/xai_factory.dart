@@ -5,7 +5,7 @@ import '../../models/tool_models.dart';
 import '../openai_provider.dart';
 
 /// Factory for creating XAI provider instances using OpenAI-compatible interface
-class XAIProviderFactory implements LLMProviderFactory<OpenAIProvider> {
+class XAIProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'xai';
 
@@ -13,8 +13,7 @@ class XAIProviderFactory implements LLMProviderFactory<OpenAIProvider> {
   String get displayName => 'xAI (Grok)';
 
   @override
-  String get description =>
-      'xAI Grok models using OpenAI-compatible interface';
+  String get description => 'xAI Grok models using OpenAI-compatible interface';
 
   @override
   Set<LLMCapability> get supportedCapabilities => {
@@ -25,7 +24,7 @@ class XAIProviderFactory implements LLMProviderFactory<OpenAIProvider> {
       };
 
   @override
-  OpenAIProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final xaiConfig = _transformConfig(config);
     return OpenAIProvider(xaiConfig);
   }

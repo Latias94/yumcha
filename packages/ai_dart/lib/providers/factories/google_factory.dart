@@ -5,7 +5,7 @@ import '../../models/tool_models.dart';
 import '../google_provider.dart';
 
 /// Factory for creating Google (Gemini) provider instances
-class GoogleProviderFactory implements LLMProviderFactory<GoogleProvider> {
+class GoogleProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'google';
 
@@ -25,7 +25,7 @@ class GoogleProviderFactory implements LLMProviderFactory<GoogleProvider> {
       };
 
   @override
-  GoogleProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final googleConfig = _transformConfig(config);
     return GoogleProvider(googleConfig);
   }

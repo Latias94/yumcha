@@ -4,7 +4,7 @@ import '../../core/registry.dart';
 import '../anthropic_provider.dart';
 
 /// Factory for creating Anthropic provider instances
-class AnthropicProviderFactory implements LLMProviderFactory<AnthropicProvider> {
+class AnthropicProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'anthropic';
 
@@ -24,7 +24,7 @@ class AnthropicProviderFactory implements LLMProviderFactory<AnthropicProvider> 
       };
 
   @override
-  AnthropicProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final anthropicConfig = _transformConfig(config);
     return AnthropicProvider(anthropicConfig);
   }

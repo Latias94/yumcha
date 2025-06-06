@@ -147,10 +147,6 @@ abstract class ChatCapability {
   }
 }
 
-/// Legacy interface for backward compatibility
-@Deprecated('Use ChatCapability instead')
-abstract class ChatProvider extends ChatCapability {}
-
 /// Stream event for streaming chat responses
 sealed class ChatStreamEvent {
   const ChatStreamEvent();
@@ -189,23 +185,6 @@ class ErrorEvent extends ChatStreamEvent {
   final LLMError error;
 
   const ErrorEvent(this.error);
-}
-
-/// Legacy interface for backward compatibility
-@Deprecated(
-    'Use ChatCapability instead - streaming is now part of the core interface')
-abstract class StreamingChatProvider extends ChatProvider {
-  /// Sends a streaming chat request to the provider
-  ///
-  /// [messages] - The conversation history as a list of chat messages
-  /// [tools] - Optional list of tools to use in the chat
-  ///
-  /// Returns a stream of chat events
-  @override
-  Stream<ChatStreamEvent> chatStream(
-    List<ChatMessage> messages, {
-    List<Tool>? tools,
-  });
 }
 
 /// Completion request for text completion providers
@@ -300,37 +279,6 @@ abstract class CompletionCapability {
   ///
   /// Returns the generated completion text or throws an LLMError
   Future<CompletionResponse> complete(CompletionRequest request);
-}
-
-/// Legacy interfaces for backward compatibility
-@Deprecated('Use EmbeddingCapability instead')
-abstract class EmbeddingProvider extends EmbeddingCapability {}
-
-@Deprecated('Use SpeechToTextCapability instead')
-abstract class SpeechToTextProvider extends SpeechToTextCapability {}
-
-@Deprecated('Use TextToSpeechCapability instead')
-abstract class TextToSpeechProvider extends TextToSpeechCapability {}
-
-@Deprecated('Use ModelListingCapability instead')
-abstract class ModelProvider extends ModelListingCapability {}
-
-@Deprecated('Use CompletionCapability instead')
-abstract class CompletionProvider extends CompletionCapability {}
-
-/// Legacy "god interface" - deprecated in favor of capability-based interfaces
-@Deprecated(
-    'Use specific capability interfaces instead (ChatCapability, EmbeddingCapability, etc.)')
-abstract class LLMProvider
-    implements
-        ChatCapability,
-        CompletionCapability,
-        EmbeddingCapability,
-        SpeechToTextCapability,
-        TextToSpeechCapability,
-        ModelListingCapability {
-  /// Get available tools for this provider
-  List<Tool>? get tools => null;
 }
 
 /// Provider capability declaration interface

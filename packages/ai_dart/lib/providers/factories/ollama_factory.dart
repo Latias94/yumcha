@@ -4,7 +4,7 @@ import '../../core/registry.dart';
 import '../ollama_provider.dart';
 
 /// Factory for creating Ollama provider instances
-class OllamaProviderFactory implements LLMProviderFactory<OllamaProvider> {
+class OllamaProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'ollama';
 
@@ -24,7 +24,7 @@ class OllamaProviderFactory implements LLMProviderFactory<OllamaProvider> {
       };
 
   @override
-  OllamaProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final ollamaConfig = _transformConfig(config);
     return OllamaProvider(ollamaConfig);
   }

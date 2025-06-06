@@ -5,7 +5,7 @@ import '../../models/tool_models.dart';
 import '../openai_provider.dart';
 
 /// Factory for creating Groq provider instances using OpenAI-compatible interface
-class GroqProviderFactory implements LLMProviderFactory<OpenAIProvider> {
+class GroqProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'groq';
 
@@ -24,7 +24,7 @@ class GroqProviderFactory implements LLMProviderFactory<OpenAIProvider> {
       };
 
   @override
-  OpenAIProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final groqConfig = _transformConfig(config);
     return OpenAIProvider(groqConfig);
   }

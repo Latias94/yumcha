@@ -52,20 +52,21 @@ class DeepSeekConfig {
     int? topK,
     List<Tool>? tools,
     ToolChoice? toolChoice,
-  }) => DeepSeekConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    toolChoice: toolChoice ?? this.toolChoice,
-  );
+  }) =>
+      DeepSeekConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        toolChoice: toolChoice ?? this.toolChoice,
+      );
 }
 
 /// DeepSeek chat response implementation
@@ -128,7 +129,7 @@ class DeepSeekChatResponse implements ChatResponse {
 }
 
 /// DeepSeek provider implementation
-class DeepSeekProvider implements StreamingChatProvider {
+class DeepSeekProvider implements ChatCapability {
   final DeepSeekConfig config;
   final Dio _dio;
   static final Logger _logger = Logger('DeepSeekProvider');
@@ -421,9 +422,8 @@ class DeepSeekProvider implements StreamingChatProvider {
     final finishReason = choice['finish_reason'] as String?;
     if (finishReason != null) {
       final usage = json['usage'] as Map<String, dynamic>?;
-      final thinkingContent = thinkingBuffer.isNotEmpty
-          ? thinkingBuffer.toString()
-          : null;
+      final thinkingContent =
+          thinkingBuffer.isNotEmpty ? thinkingBuffer.toString() : null;
 
       final response = DeepSeekChatResponse({
         'choices': [

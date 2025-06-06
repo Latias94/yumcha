@@ -51,20 +51,21 @@ class GroqConfig {
     int? topK,
     List<Tool>? tools,
     ToolChoice? toolChoice,
-  }) => GroqConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    toolChoice: toolChoice ?? this.toolChoice,
-  );
+  }) =>
+      GroqConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        toolChoice: toolChoice ?? this.toolChoice,
+      );
 }
 
 /// Groq chat response implementation
@@ -106,7 +107,8 @@ class GroqChatResponse implements ChatResponse {
   }
 
   @override
-  String? get thinking => null; // Groq doesn't support thinking/reasoning content
+  String? get thinking =>
+      null; // Groq doesn't support thinking/reasoning content
 
   @override
   String toString() {
@@ -126,7 +128,7 @@ class GroqChatResponse implements ChatResponse {
 }
 
 /// Groq provider implementation
-class GroqProvider implements StreamingChatProvider {
+class GroqProvider implements ChatCapability {
   final GroqConfig config;
   final Dio _dio;
   static final Logger _logger = Logger('GroqProvider');

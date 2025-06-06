@@ -81,26 +81,27 @@ class OpenAIConfig {
     String? voice,
     String? embeddingEncodingFormat,
     int? embeddingDimensions,
-  }) => OpenAIConfig(
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl ?? this.baseUrl,
-    model: model ?? this.model,
-    maxTokens: maxTokens ?? this.maxTokens,
-    temperature: temperature ?? this.temperature,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    timeout: timeout ?? this.timeout,
-    stream: stream ?? this.stream,
-    topP: topP ?? this.topP,
-    topK: topK ?? this.topK,
-    tools: tools ?? this.tools,
-    toolChoice: toolChoice ?? this.toolChoice,
-    reasoningEffort: reasoningEffort ?? this.reasoningEffort,
-    jsonSchema: jsonSchema ?? this.jsonSchema,
-    voice: voice ?? this.voice,
-    embeddingEncodingFormat:
-        embeddingEncodingFormat ?? this.embeddingEncodingFormat,
-    embeddingDimensions: embeddingDimensions ?? this.embeddingDimensions,
-  );
+  }) =>
+      OpenAIConfig(
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl ?? this.baseUrl,
+        model: model ?? this.model,
+        maxTokens: maxTokens ?? this.maxTokens,
+        temperature: temperature ?? this.temperature,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        timeout: timeout ?? this.timeout,
+        stream: stream ?? this.stream,
+        topP: topP ?? this.topP,
+        topK: topK ?? this.topK,
+        tools: tools ?? this.tools,
+        toolChoice: toolChoice ?? this.toolChoice,
+        reasoningEffort: reasoningEffort ?? this.reasoningEffort,
+        jsonSchema: jsonSchema ?? this.jsonSchema,
+        voice: voice ?? this.voice,
+        embeddingEncodingFormat:
+            embeddingEncodingFormat ?? this.embeddingEncodingFormat,
+        embeddingDimensions: embeddingDimensions ?? this.embeddingDimensions,
+      );
 }
 
 /// OpenAI chat response implementation
@@ -163,7 +164,14 @@ class OpenAIChatResponse implements ChatResponse {
 }
 
 /// OpenAI provider implementation
-class OpenAIProvider implements StreamingChatProvider, LLMProvider {
+class OpenAIProvider
+    implements
+        ChatCapability,
+        EmbeddingCapability,
+        TextToSpeechCapability,
+        SpeechToTextCapability,
+        ModelListingCapability,
+        CompletionCapability {
   final OpenAIConfig config;
   final Dio _dio;
   static final Logger _logger = Logger('OpenAIProvider');
@@ -277,8 +285,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         if (message != null) {
           // Check for reasoning content in various possible fields
           // Different providers use different field names for reasoning content
-          thinkingContent =
-              message['reasoning'] as String? ??
+          thinkingContent = message['reasoning'] as String? ??
               message['thinking'] as String? ??
               message['reasoning_content'] as String?;
 
@@ -544,9 +551,8 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
         // Tool results need to be converted to separate tool messages
         // This case should not happen in normal message conversion
         // as tool results are handled separately in _buildRequestBody
-        result['content'] = message.content.isNotEmpty
-            ? message.content
-            : 'Tool result';
+        result['content'] =
+            message.content.isNotEmpty ? message.content : 'Tool result';
         result['tool_call_id'] = results.isNotEmpty ? results.first.id : null;
         break;
       default:
@@ -673,9 +679,8 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     final finishReason = choice['finish_reason'] as String?;
     if (finishReason != null) {
       final usage = json['usage'] as Map<String, dynamic>?;
-      final thinkingContent = thinkingBuffer.isNotEmpty
-          ? thinkingBuffer.toString()
-          : null;
+      final thinkingContent =
+          thinkingBuffer.isNotEmpty ? thinkingBuffer.toString() : null;
 
       final response = OpenAIChatResponse({
         'choices': [
@@ -717,7 +722,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     }
   }
 
-  // ChatProvider methods
+  // ChatCapability methods
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
     return chatWithTools(messages, null);
@@ -741,7 +746,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     return ReasoningUtils.filterThinkingContent(text);
   }
 
-  // CompletionProvider methods
+  // CompletionCapability methods
   @override
   Future<CompletionResponse> complete(CompletionRequest request) async {
     // OpenAI doesn't have a separate completion endpoint in newer APIs
@@ -751,7 +756,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     return CompletionResponse(text: response.text ?? '', usage: response.usage);
   }
 
-  // EmbeddingProvider methods
+  // EmbeddingCapability methods
   @override
   Future<List<List<double>>> embed(List<String> input) async {
     if (config.apiKey.isEmpty) {
@@ -808,7 +813,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     }
   }
 
-  // SpeechToTextProvider methods
+  // SpeechToTextCapability methods
   @override
   Future<String> transcribe(List<int> audio) async {
     if (config.apiKey.isEmpty) {
@@ -911,7 +916,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     }
   }
 
-  // TextToSpeechProvider methods
+  // TextToSpeechCapability methods
   @override
   Future<List<int>> speech(String text) async {
     if (config.apiKey.isEmpty) {
@@ -964,7 +969,7 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
     }
   }
 
-  // ModelProvider methods
+  // ModelListingCapability methods
   @override
   Future<List<AIModel>> models() async {
     if (config.apiKey.isEmpty) {
@@ -1042,8 +1047,4 @@ class OpenAIProvider implements StreamingChatProvider, LLMProvider {
       throw GenericError('Unexpected error: $e');
     }
   }
-
-  // LLMProvider methods
-  @override
-  List<Tool>? get tools => config.tools;
 }

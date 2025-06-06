@@ -5,7 +5,7 @@ import '../../models/tool_models.dart';
 import '../openai_provider.dart';
 
 /// Factory for creating OpenAI provider instances
-class OpenAIProviderFactory implements LLMProviderFactory<OpenAIProvider> {
+class OpenAIProviderFactory implements LLMProviderFactory<ChatCapability> {
   @override
   String get providerId => 'openai';
 
@@ -29,7 +29,7 @@ class OpenAIProviderFactory implements LLMProviderFactory<OpenAIProvider> {
       };
 
   @override
-  OpenAIProvider create(LLMConfig config) {
+  ChatCapability create(LLMConfig config) {
     final openaiConfig = _transformConfig(config);
     return OpenAIProvider(openaiConfig);
   }
