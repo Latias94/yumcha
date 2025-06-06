@@ -1,6 +1,17 @@
+import 'package:logging/logging.dart';
+
 import 'chat_provider.dart';
 import 'config.dart';
 import 'llm_error.dart';
+import '../providers/factories/openai_factory.dart';
+import '../providers/factories/anthropic_factory.dart';
+import '../providers/factories/deepseek_factory.dart';
+import '../providers/factories/ollama_factory.dart';
+import '../providers/factories/google_factory.dart';
+import '../providers/factories/xai_factory.dart';
+import '../providers/factories/phind_factory.dart';
+import '../providers/factories/groq_factory.dart';
+import '../providers/factories/elevenlabs_factory.dart';
 
 /// Factory interface for creating LLM provider instances
 ///
@@ -36,6 +47,7 @@ abstract class LLMProviderFactory<T extends ChatCapability> {
 class LLMProviderRegistry {
   static final Map<String, LLMProviderFactory> _factories = {};
   static bool _initialized = false;
+  static final Logger _logger = Logger('LLMProviderRegistry');
 
   /// Register a provider factory
   ///
@@ -203,16 +215,55 @@ class LLMProviderRegistry {
         registerOrReplace(openaiFactory);
       }
 
-      // TODO: Register other built-in providers
-      // registerOrReplace(AnthropicProviderFactory());
-      // registerOrReplace(GoogleProviderFactory());
-      // registerOrReplace(DeepSeekProviderFactory());
-      // registerOrReplace(OllamaProviderFactory());
-      // registerOrReplace(XAIProviderFactory());
-      // registerOrReplace(PhindProviderFactory());
-      // registerOrReplace(GroqProviderFactory());
-      // registerOrReplace(ElevenLabsProviderFactory());
+      // Register Anthropic provider factory
+      final anthropicFactory = _createAnthropicFactory();
+      if (anthropicFactory != null) {
+        registerOrReplace(anthropicFactory);
+      }
+
+      // Register DeepSeek provider factory
+      final deepseekFactory = _createDeepSeekFactory();
+      if (deepseekFactory != null) {
+        registerOrReplace(deepseekFactory);
+      }
+
+      // Register Ollama provider factory
+      final ollamaFactory = _createOllamaFactory();
+      if (ollamaFactory != null) {
+        registerOrReplace(ollamaFactory);
+      }
+
+      // Register Google provider factory
+      final googleFactory = _createGoogleFactory();
+      if (googleFactory != null) {
+        registerOrReplace(googleFactory);
+      }
+
+      // Register XAI provider factory (using OpenAI-compatible interface)
+      final xaiFactory = _createXAIFactory();
+      if (xaiFactory != null) {
+        registerOrReplace(xaiFactory);
+      }
+
+      // Register Phind provider factory (using OpenAI-compatible interface)
+      final phindFactory = _createPhindFactory();
+      if (phindFactory != null) {
+        registerOrReplace(phindFactory);
+      }
+
+      // Register Groq provider factory (using OpenAI-compatible interface)
+      final groqFactory = _createGroqFactory();
+      if (groqFactory != null) {
+        registerOrReplace(groqFactory);
+      }
+
+      // Register ElevenLabs provider factory (TTS/STT service)
+      final elevenLabsFactory = _createElevenLabsFactory();
+      if (elevenLabsFactory != null) {
+        registerOrReplace(elevenLabsFactory);
+      }
     } catch (e) {
+      _logger.warning('Failed to register built-in providers: $e');
       // Silently fail if provider factories are not available
       // This allows the library to work even if some providers are not included
     }
@@ -221,58 +272,91 @@ class LLMProviderRegistry {
   /// Create OpenAI factory if available
   static LLMProviderFactory? _createOpenAIFactory() {
     try {
-      // Import the OpenAI factory
-      return _OpenAIProviderFactoryImpl();
+      return OpenAIProviderFactory();
     } catch (e) {
+      _logger.warning('Failed to create OpenAI factory: $e');
       return null;
     }
   }
-}
 
-/// Internal OpenAI provider factory implementation
-class _OpenAIProviderFactoryImpl implements LLMProviderFactory<ChatCapability> {
-  @override
-  String get providerId => 'openai';
-
-  @override
-  String get displayName => 'OpenAI';
-
-  @override
-  String get description =>
-      'OpenAI GPT models including GPT-4, GPT-3.5, and reasoning models';
-
-  @override
-  Set<LLMCapability> get supportedCapabilities => {
-        LLMCapability.chat,
-        LLMCapability.streaming,
-        LLMCapability.embedding,
-        LLMCapability.modelListing,
-        LLMCapability.toolCalling,
-        LLMCapability.reasoning,
-        LLMCapability.textToSpeech,
-        LLMCapability.speechToText,
-      };
-
-  @override
-  ChatCapability create(LLMConfig config) {
-    // We need to import the OpenAI provider here
-    // For now, throw an error indicating the provider needs to be implemented
-    throw UnimplementedError(
-        'OpenAI provider factory not fully implemented yet');
+  /// Create Anthropic factory if available
+  static LLMProviderFactory? _createAnthropicFactory() {
+    try {
+      return AnthropicProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create Anthropic factory: $e');
+      return null;
+    }
   }
 
-  @override
-  bool validateConfig(LLMConfig config) {
-    // OpenAI requires an API key
-    return config.apiKey != null && config.apiKey!.isNotEmpty;
+  /// Create DeepSeek factory if available
+  static LLMProviderFactory? _createDeepSeekFactory() {
+    try {
+      return DeepSeekProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create DeepSeek factory: $e');
+      return null;
+    }
   }
 
-  @override
-  LLMConfig getDefaultConfig() {
-    return LLMConfig(
-      baseUrl: 'https://api.openai.com/v1/',
-      model: 'gpt-3.5-turbo',
-    );
+  /// Create Ollama factory if available
+  static LLMProviderFactory? _createOllamaFactory() {
+    try {
+      return OllamaProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create Ollama factory: $e');
+      return null;
+    }
+  }
+
+  /// Create Google factory if available
+  static LLMProviderFactory? _createGoogleFactory() {
+    try {
+      return GoogleProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create Google factory: $e');
+      return null;
+    }
+  }
+
+  /// Create XAI factory if available (using OpenAI-compatible interface)
+  static LLMProviderFactory? _createXAIFactory() {
+    try {
+      return XAIProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create XAI factory: $e');
+      return null;
+    }
+  }
+
+  /// Create Phind factory if available (using OpenAI-compatible interface)
+  static LLMProviderFactory? _createPhindFactory() {
+    try {
+      return PhindProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create Phind factory: $e');
+      return null;
+    }
+  }
+
+  /// Create Groq factory if available (using OpenAI-compatible interface)
+  static LLMProviderFactory? _createGroqFactory() {
+    try {
+      return GroqProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create Groq factory: $e');
+      return null;
+    }
+  }
+
+  /// Create ElevenLabs factory if available (TTS/STT service)
+  static LLMProviderFactory? _createElevenLabsFactory() {
+    try {
+      return ElevenLabsProviderFactory();
+    } catch (e) {
+      _logger.warning('Failed to create ElevenLabs factory: $e');
+      return null;
+    }
   }
 }
 
