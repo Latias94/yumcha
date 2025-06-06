@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'dart:async';
-import 'package:dio/dio.dart';
-import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
+import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../utils/config_utils.dart';
 
 /// Anthropic provider configuration
 class AnthropicConfig {
@@ -171,12 +170,67 @@ class AnthropicChatResponse implements ChatResponse {
 }
 
 /// Anthropic provider implementation
-class AnthropicProvider implements ChatCapability {
+class AnthropicProvider extends BaseHttpProvider {
   final AnthropicConfig config;
-  final Dio _dio;
-  final Logger _logger = Logger('AnthropicProvider');
 
-  AnthropicProvider(this.config) : _dio = _createDio(config);
+  AnthropicProvider(this.config)
+      : super(
+          BaseHttpProvider.createDio(
+            baseUrl: config.baseUrl,
+            headers: ConfigUtils.buildAnthropicHeaders(config.apiKey),
+            timeout: config.timeout,
+          ),
+          'AnthropicProvider',
+        );
+
+  @override
+  String get providerName => 'Anthropic';
+
+  @override
+  String get chatEndpoint => 'messages';
+
+  @override
+  Map<String, dynamic> buildRequestBody(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+    bool stream,
+  ) {
+    return _buildRequestBody(messages, tools, stream);
+  }
+
+  @override
+  ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    return AnthropicChatResponse(responseData);
+  }
+
+  @override
+  List<ChatStreamEvent> parseStreamEvents(String chunk) {
+    final events = <ChatStreamEvent>[];
+    final lines = chunk.split('\n');
+
+    for (final line in lines) {
+      if (line.startsWith('data: ')) {
+        final data = line.substring(6).trim();
+        if (data == '[DONE]') {
+          break;
+        }
+
+        try {
+          final json = jsonDecode(data) as Map<String, dynamic>;
+          final event = _parseStreamEvent(json);
+          if (event != null) {
+            events.add(event);
+          }
+        } catch (e) {
+          // Skip malformed JSON chunks
+          logger.warning('Failed to parse stream JSON: $data, error: $e');
+          continue;
+        }
+      }
+    }
+
+    return events;
+  }
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -197,137 +251,6 @@ class AnthropicProvider implements ChatCapability {
       throw const GenericError('no text in summary response');
     }
     return text;
-  }
-
-  static Dio _createDio(AnthropicConfig config) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 30),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 30),
-        headers: {
-          'x-api-key': config.apiKey,
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01',
-        },
-      ),
-    );
-
-    return dio;
-  }
-
-  @override
-  Future<ChatResponse> chatWithTools(
-    List<ChatMessage> messages,
-    List<Tool>? tools,
-  ) async {
-    if (config.apiKey.isEmpty) {
-      throw const AuthError('Missing Anthropic API key');
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, false);
-
-      // Log request payload at trace level
-      if (_logger.level <= Level.FINEST) {
-        _logger.finest('Anthropic request payload: ${jsonEncode(requestBody)}');
-      }
-
-      _logger.fine('Anthropic request: POST /v1/messages');
-
-      final response = await _dio.post('messages', data: requestBody);
-
-      _logger.fine('Anthropic HTTP status: ${response.statusCode}');
-
-      if (response.statusCode != 200) {
-        throw ProviderError(
-          'Anthropic API returned status ${response.statusCode}: ${response.data}',
-        );
-      }
-
-      return AnthropicChatResponse(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    } catch (e) {
-      throw GenericError('Unexpected error: $e');
-    }
-  }
-
-  @override
-  Stream<ChatStreamEvent> chatStream(
-    List<ChatMessage> messages, {
-    List<Tool>? tools,
-  }) async* {
-    if (config.apiKey.isEmpty) {
-      yield ErrorEvent(const AuthError('Missing Anthropic API key'));
-      return;
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, true);
-
-      // Log request payload at trace level
-      if (_logger.level <= Level.FINEST) {
-        _logger.finest(
-          'Anthropic stream request payload: ${jsonEncode(requestBody)}',
-        );
-      }
-
-      _logger.fine('Anthropic stream request: POST /v1/messages');
-
-      final response = await _dio.post(
-        'messages',
-        data: requestBody,
-        options: Options(responseType: ResponseType.stream),
-      );
-
-      _logger.fine('Anthropic stream HTTP status: ${response.statusCode}');
-
-      if (response.statusCode != 200) {
-        yield ErrorEvent(
-          ProviderError('Anthropic API returned status ${response.statusCode}'),
-        );
-        return;
-      }
-
-      final stream = response.data as ResponseBody;
-      await for (final chunk in stream.stream.map(utf8.decode)) {
-        final lines = chunk.split('\n');
-        for (final line in lines) {
-          if (line.startsWith('data: ')) {
-            final data = line.substring(6).trim();
-            if (data == '[DONE]') {
-              _logger.finer('Anthropic stream completed with [DONE]');
-              return;
-            }
-
-            try {
-              final json = jsonDecode(data) as Map<String, dynamic>;
-
-              // Log stream events at finest level
-              if (_logger.level <= Level.FINEST) {
-                _logger.finest('Anthropic stream event: ${jsonEncode(json)}');
-              }
-
-              final event = _parseStreamEvent(json);
-              if (event != null) {
-                yield event;
-              }
-            } catch (e) {
-              // Log malformed JSON but continue processing
-              _logger.warning('Failed to parse stream JSON: $data, error: $e');
-              continue;
-            }
-          }
-        }
-      }
-    } on DioException catch (e) {
-      _logger.severe('Anthropic stream DioException: ${e.message}');
-      yield ErrorEvent(_handleDioError(e));
-    } catch (e) {
-      _logger.severe('Anthropic stream unexpected error: $e');
-      yield ErrorEvent(GenericError('Unexpected error: $e'));
-    }
   }
 
   Map<String, dynamic> _buildRequestBody(
@@ -523,41 +446,5 @@ class AnthropicProvider implements ChatCapability {
     }
 
     return null;
-  }
-
-  LLMError _handleDioError(DioException e) {
-    _logger.warning('Anthropic DioException: ${e.type}, message: ${e.message}');
-
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        final error = HttpError('Request timeout: ${e.message}');
-        _logger.warning('Anthropic timeout error: ${error.message}');
-        return error;
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        final data = e.response?.data;
-        _logger.warning('Anthropic bad response: $statusCode, data: $data');
-
-        if (statusCode == 401) {
-          return const AuthError('Invalid Anthropic API key');
-        } else if (statusCode == 429) {
-          return const ProviderError('Rate limit exceeded');
-        } else {
-          return ProviderError('HTTP $statusCode: $data');
-        }
-      case DioExceptionType.cancel:
-        _logger.info('Anthropic request was cancelled');
-        return const GenericError('Request was cancelled');
-      case DioExceptionType.connectionError:
-        final error = HttpError('Connection error: ${e.message}');
-        _logger.warning('Anthropic connection error: ${error.message}');
-        return error;
-      default:
-        final error = HttpError('Network error: ${e.message}');
-        _logger.warning('Anthropic network error: ${error.message}');
-        return error;
-    }
   }
 }

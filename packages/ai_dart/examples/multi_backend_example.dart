@@ -15,7 +15,7 @@ void main() async {
   try {
     // Initialize OpenAI backend with API key and model settings
     final openaiLlm = await LLMBuilder()
-        .backend(LLMBackend.openai)
+        .openai()
         .apiKey(Platform.environment['OPENAI_API_KEY'] ?? 'sk-OPENAI')
         .model('gpt-4o')
         .temperature(0.7)
@@ -24,7 +24,7 @@ void main() async {
 
     // Initialize Anthropic backend with API key and model settings
     final anthropicLlm = await LLMBuilder()
-        .backend(LLMBackend.anthropic)
+        .anthropic()
         .apiKey(Platform.environment['ANTHROPIC_API_KEY'] ?? 'anthro-key')
         .model('claude-3-5-sonnet-20241022')
         .temperature(0.7)
@@ -33,7 +33,7 @@ void main() async {
 
     // Initialize DeepSeek backend with API key and model settings
     final deepseekLlm = await LLMBuilder()
-        .backend(LLMBackend.deepseek)
+        .deepseek()
         .apiKey(Platform.environment['DEEPSEEK_API_KEY'] ?? 'sk-TESTKEY')
         .model('deepseek-chat')
         .temperature(0.7)
@@ -42,7 +42,7 @@ void main() async {
 
     // Ollama backend (no API key required for local instance)
     final ollamaLlm = await LLMBuilder()
-        .backend(LLMBackend.ollama)
+        .ollama()
         .baseUrl('http://localhost:11434')
         .model('mistral')
         .temperature(0.7)
@@ -146,17 +146,13 @@ void registryExample() async {
   // Register multiple providers
   registry.register(
     'openai',
-    await LLMBuilder()
-        .backend(LLMBackend.openai)
-        .apiKey('sk-test')
-        .model('gpt-4o')
-        .build(),
+    await LLMBuilder().openai().apiKey('sk-test').model('gpt-4o').build(),
   );
 
   registry.register(
     'deepseek',
     await LLMBuilder()
-        .backend(LLMBackend.deepseek)
+        .deepseek()
         .apiKey('sk-test')
         .model('deepseek-chat')
         .build(),

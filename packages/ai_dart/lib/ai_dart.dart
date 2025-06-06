@@ -10,6 +10,7 @@ export 'core/chat_provider.dart';
 export 'core/llm_error.dart';
 export 'core/config.dart';
 export 'core/registry.dart';
+export 'core/base_http_provider.dart';
 
 // Model exports
 export 'models/chat_models.dart';
@@ -30,6 +31,9 @@ export 'providers/elevenlabs_provider.dart';
 // Builder exports
 export 'builder/llm_builder.dart';
 
+// Utility exports
+export 'utils/config_utils.dart';
+
 // Convenience functions for creating providers
 import 'builder/llm_builder.dart';
 import 'core/chat_provider.dart';
@@ -48,21 +52,23 @@ import 'core/chat_provider.dart';
 /// ```
 LLMBuilder ai() => LLMBuilder();
 
-/// Create an OpenAI provider with the given API key
+/// Create a provider with the given configuration
 ///
-/// Convenience function for quickly creating OpenAI providers.
+/// Convenience function for quickly creating providers with common settings.
 ///
 /// Example:
 /// ```dart
-/// final provider = await openai(
+/// final provider = await createProvider(
+///   providerId: 'openai',
 ///   apiKey: 'your-key',
 ///   model: 'gpt-4',
 /// );
 /// ```
-Future<ChatCapability> openai({
+Future<ChatCapability> createProvider({
+  required String providerId,
   required String apiKey,
-  String model = 'gpt-3.5-turbo',
-  String baseUrl = 'https://api.openai.com/v1/',
+  required String model,
+  String? baseUrl,
   double? temperature,
   int? maxTokens,
   String? systemPrompt,
@@ -70,58 +76,26 @@ Future<ChatCapability> openai({
   bool stream = false,
   double? topP,
   int? topK,
-  String? reasoningEffort,
+  Map<String, dynamic>? extensions,
 }) async {
-  return await LLMBuilder()
-      .openai()
-      .apiKey(apiKey)
-      .model(model)
-      .baseUrl(baseUrl)
-      .temperature(temperature ?? 0.7)
-      .maxTokens(maxTokens ?? 1000)
-      .systemPrompt(systemPrompt ?? '')
-      .timeout(timeout ?? const Duration(seconds: 30))
-      .stream(stream)
-      .topP(topP ?? 1.0)
-      .topK(topK ?? 50)
-      .reasoningEffort(reasoningEffort ?? 'medium')
-      .build();
-}
+  var builder = LLMBuilder().provider(providerId).apiKey(apiKey).model(model);
 
-/// Create an Anthropic provider with the given API key
-///
-/// Convenience function for quickly creating Anthropic providers.
-///
-/// Example:
-/// ```dart
-/// final provider = await anthropic(
-///   apiKey: 'your-key',
-///   model: 'claude-3-5-sonnet-20241022',
-/// );
-/// ```
-Future<ChatCapability> anthropic({
-  required String apiKey,
-  String model = 'claude-3-5-sonnet-20241022',
-  String baseUrl = 'https://api.anthropic.com/v1/',
-  double? temperature,
-  int? maxTokens,
-  String? systemPrompt,
-  Duration? timeout,
-  bool stream = false,
-  double? topP,
-  int? topK,
-}) async {
-  return await LLMBuilder()
-      .anthropic()
-      .apiKey(apiKey)
-      .model(model)
-      .baseUrl(baseUrl)
-      .temperature(temperature ?? 0.7)
-      .maxTokens(maxTokens ?? 1000)
-      .systemPrompt(systemPrompt ?? '')
-      .timeout(timeout ?? const Duration(seconds: 30))
-      .stream(stream)
-      .topP(topP ?? 1.0)
-      .topK(topK ?? 50)
-      .build();
+  if (baseUrl != null) builder = builder.baseUrl(baseUrl);
+  if (temperature != null) builder = builder.temperature(temperature);
+  if (maxTokens != null) builder = builder.maxTokens(maxTokens);
+  if (systemPrompt != null) builder = builder.systemPrompt(systemPrompt);
+  if (timeout != null) builder = builder.timeout(timeout);
+  if (topP != null) builder = builder.topP(topP);
+  if (topK != null) builder = builder.topK(topK);
+
+  builder = builder.stream(stream);
+
+  // Add extensions if provided
+  if (extensions != null) {
+    for (final entry in extensions.entries) {
+      builder = builder.extension(entry.key, entry.value);
+    }
+  }
+
+  return await builder.build();
 }

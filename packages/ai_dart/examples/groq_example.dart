@@ -10,7 +10,7 @@ void main() async {
 
   // Initialize and configure the LLM client using LLMBuilder
   final llm = await LLMBuilder()
-      .backend(LLMBackend.groq) // Use Groq as the LLM provider
+      .groq() // Use Groq as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model(
         'deepseek-r1-distill-llama-70b',

@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
+import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../utils/config_utils.dart';
 
 /// Ollama provider configuration
 class OllamaConfig {
@@ -140,17 +141,74 @@ class OllamaChatResponse implements ChatResponse {
 }
 
 /// Ollama provider implementation
-class OllamaProvider
+class OllamaProvider extends BaseHttpProvider
     implements
-        ChatCapability,
         CompletionCapability,
         EmbeddingCapability,
         ModelListingCapability {
   final OllamaConfig config;
-  final Dio _dio;
-  static final Logger _logger = Logger('OllamaProvider');
 
-  OllamaProvider(this.config) : _dio = _createDio(config);
+  OllamaProvider(this.config)
+      : super(
+          BaseHttpProvider.createDio(
+            baseUrl: config.baseUrl,
+            headers: _buildHeaders(config),
+            timeout: config.timeout,
+          ),
+          'OllamaProvider',
+        );
+
+  static Map<String, String> _buildHeaders(OllamaConfig config) {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (config.apiKey != null) {
+      headers['Authorization'] = 'Bearer ${config.apiKey}';
+    }
+    return headers;
+  }
+
+  @override
+  String get providerName => 'Ollama';
+
+  @override
+  String get chatEndpoint => '/api/chat';
+
+  @override
+  Map<String, dynamic> buildRequestBody(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+    bool stream,
+  ) {
+    return _buildRequestBody(messages, tools, stream);
+  }
+
+  @override
+  ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    return OllamaChatResponse(responseData);
+  }
+
+  @override
+  List<ChatStreamEvent> parseStreamEvents(String chunk) {
+    final events = <ChatStreamEvent>[];
+    final lines = chunk.split('\n');
+
+    for (final line in lines) {
+      if (line.trim().isNotEmpty) {
+        try {
+          final json = jsonDecode(line) as Map<String, dynamic>;
+          final event = _parseStreamEvent(json);
+          if (event != null) {
+            events.add(event);
+          }
+        } catch (e) {
+          // Skip malformed JSON chunks
+          logger.warning('Failed to parse stream JSON: $line, error: $e');
+          continue;
+        }
+      }
+    }
+
+    return events;
+  }
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -173,25 +231,6 @@ class OllamaProvider
     return text;
   }
 
-  static Dio _createDio(OllamaConfig config) {
-    final headers = <String, String>{'Content-Type': 'application/json'};
-
-    if (config.apiKey != null) {
-      headers['Authorization'] = 'Bearer ${config.apiKey}';
-    }
-
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 30),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 30),
-        headers: headers,
-      ),
-    );
-
-    return dio;
-  }
-
   @override
   Future<ChatResponse> chatWithTools(
     List<ChatMessage> messages,
@@ -204,11 +243,11 @@ class OllamaProvider
     try {
       final requestBody = _buildRequestBody(messages, tools, false);
 
-      _logger.fine('Ollama request payload: ${jsonEncode(requestBody)}');
+      logger.fine('Ollama request payload: ${jsonEncode(requestBody)}');
 
-      final response = await _dio.post('/api/chat', data: requestBody);
+      final response = await dio.post('/api/chat', data: requestBody);
 
-      _logger.fine('Ollama HTTP status: ${response.statusCode}');
+      logger.fine('Ollama HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -218,7 +257,7 @@ class OllamaProvider
 
       return OllamaChatResponse(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
@@ -237,17 +276,17 @@ class OllamaProvider
     try {
       final requestBody = _buildRequestBody(messages, tools, true);
 
-      _logger.fine(
+      logger.fine(
         'Ollama streaming request payload: ${jsonEncode(requestBody)}',
       );
 
-      final response = await _dio.post(
+      final response = await dio.post(
         '/api/chat',
         data: requestBody,
         options: Options(responseType: ResponseType.stream),
       );
 
-      _logger.fine('Ollama streaming HTTP status: ${response.statusCode}');
+      logger.fine('Ollama streaming HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         yield ErrorEvent(
@@ -275,7 +314,7 @@ class OllamaProvider
         }
       }
     } on DioException catch (e) {
-      yield ErrorEvent(_handleDioError(e));
+      yield ErrorEvent(handleDioError(e));
     } catch (e) {
       yield ErrorEvent(GenericError('Unexpected error: $e'));
     }
@@ -377,31 +416,6 @@ class OllamaProvider
     return null;
   }
 
-  LLMError _handleDioError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return HttpError('Request timeout: ${e.message}');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        final data = e.response?.data;
-        if (statusCode == 401) {
-          return const AuthError('Invalid API key');
-        } else if (statusCode == 429) {
-          return const ProviderError('Rate limit exceeded');
-        } else {
-          return ProviderError('HTTP $statusCode: $data');
-        }
-      case DioExceptionType.cancel:
-        return const GenericError('Request was cancelled');
-      case DioExceptionType.connectionError:
-        return HttpError('Connection error: ${e.message}');
-      default:
-        return HttpError('Network error: ${e.message}');
-    }
-  }
-
   @override
   Future<CompletionResponse> complete(CompletionRequest request) async {
     if (config.baseUrl.isEmpty) {
@@ -416,11 +430,11 @@ class OllamaProvider
         'stream': false,
       };
 
-      _logger.fine('Ollama completion request: ${jsonEncode(requestBody)}');
+      logger.fine('Ollama completion request: ${jsonEncode(requestBody)}');
 
-      final response = await _dio.post('/api/generate', data: requestBody);
+      final response = await dio.post('/api/generate', data: requestBody);
 
-      _logger.fine('Ollama completion HTTP status: ${response.statusCode}');
+      logger.fine('Ollama completion HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -438,7 +452,7 @@ class OllamaProvider
 
       return CompletionResponse(text: text);
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
@@ -453,11 +467,11 @@ class OllamaProvider
     try {
       final requestBody = {'model': config.model, 'input': input};
 
-      _logger.fine('Ollama embedding request: ${jsonEncode(requestBody)}');
+      logger.fine('Ollama embedding request: ${jsonEncode(requestBody)}');
 
-      final response = await _dio.post('/api/embed', data: requestBody);
+      final response = await dio.post('/api/embed', data: requestBody);
 
-      _logger.fine('Ollama embedding HTTP status: ${response.statusCode}');
+      logger.fine('Ollama embedding HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -474,7 +488,7 @@ class OllamaProvider
 
       return embeddings.map((e) => List<double>.from(e as List)).toList();
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
@@ -487,11 +501,11 @@ class OllamaProvider
     }
 
     try {
-      _logger.fine('Ollama request: GET /api/tags');
+      logger.fine('Ollama request: GET /api/tags');
 
-      final response = await _dio.get('/api/tags');
+      final response = await dio.get('/api/tags');
 
-      _logger.fine('Ollama HTTP status: ${response.statusCode}');
+      logger.fine('Ollama HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -525,7 +539,7 @@ class OllamaProvider
                 ownedBy: 'ollama',
               );
             } catch (e) {
-              _logger.warning('Failed to parse model: $e');
+              logger.warning('Failed to parse model: $e');
               return null;
             }
           })
@@ -533,10 +547,10 @@ class OllamaProvider
           .cast<AIModel>()
           .toList();
 
-      _logger.fine('Retrieved ${models.length} models from Ollama');
+      logger.fine('Retrieved ${models.length} models from Ollama');
       return models;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }

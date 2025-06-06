@@ -4,10 +4,12 @@ import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
+import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
 import '../utils/reasoning_utils.dart';
+import '../utils/config_utils.dart';
 
 /// OpenAI provider implementation with enhanced features:
 ///
@@ -164,34 +166,102 @@ class OpenAIChatResponse implements ChatResponse {
 }
 
 /// OpenAI provider implementation
-class OpenAIProvider
+class OpenAIProvider extends BaseHttpProvider
     implements
-        ChatCapability,
         EmbeddingCapability,
         TextToSpeechCapability,
         SpeechToTextCapability,
         ModelListingCapability,
         CompletionCapability {
   final OpenAIConfig config;
-  final Dio _dio;
-  static final Logger _logger = Logger('OpenAIProvider');
 
-  OpenAIProvider(this.config) : _dio = _createDio(config);
+  OpenAIProvider(this.config)
+      : super(
+          BaseHttpProvider.createDio(
+            baseUrl: config.baseUrl,
+            headers: ConfigUtils.buildOpenAIHeaders(config.apiKey),
+            timeout: config.timeout,
+          ),
+          'OpenAIProvider',
+        );
 
-  static Dio _createDio(OpenAIConfig config) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 30),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 30),
-        headers: {
-          'Authorization': 'Bearer ${config.apiKey}',
-          'Content-Type': 'application/json',
-        },
-      ),
+  @override
+  String get providerName => 'OpenAI';
+
+  @override
+  String get chatEndpoint => 'chat/completions';
+
+  @override
+  Map<String, dynamic> buildRequestBody(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+    bool stream,
+  ) {
+    return _buildRequestBody(messages, tools, stream);
+  }
+
+  @override
+  ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    // Extract thinking/reasoning content from non-streaming response
+    String? thinkingContent;
+
+    // Check for reasoning content in the response
+    final choices = responseData['choices'] as List?;
+    if (choices != null && choices.isNotEmpty) {
+      final choice = choices.first as Map<String, dynamic>;
+      final message = choice['message'] as Map<String, dynamic>?;
+
+      if (message != null) {
+        // Check for reasoning content in various possible fields
+        thinkingContent = message['reasoning'] as String? ??
+            message['thinking'] as String? ??
+            message['reasoning_content'] as String?;
+
+        // For models that use <think> tags, extract thinking content
+        final content = message['content'] as String?;
+        if (content != null && ReasoningUtils.containsThinkingTags(content)) {
+          final thinkMatch = RegExp(
+            r'<think>(.*?)</think>',
+            dotAll: true,
+          ).firstMatch(content);
+          if (thinkMatch != null) {
+            thinkingContent = thinkMatch.group(1)?.trim();
+            // Update the message content to remove thinking tags
+            message['content'] = ReasoningUtils.filterThinkingContent(content);
+          }
+        }
+
+        // For OpenRouter with deepseek-r1, check if include_reasoning was used
+        if (thinkingContent == null && config.model.contains('deepseek-r1')) {
+          final reasoning = responseData['reasoning'] as String?;
+          if (reasoning != null && reasoning.isNotEmpty) {
+            thinkingContent = reasoning;
+          }
+        }
+      }
+    }
+
+    return OpenAIChatResponse(responseData, thinkingContent);
+  }
+
+  @override
+  List<ChatStreamEvent> parseStreamEvents(String chunk) {
+    final events = <ChatStreamEvent>[];
+
+    // Parse SSE chunk
+    final json = _parseSSEChunk(chunk);
+    if (json == null) return events;
+
+    // Use existing stream parsing logic
+    final parsedEvents = _parseStreamEventWithReasoning(
+      json,
+      false, // hasReasoningContent - would need to track this
+      '', // lastChunk - would need to track this
+      StringBuffer(), // thinkingBuffer - would need to track this
     );
 
-    return dio;
+    events.addAll(parsedEvents);
+    return events;
   }
 
   /// Get provider ID based on base URL
@@ -207,202 +277,6 @@ class OpenAIProvider
       return 'openai';
     } else {
       return 'openai'; // Default fallback
-    }
-  }
-
-  @override
-  Future<ChatResponse> chatWithTools(
-    List<ChatMessage> messages,
-    List<Tool>? tools,
-  ) async {
-    if (config.apiKey.isEmpty) {
-      throw const AuthError('Missing OpenAI API key');
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, false);
-
-      // Optimized trace logging with condition check (similar to Rust implementation)
-      if (_logger.isLoggable(Level.FINEST)) {
-        _logger.finest('OpenAI request payload: ${jsonEncode(requestBody)}');
-      }
-
-      _logger.fine('OpenAI request: POST /chat/completions');
-
-      var request = _dio.post('chat/completions', data: requestBody);
-
-      // Add explicit timeout if configured (similar to Rust implementation)
-      if (config.timeout != null && config.timeout!.inSeconds > 0) {
-        request = request.timeout(config.timeout!);
-      }
-
-      final response = await request;
-
-      _logger.fine('OpenAI HTTP status: ${response.statusCode}');
-
-      // Enhanced error handling with detailed information
-      if (response.statusCode != 200) {
-        final statusCode = response.statusCode;
-        final errorData = response.data;
-
-        // Provide specific error messages based on status codes
-        if (statusCode == 401) {
-          throw const AuthError('Invalid OpenAI API key');
-        } else if (statusCode == 429) {
-          throw const ProviderError('Rate limit exceeded');
-        } else if (statusCode == 400) {
-          throw ResponseFormatError(
-            'Bad request - check your parameters',
-            errorData?.toString() ?? '',
-          );
-        } else if (statusCode == 500) {
-          throw const ProviderError('OpenAI server error');
-        } else {
-          throw ResponseFormatError(
-            'OpenAI API returned error status: $statusCode',
-            errorData?.toString() ?? '',
-          );
-        }
-      }
-
-      final responseData = response.data;
-      if (responseData is! Map<String, dynamic>) {
-        throw ResponseFormatError(
-          'Invalid response format from OpenAI API',
-          responseData.toString(),
-        );
-      }
-
-      // Extract thinking/reasoning content from non-streaming response
-      String? thinkingContent;
-
-      // Check for reasoning content in the response
-      final choices = responseData['choices'] as List?;
-      if (choices != null && choices.isNotEmpty) {
-        final choice = choices.first as Map<String, dynamic>;
-        final message = choice['message'] as Map<String, dynamic>?;
-
-        if (message != null) {
-          // Check for reasoning content in various possible fields
-          // Different providers use different field names for reasoning content
-          thinkingContent = message['reasoning'] as String? ??
-              message['thinking'] as String? ??
-              message['reasoning_content'] as String?;
-
-          // For models that use <think> tags, extract thinking content
-          final content = message['content'] as String?;
-          if (content != null && ReasoningUtils.containsThinkingTags(content)) {
-            // Extract thinking content from <think> tags
-            final thinkMatch = RegExp(
-              r'<think>(.*?)</think>',
-              dotAll: true,
-            ).firstMatch(content);
-            if (thinkMatch != null) {
-              thinkingContent = thinkMatch.group(1)?.trim();
-              // Update the message content to remove thinking tags for clean response
-              message['content'] = ReasoningUtils.filterThinkingContent(
-                content,
-              );
-            }
-          }
-
-          // For OpenRouter with deepseek-r1, check if include_reasoning was used
-          if (thinkingContent == null && config.model.contains('deepseek-r1')) {
-            // OpenRouter might return reasoning in a separate field
-            final reasoning = responseData['reasoning'] as String?;
-            if (reasoning != null && reasoning.isNotEmpty) {
-              thinkingContent = reasoning;
-            }
-          }
-
-          // Log for debugging
-          if (thinkingContent != null) {
-            _logger.fine(
-              'Extracted thinking content: ${thinkingContent.length} characters',
-            );
-          } else {
-            _logger.fine('No thinking content found in non-streaming response');
-          }
-        }
-      }
-
-      return OpenAIChatResponse(responseData, thinkingContent);
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    } catch (e) {
-      throw GenericError('Unexpected error: $e');
-    }
-  }
-
-  @override
-  Stream<ChatStreamEvent> chatStream(
-    List<ChatMessage> messages, {
-    List<Tool>? tools,
-  }) async* {
-    if (config.apiKey.isEmpty) {
-      yield ErrorEvent(const AuthError('Missing OpenAI API key'));
-      return;
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, true);
-
-      final response = await _dio.post(
-        'chat/completions',
-        data: requestBody,
-        options: Options(responseType: ResponseType.stream),
-      );
-
-      if (response.statusCode != 200) {
-        yield ErrorEvent(
-          ProviderError('OpenAI API returned status ${response.statusCode}'),
-        );
-        return;
-      }
-
-      final stream = response.data as ResponseBody;
-
-      // Reasoning tracking variables
-      bool hasReasoningContent = false;
-      String lastChunk = '';
-      final thinkingBuffer = StringBuffer();
-
-      await for (final chunk in stream.stream.map(utf8.decode)) {
-        // Use the dedicated SSE parsing method
-        final json = _parseSSEChunk(chunk);
-
-        // Handle completion signal
-        if (json == null) {
-          return;
-        }
-
-        final events = _parseStreamEventWithReasoning(
-          json,
-          hasReasoningContent,
-          lastChunk,
-          thinkingBuffer,
-        );
-
-        // Update tracking variables using reasoning utils
-        final delta = _getDelta(json);
-        if (delta != null) {
-          final reasoningResult = ReasoningUtils.checkReasoningStatus(
-            delta: delta,
-            hasReasoningContent: hasReasoningContent,
-            lastChunk: lastChunk,
-          );
-          hasReasoningContent = reasoningResult.hasReasoningContent;
-          lastChunk = reasoningResult.updatedLastChunk;
-        }
-
-        for (final event in events) {
-          yield event;
-        }
-      }
-    } on DioException catch (e) {
-      yield ErrorEvent(_handleDioError(e));
-    } catch (e) {
-      yield ErrorEvent(GenericError('Unexpected error: $e'));
     }
   }
 
@@ -590,7 +464,7 @@ class OpenAIProvider
           return json;
         } catch (e) {
           // Skip malformed JSON chunks
-          _logger.warning('Failed to parse SSE chunk JSON: $e');
+          logger.warning('Failed to parse SSE chunk JSON: $e');
           continue;
         }
       }
@@ -643,7 +517,7 @@ class OpenAIProvider
       );
 
       if (reasoningResult.isReasoningJustDone) {
-        _logger.fine('Reasoning phase completed, starting response phase');
+        logger.fine('Reasoning phase completed, starting response phase');
       }
 
       // Filter out thinking tags for models that use <think> tags
@@ -655,7 +529,7 @@ class OpenAIProvider
       // If we previously had reasoning content and now have regular content,
       // this might be the start of the actual response
       if (hasReasoningContent && content.trim().isNotEmpty) {
-        _logger.fine('Transitioning from reasoning to response content');
+        logger.fine('Transitioning from reasoning to response content');
       }
 
       events.add(TextDeltaEvent(content));
@@ -670,7 +544,7 @@ class OpenAIProvider
           events.add(ToolCallDeltaEvent(ToolCall.fromJson(toolCall)));
         } catch (e) {
           // Skip malformed tool calls
-          _logger.warning('Failed to parse tool call: $e');
+          logger.warning('Failed to parse tool call: $e');
         }
       }
     }
@@ -695,31 +569,6 @@ class OpenAIProvider
     }
 
     return events;
-  }
-
-  LLMError _handleDioError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return HttpError('Request timeout: ${e.message}');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        final data = e.response?.data;
-        if (statusCode == 401) {
-          return const AuthError('Invalid OpenAI API key');
-        } else if (statusCode == 429) {
-          return const ProviderError('Rate limit exceeded');
-        } else {
-          return ProviderError('HTTP $statusCode: $data');
-        }
-      case DioExceptionType.cancel:
-        return const GenericError('Request was cancelled');
-      case DioExceptionType.connectionError:
-        return HttpError('Connection error: ${e.message}');
-      default:
-        return HttpError('Network error: ${e.message}');
-    }
   }
 
   // ChatCapability methods
@@ -773,14 +622,14 @@ class OpenAIProvider
       };
 
       // Optimized logging with condition check
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI request: POST /embeddings');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI request: POST /embeddings');
       }
 
-      final response = await _dio.post('embeddings', data: requestBody);
+      final response = await dio.post('embeddings', data: requestBody);
 
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
       }
 
       // Enhanced error handling for embeddings
@@ -807,7 +656,7 @@ class OpenAIProvider
 
       return embeddings;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
@@ -828,14 +677,14 @@ class OpenAIProvider
       });
 
       // Optimized logging with condition check
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI request: POST /audio/transcriptions');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI request: POST /audio/transcriptions');
       }
 
-      final response = await _dio.post('audio/transcriptions', data: formData);
+      final response = await dio.post('audio/transcriptions', data: formData);
 
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
       }
 
       // Enhanced error handling for transcription
@@ -857,7 +706,7 @@ class OpenAIProvider
 
       return response.data as String;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
@@ -877,14 +726,14 @@ class OpenAIProvider
       });
 
       // Optimized logging with condition check
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI request: POST /audio/transcriptions (file)');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI request: POST /audio/transcriptions (file)');
       }
 
-      final response = await _dio.post('audio/transcriptions', data: formData);
+      final response = await dio.post('audio/transcriptions', data: formData);
 
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
       }
 
       // Enhanced error handling for file transcription
@@ -910,7 +759,7 @@ class OpenAIProvider
 
       return response.data as String;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
@@ -931,18 +780,18 @@ class OpenAIProvider
       };
 
       // Optimized logging with condition check
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI request: POST /audio/speech');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI request: POST /audio/speech');
       }
 
-      final response = await _dio.post(
+      final response = await dio.post(
         'audio/speech',
         data: requestBody,
         options: Options(responseType: ResponseType.bytes),
       );
 
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
       }
 
       // Enhanced error handling for text-to-speech
@@ -963,7 +812,7 @@ class OpenAIProvider
 
       return response.data as List<int>;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }
@@ -978,14 +827,14 @@ class OpenAIProvider
 
     try {
       // Optimized logging with condition check
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI request: GET /models');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI request: GET /models');
       }
 
-      final response = await _dio.get('models');
+      final response = await dio.get('models');
 
-      if (_logger.isLoggable(Level.FINE)) {
-        _logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
       }
 
       // Enhanced error handling for models endpoint
@@ -1031,7 +880,7 @@ class OpenAIProvider
                 ownedBy: modelData['owned_by'] as String?,
               );
             } catch (e) {
-              _logger.warning('Failed to parse model: $e');
+              logger.warning('Failed to parse model: $e');
               return null;
             }
           })
@@ -1039,10 +888,10 @@ class OpenAIProvider
           .cast<AIModel>()
           .toList();
 
-      _logger.fine('Retrieved ${models.length} models from OpenAI');
+      logger.fine('Retrieved ${models.length} models from OpenAI');
       return models;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
     }

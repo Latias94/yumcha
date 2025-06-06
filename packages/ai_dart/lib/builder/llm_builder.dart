@@ -4,65 +4,6 @@ import '../core/registry.dart';
 import '../core/llm_error.dart';
 import '../models/tool_models.dart';
 
-/// Supported LLM backend providers
-///
-/// @Deprecated - Use string provider IDs with LLMProviderRegistry instead
-@Deprecated('Use string provider IDs with LLMProviderRegistry instead')
-enum LLMBackend {
-  /// OpenAI API provider (GPT-3, GPT-4, etc.)
-  openai,
-
-  /// Anthropic API provider (Claude models)
-  anthropic,
-
-  /// Ollama local LLM provider for self-hosted models
-  ollama,
-
-  /// DeepSeek API provider for their LLM models
-  deepseek,
-
-  /// X.AI (formerly Twitter) API provider
-  xai,
-
-  /// Phind API provider for code-specialized models
-  phind,
-
-  /// Google Gemini API provider
-  google,
-
-  /// Groq API provider
-  groq,
-
-  /// ElevenLabs API provider
-  elevenlabs,
-}
-
-/// Extension to convert enum to string
-extension LLMBackendExtension on LLMBackend {
-  String get providerId {
-    switch (this) {
-      case LLMBackend.openai:
-        return 'openai';
-      case LLMBackend.anthropic:
-        return 'anthropic';
-      case LLMBackend.ollama:
-        return 'ollama';
-      case LLMBackend.deepseek:
-        return 'deepseek';
-      case LLMBackend.xai:
-        return 'xai';
-      case LLMBackend.phind:
-        return 'phind';
-      case LLMBackend.google:
-        return 'google';
-      case LLMBackend.groq:
-        return 'groq';
-      case LLMBackend.elevenlabs:
-        return 'elevenlabs';
-    }
-  }
-}
-
 /// Builder for configuring and instantiating LLM providers
 ///
 /// Provides a fluent interface similar to the Rust llm crate for setting
@@ -93,12 +34,6 @@ class LLMBuilder {
     }
 
     return this;
-  }
-
-  /// Legacy method for backward compatibility
-  @Deprecated('Use provider(String) instead')
-  LLMBuilder backend(LLMBackend backend) {
-    return provider(backend.providerId);
   }
 
   /// Convenience methods for built-in providers

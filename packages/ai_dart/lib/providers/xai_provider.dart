@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
+import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../utils/config_utils.dart';
 
 /// Search source configuration for search parameters
 class SearchSource {
@@ -219,12 +220,67 @@ class XAIEmbeddingResponse {
 }
 
 /// xAI provider implementation
-class XAIProvider implements ChatCapability {
+class XAIProvider extends BaseHttpProvider {
   final XAIConfig config;
-  final Dio _dio;
-  final Logger _logger = Logger('XAIProvider');
 
-  XAIProvider(this.config) : _dio = _createDio(config);
+  XAIProvider(this.config)
+      : super(
+          BaseHttpProvider.createDio(
+            baseUrl: config.baseUrl,
+            headers: ConfigUtils.buildOpenAIHeaders(config.apiKey),
+            timeout: config.timeout,
+          ),
+          'XAIProvider',
+        );
+
+  @override
+  String get providerName => 'XAI';
+
+  @override
+  String get chatEndpoint => 'chat/completions';
+
+  @override
+  Map<String, dynamic> buildRequestBody(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+    bool stream,
+  ) {
+    return _buildRequestBody(messages, tools, stream);
+  }
+
+  @override
+  ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    return XAIChatResponse(responseData);
+  }
+
+  @override
+  List<ChatStreamEvent> parseStreamEvents(String chunk) {
+    final events = <ChatStreamEvent>[];
+    final lines = chunk.split('\n');
+
+    for (final line in lines) {
+      if (line.startsWith('data: ')) {
+        final data = line.substring(6).trim();
+        if (data == '[DONE]') {
+          break;
+        }
+
+        try {
+          final json = jsonDecode(data) as Map<String, dynamic>;
+          final event = _parseStreamEvent(json);
+          if (event != null) {
+            events.add(event);
+          }
+        } catch (e) {
+          // Skip malformed JSON chunks
+          logger.warning('Failed to parse stream JSON: $data, error: $e');
+          continue;
+        }
+      }
+    }
+
+    return events;
+  }
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -277,11 +333,11 @@ class XAIProvider implements ChatCapability {
       final requestBody = _buildRequestBody(messages, tools, false);
 
       // Debug logging for request payload
-      _logger.finest('xAI request payload: ${jsonEncode(requestBody)}');
+      logger.finest('xAI request payload: ${jsonEncode(requestBody)}');
 
-      final response = await _dio.post('chat/completions', data: requestBody);
+      final response = await dio.post('chat/completions', data: requestBody);
 
-      _logger.fine('xAI HTTP status: ${response.statusCode}');
+      logger.fine('xAI HTTP status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw ProviderError(
@@ -310,7 +366,7 @@ class XAIProvider implements ChatCapability {
     try {
       final requestBody = _buildRequestBody(messages, tools, true);
 
-      final response = await _dio.post(
+      final response = await dio.post(
         'chat/completions',
         data: requestBody,
         options: Options(responseType: ResponseType.stream),
@@ -491,7 +547,7 @@ class XAIProvider implements ChatCapability {
         requestBody['dimensions'] = config.embeddingDimensions;
       }
 
-      final response = await _dio.post('embeddings', data: requestBody);
+      final response = await dio.post('embeddings', data: requestBody);
 
       if (response.statusCode != 200) {
         throw ProviderError(

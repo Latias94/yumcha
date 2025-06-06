@@ -10,7 +10,7 @@ void main() async {
 
   // Initialize and configure the ElevenLabs client using LLMBuilder
   final llm = await LLMBuilder()
-      .backend(LLMBackend.elevenlabs) // Use ElevenLabs as the provider
+      .elevenlabs() // Use ElevenLabs as the provider
       .apiKey(apiKey) // Set the API key
       .model('eleven_multilingual_v2') // Use multilingual model
       .voice('JBFqnCBsd6RMkjVDRZzb') // Set voice ID

@@ -32,7 +32,7 @@ Future<void> testOpenAIModels(String apiKey) async {
   try {
     // Create OpenAI provider
     final llm = await LLMBuilder()
-        .backend(LLMBackend.openai)
+        .openai()
         .apiKey(apiKey)
         .model('gpt-3.5-turbo') // Default model
         .build();
@@ -88,7 +88,7 @@ Future<void> testOllamaModels(String baseUrl) async {
   try {
     // Create Ollama provider
     final llm = await LLMBuilder()
-        .backend(LLMBackend.ollama)
+        .ollama()
         .baseUrl(baseUrl)
         .model('llama2') // Default model
         .build();

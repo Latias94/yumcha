@@ -11,7 +11,7 @@ void main() async {
 
   // Initialize and configure the LLM client using LLMBuilder
   final llm = await LLMBuilder()
-      .backend(LLMBackend.ollama) // Use Ollama as the LLM backend
+      .ollama() // Use Ollama as the LLM backend
       .baseUrl(baseUrl) // Set the Ollama server URL
       .model('llama3.2:latest')
       .maxTokens(1000) // Set maximum response length

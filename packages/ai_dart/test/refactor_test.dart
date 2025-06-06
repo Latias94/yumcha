@@ -34,9 +34,11 @@ void main() {
         model: 'gpt-4',
         apiKey: 'test-key',
       );
-      
-      final configWithExtension = config.withExtension('reasoningEffort', 'high');
-      expect(configWithExtension.getExtension<String>('reasoningEffort'), equals('high'));
+
+      final configWithExtension =
+          config.withExtension('reasoningEffort', 'high');
+      expect(configWithExtension.getExtension<String>('reasoningEffort'),
+          equals('high'));
     });
 
     test('LLMProviderRegistry should be accessible', () {
@@ -48,7 +50,7 @@ void main() {
       const authError = AuthError('test');
       const rateLimitError = RateLimitError('test');
       const quotaError = QuotaExceededError('test');
-      
+
       expect(authError, isA<LLMError>());
       expect(rateLimitError, isA<LLMError>());
       expect(quotaError, isA<LLMError>());
@@ -61,10 +63,11 @@ void main() {
       expect(LLMCapability.reasoning, isNotNull);
     });
 
-    test('Legacy interfaces should still work with deprecation warnings', () {
-      // These should work but show deprecation warnings
-      expect(LLMBackend.openai, isNotNull);
-      expect(LLMBackend.anthropic, isNotNull);
+    test('Provider registry should work', () {
+      // Test provider registry functionality
+      final providers = LLMProviderRegistry.getRegisteredProviders();
+      expect(providers, isA<List<String>>());
+      expect(providers, contains('openai'));
     });
   });
 }

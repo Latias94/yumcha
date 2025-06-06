@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
+import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../utils/config_utils.dart';
 
 /// Google (Gemini) provider configuration
 class GoogleConfig {
@@ -160,12 +161,166 @@ class GoogleChatResponse implements ChatResponse {
 }
 
 /// Google (Gemini) provider implementation
-class GoogleProvider implements ChatCapability {
+class GoogleProvider extends BaseHttpProvider {
   final GoogleConfig config;
-  final Dio _dio;
-  static final Logger _logger = Logger('GoogleProvider');
 
-  GoogleProvider(this.config) : _dio = _createDio(config);
+  GoogleProvider(this.config)
+      : super(
+          BaseHttpProvider.createDio(
+            baseUrl: config.baseUrl,
+            headers: {'Content-Type': 'application/json'},
+            timeout: config.timeout,
+          ),
+          'GoogleProvider',
+        );
+
+  @override
+  String get providerName => 'Google';
+
+  @override
+  String get chatEndpoint => 'models/${config.model}:generateContent';
+
+  @override
+  Map<String, dynamic> buildRequestBody(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+    bool stream,
+  ) {
+    return _buildRequestBody(messages, tools, stream);
+  }
+
+  @override
+  ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    return GoogleChatResponse(responseData);
+  }
+
+  @override
+  List<ChatStreamEvent> parseStreamEvents(String chunk) {
+    final events = <ChatStreamEvent>[];
+    final lines = chunk.split('\n');
+
+    for (final line in lines) {
+      if (line.trim().isNotEmpty) {
+        try {
+          final json = jsonDecode(line) as Map<String, dynamic>;
+          final event = _parseStreamEvent(json);
+          if (event != null) {
+            events.add(event);
+          }
+        } catch (e) {
+          // Skip malformed JSON chunks
+          logger.warning('Failed to parse stream JSON: $line, error: $e');
+          continue;
+        }
+      }
+    }
+
+    return events;
+  }
+
+  // Override the base HTTP methods to handle Google's special API format
+  @override
+  Future<ChatResponse> chatWithTools(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+  ) async {
+    validateApiKey(config.apiKey);
+
+    try {
+      final requestBody = buildRequestBody(messages, tools, false);
+
+      // Debug logging for request payload
+      if (logger.isLoggable(Level.FINEST)) {
+        logger.finest(
+            'Google Gemini request payload: ${jsonEncode(requestBody)}');
+      }
+
+      final endpoint = config.stream
+          ? 'models/${config.model}:streamGenerateContent'
+          : 'models/${config.model}:generateContent';
+
+      final response = await dio.post(
+        '$endpoint?key=${config.apiKey}',
+        data: requestBody,
+      );
+
+      if (response.statusCode != 200) {
+        _handleHttpError(response.statusCode, response.data);
+      }
+
+      final responseData = response.data;
+      if (responseData is! Map<String, dynamic>) {
+        throw ResponseFormatError(
+          'Invalid response format from Google API',
+          responseData.toString(),
+        );
+      }
+
+      return parseResponse(responseData);
+    } on DioException catch (e) {
+      throw handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
+
+  @override
+  Stream<ChatStreamEvent> chatStream(
+    List<ChatMessage> messages, {
+    List<Tool>? tools,
+  }) async* {
+    validateApiKey(config.apiKey);
+
+    try {
+      final requestBody = buildRequestBody(messages, tools, true);
+      final endpoint = 'models/${config.model}:streamGenerateContent';
+
+      final response = await dio.post(
+        '$endpoint?key=${config.apiKey}',
+        data: requestBody,
+        options: Options(responseType: ResponseType.stream),
+      );
+
+      if (response.statusCode != 200) {
+        yield ErrorEvent(
+          ProviderError('Google API returned status ${response.statusCode}'),
+        );
+        return;
+      }
+
+      final stream = response.data as ResponseBody;
+      await for (final chunk in stream.stream.map(utf8.decode)) {
+        final events = parseStreamEvents(chunk);
+        for (final event in events) {
+          yield event;
+        }
+      }
+    } on DioException catch (e) {
+      yield ErrorEvent(handleDioError(e));
+    } catch (e) {
+      yield ErrorEvent(GenericError('Unexpected error: $e'));
+    }
+  }
+
+  void _handleHttpError(int? statusCode, dynamic errorData) {
+    if (statusCode == 401) {
+      throw const AuthError('Invalid Google API key');
+    } else if (statusCode == 429) {
+      throw const ProviderError('Rate limit exceeded');
+    } else if (statusCode == 400) {
+      throw ResponseFormatError(
+        'Bad request - check your parameters',
+        errorData?.toString() ?? '',
+      );
+    } else if (statusCode == 500) {
+      throw const ProviderError('Google server error');
+    } else {
+      throw ResponseFormatError(
+        'Google API returned error status: $statusCode',
+        errorData?.toString() ?? '',
+      );
+    }
+  }
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -186,119 +341,6 @@ class GoogleProvider implements ChatCapability {
       throw const GenericError('no text in summary response');
     }
     return text;
-  }
-
-  static Dio _createDio(GoogleConfig config) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 30),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 30),
-        headers: {'Content-Type': 'application/json'},
-      ),
-    );
-
-    return dio;
-  }
-
-  @override
-  Future<ChatResponse> chatWithTools(
-    List<ChatMessage> messages,
-    List<Tool>? tools,
-  ) async {
-    if (config.apiKey.isEmpty) {
-      throw const AuthError('Missing Google API key');
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, false);
-
-      // Debug logging for request payload
-      _logger.finest(
-        'Google Gemini request payload: ${jsonEncode(requestBody)}',
-      );
-
-      final endpoint = config.stream
-          ? 'models/${config.model}:streamGenerateContent'
-          : 'models/${config.model}:generateContent';
-
-      final response = await _dio.post(
-        '$endpoint?key=${config.apiKey}',
-        data: requestBody,
-      );
-
-      if (response.statusCode != 200) {
-        throw ProviderError(
-          'Google API returned status ${response.statusCode}: ${response.data}',
-        );
-      }
-
-      final responseData = response.data;
-      if (responseData is! Map<String, dynamic>) {
-        throw ResponseFormatError(
-          'Invalid response format from Google API',
-          responseData.toString(),
-        );
-      }
-
-      return GoogleChatResponse(responseData);
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    } catch (e) {
-      throw GenericError('Unexpected error: $e');
-    }
-  }
-
-  @override
-  Stream<ChatStreamEvent> chatStream(
-    List<ChatMessage> messages, {
-    List<Tool>? tools,
-  }) async* {
-    if (config.apiKey.isEmpty) {
-      yield ErrorEvent(const AuthError('Missing Google API key'));
-      return;
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, true);
-      final endpoint = 'models/${config.model}:streamGenerateContent';
-
-      final response = await _dio.post(
-        '$endpoint?key=${config.apiKey}',
-        data: requestBody,
-        options: Options(responseType: ResponseType.stream),
-      );
-
-      if (response.statusCode != 200) {
-        yield ErrorEvent(
-          ProviderError('Google API returned status ${response.statusCode}'),
-        );
-        return;
-      }
-
-      final stream = response.data as ResponseBody;
-      await for (final chunk in stream.stream.map(utf8.decode)) {
-        final lines = chunk.split('\n');
-        for (final line in lines) {
-          if (line.trim().isNotEmpty) {
-            try {
-              final json = jsonDecode(line) as Map<String, dynamic>;
-              final event = _parseStreamEvent(json);
-              if (event != null) {
-                yield event;
-              }
-            } catch (e) {
-              // Skip malformed JSON chunks
-              continue;
-            }
-          }
-        }
-      }
-    } on DioException catch (e) {
-      yield ErrorEvent(_handleDioError(e));
-    } catch (e) {
-      yield ErrorEvent(GenericError('Unexpected error: $e'));
-    }
   }
 
   Map<String, dynamic> _buildRequestBody(
@@ -483,30 +525,5 @@ class GoogleProvider implements ChatCapability {
     }
 
     return null;
-  }
-
-  LLMError _handleDioError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return HttpError('Request timeout: ${e.message}');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        final data = e.response?.data;
-        if (statusCode == 401) {
-          return const AuthError('Invalid Google API key');
-        } else if (statusCode == 429) {
-          return const ProviderError('Rate limit exceeded');
-        } else {
-          return ProviderError('HTTP $statusCode: $data');
-        }
-      case DioExceptionType.cancel:
-        return const GenericError('Request was cancelled');
-      case DioExceptionType.connectionError:
-        return HttpError('Connection error: ${e.message}');
-      default:
-        return HttpError('Network error: ${e.message}');
-    }
   }
 }

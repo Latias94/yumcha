@@ -30,7 +30,7 @@ Future<void> streamingExample() async {
 
   // Initialize and configure the LLM client for streaming
   final llm = await LLMBuilder()
-      .backend(LLMBackend.openai) // Use OpenAI as the LLM provider
+      .openai() // Use OpenAI as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('deepseek-r1') // Use reasoning model
       .reasoningEffort('high') // Set reasoning effort level
@@ -47,60 +47,56 @@ Future<void> streamingExample() async {
   ];
 
   try {
-    // Check if provider supports streaming
-    if (llm is ChatCapability) {
-      print('🧠 Starting reasoning model chat with thinking support...\n');
+    // All providers support streaming through ChatCapability
+    print('🧠 Starting reasoning model chat with thinking support...\n');
 
-      var thinkingContent = StringBuffer();
-      var responseContent = StringBuffer();
-      var isThinking = true;
+    var thinkingContent = StringBuffer();
+    var responseContent = StringBuffer();
+    var isThinking = true;
 
-      // Send streaming chat request and handle events
-      await for (final event in llm.chatStream(messages)) {
-        switch (event) {
-          case ThinkingDeltaEvent(delta: final delta):
-            // Collect thinking/reasoning content
-            thinkingContent.write(delta);
-            print('\x1B[90m$delta\x1B[0m'); // Gray color for thinking content
-            break;
-          case TextDeltaEvent(delta: final delta):
-            // This is the actual response after thinking
-            if (isThinking) {
-              print('\n\n🎯 Final Answer:');
-              isThinking = false;
-            }
-            responseContent.write(delta);
-            print(delta);
-            break;
-          case ToolCallDeltaEvent(toolCall: final toolCall):
-            // Handle tool call events (if supported)
-            print('\n[Tool Call: ${toolCall.function.name}]');
-            break;
-          case CompletionEvent(response: final response):
-            // Handle completion
-            print('\n\n✅ Reasoning completed!');
+    // Send streaming chat request and handle events
+    await for (final event in llm.chatStream(messages)) {
+      switch (event) {
+        case ThinkingDeltaEvent(delta: final delta):
+          // Collect thinking/reasoning content
+          thinkingContent.write(delta);
+          print('\x1B[90m$delta\x1B[0m'); // Gray color for thinking content
+          break;
+        case TextDeltaEvent(delta: final delta):
+          // This is the actual response after thinking
+          if (isThinking) {
+            print('\n\n🎯 Final Answer:');
+            isThinking = false;
+          }
+          responseContent.write(delta);
+          print(delta);
+          break;
+        case ToolCallDeltaEvent(toolCall: final toolCall):
+          // Handle tool call events (if supported)
+          print('\n[Tool Call: ${toolCall.function.name}]');
+          break;
+        case CompletionEvent(response: final response):
+          // Handle completion
+          print('\n\n✅ Reasoning completed!');
 
-            if (response.usage != null) {
-              final usage = response.usage!;
-              print(
-                '\n📊 Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total tokens',
-              );
-            }
-            break;
-          case ErrorEvent(error: final error):
-            // Handle errors
-            print('\n❌ Stream error: $error');
-            break;
-        }
+          if (response.usage != null) {
+            final usage = response.usage!;
+            print(
+              '\n📊 Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total tokens',
+            );
+          }
+          break;
+        case ErrorEvent(error: final error):
+          // Handle errors
+          print('\n❌ Stream error: $error');
+          break;
       }
-
-      // Summary
-      print('\n📝 Streaming Summary:');
-      print('Thinking content length: ${thinkingContent.length} characters');
-      print('Response content length: ${responseContent.length} characters');
-    } else {
-      print('❌ Provider does not support streaming');
     }
+
+    // Summary
+    print('\n📝 Streaming Summary:');
+    print('Thinking content length: ${thinkingContent.length} characters');
+    print('Response content length: ${responseContent.length} characters');
   } catch (e) {
     print('❌ Streaming example error: $e');
   }
@@ -116,7 +112,7 @@ Future<void> nonStreamingExample() async {
 
   // Initialize and configure the LLM client for non-streaming
   final llm = await LLMBuilder()
-      .backend(LLMBackend.openai) // Use OpenAI as the LLM provider
+      .openai() // Use OpenAI as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('deepseek-r1') // Use reasoning model
       .reasoningEffort('high') // Set reasoning effort level

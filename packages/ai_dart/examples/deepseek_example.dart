@@ -10,7 +10,7 @@ void main() async {
 
   // Initialize and configure the LLM client using LLMBuilder
   final llm = await LLMBuilder()
-      .backend(LLMBackend.deepseek) // Use DeepSeek as the LLM provider
+      .deepseek() // Use DeepSeek as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('deepseek-reasoner') // Use DeepSeek Chat model
       .temperature(0.7) // Control response randomness (0.0-1.0)

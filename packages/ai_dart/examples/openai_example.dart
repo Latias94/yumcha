@@ -32,12 +32,13 @@ void main() async {
   // Method 2: Using convenience function
   print('\n2. Using convenience function:');
   try {
-    final llm2 = await openai(
+    final llm2 = await createProvider(
+      providerId: 'openai',
       apiKey: apiKey,
       model: 'gpt-4o',
       temperature: 0.7,
       maxTokens: 512,
-      reasoningEffort: 'high',
+      extensions: {'reasoningEffort': 'high'},
     );
 
     print('✓ Provider created successfully');
@@ -64,11 +65,11 @@ void main() async {
     print('✗ Error: $e');
   }
 
-  // Method 4: Legacy API (deprecated but still works)
-  print('\n4. Legacy API (deprecated):');
+  // Method 4: Provider method API
+  print('\n4. Provider method API:');
   try {
     final llm4 = await LLMBuilder()
-        .backend(LLMBackend.openai) // Deprecated but still works
+        .provider('openai') // Use provider method
         .apiKey(apiKey)
         .model('gpt-4o')
         .reasoningEffort('high')
@@ -76,8 +77,8 @@ void main() async {
         .temperature(0.7)
         .build();
 
-    print('✓ Provider created successfully (with deprecation warnings)');
-    await demonstrateChat(llm4, 'Method 4 (Legacy)');
+    print('✓ Provider created successfully');
+    await demonstrateChat(llm4, 'Method 4 (Provider)');
   } catch (e) {
     print('✗ Error: $e');
   }

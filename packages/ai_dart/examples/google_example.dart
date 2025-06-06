@@ -10,7 +10,7 @@ void main() async {
 
   // Initialize and configure the LLM client using LLMBuilder
   final llm = await LLMBuilder()
-      .backend(LLMBackend.google) // Use Google as the LLM provider
+      .google() // Use Google as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('gemini-2.0-flash-exp') // Use Gemini Pro model
       .maxTokens(8512) // Limit response length

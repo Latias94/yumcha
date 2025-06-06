@@ -10,7 +10,7 @@ void main() async {
 
   // Initialize and configure the LLM client using LLMBuilder
   final llm = await LLMBuilder()
-      .backend(LLMBackend.xai) // Use xAI as the LLM provider
+      .xai() // Use xAI as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('grok-3-mini-beta') // Use Grok-3 mini beta model
       .maxTokens(512) // Limit response length

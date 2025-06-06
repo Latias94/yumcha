@@ -2,7 +2,7 @@ import 'dart:io';
 import '../lib/ai_dart.dart';
 
 /// Example demonstrating the new refactored AI Dart API
-/// 
+///
 /// This example shows:
 /// 1. New capability-based interface design
 /// 2. Provider registry system
@@ -33,8 +33,9 @@ void main() async {
   print('\n2. Provider registry:');
   final registeredProviders = LLMProviderRegistry.getRegisteredProviders();
   print('  Registered providers: $registeredProviders');
-  
-  final openaiSupportsChat = LLMProviderRegistry.supportsCapability('openai', LLMCapability.chat);
+
+  final openaiSupportsChat =
+      LLMProviderRegistry.supportsCapability('openai', LLMCapability.chat);
   print('  OpenAI supports chat: $openaiSupportsChat');
 
   // Example 3: Using unified configuration with extensions
@@ -53,7 +54,8 @@ void main() async {
 
   print('  Model: ${config.model}');
   print('  Temperature: ${config.temperature}');
-  print('  Reasoning effort: ${config.getExtension<String>('reasoningEffort')}');
+  print(
+      '  Reasoning effort: ${config.getExtension<String>('reasoningEffort')}');
   print('  Voice: ${config.getExtension<String>('voice')}');
   print('  Custom param: ${config.getExtension<String>('customParam')}');
 
@@ -75,22 +77,25 @@ void main() async {
   print('\n5. Enhanced error handling:');
   try {
     // This will fail with a specific error type
-    final invalidProvider = await ai()
-        .provider('nonexistent')
-        .build();
+    final invalidProvider = await ai().provider('nonexistent').build();
   } catch (e) {
     print('  Caught error: ${e.runtimeType}');
     print('  Message: $e');
   }
 
   // Example 6: Legacy API compatibility
-  print('\n6. Legacy API compatibility:');
+  print('\n6. Provider registry capabilities:');
   try {
-    // Old enum still works but shows deprecation warning
-    final legacyBuilder = LLMBuilder().backend(LLMBackend.openai);
-    print('  ✓ Legacy backend() method still works (with deprecation warning)');
+    // Check registered providers
+    final providers = LLMProviderRegistry.getRegisteredProviders();
+    print('  ✓ Registered providers: $providers');
+
+    // Check capabilities
+    final hasChat =
+        LLMProviderRegistry.supportsCapability('openai', LLMCapability.chat);
+    print('  ✓ OpenAI supports chat: $hasChat');
   } catch (e) {
-    print('  ✗ Legacy API error: $e');
+    print('  ✗ Registry error: $e');
   }
 
   // Example 7: Provider information
@@ -99,7 +104,8 @@ void main() async {
   if (providerInfo != null) {
     print('  Provider: ${providerInfo.displayName}');
     print('  Description: ${providerInfo.description}');
-    print('  Capabilities: ${providerInfo.supportedCapabilities.map((c) => c.name).join(', ')}');
+    print(
+        '  Capabilities: ${providerInfo.supportedCapabilities.map((c) => c.name).join(', ')}');
   } else {
     print('  OpenAI provider not registered yet');
   }
@@ -108,11 +114,12 @@ void main() async {
   print('\n8. Convenience functions:');
   try {
     // Note: This will fail without a real API key, but shows the API
-    final quickProvider = await openai(
+    final quickProvider = await createProvider(
+      providerId: 'openai',
       apiKey: 'test-key',
       model: 'gpt-4',
       temperature: 0.7,
-      reasoningEffort: 'high',
+      extensions: {'reasoningEffort': 'high'},
     );
     print('  ✓ Quick OpenAI provider creation works');
   } catch (e) {

@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'dart:async';
-import 'package:dio/dio.dart';
-import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
+import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../utils/config_utils.dart';
 
 /// Groq provider configuration
 class GroqConfig {
@@ -128,12 +127,67 @@ class GroqChatResponse implements ChatResponse {
 }
 
 /// Groq provider implementation
-class GroqProvider implements ChatCapability {
+class GroqProvider extends BaseHttpProvider {
   final GroqConfig config;
-  final Dio _dio;
-  static final Logger _logger = Logger('GroqProvider');
 
-  GroqProvider(this.config) : _dio = _createDio(config);
+  GroqProvider(this.config)
+      : super(
+          BaseHttpProvider.createDio(
+            baseUrl: config.baseUrl,
+            headers: ConfigUtils.buildOpenAIHeaders(config.apiKey),
+            timeout: config.timeout,
+          ),
+          'GroqProvider',
+        );
+
+  @override
+  String get providerName => 'Groq';
+
+  @override
+  String get chatEndpoint => 'chat/completions';
+
+  @override
+  Map<String, dynamic> buildRequestBody(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+    bool stream,
+  ) {
+    return _buildRequestBody(messages, tools, stream);
+  }
+
+  @override
+  ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    return GroqChatResponse(responseData);
+  }
+
+  @override
+  List<ChatStreamEvent> parseStreamEvents(String chunk) {
+    final events = <ChatStreamEvent>[];
+    final lines = chunk.split('\n');
+
+    for (final line in lines) {
+      if (line.startsWith('data: ')) {
+        final data = line.substring(6).trim();
+        if (data == '[DONE]') {
+          break;
+        }
+
+        try {
+          final json = jsonDecode(data) as Map<String, dynamic>;
+          final event = _parseStreamEvent(json);
+          if (event != null) {
+            events.add(event);
+          }
+        } catch (e) {
+          // Skip malformed JSON chunks
+          logger.warning('Failed to parse stream JSON: $data, error: $e');
+          continue;
+        }
+      }
+    }
+
+    return events;
+  }
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -154,136 +208,6 @@ class GroqProvider implements ChatCapability {
       throw const GenericError('no text in summary response');
     }
     return text;
-  }
-
-  static Dio _createDio(GroqConfig config) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 30),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 30),
-        headers: {
-          'Authorization': 'Bearer ${config.apiKey}',
-          'Content-Type': 'application/json',
-        },
-      ),
-    );
-
-    return dio;
-  }
-
-  @override
-  Future<ChatResponse> chatWithTools(
-    List<ChatMessage> messages,
-    List<Tool>? tools,
-  ) async {
-    if (config.apiKey.isEmpty) {
-      throw const AuthError('Missing Groq API key');
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, false);
-
-      // Trace logging for request payload (similar to Rust implementation)
-      if (_logger.isLoggable(Level.FINEST)) {
-        _logger.finest('Groq request payload: ${jsonEncode(requestBody)}');
-      }
-
-      var request = _dio.post('chat/completions', data: requestBody);
-
-      // Add explicit timeout if configured (similar to Rust implementation)
-      if (config.timeout != null && config.timeout!.inSeconds > 0) {
-        request = request.timeout(config.timeout!);
-      }
-
-      final response = await request;
-
-      _logger.fine('Groq HTTP status: ${response.statusCode}');
-
-      if (response.statusCode != 200) {
-        throw ProviderError(
-          'Groq API returned status ${response.statusCode}: ${response.data}',
-        );
-      }
-
-      return GroqChatResponse(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    } catch (e) {
-      throw GenericError('Unexpected error: $e');
-    }
-  }
-
-  @override
-  Stream<ChatStreamEvent> chatStream(
-    List<ChatMessage> messages, {
-    List<Tool>? tools,
-  }) async* {
-    if (config.apiKey.isEmpty) {
-      yield ErrorEvent(const AuthError('Missing Groq API key'));
-      return;
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, true);
-
-      // Trace logging for request payload (similar to Rust implementation)
-      if (_logger.isLoggable(Level.FINEST)) {
-        _logger.finest(
-          'Groq stream request payload: ${jsonEncode(requestBody)}',
-        );
-      }
-
-      var request = _dio.post(
-        'chat/completions',
-        data: requestBody,
-        options: Options(responseType: ResponseType.stream),
-      );
-
-      // Add explicit timeout if configured (similar to Rust implementation)
-      if (config.timeout != null && config.timeout!.inSeconds > 0) {
-        request = request.timeout(config.timeout!);
-      }
-
-      final response = await request;
-
-      _logger.fine('Groq stream HTTP status: ${response.statusCode}');
-
-      if (response.statusCode != 200) {
-        yield ErrorEvent(
-          ProviderError('Groq API returned status ${response.statusCode}'),
-        );
-        return;
-      }
-
-      final stream = response.data as ResponseBody;
-      await for (final chunk in stream.stream.map(utf8.decode)) {
-        final lines = chunk.split('\n');
-        for (final line in lines) {
-          if (line.startsWith('data: ')) {
-            final data = line.substring(6).trim();
-            if (data == '[DONE]') {
-              return;
-            }
-
-            try {
-              final json = jsonDecode(data) as Map<String, dynamic>;
-              final event = _parseStreamEvent(json);
-              if (event != null) {
-                yield event;
-              }
-            } catch (e) {
-              // Skip malformed JSON chunks
-              continue;
-            }
-          }
-        }
-      }
-    } on DioException catch (e) {
-      yield ErrorEvent(_handleDioError(e));
-    } catch (e) {
-      yield ErrorEvent(GenericError('Unexpected error: $e'));
-    }
   }
 
   Map<String, dynamic> _buildRequestBody(
@@ -370,30 +294,5 @@ class GroqProvider implements ChatCapability {
     }
 
     return null;
-  }
-
-  LLMError _handleDioError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return HttpError('Request timeout: ${e.message}');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        final data = e.response?.data;
-        if (statusCode == 401) {
-          return const AuthError('Invalid API key');
-        } else if (statusCode == 429) {
-          return const ProviderError('Rate limit exceeded');
-        } else {
-          return ProviderError('HTTP $statusCode: $data');
-        }
-      case DioExceptionType.cancel:
-        return const GenericError('Request was cancelled');
-      case DioExceptionType.connectionError:
-        return HttpError('Connection error: ${e.message}');
-      default:
-        return HttpError('Network error: ${e.message}');
-    }
   }
 }

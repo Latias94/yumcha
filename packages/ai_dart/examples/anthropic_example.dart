@@ -10,9 +10,7 @@ void main() async {
 
   // Initialize and configure the LLM client using LLMBuilder
   final llm = await LLMBuilder()
-      .backend(
-        LLMBackend.anthropic,
-      ) // Use Anthropic (Claude) as the LLM provider
+      .anthropic() // Use Anthropic (Claude) as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('claude-3-7-sonnet-20250219') // Use Claude Instant model
       .maxTokens(512) // Limit response length

@@ -1,13 +1,12 @@
 import 'dart:convert';
-import 'dart:async';
-import 'package:dio/dio.dart';
-import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
+import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
 import '../utils/reasoning_utils.dart';
+import '../utils/config_utils.dart';
 
 /// DeepSeek provider configuration
 class DeepSeekConfig {
@@ -129,12 +128,88 @@ class DeepSeekChatResponse implements ChatResponse {
 }
 
 /// DeepSeek provider implementation
-class DeepSeekProvider implements ChatCapability {
+class DeepSeekProvider extends BaseHttpProvider {
   final DeepSeekConfig config;
-  final Dio _dio;
-  static final Logger _logger = Logger('DeepSeekProvider');
 
-  DeepSeekProvider(this.config) : _dio = _createDio(config);
+  DeepSeekProvider(this.config)
+      : super(
+          BaseHttpProvider.createDio(
+            baseUrl: config.baseUrl,
+            headers: ConfigUtils.buildOpenAIHeaders(config.apiKey),
+            timeout: config.timeout,
+          ),
+          'DeepSeekProvider',
+        );
+
+  @override
+  String get providerName => 'DeepSeek';
+
+  @override
+  String get chatEndpoint => 'chat/completions';
+
+  @override
+  Map<String, dynamic> buildRequestBody(
+    List<ChatMessage> messages,
+    List<Tool>? tools,
+    bool stream,
+  ) {
+    return _buildRequestBody(messages, tools, stream);
+  }
+
+  @override
+  ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    return DeepSeekChatResponse(responseData);
+  }
+
+  @override
+  List<ChatStreamEvent> parseStreamEvents(String chunk) {
+    final events = <ChatStreamEvent>[];
+    final lines = chunk.split('\n');
+
+    // Reasoning tracking variables (simplified for base implementation)
+    bool hasReasoningContent = false;
+    String lastChunk = '';
+    final thinkingBuffer = StringBuffer();
+
+    for (final line in lines) {
+      if (line.startsWith('data: ')) {
+        final data = line.substring(6).trim();
+        if (data == '[DONE]') {
+          break;
+        }
+
+        try {
+          final json = jsonDecode(data) as Map<String, dynamic>;
+          final streamEvents = _parseStreamEventWithReasoning(
+            json,
+            hasReasoningContent,
+            lastChunk,
+            thinkingBuffer,
+          );
+
+          // Update tracking variables using reasoning utils
+          final delta = _getDelta(json);
+          if (delta != null) {
+            final reasoningResult = ReasoningUtils.checkReasoningStatus(
+              delta: delta,
+              hasReasoningContent: hasReasoningContent,
+              lastChunk: lastChunk,
+            );
+            hasReasoningContent = reasoningResult.hasReasoningContent;
+            lastChunk = reasoningResult.updatedLastChunk;
+          }
+
+          events.addAll(streamEvents);
+        } catch (e) {
+          // Skip malformed JSON chunks
+          logger.warning('Failed to parse stream JSON: $data, error: $e');
+          continue;
+        }
+      }
+    }
+
+    return events;
+  }
 
   @override
   Future<ChatResponse> chat(List<ChatMessage> messages) async {
@@ -155,133 +230,6 @@ class DeepSeekProvider implements ChatCapability {
       throw const GenericError('no text in summary response');
     }
     return text;
-  }
-
-  static Dio _createDio(DeepSeekConfig config) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 30),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 30),
-        headers: {
-          'Authorization': 'Bearer ${config.apiKey}',
-          'Content-Type': 'application/json',
-        },
-      ),
-    );
-
-    return dio;
-  }
-
-  @override
-  Future<ChatResponse> chatWithTools(
-    List<ChatMessage> messages,
-    List<Tool>? tools,
-  ) async {
-    if (config.apiKey.isEmpty) {
-      throw const AuthError('Missing DeepSeek API key');
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, false);
-
-      // Debug logging for request payload
-      _logger.finest('DeepSeek request payload: ${jsonEncode(requestBody)}');
-
-      final response = await _dio.post('chat/completions', data: requestBody);
-
-      if (response.statusCode != 200) {
-        throw ProviderError(
-          'DeepSeek API returned status ${response.statusCode}: ${response.data}',
-        );
-      }
-
-      return DeepSeekChatResponse(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    } catch (e) {
-      throw GenericError('Unexpected error: $e');
-    }
-  }
-
-  @override
-  Stream<ChatStreamEvent> chatStream(
-    List<ChatMessage> messages, {
-    List<Tool>? tools,
-  }) async* {
-    if (config.apiKey.isEmpty) {
-      yield ErrorEvent(const AuthError('Missing DeepSeek API key'));
-      return;
-    }
-
-    try {
-      final requestBody = _buildRequestBody(messages, tools, true);
-
-      final response = await _dio.post(
-        'chat/completions',
-        data: requestBody,
-        options: Options(responseType: ResponseType.stream),
-      );
-
-      if (response.statusCode != 200) {
-        yield ErrorEvent(
-          ProviderError('DeepSeek API returned status ${response.statusCode}'),
-        );
-        return;
-      }
-
-      final stream = response.data as ResponseBody;
-
-      // Reasoning tracking variables
-      bool hasReasoningContent = false;
-      String lastChunk = '';
-      final thinkingBuffer = StringBuffer();
-
-      await for (final chunk in stream.stream.map(utf8.decode)) {
-        final lines = chunk.split('\n');
-        for (final line in lines) {
-          if (line.startsWith('data: ')) {
-            final data = line.substring(6).trim();
-            if (data == '[DONE]') {
-              return;
-            }
-
-            try {
-              final json = jsonDecode(data) as Map<String, dynamic>;
-              final events = _parseStreamEventWithReasoning(
-                json,
-                hasReasoningContent,
-                lastChunk,
-                thinkingBuffer,
-              );
-
-              // Update tracking variables using reasoning utils
-              final delta = _getDelta(json);
-              if (delta != null) {
-                final reasoningResult = ReasoningUtils.checkReasoningStatus(
-                  delta: delta,
-                  hasReasoningContent: hasReasoningContent,
-                  lastChunk: lastChunk,
-                );
-                hasReasoningContent = reasoningResult.hasReasoningContent;
-                lastChunk = reasoningResult.updatedLastChunk;
-              }
-
-              for (final event in events) {
-                yield event;
-              }
-            } catch (e) {
-              // Skip malformed JSON chunks
-              continue;
-            }
-          }
-        }
-      }
-    } on DioException catch (e) {
-      yield ErrorEvent(_handleDioError(e));
-    } catch (e) {
-      yield ErrorEvent(GenericError('Unexpected error: $e'));
-    }
   }
 
   Map<String, dynamic> _buildRequestBody(
@@ -392,7 +340,7 @@ class DeepSeekProvider implements ChatCapability {
       );
 
       if (reasoningResult.isReasoningJustDone) {
-        _logger.fine('Reasoning phase completed, starting response phase');
+        logger.fine('Reasoning phase completed, starting response phase');
       }
 
       // Filter out thinking tags for models that use <think> tags
@@ -413,7 +361,7 @@ class DeepSeekProvider implements ChatCapability {
           events.add(ToolCallDeltaEvent(ToolCall.fromJson(toolCall)));
         } catch (e) {
           // Skip malformed tool calls
-          _logger.warning('Failed to parse tool call: $e');
+          logger.warning('Failed to parse tool call: $e');
         }
       }
     }
@@ -438,30 +386,5 @@ class DeepSeekProvider implements ChatCapability {
     }
 
     return events;
-  }
-
-  LLMError _handleDioError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return HttpError('Request timeout: ${e.message}');
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        final data = e.response?.data;
-        if (statusCode == 401) {
-          return const AuthError('Invalid API key');
-        } else if (statusCode == 429) {
-          return const ProviderError('Rate limit exceeded');
-        } else {
-          return ProviderError('HTTP $statusCode: $data');
-        }
-      case DioExceptionType.cancel:
-        return const GenericError('Request was cancelled');
-      case DioExceptionType.connectionError:
-        return HttpError('Connection error: ${e.message}');
-      default:
-        return HttpError('Network error: ${e.message}');
-    }
   }
 }
