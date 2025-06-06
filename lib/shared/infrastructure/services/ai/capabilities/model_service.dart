@@ -2,8 +2,6 @@ import 'dart:async';
 import '../../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/ai_management/domain/entities/ai_model.dart';
-import '../../../../../features/ai_management/domain/entities/provider_model_config.dart';
-import '../../../../../features/ai_management/domain/usecases/configure_provider_usecase.dart';
 import '../core/ai_service_base.dart';
 import 'package:ai_dart/ai_dart.dart';
 

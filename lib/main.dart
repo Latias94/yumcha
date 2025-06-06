@@ -8,7 +8,6 @@ import 'shared/infrastructure/services/logger_service.dart';
 import 'shared/infrastructure/services/database_service.dart';
 import 'shared/infrastructure/services/theme_service.dart';
 import 'shared/infrastructure/services/preference_service.dart';
-import 'features/settings/presentation/screens/quick_setup_screen.dart';
 import 'package:yumcha/src/rust/frb_generated.dart';
 
 void main() async {
