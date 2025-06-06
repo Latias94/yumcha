@@ -8,12 +8,11 @@ import '../services/database_service.dart';
 import '../services/logger_service.dart';
 import '../services/ai/providers/ai_service_provider.dart';
 import 'ai_provider_notifier.dart';
+import 'chat_configuration_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-/// 当前对话状态数据模型
-///
-/// 包含当前活跃对话的所有状态信息
+/// 当前对话状态数据模型 - 包含当前活跃对话的所有状态信息
 class CurrentConversationState {
   final ConversationUiState? conversation;
   final bool isLoading;
@@ -42,36 +41,7 @@ class CurrentConversationState {
   }
 }
 
-/// 当前对话状态管理器
-///
-/// 负责管理当前活跃对话的状态和操作。这是主要的对话管理器，
-/// 处理对话的创建、加载、切换和标题生成等核心功能。
-///
-/// 核心功能：
-/// - 💬 **对话管理**: 创建新对话、加载现有对话、切换对话
-/// - 🏷️ **智能标题**: 自动生成对话标题，支持手动重新生成
-/// - 💾 **配置恢复**: 恢复用户上次使用的助手和模型配置
-/// - 🔄 **状态同步**: 实时同步对话状态变化
-/// - 🛡️ **防抖机制**: 防止重复创建对话的操作
-/// - 📊 **持久化**: 自动保存对话到数据库
-///
-/// 业务逻辑：
-/// - 用户通过 AI 助手创建聊天，助手不绑定特定提供商和模型
-/// - 在聊天过程中可以切换不同的提供商模型组合
-/// - 系统会记住用户的配置选择，下次启动时自动恢复
-/// - 当对话有足够内容时，自动生成有意义的标题
-/// - 支持手动重新生成标题功能
-///
-/// 标题生成策略：
-/// - 对话至少有2条消息（用户+AI回复）时触发
-/// - 只对默认标题"新对话"进行自动更新
-/// - 支持使用默认标题生成模型或当前对话模型
-/// - 防止重复生成和并发冲突
-///
-/// 使用场景：
-/// - 主聊天界面的对话管理
-/// - 对话列表的状态同步
-/// - 新建对话和对话切换
+/// 当前对话状态管理器 - 管理对话创建、切换、标题生成和持久化等核心功能
 class CurrentConversationNotifier
     extends StateNotifier<CurrentConversationState> {
   CurrentConversationNotifier(this.ref)
@@ -204,13 +174,28 @@ class CurrentConversationNotifier
         return;
       }
 
+      // 获取默认模型配置
+      String? defaultProviderId = _lastUsedProviderId;
+      String? defaultModelName = _lastUsedModelName;
+      String? defaultAssistantId;
+
+      // 如果没有上次使用的配置，从聊天配置获取默认配置
+      if (defaultProviderId == null || defaultModelName == null) {
+        final defaultConfig = ref
+            .read(chatConfigurationProvider)
+            .defaultConfiguration;
+        defaultProviderId ??= defaultConfig.providerId;
+        defaultModelName ??= defaultConfig.modelName;
+        defaultAssistantId = defaultConfig.assistantId;
+      }
+
       final newConversation = ConversationUiState(
         id: conversationId,
         channelName: _defaultTitle,
         channelMembers: 1,
-        assistantId: selectedAssistant.id,
-        selectedProviderId: _lastUsedProviderId ?? '',
-        selectedModelId: _lastUsedModelName,
+        assistantId: defaultAssistantId ?? selectedAssistant.id,
+        selectedProviderId: defaultProviderId ?? '',
+        selectedModelId: defaultModelName,
         messages: [],
       );
 
@@ -572,6 +557,21 @@ class CurrentConversationNotifier
   }) async {
     if (messages.isEmpty) return null;
 
+    // 如果没有指定提供商和模型，从聊天配置获取默认配置
+    if (providerId == null || modelName == null) {
+      final defaultConfig = ref
+          .read(chatConfigurationProvider)
+          .defaultConfiguration;
+      providerId ??= defaultConfig.providerId;
+      modelName ??= defaultConfig.modelName;
+    }
+
+    // 如果仍然没有配置，无法生成标题
+    if (providerId == null || modelName == null) {
+      _logger.debug('没有可用的提供商和模型配置，无法生成标题');
+      return null;
+    }
+
     // 构建标题生成提示
     final titlePrompt = _buildTitleGenerationPrompt(messages);
 
@@ -581,8 +581,8 @@ class CurrentConversationNotifier
           SmartChatParams(
             chatHistory: [], // 不需要历史记录
             userMessage: titlePrompt,
-            providerId: providerId, // 使用指定的提供商
-            modelName: modelName, // 使用指定的模型
+            providerId: providerId,
+            modelName: modelName,
           ),
         ).future,
       );
@@ -591,16 +591,11 @@ class CurrentConversationNotifier
         return _cleanTitle(response.content);
       }
     } catch (e) {
-      // 如果没有指定提供商和模型，说明是使用默认配置失败，这是正常情况
-      if (providerId == null && modelName == null) {
-        _logger.debug('默认配置不可用，将使用当前对话配置', {'error': e.toString()});
-      } else {
-        _logger.warning('使用指定配置生成标题失败', {
-          'providerId': providerId,
-          'modelName': modelName,
-          'error': e.toString(),
-        });
-      }
+      _logger.warning('生成标题失败', {
+        'providerId': providerId,
+        'modelName': modelName,
+        'error': e.toString(),
+      });
     }
 
     return null;
@@ -719,7 +714,7 @@ class _TitleGenerationValidationResult {
   });
 }
 
-/// 对话列表刷新通知器
+/// 对话列表刷新通知器 - 通知对话列表需要刷新的简单计数器
 class ConversationListRefreshNotifier extends StateNotifier<int> {
   ConversationListRefreshNotifier() : super(0);
 
