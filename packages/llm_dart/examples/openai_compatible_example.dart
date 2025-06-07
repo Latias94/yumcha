@@ -1,12 +1,12 @@
 // ignore_for_file: avoid_print
-/// Example showing how to use OpenAI-compatible providers
-///
-/// This example demonstrates the user-friendly way to use providers that
-/// offer OpenAI-compatible APIs without manual configuration.
 
 import 'dart:io';
 import 'package:llm_dart/llm_dart.dart';
 
+/// Example showing how to use OpenAI-compatible providers
+///
+/// This example demonstrates the user-friendly way to use providers that
+/// offer OpenAI-compatible APIs without manual configuration.
 void main() async {
   print('=== OpenAI Compatible Providers Example ===\n');
 

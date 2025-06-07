@@ -19,7 +19,7 @@ Future<void> modelsExample() async {
   // Test OpenAI models
   await testOpenAIModels(openaiApiKey);
 
-  print('\n' + '=' * 50 + '\n');
+  print('\n${'=' * 50}\n');
 
   // Test Ollama models
   await testOllamaModels(ollamaBaseUrl);

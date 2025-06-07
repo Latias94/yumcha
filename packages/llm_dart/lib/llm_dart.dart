@@ -1,9 +1,10 @@
+library llm_dart;
+
 /// LLM Dart Library - A modular Dart library for AI provider interactions
 ///
 /// This library provides a unified interface for interacting with different
 /// AI providers, starting with OpenAI. It's designed to be modular and
 /// extensible, following the architecture of the Rust llm library.
-library llm_dart;
 
 // Core exports
 export 'core/chat_provider.dart';

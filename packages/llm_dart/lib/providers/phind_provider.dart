@@ -3,11 +3,9 @@ import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
-import '../core/base_http_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
-import '../utils/config_utils.dart';
 
 /// Phind provider configuration
 class PhindConfig {

@@ -281,7 +281,6 @@ void main() async {
 
     // Step 7: Test capability checking
     print('\n7. Capability checking:');
-    print('Supports chat: ${provider is ChatCapability}');
     print('Supports embedding: ${provider is EmbeddingCapability}');
 
     if (provider is ProviderCapabilities) {

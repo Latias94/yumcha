@@ -1,15 +1,14 @@
 // ignore_for_file: avoid_print
-/// Simple example demonstrating how to create a custom AI provider
-///
-/// This example shows the minimal implementation needed to create
-/// a custom provider that can be registered and used with the LLM Dart library.
 
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:llm_dart/llm_dart.dart';
 
-/// Simple mock response implementation
+/// Simple example demonstrating how to create a custom AI provider
+///
+/// This example shows the minimal implementation needed to create
+/// a custom provider that can be registered and used with the LLM Dart library.
 class SimpleMockResponse implements ChatResponse {
   final String _text;
 
@@ -127,8 +126,6 @@ class SimpleMockProviderFactory
 
 /// Example usage
 void main() async {
-  // ignore_for_file: avoid_print
-
   print('=== Simple Custom Provider Example ===\n');
 
   // Step 1: Register the custom provider

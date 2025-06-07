@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:logging/logging.dart';
 
 import '../core/chat_provider.dart';
 import '../core/base_http_provider.dart';

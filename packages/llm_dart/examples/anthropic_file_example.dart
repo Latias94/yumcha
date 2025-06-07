@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 // Import required modules from the LLM Dart library for Anthropic file operations
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating Anthropic Claude file processing capabilities

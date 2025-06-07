@@ -1,6 +1,4 @@
 // ignore_for_file: avoid_print
-/// Example showing how to query provider capabilities through factories
-/// This is a better approach than using is/as checks
 
 import 'package:llm_dart/llm_dart.dart';
 
@@ -84,10 +82,9 @@ class ProviderCapabilityQuery {
   }
 }
 
-/// Example usage
+/// Example showing how to query provider capabilities through factories
+/// This is a better approach than using is/as checks
 void main() async {
-  // ignore_for_file: avoid_print
-
   print('=== Provider Capability Query Example ===\n');
 
   // 1. Print capability matrix

@@ -1,13 +1,12 @@
+import 'dart:io';
+import 'package:llm_dart/llm_dart.dart';
+
 /// Simple example demonstrating the unified LLMBuilder interface
 ///
 /// This example shows how to use the LLMBuilder similar to the Rust llm crate:
 /// - Create providers using the unified builder pattern
 /// - Switch between different backends easily
 /// - Use the same interface regardless of provider
-
-import 'dart:io';
-import 'package:llm_dart/llm_dart.dart';
-
 void main() async {
   // ignore_for_file: avoid_print
 

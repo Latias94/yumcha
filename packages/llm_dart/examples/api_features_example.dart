@@ -1,11 +1,9 @@
+import 'package:llm_dart/llm_dart.dart';
+
 /// Example demonstrating the LLM Dart API features and capabilities
 ///
 /// This example shows the modern API design, provider registry system,
 /// and various ways to create and configure LLM providers.
-
-import 'dart:io';
-import 'package:llm_dart/llm_dart.dart';
-
 void main() async {
   // ignore_for_file: avoid_print
 

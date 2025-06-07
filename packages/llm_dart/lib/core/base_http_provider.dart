@@ -75,7 +75,9 @@ abstract class BaseHttpProvider implements ChatCapability {
         _logger.fine('$providerName request: POST $chatEndpoint');
         _logger.fine('$providerName request headers: ${_dio.options.headers}');
       }
-      print('$providerName request body: ${jsonEncode(requestBody)}');
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine('$providerName request body: ${jsonEncode(requestBody)}');
+      }
 
       final response = await _dio.post(chatEndpoint, data: requestBody);
 
@@ -122,7 +124,10 @@ abstract class BaseHttpProvider implements ChatCapability {
         _logger.fine(
             '$providerName stream request headers: ${_dio.options.headers}');
       }
-      print('$providerName stream request body: ${jsonEncode(requestBody)}');
+      if (_logger.isLoggable(Level.FINE)) {
+        _logger.fine(
+            '$providerName stream request body: ${jsonEncode(requestBody)}');
+      }
 
       final response = await _dio.post(
         chatEndpoint,

@@ -1,0 +1,174 @@
+name: yumcha_workspace
+
+packages:
+  - packages/**
+  - apps/**
+
+repository: https://github.com/Latias94/yumcha
+
+command:
+  version:
+    # Generate commit links in package changelogs.
+    linkToCommits: true
+    # Only allow versioning to happen on main branch.
+    branch: main
+    # Additionally build a changelog at the root of the workspace.
+    workspaceChangelog: true
+
+  bootstrap:
+    # It seems so that running "pub get" in parallel has some issues (like
+    # https://github.com/dart-lang/pub/issues/3404). Disabling this feature
+    # makes the CI much more stable.
+    runPubGetInParallel: false
+
+    # Shared dependencies across packages
+    environment:
+      sdk: ">=3.5.0 <4.0.0"
+      flutter: ">=3.8.0"
+
+    dependencies:
+      # Shared dependencies between llm_dart and yumcha
+      dio: ^5.8.0
+      logging: ^1.2.0
+      meta: ^1.16.0
+
+    dev_dependencies:
+      # Shared dev dependencies
+      flutter_test:
+        sdk: flutter
+      test: ^1.25.15
+
+    # Lifecycle hooks
+    hooks:
+      post: melos generate
+
+scripts:
+  generate:
+    run: melos exec -c 1 --depends-on build_runner -- dart run build_runner build --delete-conflicting-outputs
+    description: Run code generation for all packages.
+
+  # Analysis and linting
+  lint:all:
+    run: melos exec dart analyze .
+    description: Run `dart analyze` for all packages.
+
+  lint:flutter:
+    run: dart analyze .
+    description: Run `dart analyze` for Flutter app.
+    packageFilters:
+      scope: yumcha
+
+  lint:llm_dart:
+    run: dart analyze .
+    description: Run `dart analyze` for llm_dart package.
+    packageFilters:
+      scope: llm_dart
+
+  # Testing
+  test:all:
+    run: melos exec dart test
+    description: Run `dart test` for all packages.
+    packageFilters:
+      dirExists:
+        - test
+
+  test:flutter:
+    run: flutter test
+    description: Run Flutter tests.
+    packageFilters:
+      scope: yumcha
+
+  test:llm_dart:
+    run: dart test
+    description: Run llm_dart tests.
+    packageFilters:
+      scope: llm_dart
+
+  # Code formatting
+  format:all:
+    run: melos exec dart format . --fix
+    description: Run `dart format` for all packages.
+
+  format:check:
+    run: melos exec dart format . --set-exit-if-changed
+    description: Check if code is properly formatted.
+
+  # Dependency management
+  get:all:
+    run: melos exec -- dart pub get
+    description: Run `dart pub get` for all packages.
+
+  clean:all:
+    run: melos exec -- dart pub deps --style=tree
+    description: Show dependency tree for all packages.
+
+  clean:flutter:
+    run: flutter clean
+    description: Clean Flutter build artifacts.
+    packageFilters:
+      flutter: true
+
+  # Building
+  build:flutter:apk:
+    run: flutter build apk
+    description: Build Flutter APK.
+    packageFilters:
+      scope: yumcha
+
+  build:flutter:web:
+    run: flutter build web
+    description: Build Flutter web app.
+    packageFilters:
+      scope: yumcha
+
+  build:flutter:windows:
+    run: flutter build windows
+    description: Build Flutter Windows app.
+    packageFilters:
+      scope: yumcha
+
+  # Publishing
+  publish:llm_dart:dry:
+    run: dart pub publish --dry-run
+    description: Test publish llm_dart package.
+    packageFilters:
+      scope: llm_dart
+
+  publish:llm_dart:
+    run: dart pub publish
+    description: Publish llm_dart package to pub.dev.
+    packageFilters:
+      scope: llm_dart
+
+  # Development
+  run:examples:
+    run: dart run example/openai_example.dart
+    description: Run llm_dart examples.
+    packageFilters:
+      scope: llm_dart
+
+  # Development workflow
+  dev:setup:
+    run: |
+      melos bootstrap
+      melos generate
+    description: Complete development setup.
+
+  dev:check:
+    run: |
+      melos format:check
+      melos lint:all
+      melos test:all
+    description: Run all checks (format, lint, test).
+
+  codegen:
+    run: flutter packages pub run build_runner build
+    description: Run code generation.
+    packageFilters:
+      scope: yumcha
+
+  codegen:clean:
+    run: flutter packages pub run build_runner clean
+    description: Clean generated code.
+    packageFilters:
+      scope: yumcha
