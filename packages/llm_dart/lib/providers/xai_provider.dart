@@ -303,22 +303,6 @@ class XAIProvider extends BaseHttpProvider {
     return text;
   }
 
-  static Dio _createDio(XAIConfig config) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 60),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 60),
-        headers: {
-          'Authorization': 'Bearer ${config.apiKey}',
-          'Content-Type': 'application/json',
-        },
-      ),
-    );
-
-    return dio;
-  }
-
   @override
   Future<ChatResponse> chatWithTools(
     List<ChatMessage> messages,

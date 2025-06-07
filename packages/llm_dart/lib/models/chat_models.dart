@@ -42,6 +42,119 @@ extension ImageMimeExtension on ImageMime {
   }
 }
 
+/// General MIME type for files
+class FileMime {
+  final String mimeType;
+
+  const FileMime(this.mimeType);
+
+  // Common document types
+  static const pdf = FileMime('application/pdf');
+  static const docx = FileMime(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  static const doc = FileMime('application/msword');
+  static const xlsx = FileMime(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  static const xls = FileMime('application/vnd.ms-excel');
+  static const pptx = FileMime(
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+  static const ppt = FileMime('application/vnd.ms-powerpoint');
+  static const txt = FileMime('text/plain');
+  static const csv = FileMime('text/csv');
+  static const json = FileMime('application/json');
+  static const xml = FileMime('application/xml');
+
+  // Audio types
+  static const mp3 = FileMime('audio/mpeg');
+  static const wav = FileMime('audio/wav');
+  static const m4a = FileMime('audio/mp4');
+  static const ogg = FileMime('audio/ogg');
+
+  // Video types
+  static const mp4 = FileMime('video/mp4');
+  static const avi = FileMime('video/x-msvideo');
+  static const mov = FileMime('video/quicktime');
+  static const webm = FileMime('video/webm');
+
+  // Archive types
+  static const zip = FileMime('application/zip');
+  static const rar = FileMime('application/vnd.rar');
+  static const tar = FileMime('application/x-tar');
+  static const gz = FileMime('application/gzip');
+
+  /// Check if this is a document type
+  bool get isDocument {
+    return mimeType.startsWith('application/') &&
+        (mimeType.contains('pdf') ||
+            mimeType.contains('word') ||
+            mimeType.contains('excel') ||
+            mimeType.contains('powerpoint') ||
+            mimeType.contains('text'));
+  }
+
+  /// Check if this is an audio type
+  bool get isAudio => mimeType.startsWith('audio/');
+
+  /// Check if this is a video type
+  bool get isVideo => mimeType.startsWith('video/');
+
+  /// Check if this is an archive type
+  bool get isArchive {
+    return mimeType == 'application/zip' ||
+        mimeType == 'application/vnd.rar' ||
+        mimeType == 'application/x-tar' ||
+        mimeType == 'application/gzip';
+  }
+
+  /// Get a human-readable description of the file type
+  String get description {
+    switch (mimeType) {
+      case 'application/pdf':
+        return 'PDF Document';
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return 'Word Document';
+      case 'application/msword':
+        return 'Word Document (Legacy)';
+      case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+        return 'Excel Spreadsheet';
+      case 'application/vnd.ms-excel':
+        return 'Excel Spreadsheet (Legacy)';
+      case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        return 'PowerPoint Presentation';
+      case 'application/vnd.ms-powerpoint':
+        return 'PowerPoint Presentation (Legacy)';
+      case 'text/plain':
+        return 'Text File';
+      case 'text/csv':
+        return 'CSV File';
+      case 'application/json':
+        return 'JSON File';
+      case 'audio/mpeg':
+        return 'MP3 Audio';
+      case 'audio/wav':
+        return 'WAV Audio';
+      case 'video/mp4':
+        return 'MP4 Video';
+      case 'application/zip':
+        return 'ZIP Archive';
+      default:
+        return 'File ($mimeType)';
+    }
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is FileMime && other.mimeType == mimeType;
+  }
+
+  @override
+  int get hashCode => mimeType.hashCode;
+
+  @override
+  String toString() => mimeType;
+}
+
 /// Represents an AI model with its metadata
 class AIModel {
   /// The unique identifier of the model
@@ -163,11 +276,12 @@ class ImageMessage extends MessageType {
   const ImageMessage(this.mime, this.data);
 }
 
-/// PDF message
-class PdfMessage extends MessageType {
+/// File message for documents, audio, video, etc.
+class FileMessage extends MessageType {
+  final FileMime mime;
   final List<int> data;
 
-  const PdfMessage(this.data);
+  const FileMessage(this.mime, this.data);
 }
 
 /// An image URL message
@@ -251,6 +365,32 @@ class ChatMessage {
       ChatMessage(
         role: role,
         messageType: ImageUrlMessage(url),
+        content: content,
+      );
+
+  /// Create a file message
+  factory ChatMessage.file({
+    required ChatRole role,
+    required FileMime mime,
+    required List<int> data,
+    String content = '',
+  }) =>
+      ChatMessage(
+        role: role,
+        messageType: FileMessage(mime, data),
+        content: content,
+      );
+
+  /// Create a PDF document message (convenience method)
+  factory ChatMessage.pdf({
+    required ChatRole role,
+    required List<int> data,
+    String content = '',
+  }) =>
+      ChatMessage.file(
+        role: role,
+        mime: FileMime.pdf,
+        data: data,
         content: content,
       );
 

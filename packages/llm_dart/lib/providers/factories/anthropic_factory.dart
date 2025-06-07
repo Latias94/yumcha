@@ -25,7 +25,7 @@ class AnthropicProviderFactory implements LLMProviderFactory<ChatCapability> {
 
   @override
   ChatCapability create(LLMConfig config) {
-    final anthropicConfig = _transformConfig(config);
+    final anthropicConfig = AnthropicConfig.fromLLMConfig(config);
     return AnthropicProvider(anthropicConfig);
   }
 
@@ -39,30 +39,8 @@ class AnthropicProviderFactory implements LLMProviderFactory<ChatCapability> {
   LLMConfig getDefaultConfig() {
     return LLMConfig(
       baseUrl: 'https://api.anthropic.com/v1/',
-      model: 'claude-3-5-sonnet-20241022',
-    );
-  }
-
-  /// Transform unified config to Anthropic-specific config
-  AnthropicConfig _transformConfig(LLMConfig config) {
-    return AnthropicConfig(
-      apiKey: config.apiKey!,
-      baseUrl: config.baseUrl,
-      model: config.model,
-      maxTokens: config.maxTokens,
-      temperature: config.temperature,
-      systemPrompt: config.systemPrompt,
-      timeout: config.timeout,
-      stream: config.stream,
-      topP: config.topP,
-      topK: config.topK,
-      tools: config.tools,
-      toolChoice: config.toolChoice,
-      // Anthropic-specific extensions
-      reasoning: config.getExtension<bool>('reasoning') ?? false,
-      thinkingBudgetTokens: config.getExtension<int>('thinkingBudgetTokens'),
-      interleavedThinking:
-          config.getExtension<bool>('interleavedThinking') ?? false,
+      model:
+          'claude-3-5-sonnet-20241022', // Keep current default for compatibility
     );
   }
 }

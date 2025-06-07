@@ -36,19 +36,19 @@ void main() async {
 
   try {
     // Example 1: Basic extended thinking
-    // await basicExtendedThinking(apiKey);
+    await basicExtendedThinking(apiKey);
 
-    // print('');
+    print('');
 
-    // // Example 2: Different thinking budgets
-    // await compareBudgets(apiKey);
+    // Example 2: Different thinking budgets
+    await compareBudgets(apiKey);
 
-    // print('');
+    print('');
 
-    // // Example 3: Interleaved thinking with tools (Claude 4 only)
-    // await interleavedThinkingExample(apiKey);
+    // Example 3: Interleaved thinking with tools (Claude 4 only)
+    await interleavedThinkingExample(apiKey);
 
-    // print('');
+    print('');
 
     // Example 4: Streaming with thinking
     await streamingThinkingExample(apiKey);
@@ -56,6 +56,14 @@ void main() async {
     print('❌ Error: $e');
     if (e.toString().contains('401') || e.toString().contains('auth')) {
       print('   Please check your Anthropic API key');
+    } else if (e.toString().contains('model')) {
+      print('   The specified model may not be available');
+      print(
+          '   Supported thinking models: claude-3-7-sonnet-20250219, claude-sonnet-4-20250514, claude-opus-4-20250514');
+    } else if (e.toString().contains('thinking') ||
+        e.toString().contains('reasoning')) {
+      print('   Extended thinking may not be supported by this model');
+      print('   Try using claude-3-7-sonnet-20250219 or newer models');
     }
   }
 }
@@ -75,16 +83,17 @@ Future<void> basicExtendedThinking(String apiKey) async {
       .anthropic()
       .apiKey(apiKey)
       .model(
-          'claude-sonnet-4-20250514') // Claude Sonnet 4 supports extended thinking
+          'claude-3-7-sonnet-20250219') // Claude 3.7 Sonnet supports extended thinking
       .maxTokens(12000) // Must be greater than thinking budget
       .reasoning(true) // Enable extended thinking
       .thinkingBudgetTokens(8000) // Set thinking budget (must be < maxTokens)
       .build();
 
   print('✅ Provider configured with extended thinking');
-  print('   Model: claude-sonnet-4-20250514');
+  print('   Model: claude-3-7-sonnet-20250219');
   print('   Max tokens: 12000');
   print('   Thinking budget: 8000 tokens');
+  print('   Beta headers: anthropic-beta: output-128k-2025-02-19');
   print('');
 
   final messages = [
@@ -148,7 +157,7 @@ Future<void> compareBudgets(String apiKey) async {
       final provider = await ai()
           .anthropic()
           .apiKey(apiKey)
-          .model('claude-sonnet-4-20250514')
+          .model('claude-3-7-sonnet-20250219')
           .maxTokens(budget + 4000) // Ensure maxTokens > thinkingBudgetTokens
           .reasoning(true)
           .thinkingBudgetTokens(budget)
@@ -201,7 +210,8 @@ Future<void> interleavedThinkingExample(String apiKey) async {
     print('✅ Provider configured with interleaved thinking');
     print('   Model: claude-sonnet-4-20250514');
     print('   Interleaved thinking: enabled');
-    print('   Beta header: anthropic-beta: interleaved-thinking-2025-05-14');
+    print(
+        '   Beta headers: anthropic-beta: output-128k-2025-02-19,interleaved-thinking-2025-05-14');
     print('');
 
     // Define a simple calculator tool for demonstration
@@ -281,7 +291,7 @@ Future<void> streamingThinkingExample(String apiKey) async {
     final provider = await ai()
         .anthropic()
         .apiKey(apiKey)
-        .model('claude-sonnet-4-20250514')
+        .model('claude-3-7-sonnet-20250219')
         .maxTokens(8000)
         .reasoning(true)
         .thinkingBudgetTokens(4000)

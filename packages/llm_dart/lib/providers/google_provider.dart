@@ -436,12 +436,29 @@ class GoogleProvider extends BaseHttpProvider {
           'inlineData': {'mimeType': mime.mimeType, 'data': base64Encode(data)},
         });
         break;
-      case PdfMessage(data: final data):
+      case FileMessage(mime: final mime, data: final data):
+        // Google AI supports various file types
+        if (mime.isDocument || mime.isAudio || mime.isVideo) {
+          parts.add({
+            'inlineData': {
+              'mimeType': mime.mimeType,
+              'data': base64Encode(data),
+            },
+          });
+        } else {
+          // Unsupported file type
+          parts.add({
+            'text':
+                '[File type ${mime.description} (${mime.mimeType}) may not be supported by Google AI]',
+          });
+        }
+        break;
+      case ImageUrlMessage(url: final url):
+        // Google AI doesn't support image URLs directly
+        // This would need to be downloaded and converted to base64
         parts.add({
-          'inlineData': {
-            'mimeType': 'application/pdf',
-            'data': base64Encode(data),
-          },
+          'text':
+              '[Image URL not supported by Google AI. Please upload the image directly: $url]',
         });
         break;
       case ToolUseMessage(toolCalls: final toolCalls):
@@ -467,8 +484,6 @@ class GoogleProvider extends BaseHttpProvider {
           });
         }
         break;
-      default:
-        parts.add({'text': message.content});
     }
 
     return {'role': role, 'parts': parts};
