@@ -49,3 +49,5 @@ elevenlabs_output.mp3
 test_high_stability.mp3
 test_high_similarity.mp3
 test_balanced.mp3
+
+.vscode/
