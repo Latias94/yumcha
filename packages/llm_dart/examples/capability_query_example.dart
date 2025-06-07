@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 /// Example showing how to query provider capabilities through factories
 /// This is a better approach than using is/as checks
 

@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 // Import required modules from the LLM Dart library for Google Gemini integration
 import 'dart:io';
 import 'package:llm_dart/llm_dart.dart';

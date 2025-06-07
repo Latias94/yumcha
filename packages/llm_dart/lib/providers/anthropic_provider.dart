@@ -23,6 +23,7 @@ class AnthropicConfig {
   final ToolChoice? toolChoice;
   final bool reasoning;
   final int? thinkingBudgetTokens;
+  final bool interleavedThinking;
 
   const AnthropicConfig({
     required this.apiKey,
@@ -39,6 +40,7 @@ class AnthropicConfig {
     this.toolChoice,
     this.reasoning = false,
     this.thinkingBudgetTokens,
+    this.interleavedThinking = false,
   });
 
   AnthropicConfig copyWith({
@@ -56,6 +58,7 @@ class AnthropicConfig {
     ToolChoice? toolChoice,
     bool? reasoning,
     int? thinkingBudgetTokens,
+    bool? interleavedThinking,
   }) =>
       AnthropicConfig(
         apiKey: apiKey ?? this.apiKey,
@@ -72,6 +75,7 @@ class AnthropicConfig {
         toolChoice: toolChoice ?? this.toolChoice,
         reasoning: reasoning ?? this.reasoning,
         thinkingBudgetTokens: thinkingBudgetTokens ?? this.thinkingBudgetTokens,
+        interleavedThinking: interleavedThinking ?? this.interleavedThinking,
       );
 }
 
@@ -100,12 +104,24 @@ class AnthropicChatResponse implements ChatResponse {
     final content = _rawResponse['content'] as List?;
     if (content == null || content.isEmpty) return null;
 
-    final thinkingBlock = content.firstWhere(
-      (block) => block['type'] == 'thinking',
-      orElse: () => null,
-    );
+    // Collect all thinking blocks (including redacted thinking)
+    final thinkingBlocks = <String>[];
 
-    return thinkingBlock?['thinking'] as String?;
+    for (final block in content) {
+      final blockType = block['type'] as String?;
+      if (blockType == 'thinking') {
+        final thinkingText = block['thinking'] as String?;
+        if (thinkingText != null && thinkingText.isNotEmpty) {
+          thinkingBlocks.add(thinkingText);
+        }
+      } else if (blockType == 'redacted_thinking') {
+        // For redacted thinking, we can't show the content but we can indicate it exists
+        thinkingBlocks
+            .add('[Redacted thinking content - encrypted for safety]');
+      }
+    }
+
+    return thinkingBlocks.isEmpty ? null : thinkingBlocks.join('\n\n');
   }
 
   @override
@@ -177,11 +193,22 @@ class AnthropicProvider extends BaseHttpProvider {
       : super(
           BaseHttpProvider.createDio(
             baseUrl: config.baseUrl,
-            headers: ConfigUtils.buildAnthropicHeaders(config.apiKey),
+            headers: _buildHeaders(config),
             timeout: config.timeout,
           ),
           'AnthropicProvider',
         );
+
+  static Map<String, String> _buildHeaders(AnthropicConfig config) {
+    final headers = ConfigUtils.buildAnthropicHeaders(config.apiKey);
+
+    // Add beta header for interleaved thinking if enabled
+    if (config.interleavedThinking) {
+      headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
+    }
+
+    return headers;
+  }
 
   @override
   String get providerName => 'Anthropic';
@@ -407,10 +434,30 @@ class AnthropicProvider extends BaseHttpProvider {
       case 'content_block_delta':
         final delta = json['delta'] as Map<String, dynamic>?;
         if (delta != null) {
+          final deltaType = delta['type'] as String?;
+
+          // Handle text delta
           final text = delta['text'] as String?;
           if (text != null) {
             return TextDeltaEvent(text);
           }
+
+          // Handle thinking delta (extended thinking)
+          if (deltaType == 'thinking_delta') {
+            final thinkingText = delta['thinking'] as String?;
+            if (thinkingText != null) {
+              // For now, we'll treat thinking deltas as text deltas
+              // In a more sophisticated implementation, you might want a separate ThinkingDeltaEvent
+              return TextDeltaEvent('[Thinking] $thinkingText');
+            }
+          }
+
+          // Handle signature delta (thinking encryption)
+          if (deltaType == 'signature_delta') {
+            // Signature deltas are for verification, typically not shown to users
+            // We can safely ignore these or log them for debugging
+          }
+
           // Handle tool use input delta if needed
           final partialJson = delta['partial_json'] as String?;
           if (partialJson != null) {

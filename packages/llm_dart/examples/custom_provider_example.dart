@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 /// Example demonstrating how to create and register a custom AI provider
 ///
 /// This example shows:

@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 /// Simple example demonstrating how to create a custom AI provider
 ///
 /// This example shows the minimal implementation needed to create

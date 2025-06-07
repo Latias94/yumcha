@@ -61,6 +61,8 @@ class AnthropicProviderFactory implements LLMProviderFactory<ChatCapability> {
       // Anthropic-specific extensions
       reasoning: config.getExtension<bool>('reasoning') ?? false,
       thinkingBudgetTokens: config.getExtension<int>('thinkingBudgetTokens'),
+      interleavedThinking:
+          config.getExtension<bool>('interleavedThinking') ?? false,
     );
   }
 }

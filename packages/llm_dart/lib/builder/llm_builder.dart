@@ -143,9 +143,57 @@ class LLMBuilder {
     return this;
   }
 
-  /// Sets voice for text-to-speech (OpenAI providers)
+  /// Sets voice for text-to-speech (OpenAI providers) or voice ID (ElevenLabs)
   LLMBuilder voice(String voiceName) {
     _config = _config.withExtension('voice', voiceName);
+    return this;
+  }
+
+  /// Sets voice ID for ElevenLabs TTS (alias for voice method)
+  LLMBuilder voiceId(String voiceId) {
+    _config = _config.withExtension('voiceId', voiceId);
+    return this;
+  }
+
+  /// Sets stability parameter for ElevenLabs TTS (0.0-1.0)
+  LLMBuilder stability(double stability) {
+    _config = _config.withExtension('stability', stability);
+    return this;
+  }
+
+  /// Sets similarity boost parameter for ElevenLabs TTS (0.0-1.0)
+  LLMBuilder similarityBoost(double similarityBoost) {
+    _config = _config.withExtension('similarityBoost', similarityBoost);
+    return this;
+  }
+
+  /// Sets style parameter for ElevenLabs TTS (0.0-1.0)
+  LLMBuilder style(double style) {
+    _config = _config.withExtension('style', style);
+    return this;
+  }
+
+  /// Enables or disables speaker boost for ElevenLabs TTS
+  LLMBuilder useSpeakerBoost(bool enable) {
+    _config = _config.withExtension('useSpeakerBoost', enable);
+    return this;
+  }
+
+  /// Enables reasoning/thinking for supported providers (Anthropic, OpenAI o1)
+  LLMBuilder reasoning(bool enable) {
+    _config = _config.withExtension('reasoning', enable);
+    return this;
+  }
+
+  /// Sets thinking budget tokens for Anthropic extended thinking
+  LLMBuilder thinkingBudgetTokens(int tokens) {
+    _config = _config.withExtension('thinkingBudgetTokens', tokens);
+    return this;
+  }
+
+  /// Enables interleaved thinking for Anthropic (Claude 4 models only)
+  LLMBuilder interleavedThinking(bool enable) {
+    _config = _config.withExtension('interleavedThinking', enable);
     return this;
   }
 

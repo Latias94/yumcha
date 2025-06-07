@@ -1,13 +1,20 @@
 # LLM Dart Library
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Dart](https://img.shields.io/badge/Dart-3.0+-blue.svg)](https://dart.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-3.8+-blue.svg)](https://flutter.dev)
+
 A modular Dart library for AI provider interactions, inspired by the Rust [graniet/llm](https://github.com/graniet/llm) library. This library provides a unified interface for interacting with different AI providers using Dio for HTTP requests.
+
+**🧠 Full access to model thinking processes** - llm_dart provides direct access to the internal reasoning and thought processes of supported AI models (Claude, OpenAI o1, DeepSeek, Gemini), giving you unprecedented insight into how AI models arrive at their conclusions.
 
 ## Features
 
 - **Multi-provider support**: OpenAI, Anthropic (Claude), Google (Gemini), DeepSeek, Ollama, xAI (Grok), Phind, Groq, ElevenLabs
+- **🧠 Thinking process support**: Access to model reasoning and thought processes (Claude, OpenAI o1, DeepSeek)
 - **Unified API**: Consistent interface across all providers
 - **Builder pattern**: Fluent API for easy configuration
-- **Streaming support**: Real-time response streaming
+- **Streaming support**: Real-time response streaming with thinking
 - **Tool calling**: Function calling capabilities
 - **Structured output**: JSON schema support
 - **Error handling**: Comprehensive error types
@@ -15,17 +22,19 @@ A modular Dart library for AI provider interactions, inspired by the Rust [grani
 
 ## Supported Providers
 
-| Provider | Chat | Streaming | Tools | TTS/STT | Notes |
-|----------|------|-----------|-------|---------|-------|
-| OpenAI | ✅ | ✅ | ✅ | ❌ | GPT models, reasoning |
-| Anthropic | ✅ | ✅ | ✅ | ❌ | Claude models, thinking |
-| Google | ✅ | ✅ | ✅ | ❌ | Gemini models |
-| DeepSeek | ✅ | ✅ | ✅ | ❌ | DeepSeek models |
-| Ollama | ✅ | ✅ | ✅ | ❌ | Local models |
-| xAI | ✅ | ✅ | ✅ | ❌ | Grok models |
-| Phind | ✅ | ✅ | ✅ | ❌ | Phind models |
-| Groq | ✅ | ✅ | ✅ | ❌ | Fast inference |
-| ElevenLabs | ❌ | ❌ | ❌ | ✅ | Voice synthesis |
+| Provider | Chat | Streaming | Tools | Thinking | TTS/STT | Notes |
+|----------|------|-----------|-------|----------|---------|-------|
+| OpenAI | ✅ | ✅ | ✅ | 🧠 | ❌ | GPT models, o1 reasoning |
+| Anthropic | ✅ | ✅ | ✅ | 🧠 | ❌ | Claude models with thinking |
+| Google | ✅ | ✅ | ✅ | 🧠 | ❌ | Gemini models with reasoning |
+| DeepSeek | ✅ | ✅ | ✅ | 🧠 | ❌ | DeepSeek reasoning models |
+| Ollama | ✅ | ✅ | ✅ | ❌ | ❌ | Local models |
+| xAI | ✅ | ✅ | ✅ | ❌ | ❌ | Grok models |
+| Phind | ✅ | ✅ | ✅ | ❌ | ❌ | Phind models |
+| Groq | ✅ | ✅ | ✅ | ❌ | ❌ | Fast inference |
+| ElevenLabs | ❌ | ❌ | ❌ | ❌ | ✅ | Voice synthesis |
+
+**🧠 Thinking Process Support**: Access to model's internal reasoning and thought processes
 
 ## Installation
 
@@ -72,6 +81,11 @@ void main() async {
   final messages = [ChatMessage.user('Hello, world!')];
   final response = await provider.chat(messages);
   print(response.text);
+
+  // Access thinking process (for supported models)
+  if (response.thinking != null) {
+    print('Model thinking: ${response.thinking}');
+  }
 }
 ```
 
@@ -91,6 +105,45 @@ await for (final event in provider.chatStream(messages)) {
       break;
   }
 }
+```
+
+### 🧠 Thinking Process Access
+
+Access the model's internal reasoning and thought processes:
+
+```dart
+// Claude with thinking
+final claudeProvider = await ai()
+    .anthropic()
+    .apiKey('your-anthropic-key')
+    .model('claude-3-5-sonnet-20241022')
+    .build();
+
+final messages = [
+  ChatMessage.user('Solve this step by step: What is 15% of 240?')
+];
+
+final response = await claudeProvider.chat(messages);
+
+// Access the final answer
+print('Answer: ${response.text}');
+
+// Access the thinking process
+if (response.thinking != null) {
+  print('Claude\'s thinking process:');
+  print(response.thinking);
+}
+
+// OpenAI o1 reasoning
+final openaiProvider = await ai()
+    .openai()
+    .apiKey('your-openai-key')
+    .model('o1-preview')
+    .reasoningEffort(ReasoningEffort.high)
+    .build();
+
+final reasoningResponse = await openaiProvider.chat(messages);
+print('O1 reasoning: ${reasoningResponse.thinking}');
 ```
 
 ### Tool Calling
@@ -136,14 +189,44 @@ final provider = await createProvider(
 );
 ```
 
-### Anthropic
+### Anthropic (with Thinking Process)
 
 ```dart
-final provider = anthropic(
-  apiKey: 'sk-ant-...',
-  model: 'claude-3-5-sonnet-20241022',
-  reasoning: true, // Enable thinking
-);
+final provider = await ai()
+    .anthropic()
+    .apiKey('sk-ant-...')
+    .model('claude-3-5-sonnet-20241022')
+    .build();
+
+final response = await provider.chat([
+  ChatMessage.user('Explain quantum computing step by step')
+]);
+
+// Access Claude's thinking process
+print('Final answer: ${response.text}');
+if (response.thinking != null) {
+  print('Claude\'s reasoning: ${response.thinking}');
+}
+```
+
+### DeepSeek (with Reasoning)
+
+```dart
+final provider = await ai()
+    .deepseek()
+    .apiKey('your-deepseek-key')
+    .model('deepseek-reasoner')
+    .build();
+
+final response = await provider.chat([
+  ChatMessage.user('Solve this logic puzzle step by step')
+]);
+
+// Access DeepSeek's reasoning process
+print('Solution: ${response.text}');
+if (response.thinking != null) {
+  print('DeepSeek\'s reasoning: ${response.thinking}');
+}
 ```
 
 ### Ollama
@@ -287,14 +370,37 @@ final provider = await ai()
 
 ## Examples
 
-See the `examples/` directory for comprehensive usage examples:
+See the **[examples directory](https://github.com/Latias94/yumcha/tree/main/packages/llm_dart/examples)** for comprehensive usage examples and detailed documentation:
 
-- `deepseek_example.dart` - DeepSeek provider usage
-- `ollama_example.dart` - Local Ollama usage
-- `groq_example.dart` - Groq fast inference
-- `elevenlabs_example.dart` - Text-to-speech and speech-to-text
-- `multi_provider_example.dart` - Using multiple providers
+### 🟢 Beginner Examples
+- **[simple_llm_builder_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/simple_llm_builder_example.dart)** - Basic usage with multiple providers
+- **[openai_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/openai_example.dart)** - OpenAI provider with all creation methods
+- **[anthropic_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/anthropic_example.dart)** - Basic Anthropic Claude usage
+- **[anthropic_extended_thinking_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/anthropic_extended_thinking_example.dart)** - Advanced extended thinking features
+
+### 🟡 Intermediate Examples
+- **[streaming_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/streaming_example.dart)** - Real-time streaming responses
+- **[reasoning_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/reasoning_example.dart)** - Reasoning models with thinking
+- **[multi_provider_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/multi_provider_example.dart)** - Using multiple providers together
+
+### 🎯 Specialized Provider Examples
+- **[elevenlabs_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/elevenlabs_example.dart)** - ElevenLabs TTS/STT (Text-to-Speech & Speech-to-Text)
+- **[groq_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/groq_example.dart)** - Groq fast inference
+- **[ollama_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/ollama_example.dart)** - Local Ollama models
+- **[deepseek_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/deepseek_example.dart)** - DeepSeek reasoning models
+
+### 🔴 Advanced Examples
+- **[custom_provider_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/custom_provider_example.dart)** - Full custom provider implementation
+- **[api_features_example.dart](https://github.com/Latias94/yumcha/blob/main/packages/llm_dart/examples/api_features_example.dart)** - API features and usage patterns showcase
+
+📖 **[Complete Examples Guide](https://github.com/Latias94/yumcha/tree/main/packages/llm_dart/examples)** - Detailed documentation, setup instructions, and best practices.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
-This library is inspired by the Rust llm crate and follows similar patterns adapted for Dart.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+This library is inspired by the Rust [graniet/llm](https://github.com/graniet/llm) library and follows similar patterns adapted for Dart.

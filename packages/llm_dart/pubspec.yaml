@@ -1,7 +1,15 @@
 name: llm_dart
-description: A unified AI chat LLM interface library for Dart/Flutter
+description: A modular Dart library for AI provider interactions with unified interface for OpenAI, Anthropic, Google, DeepSeek, Ollama, xAI, Groq, ElevenLabs and more.
 version: 0.0.1
 homepage: https://github.com/Latias94/yumcha/tree/main/packages/llm_dart
+repository: https://github.com/Latias94/yumcha
+issue_tracker: https://github.com/Latias94/yumcha/issues
+documentation: https://github.com/Latias94/yumcha/tree/main/packages/llm_dart/examples
+
+topics:
+  - ai
+  - llms
+  - nlp
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
