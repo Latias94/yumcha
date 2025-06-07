@@ -76,6 +76,8 @@ class GoogleProviderFactory implements LLMProviderFactory<ChatCapability> {
           config.getExtension<List<SafetySetting>>('safetySettings'),
       maxInlineDataSize:
           config.getExtension<int>('maxInlineDataSize') ?? 20 * 1024 * 1024,
+      candidateCount: config.getExtension<int>('candidateCount'),
+      stopSequences: config.getExtension<List<String>>('stopSequences'),
     );
   }
 }

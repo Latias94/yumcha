@@ -51,7 +51,7 @@ Future<void> basicGoogleExample(String apiKey) async {
     final provider = await ai()
         .google()
         .apiKey(apiKey)
-        .model('gemini-1.5-flash')
+        .model('gemini-2.5-flash-preview-05-20')
         .temperature(0.7)
         .maxTokens(1000)
         .build();
@@ -76,7 +76,7 @@ Future<void> googleThinkingExample(String apiKey) async {
     final provider = await ai()
         .google()
         .apiKey(apiKey)
-        .model('gemini-2.0-flash-thinking-exp')
+        .model('gemini-2.5-flash-preview-05-20')
         .reasoning(true)
         .extension('thinkingBudgetTokens', 1000)
         .extension('includeThoughts', true)
@@ -179,8 +179,7 @@ Future<void> googleOpenAIExample(String apiKey) async {
     final provider = await ai()
         .googleOpenAI() // Use OpenAI-compatible interface
         .apiKey(apiKey)
-        .model(
-            'models/gemini-2.5-flash-preview-05-20') // Use the model you specified
+        .model('gemini-2.5-flash-preview-05-20') // Use the model you specified
         .reasoning(true) // Enable reasoning
         .reasoningEffort(ReasoningEffort.medium) // Set reasoning effort
         .temperature(0.7)
@@ -291,7 +290,7 @@ Future<void> googleSafetyExample(String apiKey) async {
     final provider = await ai()
         .google()
         .apiKey(apiKey)
-        .model('gemini-1.5-pro')
+        .model('gemini-2.5-flash-preview-05-20')
         .extension('safetySettings', customSafetySettings)
         .build();
 
@@ -315,7 +314,7 @@ Future<void> googleFileExample(String apiKey) async {
     final provider = await ai()
         .google()
         .apiKey(apiKey)
-        .model('gemini-1.5-pro')
+        .model('gemini-2.5-flash-preview-05-20')
         .extension('maxInlineDataSize', 10 * 1024 * 1024) // 10MB threshold
         .build();
 
@@ -348,7 +347,7 @@ Future<void> googleImageGenerationExample(String apiKey) async {
     final provider = await ai()
         .google()
         .apiKey(apiKey)
-        .model('gemini-2.0-flash-exp')
+        .model('gemini-2.5-flash-preview-05-20')
         .extension('enableImageGeneration', true)
         .extension('responseModalities', ['TEXT', 'IMAGE']).build();
 

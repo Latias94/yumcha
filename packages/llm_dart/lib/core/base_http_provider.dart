@@ -144,6 +144,11 @@ abstract class BaseHttpProvider implements ChatCapability {
 
       await for (final chunk in stream.stream.map(utf8.decode)) {
         try {
+          // Debug logging for Google provider
+          if (providerName == 'Google') {
+            _logger.fine('$providerName raw stream chunk: $chunk');
+          }
+
           final events = parseStreamEvents(chunk);
           for (final event in events) {
             yield event;
@@ -151,6 +156,7 @@ abstract class BaseHttpProvider implements ChatCapability {
         } catch (e) {
           // Skip malformed chunks but log them
           _logger.warning('Failed to parse stream chunk: $e');
+          _logger.warning('Raw chunk content: $chunk');
           continue;
         }
       }

@@ -107,6 +107,9 @@ class GoogleConfig {
   final List<SafetySetting>? safetySettings;
   final int maxInlineDataSize;
 
+  final int? candidateCount;
+  final List<String>? stopSequences;
+
   const GoogleConfig({
     required this.apiKey,
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/',
@@ -127,6 +130,8 @@ class GoogleConfig {
     this.responseModalities,
     this.safetySettings,
     this.maxInlineDataSize = 20 * 1024 * 1024, // 20MB default
+    this.candidateCount,
+    this.stopSequences,
   });
 
   GoogleConfig copyWith({
@@ -149,6 +154,8 @@ class GoogleConfig {
     List<String>? responseModalities,
     List<SafetySetting>? safetySettings,
     int? maxInlineDataSize,
+    int? candidateCount,
+    List<String>? stopSequences,
   }) =>
       GoogleConfig(
         apiKey: apiKey ?? this.apiKey,
@@ -171,6 +178,8 @@ class GoogleConfig {
         responseModalities: responseModalities ?? this.responseModalities,
         safetySettings: safetySettings ?? this.safetySettings,
         maxInlineDataSize: maxInlineDataSize ?? this.maxInlineDataSize,
+        candidateCount: candidateCount ?? this.candidateCount,
+        stopSequences: stopSequences ?? this.stopSequences,
       );
 }
 
@@ -288,6 +297,13 @@ class GoogleChatResponse implements ChatResponse {
 }
 
 /// Google (Gemini) provider implementation
+///
+/// This implementation differs from the official google_generative_ai library in several ways:
+/// 1. Uses Dio HTTP client instead of standard http package
+/// 2. Uses query parameter authentication (?key=) instead of x-goog-api-key header
+/// 3. Uses JSON array streaming format instead of SSE (Server-Sent Events)
+/// 4. Integrates with llm_dart's unified ChatMessage system
+/// 5. Supports additional features like file upload caching and safety settings
 class GoogleProvider extends BaseHttpProvider {
   final GoogleConfig config;
 
@@ -332,7 +348,8 @@ class GoogleProvider extends BaseHttpProvider {
     final endpoint = config.stream
         ? 'models/${config.model}:streamGenerateContent'
         : 'models/${config.model}:generateContent';
-    // Google Gemini API requires API key as query parameter
+    // Note: We use query parameter authentication for compatibility
+    // Official google_generative_ai uses x-goog-api-key header instead
     return '$endpoint?key=${config.apiKey}';
   }
 
@@ -383,7 +400,16 @@ class GoogleProvider extends BaseHttpProvider {
     final body = <String, dynamic>{'contents': contents};
 
     // Add generation config if needed
+    // Matches official google_generative_ai GenerationConfig structure
     final generationConfig = <String, dynamic>{};
+
+    // Standard GenerationConfig fields (matching official library)
+    if (config.candidateCount != null) {
+      generationConfig['candidateCount'] = config.candidateCount;
+    }
+    if (config.stopSequences != null && config.stopSequences!.isNotEmpty) {
+      generationConfig['stopSequences'] = config.stopSequences;
+    }
     if (config.maxTokens != null) {
       generationConfig['maxOutputTokens'] = config.maxTokens;
     }
@@ -478,40 +504,115 @@ class GoogleProvider extends BaseHttpProvider {
 
   @override
   ChatResponse parseResponse(Map<String, dynamic> responseData) {
+    // Check for Google API errors first
+    if (responseData.containsKey('error')) {
+      final error = responseData['error'] as Map<String, dynamic>;
+      final message = error['message'] as String? ?? 'Unknown error';
+      final details = error['details'] as List?;
+
+      // Handle specific Google API error types
+      if (details != null) {
+        for (final detail in details) {
+          if (detail is Map && detail['reason'] == 'API_KEY_INVALID') {
+            throw const AuthError('Invalid Google API key');
+          }
+        }
+      }
+
+      throw ProviderError('Google API error: $message');
+    }
+
     return GoogleChatResponse(responseData);
+  }
+
+  // Buffer for incomplete JSON chunks
+  String _streamBuffer = '';
+  bool _isFirstChunk = true;
+
+  /// Reset stream parsing state for new requests
+  void _resetStreamState() {
+    _streamBuffer = '';
+    _isFirstChunk = true;
   }
 
   @override
   List<ChatStreamEvent> parseStreamEvents(String chunk) {
     final events = <ChatStreamEvent>[];
-    final lines = chunk.split('\n');
 
-    for (final line in lines) {
-      if (line.trim().isNotEmpty) {
+    // Google's streaming format returns a JSON array: [{...}, {...}, {...}]
+    // Note: Official google_generative_ai uses SSE format with ?alt=sse
+    // We use the default JSON array format for compatibility with our HTTP client
+    // Based on flutter_gemini implementation
+
+    try {
+      // Add chunk to buffer
+      _streamBuffer += chunk;
+
+      String processedData = _streamBuffer.trim();
+
+      // Handle array format - remove brackets and commas
+      if (_isFirstChunk && processedData.startsWith('[')) {
+        processedData = processedData.replaceFirst('[', '');
+        _isFirstChunk = false;
+      }
+
+      if (processedData.startsWith(',')) {
+        processedData = processedData.replaceFirst(',', '');
+      }
+
+      if (processedData.endsWith(']')) {
+        processedData = processedData.substring(0, processedData.length - 1);
+      }
+
+      processedData = processedData.trim();
+
+      // Split by lines and try to parse complete JSON objects
+      final lines = const LineSplitter().convert(processedData);
+      String jsonAccumulator = '';
+
+      for (final line in lines) {
+        if (jsonAccumulator == '' && line == ',') {
+          continue;
+        }
+
+        jsonAccumulator += line;
+
         try {
-          // Handle Google's streaming format which may have data: prefix
-          String jsonLine = line.trim();
-          if (jsonLine.startsWith('data: ')) {
-            jsonLine = jsonLine.substring(6).trim();
-          }
-
-          // Skip empty lines or [DONE] markers
-          if (jsonLine.isEmpty || jsonLine == '[DONE]') {
-            continue;
-          }
-
-          final json = jsonDecode(jsonLine) as Map<String, dynamic>;
+          // Try to parse the accumulated JSON
+          final json = jsonDecode(jsonAccumulator) as Map<String, dynamic>;
           final streamEvents = _parseStreamEvents(json);
           events.addAll(streamEvents);
+
+          // Successfully parsed, clear accumulator and update buffer
+          jsonAccumulator = '';
+          _streamBuffer = '';
         } catch (e) {
-          // Skip malformed JSON chunks
-          logger.warning('Failed to parse stream JSON: $line, error: $e');
+          // JSON incomplete, continue accumulating
           continue;
         }
       }
+
+      // Keep incomplete JSON in buffer for next chunk
+      if (jsonAccumulator.isNotEmpty) {
+        _streamBuffer = jsonAccumulator;
+      }
+    } catch (e) {
+      logger.warning('Failed to parse Google stream chunk: $e');
+      logger.fine('Raw chunk: $chunk');
+      logger.fine('Buffer content: $_streamBuffer');
     }
 
     return events;
+  }
+
+  @override
+  Stream<ChatStreamEvent> chatStream(
+    List<ChatMessage> messages, {
+    List<Tool>? tools,
+  }) {
+    // Reset stream state for new requests
+    _resetStreamState();
+    return super.chatStream(messages, tools: tools);
   }
 
   @override
@@ -570,7 +671,9 @@ class GoogleProvider extends BaseHttpProvider {
       );
 
       if (response.statusCode != 200) {
-        throw ProviderError('File upload failed: ${response.statusCode}');
+        final errorMessage = response.data?['error']?['message'] ??
+            'File upload failed: ${response.statusCode}';
+        throw ProviderError(errorMessage);
       }
 
       final fileData = response.data['file'] as Map<String, dynamic>;
@@ -616,10 +719,12 @@ class GoogleProvider extends BaseHttpProvider {
   }
 
   /// Synchronous message conversion (without file upload)
+  /// Converts llm_dart ChatMessage to Google API Content format
+  /// Similar to official google_generative_ai Content.toJson() structure
   Map<String, dynamic> _convertMessageSync(ChatMessage message) {
     final parts = <Map<String, dynamic>>[];
 
-    // Determine role
+    // Determine role - Google API uses 'user', 'model', 'function'
     String role;
     switch (message.messageType) {
       case ToolResultMessage():
@@ -698,6 +803,8 @@ class GoogleProvider extends BaseHttpProvider {
     };
   }
 
+  /// Convert llm_dart Tool to Google API FunctionDeclaration format
+  /// Matches the structure used in official google_generative_ai library
   Map<String, dynamic> _convertTool(Tool tool) {
     return {
       'name': tool.function.name,
