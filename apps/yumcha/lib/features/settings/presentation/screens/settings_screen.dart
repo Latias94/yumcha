@@ -67,6 +67,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildDynamicColorItem(themeSettings, themeNotifier),
               if (themeSettings.shouldShowThemeSelector)
                 _buildThemeSelectionItem(themeSettings, themeNotifier),
+              _buildContrastLevelItem(themeSettings, themeNotifier),
 
               const SizedBox(height: 24),
 
@@ -108,9 +109,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.w600,
-        ),
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }
@@ -128,8 +129,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Text(
             themeSettings.colorModeDisplayName,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(width: 8),
           const Icon(Icons.keyboard_arrow_down),
@@ -529,6 +530,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       onTap: () {
         // TODO: 实现分享功能
       },
+    );
+  }
+
+  Widget _buildContrastLevelItem(
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "对比度",
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            themeSettings.contrastLevelDescription,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 12),
+          _buildContrastToggleButtons(themeSettings, themeNotifier),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContrastToggleButtons(
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
+    const TextStyle style = TextStyle(fontSize: 12);
+    final List<bool> isSelected = <bool>[
+      themeSettings.contrastLevel == AppContrastLevel.standard,
+      themeSettings.contrastLevel == AppContrastLevel.medium,
+      themeSettings.contrastLevel == AppContrastLevel.high,
+    ];
+
+    return ToggleButtons(
+      isSelected: isSelected,
+      onPressed: (int newIndex) async {
+        AppContrastLevel newLevel;
+        switch (newIndex) {
+          case 0:
+            newLevel = AppContrastLevel.standard;
+            break;
+          case 1:
+            newLevel = AppContrastLevel.medium;
+            break;
+          case 2:
+            newLevel = AppContrastLevel.high;
+            break;
+          default:
+            return;
+        }
+        await themeNotifier.setContrastLevel(newLevel);
+      },
+      borderRadius: BorderRadius.circular(8),
+      constraints: const BoxConstraints(minHeight: 48, minWidth: 80),
+      children: <Widget>[
+        _buildContrastButton('标准', AppContrastLevel.standard, style),
+        _buildContrastButton('中对比', AppContrastLevel.medium, style),
+        _buildContrastButton('高对比', AppContrastLevel.high, style),
+      ],
+    );
+  }
+
+  Widget _buildContrastButton(
+    String label,
+    AppContrastLevel level,
+    TextStyle style,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: style,
+      ),
     );
   }
 }

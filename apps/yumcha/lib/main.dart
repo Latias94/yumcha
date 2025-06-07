@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'app/theme/app_theme.dart';
 import 'app/navigation/app_router.dart';
 import 'shared/infrastructure/services/ai/ai_service_manager.dart';
 import 'shared/infrastructure/services/notification_service.dart';
 import 'shared/infrastructure/services/logger_service.dart';
 import 'shared/infrastructure/services/database_service.dart';
-import 'shared/infrastructure/services/theme_service.dart';
 import 'shared/infrastructure/services/preference_service.dart';
+import 'features/settings/presentation/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // 确保绑定已初始化
@@ -20,9 +19,6 @@ void main() async {
 
   // 初始化服务
   LoggerService().initialize();
-
-  // 初始化主题服务
-  await ThemeService().initialize();
 
   // 初始化 MCP 服务
   await _initializeMcp();
@@ -49,21 +45,18 @@ class YumchaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.read(initializeAiServicesProvider);
 
-    return ListenableBuilder(
-      listenable: ThemeService(),
-      builder: (context, child) {
-        final themeService = ThemeService();
-        return MaterialApp(
-          title: 'Yumcha',
-          theme: AppTheme.getLightTheme(themeService.getLightColorScheme()),
-          darkTheme: AppTheme.getDarkTheme(themeService.getDarkColorScheme()),
-          themeMode: themeService.themeMode,
-          scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
-          initialRoute: AppRouter.home,
-          onGenerateRoute: AppRouter.generateRoute,
-          debugShowCheckedModeBanner: false,
-        );
-      },
+    final themeSettings = ref.watch(themeProvider);
+    final themeNotifier = ref.read(themeProvider.notifier);
+
+    return MaterialApp(
+      title: 'Yumcha',
+      theme: themeNotifier.getLightTheme(),
+      darkTheme: themeNotifier.getDarkTheme(),
+      themeMode: themeSettings.themeMode,
+      scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
+      initialRoute: AppRouter.home,
+      onGenerateRoute: AppRouter.generateRoute,
+      debugShowCheckedModeBanner: false,
     );
   }
 }

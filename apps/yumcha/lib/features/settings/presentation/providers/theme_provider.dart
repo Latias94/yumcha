@@ -15,18 +15,27 @@ enum AppThemeScheme {
   monochrome, // 黑白主题（简约）
 }
 
+// 对比度类型枚举
+enum AppContrastLevel {
+  standard, // 标准对比度
+  medium, // 中等对比度
+  high, // 高对比度
+}
+
 // 主题设置状态类
 class ThemeSettings {
   final AppColorMode colorMode;
   final bool dynamicColorEnabled;
   final bool isDynamicColorAvailable;
   final AppThemeScheme themeScheme;
+  final AppContrastLevel contrastLevel;
 
   const ThemeSettings({
     required this.colorMode,
     required this.dynamicColorEnabled,
     required this.isDynamicColorAvailable,
     required this.themeScheme,
+    required this.contrastLevel,
   });
 
   ThemeSettings copyWith({
@@ -34,6 +43,7 @@ class ThemeSettings {
     bool? dynamicColorEnabled,
     bool? isDynamicColorAvailable,
     AppThemeScheme? themeScheme,
+    AppContrastLevel? contrastLevel,
   }) {
     return ThemeSettings(
       colorMode: colorMode ?? this.colorMode,
@@ -41,6 +51,7 @@ class ThemeSettings {
       isDynamicColorAvailable:
           isDynamicColorAvailable ?? this.isDynamicColorAvailable,
       themeScheme: themeScheme ?? this.themeScheme,
+      contrastLevel: contrastLevel ?? this.contrastLevel,
     );
   }
 
@@ -96,6 +107,30 @@ class ThemeSettings {
     }
   }
 
+  // 获取对比度显示名称
+  String get contrastLevelDisplayName {
+    switch (contrastLevel) {
+      case AppContrastLevel.standard:
+        return '标准';
+      case AppContrastLevel.medium:
+        return '中对比';
+      case AppContrastLevel.high:
+        return '高对比';
+    }
+  }
+
+  // 获取对比度描述
+  String get contrastLevelDescription {
+    switch (contrastLevel) {
+      case AppContrastLevel.standard:
+        return '平衡的颜色和对比度';
+      case AppContrastLevel.medium:
+        return '增强的对比度，更易阅读';
+      case AppContrastLevel.high:
+        return '最高对比度，最佳可访问性';
+    }
+  }
+
   // 是否应该显示主题选择器
   bool get shouldShowThemeSelector {
     return !isDynamicColorAvailable || !dynamicColorEnabled;
@@ -107,19 +142,21 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
   static const String _colorModeKey = 'app_color_mode';
   static const String _dynamicColorKey = 'app_dynamic_color';
   static const String _themeSchemeKey = 'app_theme_scheme';
+  static const String _contrastLevelKey = 'app_contrast_level';
 
   ColorScheme? _lightDynamicColorScheme;
   ColorScheme? _darkDynamicColorScheme;
 
   ThemeNotifier()
-    : super(
-        const ThemeSettings(
-          colorMode: AppColorMode.system,
-          dynamicColorEnabled: true,
-          isDynamicColorAvailable: false,
-          themeScheme: AppThemeScheme.pink,
-        ),
-      ) {
+      : super(
+          const ThemeSettings(
+            colorMode: AppColorMode.system,
+            dynamicColorEnabled: true,
+            isDynamicColorAvailable: false,
+            themeScheme: AppThemeScheme.pink,
+            contrastLevel: AppContrastLevel.standard,
+          ),
+        ) {
     _initialize();
   }
 
@@ -139,10 +176,14 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
     final themeSchemeIndex = prefs.getInt(_themeSchemeKey) ?? 0;
     final themeScheme = AppThemeScheme.values[themeSchemeIndex];
 
+    final contrastLevelIndex = prefs.getInt(_contrastLevelKey) ?? 0;
+    final contrastLevel = AppContrastLevel.values[contrastLevelIndex];
+
     state = state.copyWith(
       colorMode: colorMode,
       dynamicColorEnabled: dynamicColorEnabled,
       themeScheme: themeScheme,
+      contrastLevel: contrastLevel,
     );
   }
 
@@ -230,6 +271,15 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
     }
   }
 
+  // 设置对比度级别
+  Future<void> setContrastLevel(AppContrastLevel level) async {
+    if (state.contrastLevel != level) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_contrastLevelKey, level.index);
+      state = state.copyWith(contrastLevel: level);
+    }
+  }
+
   // 获取浅色主题
   ThemeData getLightTheme() {
     if (state.dynamicColorEnabled && _lightDynamicColorScheme != null) {
@@ -257,6 +307,7 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
   // 获取 FlexColorScheme 主题
   ThemeData _getFlexTheme(Brightness brightness) {
     final scheme = _getFlexScheme();
+    final contrastLevel = state.contrastLevel;
 
     if (brightness == Brightness.light) {
       return FlexThemeData.light(
@@ -265,10 +316,10 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         appBarStyle: FlexAppBarStyle.surface,
         lightIsWhite: false, // 允许使用主题背景色
         surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold, // 使用分层表面
-        blendLevel: 8, // 适度混合，让背景有颜色
-        subThemesData: const FlexSubThemesData(
-          // 增加混合程度，让主题颜色更明显
-          blendOnLevel: 15,
+        blendLevel: _getBlendLevel(contrastLevel, brightness), // 根据对比度调整混合
+        subThemesData: FlexSubThemesData(
+          // 根据对比度调整混合程度
+          blendOnLevel: _getBlendOnLevel(contrastLevel, brightness),
           blendOnColors: false,
           useMaterial3Typography: true,
           useM2StyleDividerInM3: true,
@@ -306,12 +357,12 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         scheme: scheme,
         useMaterial3: true,
         appBarStyle: FlexAppBarStyle.surface,
-        darkIsTrueBlack: false, // 不使用纯黑背景
+        darkIsTrueBlack: contrastLevel == AppContrastLevel.high, // 高对比度使用纯黑背景
         surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold, // 使用分层表面
-        blendLevel: 12, // 深色模式下更多混合
-        subThemesData: const FlexSubThemesData(
-          // 深色模式下适度混合
-          blendOnLevel: 20,
+        blendLevel: _getBlendLevel(contrastLevel, brightness), // 根据对比度调整混合
+        subThemesData: FlexSubThemesData(
+          // 根据对比度调整混合程度
+          blendOnLevel: _getBlendOnLevel(contrastLevel, brightness),
           blendOnColors: false,
           useMaterial3Typography: true,
           useM2StyleDividerInM3: true,
@@ -384,6 +435,30 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         return FlexScheme.blue; // 清新蓝色
       case AppThemeScheme.monochrome:
         return FlexScheme.greyLaw; // 灰色法则（黑白主题）
+    }
+  }
+
+  // 根据对比度级别获取混合级别
+  int _getBlendLevel(AppContrastLevel contrastLevel, Brightness brightness) {
+    switch (contrastLevel) {
+      case AppContrastLevel.standard:
+        return brightness == Brightness.light ? 8 : 12;
+      case AppContrastLevel.medium:
+        return brightness == Brightness.light ? 4 : 8;
+      case AppContrastLevel.high:
+        return 0; // 高对比度不使用混合
+    }
+  }
+
+  // 根据对比度级别获取表面混合级别
+  int _getBlendOnLevel(AppContrastLevel contrastLevel, Brightness brightness) {
+    switch (contrastLevel) {
+      case AppContrastLevel.standard:
+        return brightness == Brightness.light ? 15 : 20;
+      case AppContrastLevel.medium:
+        return brightness == Brightness.light ? 8 : 12;
+      case AppContrastLevel.high:
+        return 0; // 高对比度不使用表面混合
     }
   }
 }
