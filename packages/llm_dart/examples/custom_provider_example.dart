@@ -10,7 +10,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// Mock implementation of ChatResponse for demonstration
 class MockChatResponse implements ChatResponse {

@@ -1,6 +1,6 @@
-// Import required modules from the AI Dart library for Ollama integration
+// Import required modules from the LLM Dart library for Ollama integration
 import 'dart:io';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating how to use the Ollama provider with LLMBuilder
 void main() async {

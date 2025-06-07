@@ -19,7 +19,7 @@ lib/services/
 ├── ai_service.dart          # 🔄 旧版AI服务（待废弃）
 ├── ai_request_service.dart  # 🔄 旧版AI请求服务（功能重叠）
 ├── ai_service_new.dart      # 🔄 新版AI服务（兼容层，又重叠）
-├── ai_dart_service.dart     # 🔄 AI Dart库适配服务（再次重叠）
+├── llm_dart_service.dart     # 🔄 LLM Dart库适配服务（再次重叠）
 └── ai/                      # ✅ 新架构（模块化，最完整）
 ```
 **问题**: 5个文件实现相同的AI功能，开发者不知道该用哪个
@@ -166,7 +166,7 @@ features/chat/
 - `services/` → `shared/infrastructure/services/`
 
 **保持独立（不移动）**:
-- `ai_dart/` → 保持在 `packages/ai_dart/` 作为独立库
+- `llm_dart/` → 保持在 `packages/llm_dart/` 作为独立库
 - 理由：需要独立发布和维护的 AI 接口库
 
 ### 阶段三：代码重构和优化 🔧
@@ -239,7 +239,7 @@ lib/platform/             # 未来的平台特定代码
    - ✅ 改进错误日志级别（debug/warning/error）
    - ✅ 确保编译通过，无错误
 
-3. ✅ **AI Dart库重构完成（2024年12月）**
+3. ✅ **LLM Dart库重构完成（2024年12月）**
    - ✅ 接口隔离重构：从"上帝接口"迁移到基于能力的细粒度接口
    - ✅ 新API设计：统一的 `ai().provider().build()` 模式
    - ✅ 扩展系统：支持provider特定配置的灵活扩展
@@ -311,7 +311,7 @@ lib/platform/             # 未来的平台特定代码
    - ✅ 修复标题生成功能的回退逻辑和错误日志级别
    - ✅ 确保没有默认配置时能正确使用当前对话配置
 
-4. **AI Dart库重构（2024年12月）**
+4. **LLM Dart库重构（2024年12月）**
    - ✅ **接口隔离重构**: 从"上帝接口"LLMProvider迁移到基于能力的细粒度接口
    - ✅ **新API设计**: 统一的 `ai().provider().build()` 模式替代旧的LLMBuilder
    - ✅ **扩展系统**: 支持provider特定配置的灵活扩展机制
@@ -333,7 +333,7 @@ lib/platform/             # 未来的平台特定代码
 - 🎯 **更清晰的错误处理**: 区分正常情况和真正的错误
 - 🚀 **现代化API**: 新的能力接口系统更灵活、更类型安全
 - 🚀 **扩展性增强**: 支持自定义provider和扩展系统
-- 🚀 **发布就绪**: ai_dart库已准备好独立发布到pub.dev
+- 🚀 **发布就绪**: llm_dart库已准备好独立发布到pub.dev
 
 ## 📋 具体文件移动清单
 
@@ -352,7 +352,7 @@ mv lib/screens/config_screen.dart lib/screens/quick_setup_screen.dart
 lib/services/ai_service.dart          # 🔄 待废弃
 lib/services/ai_request_service.dart  # 🔄 待废弃
 lib/services/ai_service_new.dart      # 🔄 兼容层
-lib/services/ai_dart_service.dart     # 🔄 适配层
+lib/services/llm_dart_service.dart     # 🔄 适配层
 lib/services/ai/                      # ✅ 新架构（保留）
 ```
 
@@ -482,7 +482,7 @@ echo "Import 语句更新完成！"
 1. **🔥 解决当前问题**: 专注于解决现有的职责重叠和命名混乱问题
 2. **🏗️ 建立面向未来的架构**: 为酒馆对话等未来功能扩展打好基础
 3. **🔍 搜索功能独立化**: 将搜索作为独立模块，支持未来的高级搜索功能
-4. **📦 保持 ai_dart 独立性**: 确保 AI 库能够独立发布和维护
+4. **📦 保持 llm_dart 独立性**: 确保 AI 库能够独立发布和维护
 5. **⚡ 渐进式改进**: 分阶段实施，确保每个阶段都是稳定的
 
 ### 🚫 本次重构不包含

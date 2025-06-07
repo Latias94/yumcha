@@ -6,7 +6,7 @@
 /// - Use the same interface regardless of provider
 
 import 'dart:io';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 void main() async {
   // ignore_for_file: avoid_print

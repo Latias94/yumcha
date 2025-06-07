@@ -1,12 +1,12 @@
 /// Simple example demonstrating how to create a custom AI provider
 ///
 /// This example shows the minimal implementation needed to create
-/// a custom provider that can be registered and used with the AI Dart library.
+/// a custom provider that can be registered and used with the LLM Dart library.
 
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// Simple mock response implementation
 class SimpleMockResponse implements ChatResponse {

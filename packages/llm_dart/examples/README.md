@@ -1,6 +1,6 @@
-# AI Dart Examples
+# LLM Dart Examples
 
-This directory contains comprehensive examples demonstrating how to use the AI Dart library with its new refactored API.
+This directory contains comprehensive examples demonstrating how to use the LLM Dart library with its new refactored API.
 
 ## 🆕 New API Examples (Recommended)
 
@@ -126,7 +126,7 @@ final provider = await openai(apiKey: 'key', model: 'gpt-4');
 To run any example:
 
 ```bash
-cd packages/ai_dart
+cd packages/llm_dart
 dart run examples/example_name.dart
 ```
 

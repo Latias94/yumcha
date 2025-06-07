@@ -1,9 +1,10 @@
-import '../../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
+    as models;
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/ai_management/domain/entities/ai_model.dart';
 import '../../../../../features/chat/domain/entities/message.dart';
 import '../../logger_service.dart';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// AI服务能力枚举
 ///
@@ -225,7 +226,7 @@ abstract class AiServiceBase {
 /// - 🔌 **统一接口**：将不同提供商的API统一为标准接口
 /// - 🔄 **参数转换**：将应用内的参数转换为提供商特定格式
 /// - 🏷️ **能力映射**：将提供商能力映射为标准能力枚举
-/// - 📝 **消息转换**：将应用消息格式转换为AI Dart格式
+/// - 📝 **消息转换**：将应用消息格式转换为LLM Dart格式
 ///
 /// ## 设计模式
 ///
@@ -240,7 +241,7 @@ abstract class AiServiceBase {
 ///       ↓
 /// AiProviderAdapter (统一接口)
 ///       ↓
-/// AI Dart Library (具体实现)
+/// LLM Dart Library (具体实现)
 ///       ↓
 /// Provider APIs (OpenAI, Anthropic, etc.)
 /// ```
@@ -248,7 +249,7 @@ abstract class AiServiceBase {
 /// ## 核心职责
 ///
 /// ### 1. 提供商实例创建
-/// 根据配置创建对应的AI Dart提供商实例：
+/// 根据配置创建对应的LLM Dart提供商实例：
 /// ```dart
 /// final chatProvider = await adapter.createProvider();
 /// ```
@@ -260,7 +261,7 @@ abstract class AiServiceBase {
 /// ```
 ///
 /// ### 3. 消息格式转换
-/// 将应用内消息转换为AI Dart格式：
+/// 将应用内消息转换为LLM Dart格式：
 /// ```dart
 /// final aiMessages = adapter.convertMessages(appMessages);
 /// ```
@@ -310,10 +311,10 @@ abstract class AiProviderAdapter {
     required this.modelName,
   });
 
-  /// 创建AI Dart提供商实例
+  /// 创建LLM Dart提供商实例
   ///
   /// 根据配置创建对应的AI提供商实例。这是适配器的核心方法，负责：
-  /// - 🔧 **参数映射**：将应用配置转换为AI Dart参数
+  /// - 🔧 **参数映射**：将应用配置转换为LLM Dart参数
   /// - 🔑 **认证设置**：配置API密钥和认证信息
   /// - 🌐 **网络配置**：设置基础URL和自定义头部
   /// - ⚙️ **模型参数**：配置温度、top-p、最大token等参数
@@ -423,9 +424,9 @@ abstract class AiProviderAdapter {
     // 如果没有找到模型配置，不添加任何额外能力
   }
 
-  /// 将应用消息转换为AI Dart消息格式
+  /// 将应用消息转换为LLM Dart消息格式
   ///
-  /// 将应用内部的Message对象转换为AI Dart库要求的ChatMessage格式。
+  /// 将应用内部的Message对象转换为LLM Dart库要求的ChatMessage格式。
   /// 这个转换过程包括：
   /// - 🔄 **角色映射**：将isFromUser标志转换为角色类型
   /// - 📝 **内容提取**：提取消息的文本内容
@@ -442,7 +443,7 @@ abstract class AiProviderAdapter {
   /// - 工具消息：工具调用结果消息
   ///
   /// @param messages 应用内部的消息列表
-  /// @returns 转换后的AI Dart消息列表
+  /// @returns 转换后的LLM Dart消息列表
   ///
   /// ## 使用示例
   /// ```dart
@@ -561,7 +562,7 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
     }
   }
 
-  /// 映射提供商类型到AI Dart提供商ID
+  /// 映射提供商类型到LLM Dart提供商ID
   String _mapProviderType(String type) {
     switch (type.toLowerCase()) {
       case 'openai':

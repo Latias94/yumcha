@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面端和移动端。应用采用 Material Design 3 设计规范，使用独立的 `ai_dart` 库提供统一的 AI 聊天接口。
+YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面端和移动端。应用采用 Material Design 3 设计规范，使用独立的 `llm_dart` 库提供统一的 AI 聊天接口。
 
 用户可以配置多个 AI 提供商，包括 OpenAI、DeepSeek、Anthropic、Google、Ollama、Phind 等，并为每个提供商配置不同的 API 密钥和模型，一个提供商可以配置多个模型。用户可以创建多个 AI 助手，每个助手不绑定提供商和模型，可以设置个性化的系统提示词和温度参数等AI参数。
 用户首先通过 AI 助手创建聊天，在聊天过程中可以切换不同的提供商模型（某个提供商中的某个模型）。
@@ -28,7 +28,7 @@ YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面
 - **Material Design 3**：现代化 UI 设计系统
 - **Riverpod 2.6+**：状态管理解决方案
 - **Drift 2.16+**：SQLite 数据库 ORM
-- **ai_dart**：独立的 AI 聊天接口库，支持多种 LLM 提供商
+- **llm_dart**：独立的 AI 聊天接口库，支持多种 LLM 提供商
 
 ### 数据库设计
 使用 SQLite 数据库，通过 Drift ORM 管理，包含以下核心表：
@@ -193,7 +193,7 @@ final providers = await providerRepo.getAllProviders();
   - `ChatService`: 聊天服务，处理对话逻辑
   - `ModelService`: 模型服务，管理模型信息和能力
   - `EmbeddingService`: 嵌入服务，处理向量嵌入功能
-- **ai_dart 库**: 独立的 AI 接口库，位于 `packages/ai_dart/`
+- **llm_dart 库**: 独立的 AI 接口库，位于 `packages/llm_dart/`
   - 支持多种 LLM 提供商的统一接口
   - 可独立发布和维护
   - 提供流式和非流式聊天功能
@@ -232,11 +232,11 @@ enum ErrorType { network, database, api, validation, permission, unknown }
 - PermissionError: 权限错误
 ```
 
-## ai_dart 库集成
+## llm_dart 库集成
 
-### ai_dart 库架构
+### llm_dart 库架构
 ```
-packages/ai_dart/
+packages/llm_dart/
 ├── lib/
 │   ├── src/
 │   │   ├── providers/          # AI 提供商实现
@@ -249,7 +249,7 @@ packages/ai_dart/
 │   │   ├── models/             # 数据模型
 │   │   ├── interfaces/         # 统一接口
 │   │   └── core/               # 核心功能
-│   └── ai_dart.dart           # 主导出文件
+│   └── llm_dart.dart           # 主导出文件
 ├── pubspec.yaml               # 独立包配置
 └── README.md                  # 独立文档
 ```
@@ -347,9 +347,9 @@ enum ColorMode { system, light, dark }
 dependencies:
   flutter_riverpod: ^2.6.1          # 状态管理
   drift: ^2.16.0                    # 数据库 ORM
-  ai_dart:                          # AI 聊天接口库
-    path: packages/ai_dart          # 本地路径（开发时）
-    # ai_dart: ^1.0.0              # 发布版本（生产时）
+  llm_dart:                          # AI 聊天接口库
+    path: packages/llm_dart          # 本地路径（开发时）
+    # llm_dart: ^1.0.0              # 发布版本（生产时）
   dynamic_color: ^1.7.0             # 动态颜色
   markdown_widget: ^2.3.2+8         # Markdown 渲染
   chat_bubbles: ^1.7.0              # 聊天气泡
@@ -357,7 +357,7 @@ dependencies:
   logger: ^2.4.0                    # 日志记录
   uuid: ^4.5.1                     # UUID 生成
   shared_preferences: ^2.5.3        # 偏好设置
-  dio: ^5.3.0                       # HTTP 客户端（ai_dart 依赖）
+  dio: ^5.3.0                       # HTTP 客户端（llm_dart 依赖）
 ```
 
 ## 开发和调试
@@ -375,7 +375,7 @@ dependencies:
 
 ### 测试支持
 - 集成测试框架
-- ai_dart 库单元测试
+- llm_dart 库单元测试
 - 数据库迁移测试
 - Riverpod 状态管理测试
 
@@ -393,14 +393,14 @@ dependencies:
 - Flutter 3.8+ SDK
 - Dart 3.0+ SDK
 - 平台特定的构建依赖
-- ai_dart 库的依赖管理
+- llm_dart 库的依赖管理
 
 ## 项目特色
 
 这个项目展现了现代 Flutter 应用开发的最佳实践，具有以下特色：
 
 ### 技术特色
-- **独立 AI 库**: ai_dart 作为独立库，可复用和独立维护
+- **独立 AI 库**: llm_dart 作为独立库，可复用和独立维护
 - **模块化架构**: 清晰的分层架构和模块化设计
 - **完善的状态管理**: 基于 Riverpod 的统一状态管理
 - **优雅的 UI 设计**: Material Design 3 和动态颜色支持

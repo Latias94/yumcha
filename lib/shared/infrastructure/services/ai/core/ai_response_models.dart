@@ -1,4 +1,4 @@
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// 统一的AI响应结果
 class AiResponse {

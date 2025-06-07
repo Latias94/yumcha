@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating how to use streaming chat with LLMBuilder
 void main() async {

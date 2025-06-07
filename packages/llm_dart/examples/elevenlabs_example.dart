@@ -1,6 +1,6 @@
-// Import required modules from the AI Dart library for ElevenLabs integration
+// Import required modules from the LLM Dart library for ElevenLabs integration
 import 'dart:io';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating how to use the ElevenLabs provider with LLMBuilder
 /// Note: This is a placeholder example as TTS/STT functionality may not be fully implemented yet

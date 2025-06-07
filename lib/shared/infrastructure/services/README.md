@@ -12,7 +12,7 @@ lib/services/
 │   ├── chat/                    # 聊天服务
 │   ├── capabilities/            # AI能力服务
 │   └── providers/               # Riverpod状态管理
-├── ai_dart_service.dart         # 🔄 AI Dart库适配服务
+├── llm_dart_service.dart        # 🔄 LLM Dart库适配服务
 ├── ai_request_service.dart      # 🔄 旧版AI服务（待废弃）
 ├── ai_service.dart              # 🔄 旧版AI服务（待废弃）
 ├── ai_service_new.dart          # 🔄 新版AI服务（兼容层）
@@ -106,8 +106,8 @@ lib/services/
 **提供专门功能和扩展能力的服务**
 
 #### AI 适配服务
-- **`ai_dart_service.dart`** - AI Dart库适配服务
-  - 🎯 **作用**: 新 ai_dart 库与现有架构的适配层
+- **`llm_dart_service.dart`** - LLM Dart库适配服务
+  - 🎯 **作用**: 新 llm_dart 库与现有架构的适配层
   - 🔧 **功能**: 模型转换、提供商适配、推理支持、工具调用
   - 👥 **用户**: 替代旧版AI服务，提供更好的功能支持
 
@@ -260,10 +260,10 @@ lib/services/
 
 ### 🔧 扩展服务层详解
 
-#### `ai_dart_service.dart` - AI Dart库适配服务
-**作用**: 新 ai_dart 库与现有服务架构的适配层
+#### `llm_dart_service.dart` - LLM Dart库适配服务
+**作用**: 新 llm_dart 库与现有服务架构的适配层
 
-- 🔄 **模型转换**: 将应用模型转换为 ai_dart 库模型
+- 🔄 **模型转换**: 将应用模型转换为 llm_dart 库模型
 - 🤖 **提供商适配**: 支持 OpenAI、Anthropic、Google 等多种提供商
 - 💬 **聊天功能**: 提供单次和流式聊天接口
 - 🧠 **推理支持**: 支持 AI 推理思考过程显示（如 o1 模型）

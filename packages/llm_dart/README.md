@@ -1,6 +1,6 @@
-# AI Dart Library
+# LLM Dart Library
 
-A modular Dart library for AI provider interactions, inspired by the Rust llm library. This library provides a unified interface for interacting with different AI providers using Dio for HTTP requests.
+A modular Dart library for AI provider interactions, inspired by the Rust [graniet/llm](https://github.com/graniet/llm) library. This library provides a unified interface for interacting with different AI providers using Dio for HTTP requests.
 
 ## Features
 
@@ -41,7 +41,7 @@ dependencies:
 ### Basic Usage
 
 ```dart
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 void main() async {
   // Method 1: Using the new ai() builder with provider methods
@@ -124,6 +124,7 @@ if (response.toolCalls != null) {
 ## Provider Examples
 
 ### OpenAI
+
 ```dart
 final provider = openai(
   apiKey: 'sk-...',
@@ -134,6 +135,7 @@ final provider = openai(
 ```
 
 ### Anthropic
+
 ```dart
 final provider = anthropic(
   apiKey: 'sk-ant-...',
@@ -143,6 +145,7 @@ final provider = anthropic(
 ```
 
 ### Ollama
+
 ```dart
 final provider = ollama(
   baseUrl: 'http://localhost:11434',
@@ -152,6 +155,7 @@ final provider = ollama(
 ```
 
 ### ElevenLabs
+
 ```dart
 final provider = elevenlabs(
   apiKey: 'your-elevenlabs-key',

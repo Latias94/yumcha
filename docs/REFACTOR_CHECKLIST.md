@@ -25,7 +25,7 @@
   - [x] 确保没有默认配置时能正确使用当前对话配置
   - [x] 所有重构文件编译通过，无错误
 
-#### 阶段 0.5：AI Dart库重构（已完成）
+#### 阶段 0.5：LLM Dart库重构（已完成）
 - [x] **接口隔离重构**
   - [x] 从"上帝接口"LLMProvider迁移到基于能力的细粒度接口
   - [x] 实现ChatCapability、EmbeddingCapability、ModelListingCapability等
@@ -62,7 +62,7 @@
 - ✅ 流式聊天正常工作
 - ✅ 标题生成功能正常工作
 - ✅ 调试监控界面正常显示
-- ✅ AI Dart库所有examples运行正常
+- ✅ LLM Dart库所有examples运行正常
 - ✅ 新API类型安全性大幅提升
 - ✅ 自定义provider系统工作正常
 
@@ -109,7 +109,7 @@ find lib -name "*.dart" -exec sed -i.bak 's|widgets/|components/|g' {} \;
 - [ ] 在 `lib/services/ai_service.dart` 添加 `@deprecated` 注释
 - [ ] 在 `lib/services/ai_request_service.dart` 添加 `@deprecated` 注释
 - [ ] 在 `lib/services/ai_service_new.dart` 添加 `@deprecated` 注释
-- [ ] 在 `lib/services/ai_dart_service.dart` 添加 `@deprecated` 注释
+- [ ] 在 `lib/services/llm_dart_service.dart` 添加 `@deprecated` 注释
 - [ ] 创建迁移指南文档
 
 **示例注释**:
@@ -326,7 +326,7 @@ echo "🎉 阶段1重构完成！"
 
 ### 🎯 总体进度
 - ✅ **阶段0 - AI服务架构重构**: 100% 完成
-- ✅ **阶段0.5 - AI Dart库重构**: 100% 完成
+- ✅ **阶段0.5 - LLM Dart库重构**: 100% 完成
 - 🔄 **阶段1 - 文件重命名和清理**: 0% 完成
 - 🔄 **阶段2 - 代码规范统一**: 0% 完成
 - 🔄 **阶段3 - 目录结构重组**: 0% 完成
@@ -341,7 +341,7 @@ echo "🎉 阶段1重构完成！"
 3. **✅ 错误处理改进**: 区分正常情况和真正的错误
 4. **✅ 编译稳定性**: 所有重构代码编译通过
 
-#### AI Dart库重构
+#### LLM Dart库重构
 5. **✅ 接口隔离完成**: 从"上帝接口"迁移到基于能力的细粒度接口
 6. **✅ 新API设计**: 统一的 `ai().provider().build()` 模式
 7. **✅ 扩展系统**: 支持provider特定配置的灵活扩展

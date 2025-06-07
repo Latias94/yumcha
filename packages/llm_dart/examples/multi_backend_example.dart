@@ -7,7 +7,7 @@
 /// 4. Handle different provider capabilities consistently
 
 import 'dart:io';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 void main() async {
   try {

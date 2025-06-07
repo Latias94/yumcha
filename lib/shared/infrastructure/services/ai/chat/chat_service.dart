@@ -1,10 +1,11 @@
 import 'dart:async';
-import '../../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
+    as models;
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/chat/domain/entities/message.dart';
 import '../core/ai_service_base.dart';
 import '../core/ai_response_models.dart';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// 聊天服务 - AI对话功能的核心实现
 ///

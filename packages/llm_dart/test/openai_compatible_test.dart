@@ -1,12 +1,12 @@
 import 'package:test/test.dart';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 void main() {
   group('OpenAI Compatible Providers', () {
     test('should register OpenAI-compatible providers', () {
       // Get all registered providers
       final providers = LLMProviderRegistry.getRegisteredProviders();
-      
+
       // Check that OpenAI-compatible providers are registered
       expect(providers, contains('deepseek-openai'));
       expect(providers, contains('gemini-openai'));
@@ -26,9 +26,10 @@ void main() {
     test('should have correct default configurations', () {
       final factory = LLMProviderRegistry.getFactory('gemini-openai');
       expect(factory, isNotNull);
-      
+
       final config = factory!.getDefaultConfig();
-      expect(config.baseUrl, equals('https://generativelanguage.googleapis.com/v1beta/openai/'));
+      expect(config.baseUrl,
+          equals('https://generativelanguage.googleapis.com/v1beta/openai/'));
       expect(config.model, equals('gemini-2.0-flash'));
     });
 
@@ -37,7 +38,7 @@ void main() {
       expect('deepseek-openai'.supports(LLMCapability.chat), isTrue);
       expect('deepseek-openai'.supports(LLMCapability.reasoning), isTrue);
       expect('deepseek-openai'.supports(LLMCapability.textToSpeech), isFalse);
-      
+
       expect('gemini-openai'.supports(LLMCapability.embedding), isTrue);
       expect('groq-openai'.supports(LLMCapability.embedding), isFalse);
     });
@@ -46,10 +47,10 @@ void main() {
       // Test that builder methods exist and return correct types
       final builder1 = ai().deepseekOpenAI();
       expect(builder1, isA<LLMBuilder>());
-      
+
       final builder2 = ai().geminiOpenAI();
       expect(builder2, isA<LLMBuilder>());
-      
+
       final builder3 = ai().xaiOpenAI();
       expect(builder3, isA<LLMBuilder>());
     });
@@ -57,7 +58,7 @@ void main() {
     test('should validate configurations correctly', () {
       final factory = LLMProviderRegistry.getFactory('deepseek-openai');
       expect(factory, isNotNull);
-      
+
       // Valid config
       final validConfig = LLMConfig(
         apiKey: 'test-key',
@@ -65,7 +66,7 @@ void main() {
         model: 'deepseek-chat',
       );
       expect(factory!.validateConfig(validConfig), isTrue);
-      
+
       // Invalid config (no API key)
       final invalidConfig = LLMConfig(
         baseUrl: 'https://api.deepseek.com/v1/',
@@ -80,7 +81,7 @@ void main() {
           .apiKey('test-key')
           .model('gemini-2.5-flash-preview-05-20')
           .reasoningEffort('low');
-      
+
       // This should not throw an error
       expect(() => builder, returnsNormally);
     });
@@ -96,13 +97,13 @@ void main() {
           },
         },
       );
-      
+
       final builder = ai()
           .geminiOpenAI()
           .apiKey('test-key')
           .model('gemini-2.0-flash')
           .jsonSchema(schema);
-      
+
       // This should not throw an error
       expect(() => builder, returnsNormally);
     });
@@ -111,21 +112,23 @@ void main() {
       final configs = OpenAICompatibleConfigs.getAllConfigs();
       expect(configs, isNotEmpty);
       expect(configs.length, equals(5)); // deepseek, gemini, xai, groq, phind
-      
-      final deepseekConfig = OpenAICompatibleConfigs.getConfig('deepseek-openai');
+
+      final deepseekConfig =
+          OpenAICompatibleConfigs.getConfig('deepseek-openai');
       expect(deepseekConfig, isNotNull);
-      expect(deepseekConfig!.defaultBaseUrl, equals('https://api.deepseek.com/v1/'));
-      
-      expect(OpenAICompatibleConfigs.isOpenAICompatible('deepseek-openai'), isTrue);
-      expect(OpenAICompatibleConfigs.isOpenAICompatible('unknown-provider'), isFalse);
+      expect(deepseekConfig!.defaultBaseUrl,
+          equals('https://api.deepseek.com/v1/'));
+
+      expect(OpenAICompatibleConfigs.isOpenAICompatible('deepseek-openai'),
+          isTrue);
+      expect(OpenAICompatibleConfigs.isOpenAICompatible('unknown-provider'),
+          isFalse);
     });
 
     test('should get model capabilities', () {
       final capabilities = OpenAICompatibleConfigs.getModelCapabilities(
-        'deepseek-openai', 
-        'deepseek-reasoner'
-      );
-      
+          'deepseek-openai', 'deepseek-reasoner');
+
       expect(capabilities, isNotNull);
       expect(capabilities!.supportsReasoning, isTrue);
       expect(capabilities.disableTemperature, isTrue);

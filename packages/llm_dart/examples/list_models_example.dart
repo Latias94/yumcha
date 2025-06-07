@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating how to list available models from different providers
 void main() async {

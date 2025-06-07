@@ -1,6 +1,6 @@
-// Import required modules from the AI Dart library for OpenAI integration
+// Import required modules from the LLM Dart library for OpenAI integration
 import 'dart:io';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating how to use the OpenAI provider with the new API
 void main() async {

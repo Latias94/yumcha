@@ -1,7 +1,7 @@
 // 🧪 AI 聊天 API 调试屏幕
 //
 // 专门用于测试和调试 AI 聊天 API 功能的开发工具界面。
-// 基于 ai_dart 服务，支持多种 AI 提供商的直接 API 测试。
+// 基于 llm_dart 服务，支持多种 AI 提供商的直接 API 测试。
 //
 // 🎯 **主要功能**:
 // - 🔧 **API 测试**: 直接测试各种 AI 提供商的 API 接口
@@ -205,7 +205,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     });
 
     try {
-      _updateDebugInfo('🚀 开始AI Dart请求...\n');
+      _updateDebugInfo('🚀 开始LLM Dart请求...\n');
       _updateDebugInfo('提供商: $_selectedProvider\n');
       _updateDebugInfo('模型: ${_modelController.text}\n');
       _updateDebugInfo(
@@ -331,7 +331,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           _response = response.content;
           _thinkingContent = response.thinking ?? '';
           _responseBody = jsonEncode({
-            'ai_dart_service': true,
+            'llm_dart_service': true,
             'stream_mode': false,
             'content': response.content,
             'thinking_content': response.thinking,
@@ -345,7 +345,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           });
         });
 
-        _updateDebugInfo('✅ ai_dart 请求完成\n');
+        _updateDebugInfo('✅ llm_dart 请求完成\n');
         _updateDebugInfo('响应长度: ${response.content.length} 字符\n');
         if (response.thinking != null && response.thinking!.isNotEmpty) {
           _updateDebugInfo('🧠 思考内容长度: ${response.thinking!.length} 字符\n');
@@ -419,7 +419,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI聊天API调试 (ai_dart)'),
+        title: const Text('AI聊天API调试 (llm_dart)'),
         actions: [
           IconButton(
             icon: const Icon(Icons.clear_all),

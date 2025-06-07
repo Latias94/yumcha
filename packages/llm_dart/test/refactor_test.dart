@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
-import '../lib/ai_dart.dart';
+import '../lib/llm_dart.dart';
 
 void main() {
-  group('Refactored AI Dart Tests', () {
+  group('Refactored LLM Dart Tests', () {
     test('LLMBuilder should create instance', () {
       final builder = LLMBuilder();
       expect(builder, isNotNull);

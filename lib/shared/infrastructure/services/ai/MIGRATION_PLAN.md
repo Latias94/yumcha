@@ -19,7 +19,7 @@ ai_service.dart (核心服务)
 ├── 被 model_management_service.dart 使用 (模型管理)
 └── 依赖 ai_request_service.dart
 
-ai_dart_service.dart (适配层)
+llm_dart_service.dart (适配层)
 ├── 被 ai_debug_screen.dart 使用 (API测试)
 └── 被 ai_request_service.dart 使用
 
@@ -105,7 +105,7 @@ final models = await ref.read(providerModelsProvider(providerId).future);
 #### 3.1 迁移 ai_debug_screen.dart
 **当前代码:**
 ```dart
-import '../../../../services/services/ai_dart_service.dart';
+import '../../../../services/services/llm_dart_service.dart';
 final aiService = AiDartService();
 final response = await aiService.sendChatRequest(...);
 ```
@@ -128,7 +128,7 @@ final response = await ref.read(sendChatMessageProvider(params).future);
 # 备份后删除
 mv lib/services/ai_service.dart lib/services/deprecated/
 mv lib/services/ai_request_service.dart lib/services/deprecated/
-mv lib/services/ai_dart_service.dart lib/services/deprecated/
+mv lib/services/llm_dart_service.dart lib/services/deprecated/
 mv lib/services/ai_service_new.dart lib/services/deprecated/
 ```
 
@@ -225,7 +225,7 @@ mv lib/services/ai_service_new.dart lib/services/deprecated/
 #### 1. 标记废弃服务
 - ✅ `lib/services/ai_service.dart` - 已添加 @Deprecated 注解
 - ✅ `lib/services/ai_request_service.dart` - 已添加 @Deprecated 注解
-- ✅ `lib/services/ai_dart_service.dart` - 已添加 @Deprecated 注解
+- ✅ `lib/services/llm_dart_service.dart` - 已添加 @Deprecated 注解
 - ✅ `lib/services/ai_service_new.dart` - 已添加 @Deprecated 注解
 - ✅ `lib/services/model_management_service.dart` - 已添加 @Deprecated 注解
 
