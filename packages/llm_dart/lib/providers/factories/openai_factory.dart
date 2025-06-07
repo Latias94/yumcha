@@ -25,6 +25,7 @@ class OpenAIProviderFactory implements LLMProviderFactory<ChatCapability> {
         LLMCapability.modelListing,
         LLMCapability.toolCalling,
         LLMCapability.reasoning,
+        LLMCapability.vision,
         LLMCapability.textToSpeech,
         LLMCapability.speechToText,
       };

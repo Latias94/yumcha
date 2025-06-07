@@ -2,6 +2,7 @@ import '../../core/chat_provider.dart';
 import '../../core/config.dart';
 import '../../core/registry.dart';
 import '../../models/tool_models.dart';
+import '../../models/chat_models.dart';
 import '../google_provider.dart';
 
 /// Factory for creating Google (Gemini) provider instances
@@ -22,6 +23,8 @@ class GoogleProviderFactory implements LLMProviderFactory<ChatCapability> {
         LLMCapability.streaming,
         LLMCapability.toolCalling,
         LLMCapability.embedding,
+        LLMCapability.reasoning,
+        LLMCapability.vision,
       };
 
   @override
@@ -60,6 +63,13 @@ class GoogleProviderFactory implements LLMProviderFactory<ChatCapability> {
       tools: config.tools,
       // Google-specific extensions
       jsonSchema: config.getExtension<StructuredOutputFormat>('jsonSchema'),
+      reasoningEffort: config.getExtension<ReasoningEffort>('reasoningEffort'),
+      thinkingBudgetTokens: config.getExtension<int>('thinkingBudgetTokens'),
+      includeThoughts: config.getExtension<bool>('reasoning') ??
+          config.getExtension<bool>('includeThoughts'),
+      enableImageGeneration: config.getExtension<bool>('enableImageGeneration'),
+      responseModalities:
+          config.getExtension<List<String>>('responseModalities'),
     );
   }
 }

@@ -23,6 +23,11 @@ class GoogleConfig {
   final int? topK;
   final List<Tool>? tools;
   final StructuredOutputFormat? jsonSchema;
+  final ReasoningEffort? reasoningEffort;
+  final int? thinkingBudgetTokens;
+  final bool? includeThoughts;
+  final bool? enableImageGeneration;
+  final List<String>? responseModalities;
 
   const GoogleConfig({
     required this.apiKey,
@@ -37,6 +42,11 @@ class GoogleConfig {
     this.topK,
     this.tools,
     this.jsonSchema,
+    this.reasoningEffort,
+    this.thinkingBudgetTokens,
+    this.includeThoughts,
+    this.enableImageGeneration,
+    this.responseModalities,
   });
 
   GoogleConfig copyWith({
@@ -52,6 +62,11 @@ class GoogleConfig {
     int? topK,
     List<Tool>? tools,
     StructuredOutputFormat? jsonSchema,
+    ReasoningEffort? reasoningEffort,
+    int? thinkingBudgetTokens,
+    bool? includeThoughts,
+    bool? enableImageGeneration,
+    List<String>? responseModalities,
   }) =>
       GoogleConfig(
         apiKey: apiKey ?? this.apiKey,
@@ -66,6 +81,12 @@ class GoogleConfig {
         topK: topK ?? this.topK,
         tools: tools ?? this.tools,
         jsonSchema: jsonSchema ?? this.jsonSchema,
+        reasoningEffort: reasoningEffort ?? this.reasoningEffort,
+        thinkingBudgetTokens: thinkingBudgetTokens ?? this.thinkingBudgetTokens,
+        includeThoughts: includeThoughts ?? this.includeThoughts,
+        enableImageGeneration:
+            enableImageGeneration ?? this.enableImageGeneration,
+        responseModalities: responseModalities ?? this.responseModalities,
       );
 }
 
@@ -140,8 +161,24 @@ class GoogleChatResponse implements ChatResponse {
   }
 
   @override
-  String? get thinking =>
-      null; // Google doesn't support thinking/reasoning content
+  String? get thinking {
+    // Extract thinking content from candidates
+    final candidates = _rawResponse['candidates'] as List?;
+    if (candidates == null || candidates.isEmpty) return null;
+
+    final content = candidates.first['content'] as Map<String, dynamic>?;
+    if (content == null) return null;
+
+    final parts = content['parts'] as List?;
+    if (parts == null || parts.isEmpty) return null;
+
+    final thinkingParts = parts
+        .where((part) => part['thought'] != null)
+        .map((part) => part['thought'] as String)
+        .toList();
+
+    return thinkingParts.isEmpty ? null : thinkingParts.join('\n');
+  }
 
   @override
   String toString() {
@@ -396,6 +433,36 @@ class GoogleProvider extends BaseHttpProvider {
       generationConfig['responseSchema'] = schema;
     }
 
+    // Add thinking configuration for reasoning models
+    if (config.reasoningEffort != null ||
+        config.thinkingBudgetTokens != null ||
+        config.includeThoughts != null) {
+      final thinkingConfig = <String, dynamic>{};
+
+      if (config.includeThoughts != null) {
+        thinkingConfig['includeThoughts'] = config.includeThoughts;
+      }
+
+      if (config.thinkingBudgetTokens != null) {
+        thinkingConfig['thinkingBudget'] = config.thinkingBudgetTokens;
+      }
+
+      if (thinkingConfig.isNotEmpty) {
+        generationConfig['thinkingConfig'] = thinkingConfig;
+      }
+    }
+
+    // Add image generation configuration
+    if (config.enableImageGeneration == true) {
+      if (config.responseModalities != null) {
+        generationConfig['responseModalities'] = config.responseModalities;
+      } else {
+        // Default to text and image modalities for image generation
+        generationConfig['responseModalities'] = ['TEXT', 'IMAGE'];
+      }
+      generationConfig['responseMimeType'] = 'text/plain';
+    }
+
     if (generationConfig.isNotEmpty) {
       body['generationConfig'] = generationConfig;
     }
@@ -439,6 +506,9 @@ class GoogleProvider extends BaseHttpProvider {
       case FileMessage(mime: final mime, data: final data):
         // Google AI supports various file types
         if (mime.isDocument || mime.isAudio || mime.isVideo) {
+          // For large files (>20MB), we should use file upload API
+          // For now, we'll use inline data for all files
+          // TODO: Implement file upload API for large files
           parts.add({
             'inlineData': {
               'mimeType': mime.mimeType,
@@ -508,9 +578,27 @@ class GoogleProvider extends BaseHttpProvider {
     if (parts == null || parts.isEmpty) return null;
 
     for (final part in parts) {
+      // Check for thinking content first
+      final thought = part['thought'] as String?;
+      if (thought != null) {
+        return ThinkingDeltaEvent(thought);
+      }
+
       final text = part['text'] as String?;
       if (text != null) {
         return TextDeltaEvent(text);
+      }
+
+      // Check for inline image data (generated images)
+      final inlineData = part['inlineData'] as Map<String, dynamic>?;
+      if (inlineData != null) {
+        final mimeType = inlineData['mimeType'] as String?;
+        final data = inlineData['data'] as String?;
+        if (mimeType != null && data != null && mimeType.startsWith('image/')) {
+          // This is a generated image - we could emit a custom event for this
+          // For now, we'll include it as text content indicating image generation
+          return TextDeltaEvent('[Generated image: $mimeType]');
+        }
       }
 
       final functionCall = part['functionCall'] as Map<String, dynamic>?;

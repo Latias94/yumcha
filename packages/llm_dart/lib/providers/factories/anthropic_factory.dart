@@ -21,6 +21,7 @@ class AnthropicProviderFactory implements LLMProviderFactory<ChatCapability> {
         LLMCapability.streaming,
         LLMCapability.toolCalling,
         LLMCapability.reasoning,
+        LLMCapability.vision,
       };
 
   @override

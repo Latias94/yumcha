@@ -28,6 +28,9 @@ enum LLMCapability {
   /// Reasoning/thinking capabilities
   reasoning,
 
+  /// Vision/image understanding capabilities
+  vision,
+
   /// Text completion (non-chat)
   completion,
 }
