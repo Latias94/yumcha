@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 // Import required modules from the LLM Dart library for ElevenLabs integration
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating how to use the ElevenLabs provider for TTS and STT
@@ -57,7 +56,7 @@ void main() async {
     print('');
 
     // Demonstrate Text-to-Speech (TTS)
-    // await demonstrateTTS(elevenLabsProvider);
+    await demonstrateTTS(elevenLabsProvider);
 
     print('');
 
@@ -66,8 +65,13 @@ void main() async {
 
     print('');
 
+    // Demonstrate unified interface features
+    await demonstrateUnifiedInterface(elevenLabsProvider);
+
+    print('');
+
     // Demonstrate advanced features
-    // await demonstrateAdvancedFeatures(elevenLabsProvider);
+    await demonstrateAdvancedFeatures(elevenLabsProvider);
   } catch (e) {
     print('❌ Error: $e');
     if (e.toString().contains('401') || e.toString().contains('auth')) {
@@ -89,8 +93,15 @@ Future<void> demonstrateTTS(ElevenLabsProvider provider) async {
   print('Converting to speech...');
 
   try {
-    // Convert text to speech
-    final ttsResponse = await provider.textToSpeech(text);
+    // Convert text to speech using new unified interface
+    final ttsRequest = TTSRequest(
+      text: text,
+      voice: 'JBFqnCBsd6RMkjVDRZzb', // George voice
+      model: 'eleven_multilingual_v2',
+      format: 'mp3_44100_128',
+    );
+
+    final ttsResponse = await provider.textToSpeech(ttsRequest);
 
     // Save audio to file
     const outputFile = 'elevenlabs_output.mp3';
@@ -100,6 +111,8 @@ Future<void> demonstrateTTS(ElevenLabsProvider provider) async {
     print('   Audio saved to: $outputFile');
     print('   Audio size: ${ttsResponse.audioData.length} bytes');
     print('   Content type: ${ttsResponse.contentType ?? 'audio/mpeg'}');
+    print('   Voice used: ${ttsResponse.voice ?? 'default'}');
+    print('   Model used: ${ttsResponse.model ?? 'default'}');
   } catch (e) {
     print('❌ TTS failed: $e');
   }
@@ -125,11 +138,15 @@ Future<void> demonstrateSTT(ElevenLabsProvider provider) async {
   print('Transcribing audio...');
 
   try {
-    // Method 1: Transcribe from file path
-    final sttResponse = await provider.speechToTextFromFile(
+    // Method 1: Transcribe from file path using new unified interface
+    final sttRequest = STTRequest.fromFile(
       audioFile,
       model: 'scribe_v1', // Use scribe model for STT
+      includeWordTiming: true,
+      includeConfidence: true,
     );
+
+    final sttResponse = await provider.speechToText(sttRequest);
 
     print('✅ STT completed successfully!');
     print('   Raw transcribed text: "${sttResponse.text}"');
@@ -138,9 +155,10 @@ Future<void> demonstrateSTT(ElevenLabsProvider provider) async {
     final cleanedText = _cleanTranscribedText(sttResponse.text);
     print('   Cleaned text: "$cleanedText"');
 
-    print('   Language: ${sttResponse.languageCode ?? 'auto-detected'}');
+    print('   Language: ${sttResponse.language ?? 'auto-detected'}');
     print(
-        '   Language confidence: ${sttResponse.languageProbability?.toStringAsFixed(2) ?? 'N/A'}');
+        '   Language confidence: ${sttResponse.confidence?.toStringAsFixed(2) ?? 'N/A'}');
+    print('   Model used: ${sttResponse.model ?? 'default'}');
 
     // Show word-level timing if available
     if (sttResponse.words != null && sttResponse.words!.isNotEmpty) {
@@ -148,7 +166,7 @@ Future<void> demonstrateSTT(ElevenLabsProvider provider) async {
       for (final word in sttResponse.words!.take(5)) {
         // Show first 5 words
         print(
-            '     "${word.text}" (${word.start.toStringAsFixed(2)}s - ${word.end.toStringAsFixed(2)}s)');
+            '     "${word.word}" (${word.start.toStringAsFixed(2)}s - ${word.end.toStringAsFixed(2)}s)');
       }
       if (sttResponse.words!.length > 5) {
         print('     ... and ${sttResponse.words!.length - 5} more words');
@@ -160,10 +178,13 @@ Future<void> demonstrateSTT(ElevenLabsProvider provider) async {
     print('🔄 Alternative: Transcribing from audio bytes...');
 
     final audioBytes = await file.readAsBytes();
-    final sttResponse2 = await provider.speechToText(
-      Uint8List.fromList(audioBytes),
+    final sttRequest2 = STTRequest.fromAudio(
+      audioBytes,
       model: 'scribe_v1_experimental', // Use experimental model for comparison
+      includeWordTiming: true,
     );
+
+    final sttResponse2 = await provider.speechToText(sttRequest2);
 
     print('✅ Bytes-based STT completed!');
     print('   Raw transcribed text: "${sttResponse2.text}"');
@@ -176,6 +197,74 @@ Future<void> demonstrateSTT(ElevenLabsProvider provider) async {
     if (e.toString().contains('format')) {
       print('   Try using a different audio format (WAV, MP3, etc.)');
     }
+  }
+}
+
+/// Demonstrates unified interface features
+Future<void> demonstrateUnifiedInterface(ElevenLabsProvider provider) async {
+  print('🔧 Unified Interface Demo');
+  print('-' * 30);
+
+  try {
+    // Get available voices using unified interface
+    print('🎭 Getting available voices...');
+    final voices = await provider.getVoices();
+    print('✅ Found ${voices.length} voices:');
+    for (final voice in voices.take(3)) {
+      print('   - ${voice.name} (${voice.id})');
+      if (voice.description != null) {
+        print('     Description: ${voice.description}');
+      }
+      if (voice.category != null) {
+        print('     Category: ${voice.category}');
+      }
+    }
+    if (voices.length > 3) {
+      print('   ... and ${voices.length - 3} more voices');
+    }
+
+    print('');
+
+    // Get supported formats
+    print('📋 Getting supported formats...');
+    final formats = provider.getSupportedAudioFormats();
+    print('✅ Supported formats: ${formats.join(', ')}');
+
+    print('');
+
+    // Get supported languages for STT
+    print('🌍 Getting supported languages...');
+    final languages = await provider.getSupportedLanguages();
+    print('✅ Supported languages (first 10):');
+    for (final lang in languages.take(10)) {
+      final realtimeStatus = lang.supportsRealtime ? ' (Realtime)' : '';
+      print('   - ${lang.name} (${lang.code})$realtimeStatus');
+    }
+    if (languages.length > 10) {
+      print('   ... and ${languages.length - 10} more languages');
+    }
+
+    print('');
+
+    // Demonstrate convenience methods
+    print('🚀 Testing convenience methods...');
+    const testText = 'This is a test using convenience methods.';
+
+    // Use convenience speech method
+    final audioBytes = await provider.speech(testText);
+    print('✅ Convenience TTS: Generated ${audioBytes.length} bytes');
+
+    // Save and test convenience transcribe method
+    const convenienceFile = 'convenience_test.mp3';
+    await File(convenienceFile).writeAsBytes(audioBytes);
+
+    final transcription = await provider.transcribeFile(convenienceFile);
+    print('✅ Convenience STT: "$transcription"');
+
+    // Clean up
+    await File(convenienceFile).delete();
+  } catch (e) {
+    print('❌ Unified interface demo failed: $e');
   }
 }
 
@@ -221,7 +310,13 @@ Future<void> demonstrateAdvancedFeatures(ElevenLabsProvider provider) async {
             .similarityBoost(settings['similarityBoost'] as double)
             .build() as ElevenLabsProvider;
 
-        final response = await testProvider.textToSpeech(testText);
+        final ttsRequest = TTSRequest(
+          text: testText,
+          voice: 'JBFqnCBsd6RMkjVDRZzb',
+          model: 'eleven_multilingual_v2',
+        );
+
+        final response = await testProvider.textToSpeech(ttsRequest);
         final filename =
             'test_${(settings['name'] as String).toLowerCase().replaceAll(' ', '_')}.mp3';
         await File(filename).writeAsBytes(response.audioData);

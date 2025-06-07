@@ -209,6 +209,22 @@ class LLMBuilder {
   LLMBuilder embeddingDimensions(int dimensions) =>
       extension('embeddingDimensions', dimensions);
 
+  /// Image generation configuration methods
+  LLMBuilder imageSize(String size) => extension('imageSize', size);
+  LLMBuilder batchSize(int size) => extension('batchSize', size);
+  LLMBuilder imageSeed(String seed) => extension('imageSeed', seed);
+  LLMBuilder numInferenceSteps(int steps) =>
+      extension('numInferenceSteps', steps);
+  LLMBuilder guidanceScale(double scale) => extension('guidanceScale', scale);
+  LLMBuilder promptEnhancement(bool enabled) =>
+      extension('promptEnhancement', enabled);
+
+  /// Audio configuration methods
+  LLMBuilder audioFormat(String format) => extension('audioFormat', format);
+  LLMBuilder audioQuality(String quality) => extension('audioQuality', quality);
+  LLMBuilder sampleRate(int rate) => extension('sampleRate', rate);
+  LLMBuilder languageCode(String code) => extension('languageCode', code);
+
   /// Builds and returns a configured LLM provider instance
   ///
   /// Returns a unified ChatCapability interface that can be used consistently

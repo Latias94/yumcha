@@ -17,6 +17,8 @@ export 'core/openai_compatible_configs.dart';
 // Model exports
 export 'models/chat_models.dart';
 export 'models/tool_models.dart';
+export 'models/audio_models.dart';
+export 'models/image_models.dart';
 
 // Provider exports
 export 'providers/openai_provider.dart';

@@ -1,5 +1,7 @@
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../models/audio_models.dart';
+import '../models/image_models.dart';
 import 'llm_error.dart';
 
 /// Enumeration of LLM capabilities that providers can support
@@ -33,6 +35,9 @@ enum LLMCapability {
 
   /// Text completion (non-chat)
   completion,
+
+  /// Image generation capabilities
+  imageGeneration,
 }
 
 /// Response from a chat provider
@@ -256,31 +261,43 @@ abstract class EmbeddingCapability {
   Future<List<List<double>>> embed(List<String> input);
 }
 
-/// Capability interface for speech-to-text conversion
-abstract class SpeechToTextCapability {
-  /// Transcribe audio data to text
-  ///
-  /// [audio] - Raw audio data as bytes
-  ///
-  /// Returns transcribed text or throws an LLMError
-  Future<String> transcribe(List<int> audio);
-
-  /// Transcribe audio file to text
-  ///
-  /// [filePath] - Path to the audio file
-  ///
-  /// Returns transcribed text or throws an LLMError
-  Future<String> transcribeFile(String filePath);
-}
-
 /// Capability interface for text-to-speech conversion
 abstract class TextToSpeechCapability {
-  /// Convert text to speech audio
-  ///
-  /// [text] - Text to convert to speech
-  ///
-  /// Returns audio data as bytes or throws an LLMError
-  Future<List<int>> speech(String text);
+  /// Convert text to speech with full configuration support
+  Future<TTSResponse> textToSpeech(TTSRequest request);
+
+  /// Simple text-to-speech conversion (convenience method)
+  Future<List<int>> speech(String text) async {
+    final response = await textToSpeech(TTSRequest(text: text));
+    return response.audioData;
+  }
+
+  /// Get available voices for this provider
+  Future<List<VoiceInfo>> getVoices();
+
+  /// Get supported audio formats
+  List<String> getSupportedAudioFormats();
+}
+
+/// Capability interface for speech-to-text conversion
+abstract class SpeechToTextCapability {
+  /// Transcribe audio with full configuration support
+  Future<STTResponse> speechToText(STTRequest request);
+
+  /// Simple audio transcription (convenience method)
+  Future<String> transcribe(List<int> audio) async {
+    final response = await speechToText(STTRequest.fromAudio(audio));
+    return response.text;
+  }
+
+  /// Simple file transcription (convenience method)
+  Future<String> transcribeFile(String filePath) async {
+    final response = await speechToText(STTRequest.fromFile(filePath));
+    return response.text;
+  }
+
+  /// Get supported languages for STT
+  Future<List<LanguageInfo>> getSupportedLanguages();
 }
 
 /// Capability interface for model listing
@@ -289,6 +306,50 @@ abstract class ModelListingCapability {
   ///
   /// Returns a list of available models or throws an LLMError
   Future<List<AIModel>> models();
+}
+
+/// Capability interface for image generation
+abstract class ImageGenerationCapability {
+  /// Generate images with full configuration support
+  Future<ImageGenerationResponse> generateImages(
+      ImageGenerationRequest request);
+
+  /// Simple image generation (convenience method)
+  Future<List<String>> generateImage({
+    required String prompt,
+    String? model,
+    String? negativePrompt,
+    String? imageSize,
+    int? batchSize,
+    String? seed,
+    int? numInferenceSteps,
+    double? guidanceScale,
+    bool? promptEnhancement,
+  }) async {
+    final response = await generateImages(ImageGenerationRequest(
+      prompt: prompt,
+      model: model,
+      negativePrompt: negativePrompt,
+      size: imageSize,
+      count: batchSize,
+      seed: seed != null ? int.tryParse(seed) : null,
+      steps: numInferenceSteps,
+      guidanceScale: guidanceScale,
+      enhancePrompt: promptEnhancement,
+    ));
+
+    return response.images
+        .map((img) => img.url)
+        .where((url) => url != null)
+        .cast<String>()
+        .toList();
+  }
+
+  /// Get supported image sizes
+  List<String> getSupportedSizes();
+
+  /// Get supported image formats
+  List<String> getSupportedFormats();
 }
 
 /// Capability interface for text completion (non-chat)

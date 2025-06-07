@@ -6,6 +6,7 @@ import '../core/chat_provider.dart';
 import '../core/llm_error.dart';
 import '../models/chat_models.dart';
 import '../models/tool_models.dart';
+import '../models/audio_models.dart';
 
 /// ElevenLabs provider configuration
 class ElevenLabsConfig {
@@ -108,7 +109,8 @@ class ElevenLabsSTTResponse {
 }
 
 /// ElevenLabs provider implementation for TTS and STT
-class ElevenLabsProvider implements ChatCapability {
+class ElevenLabsProvider
+    implements ChatCapability, TextToSpeechCapability, SpeechToTextCapability {
   final ElevenLabsConfig config;
   final Dio _dio;
   final Logger _logger = Logger('ElevenLabsProvider');
@@ -161,8 +163,141 @@ class ElevenLabsProvider implements ChatCapability {
         const ProviderError('ElevenLabs does not support chat functionality'));
   }
 
-  /// Convert text to speech using ElevenLabs TTS
-  Future<ElevenLabsTTSResponse> textToSpeech(
+  // TextToSpeechCapability implementation
+  @override
+  Future<TTSResponse> textToSpeech(TTSRequest request) async {
+    final response = await _textToSpeechInternal(
+      request.text,
+      voiceId: request.voice,
+      model: request.model,
+    );
+
+    return TTSResponse(
+      audioData: response.audioData,
+      contentType: response.contentType,
+      voice: request.voice,
+      model: request.model,
+      // ElevenLabs doesn't provide duration/sample rate in response
+      duration: null,
+      sampleRate: null,
+      usage: null,
+    );
+  }
+
+  @override
+  Future<List<VoiceInfo>> getVoices() async {
+    final rawVoices = await _getVoicesRaw();
+
+    return rawVoices.map((voice) {
+      return VoiceInfo(
+        id: voice['voice_id'] as String? ?? '',
+        name: voice['name'] as String? ?? '',
+        description: voice['description'] as String?,
+        category: voice['category'] as String?,
+        gender: voice['labels']?['gender'] as String?,
+        accent: voice['labels']?['accent'] as String?,
+        previewUrl: voice['preview_url'] as String?,
+      );
+    }).toList();
+  }
+
+  @override
+  List<String> getSupportedAudioFormats() {
+    return [
+      'mp3_44100_128',
+      'mp3_44100_192',
+      'pcm_16000',
+      'pcm_22050',
+      'pcm_24000',
+      'pcm_44100',
+      'ulaw_8000',
+    ];
+  }
+
+  // SpeechToTextCapability implementation
+  @override
+  Future<STTResponse> speechToText(STTRequest request) async {
+    late ElevenLabsSTTResponse response;
+
+    if (request.audioData != null) {
+      response = await _speechToTextInternal(
+        Uint8List.fromList(request.audioData!),
+        model: request.model,
+      );
+    } else if (request.filePath != null) {
+      response = await _speechToTextFromFileInternal(
+        request.filePath!,
+        model: request.model,
+      );
+    } else {
+      throw const InvalidRequestError(
+          'Either audioData or filePath must be provided');
+    }
+
+    return STTResponse(
+      text: response.text,
+      language: response.languageCode,
+      confidence: response.languageProbability,
+      words: response.words
+          ?.map((w) => WordTiming(
+                word: w.text,
+                start: w.start,
+                end: w.end,
+                confidence:
+                    null, // ElevenLabs doesn't provide word-level confidence
+              ))
+          .toList(),
+      model: request.model,
+      duration: null,
+      usage: null,
+    );
+  }
+
+  @override
+  Future<List<LanguageInfo>> getSupportedLanguages() async {
+    // ElevenLabs supports multiple languages but doesn't provide a dynamic API
+    // Return commonly supported languages
+    return const [
+      LanguageInfo(code: 'en', name: 'English', supportsRealtime: true),
+      LanguageInfo(code: 'es', name: 'Spanish', supportsRealtime: true),
+      LanguageInfo(code: 'fr', name: 'French', supportsRealtime: true),
+      LanguageInfo(code: 'de', name: 'German', supportsRealtime: true),
+      LanguageInfo(code: 'it', name: 'Italian', supportsRealtime: true),
+      LanguageInfo(code: 'pt', name: 'Portuguese', supportsRealtime: true),
+      LanguageInfo(code: 'pl', name: 'Polish', supportsRealtime: true),
+      LanguageInfo(code: 'tr', name: 'Turkish', supportsRealtime: true),
+      LanguageInfo(code: 'ru', name: 'Russian', supportsRealtime: true),
+      LanguageInfo(code: 'nl', name: 'Dutch', supportsRealtime: true),
+      LanguageInfo(code: 'cs', name: 'Czech', supportsRealtime: true),
+      LanguageInfo(code: 'ar', name: 'Arabic', supportsRealtime: true),
+      LanguageInfo(code: 'zh', name: 'Chinese', supportsRealtime: true),
+      LanguageInfo(code: 'ja', name: 'Japanese', supportsRealtime: true),
+      LanguageInfo(code: 'hi', name: 'Hindi', supportsRealtime: true),
+      LanguageInfo(code: 'ko', name: 'Korean', supportsRealtime: true),
+    ];
+  }
+
+  // Convenience methods for backward compatibility
+  @override
+  Future<List<int>> speech(String text) async {
+    final response = await textToSpeech(TTSRequest(text: text));
+    return response.audioData;
+  }
+
+  @override
+  Future<String> transcribe(List<int> audio) async {
+    final response = await speechToText(STTRequest.fromAudio(audio));
+    return response.text;
+  }
+
+  @override
+  Future<String> transcribeFile(String filePath) async {
+    final response = await speechToText(STTRequest.fromFile(filePath));
+    return response.text;
+  }
+
+  /// Convert text to speech using ElevenLabs TTS (internal method)
+  Future<ElevenLabsTTSResponse> _textToSpeechInternal(
     String text, {
     String? voiceId,
     String? model,
@@ -221,8 +356,8 @@ class ElevenLabsProvider implements ChatCapability {
     }
   }
 
-  /// Convert speech to text using ElevenLabs STT
-  Future<ElevenLabsSTTResponse> speechToText(
+  /// Convert speech to text using ElevenLabs STT (internal method)
+  Future<ElevenLabsSTTResponse> _speechToTextInternal(
     Uint8List audioData, {
     String? model,
   }) async {
@@ -289,8 +424,8 @@ class ElevenLabsProvider implements ChatCapability {
     }
   }
 
-  /// Convert speech file to text using ElevenLabs STT
-  Future<ElevenLabsSTTResponse> speechToTextFromFile(
+  /// Convert speech file to text using ElevenLabs STT (internal method)
+  Future<ElevenLabsSTTResponse> _speechToTextFromFileInternal(
     String filePath, {
     String? model,
   }) async {
@@ -354,8 +489,8 @@ class ElevenLabsProvider implements ChatCapability {
     }
   }
 
-  /// Get available voices
-  Future<List<Map<String, dynamic>>> getVoices() async {
+  /// Get available voices (internal method)
+  Future<List<Map<String, dynamic>>> _getVoicesRaw() async {
     if (config.apiKey.isEmpty) {
       throw const AuthError('Missing ElevenLabs API key');
     }
