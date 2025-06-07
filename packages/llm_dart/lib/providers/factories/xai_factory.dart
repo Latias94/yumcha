@@ -2,6 +2,7 @@ import '../../core/chat_provider.dart';
 import '../../core/config.dart';
 import '../../core/registry.dart';
 import '../../models/tool_models.dart';
+import '../../models/chat_models.dart';
 import '../openai_provider.dart';
 
 /// Factory for creating XAI provider instances using OpenAI-compatible interface
@@ -59,7 +60,8 @@ class XAIProviderFactory implements LLMProviderFactory<ChatCapability> {
       tools: config.tools,
       toolChoice: config.toolChoice,
       // XAI-specific extensions (using OpenAI format)
-      reasoningEffort: config.getExtension<String>('reasoningEffort'),
+      reasoningEffort: ReasoningEffort.fromString(
+          config.getExtension<String>('reasoningEffort')),
       jsonSchema: config.getExtension<StructuredOutputFormat>('jsonSchema'),
       voice: config.getExtension<String>('voice'),
       embeddingEncodingFormat:

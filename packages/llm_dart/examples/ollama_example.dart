@@ -8,9 +8,9 @@ void main() async {
   final baseUrl =
       Platform.environment['OLLAMA_URL'] ?? 'http://127.0.0.1:11434';
 
-  // Initialize and configure the LLM client using LLMBuilder
-  final llm = await LLMBuilder()
-      .ollama() // Use Ollama as the LLM backend
+  // Initialize and configure the LLM client using modern API
+  final llm = await ai()
+      .ollama() // Use Ollama as the LLM provider
       .baseUrl(baseUrl) // Set the Ollama server URL
       .model('llama3.2:latest')
       .maxTokens(1000) // Set maximum response length

@@ -7,8 +7,8 @@ void main() async {
   // Get Anthropic API key from environment variable or use test key as fallback
   final apiKey = Platform.environment['ANTHROPIC_API_KEY'] ?? 'anthro-key';
 
-  // Initialize and configure the LLM client using LLMBuilder
-  final llm = await LLMBuilder()
+  // Initialize and configure the LLM client using modern API
+  final llm = await ai()
       .anthropic() // Use Anthropic (Claude) as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('claude-3-7-sonnet-20250219') // Use Claude Instant model

@@ -8,8 +8,8 @@ void main() async {
   // Get ElevenLabs API key from environment variable or use test key as fallback
   final apiKey = Platform.environment['ELEVENLABS_API_KEY'] ?? 'test_key';
 
-  // Initialize and configure the ElevenLabs client using LLMBuilder
-  final llm = await LLMBuilder()
+  // Initialize and configure the ElevenLabs client using modern API
+  final llm = await ai()
       .elevenlabs() // Use ElevenLabs as the provider
       .apiKey(apiKey) // Set the API key
       .model('eleven_multilingual_v2') // Use multilingual model

@@ -1,7 +1,7 @@
 name: llm_dart
 description: A unified AI chat LLM interface library for Dart/Flutter
 version: 0.0.1
-homepage: https://github.com/Latias94/Yumcha/packages/llm_dart
+homepage: https://github.com/Latias94/yumcha/tree/main/packages/llm_dart
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

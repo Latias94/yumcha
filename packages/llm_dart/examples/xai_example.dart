@@ -7,8 +7,8 @@ void main() async {
   // Get xAI API key from environment variable or use test key as fallback
   final apiKey = Platform.environment['XAI_API_KEY'] ?? 'sk-TESTKEY';
 
-  // Initialize and configure the LLM client using LLMBuilder
-  final llm = await LLMBuilder()
+  // Initialize and configure the LLM client using modern API
+  final llm = await ai()
       .xai() // Use xAI as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('grok-3-mini-beta') // Use Grok-3 mini beta model

@@ -7,7 +7,7 @@ void main() async {
   final apiKey = Platform.environment['OPENAI_API_KEY'] ?? 'sk-test';
 
   // Initialize and configure the LLM client with streaming enabled
-  final llm = await LLMBuilder()
+  final llm = await ai()
       .openai() // Use OpenAI as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('gpt-4') // Use GPT-4 model

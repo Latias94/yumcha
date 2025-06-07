@@ -3,6 +3,7 @@ import '../core/config.dart';
 import '../core/registry.dart';
 import '../core/llm_error.dart';
 import '../models/tool_models.dart';
+import '../models/chat_models.dart';
 
 /// Builder for configuring and instantiating LLM providers
 ///
@@ -129,10 +130,10 @@ class LLMBuilder {
     return this;
   }
 
-  /// Sets the reasoning effort for models that support it (e.g., Gemini)
-  /// Valid values: 'low', 'medium', 'high', or null to disable
-  LLMBuilder reasoningEffort(String? effort) {
-    _config = _config.withExtension('reasoningEffort', effort);
+  /// Sets the reasoning effort for models that support it (e.g., OpenAI o1, Gemini)
+  /// Valid values: ReasoningEffort.low, ReasoningEffort.medium, ReasoningEffort.high, or null to disable
+  LLMBuilder reasoningEffort(ReasoningEffort? effort) {
+    _config = _config.withExtension('reasoningEffort', effort?.value);
     return this;
   }
 

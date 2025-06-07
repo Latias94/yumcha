@@ -27,11 +27,11 @@ Future<void> streamingExample() async {
   final apiKey = Platform.environment['OPENAI_API_KEY'] ?? 'sk-OPENAI';
 
   // Initialize and configure the LLM client for streaming
-  final llm = await LLMBuilder()
+  final llm = await ai()
       .openai() // Use OpenAI as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('deepseek-r1') // Use reasoning model
-      .reasoningEffort('high') // Set reasoning effort level
+      .reasoningEffort(ReasoningEffort.high) // Set reasoning effort level
       .maxTokens(2000) // Limit response length
       .stream(true) // Enable streaming to see thinking process
       .build();
@@ -108,11 +108,11 @@ Future<void> nonStreamingExample() async {
   final apiKey = Platform.environment['OPENAI_API_KEY'] ?? 'sk-OPENAI';
 
   // Initialize and configure the LLM client for non-streaming
-  final llm = await LLMBuilder()
+  final llm = await ai()
       .openai() // Use OpenAI as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('deepseek-r1') // Use reasoning model
-      .reasoningEffort('high') // Set reasoning effort level
+      .reasoningEffort(ReasoningEffort.high) // Set reasoning effort level
       .maxTokens(2000) // Limit response length
       .stream(false) // Disable streaming for complete response
       .build();

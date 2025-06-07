@@ -61,7 +61,8 @@ void main() async {
       .build();
 
   // Method 3: Using convenience function
-  final directProvider = await openai(
+  final directProvider = await createProvider(
+    providerId: 'openai',
     apiKey: 'your-api-key',
     model: 'gpt-4',
     temperature: 0.7,
@@ -126,11 +127,12 @@ if (response.toolCalls != null) {
 ### OpenAI
 
 ```dart
-final provider = openai(
+final provider = await createProvider(
+  providerId: 'openai',
   apiKey: 'sk-...',
   model: 'gpt-4',
   temperature: 0.7,
-  reasoningEffort: 'medium', // For o1 models
+  extensions: {'reasoningEffort': 'medium'}, // For o1 models
 );
 ```
 
@@ -278,7 +280,7 @@ final provider = await ai()
     .openai()
     .apiKey('your-key')
     .model('gpt-4')
-    .extension('reasoningEffort', 'high')  // OpenAI-specific
+    .reasoningEffort(ReasoningEffort.high)  // OpenAI-specific
     .extension('voice', 'alloy')           // OpenAI TTS voice
     .build();
 ```

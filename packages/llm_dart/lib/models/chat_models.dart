@@ -64,18 +64,18 @@ class AIModel {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    if (description != null) 'description': description,
-    'object': object,
-    if (ownedBy != null) 'owned_by': ownedBy,
-  };
+        'id': id,
+        if (description != null) 'description': description,
+        'object': object,
+        if (ownedBy != null) 'owned_by': ownedBy,
+      };
 
   factory AIModel.fromJson(Map<String, dynamic> json) => AIModel(
-    id: json['id'] as String,
-    description: json['description'] as String?,
-    object: json['object'] as String? ?? 'model',
-    ownedBy: json['owned_by'] as String?,
-  );
+        id: json['id'] as String,
+        description: json['description'] as String?,
+        object: json['object'] as String? ?? 'model',
+        ownedBy: json['owned_by'] as String?,
+      );
 
   @override
   String toString() =>
@@ -108,16 +108,17 @@ class ToolCall {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'type': callType,
-    'function': function.toJson(),
-  };
+        'id': id,
+        'type': callType,
+        'function': function.toJson(),
+      };
 
   factory ToolCall.fromJson(Map<String, dynamic> json) => ToolCall(
-    id: json['id'] as String,
-    callType: json['type'] as String,
-    function: FunctionCall.fromJson(json['function'] as Map<String, dynamic>),
-  );
+        id: json['id'] as String,
+        callType: json['type'] as String,
+        function:
+            FunctionCall.fromJson(json['function'] as Map<String, dynamic>),
+      );
 
   @override
   String toString() => jsonEncode(toJson());
@@ -136,9 +137,9 @@ class FunctionCall {
   Map<String, dynamic> toJson() => {'name': name, 'arguments': arguments};
 
   factory FunctionCall.fromJson(Map<String, dynamic> json) => FunctionCall(
-    name: json['name'] as String,
-    arguments: json['arguments'] as String,
-  );
+        name: json['name'] as String,
+        arguments: json['arguments'] as String,
+      );
 
   @override
   String toString() => jsonEncode(toJson());
@@ -209,24 +210,24 @@ class ChatMessage {
 
   /// Create a user message
   factory ChatMessage.user(String content) => ChatMessage(
-    role: ChatRole.user,
-    messageType: const TextMessage(),
-    content: content,
-  );
+        role: ChatRole.user,
+        messageType: const TextMessage(),
+        content: content,
+      );
 
   /// Create an assistant message
   factory ChatMessage.assistant(String content) => ChatMessage(
-    role: ChatRole.assistant,
-    messageType: const TextMessage(),
-    content: content,
-  );
+        role: ChatRole.assistant,
+        messageType: const TextMessage(),
+        content: content,
+      );
 
   /// Create a system message
   factory ChatMessage.system(String content) => ChatMessage(
-    role: ChatRole.system,
-    messageType: const TextMessage(),
-    content: content,
-  );
+        role: ChatRole.system,
+        messageType: const TextMessage(),
+        content: content,
+      );
 
   /// Create an image message
   factory ChatMessage.image({
@@ -234,40 +235,78 @@ class ChatMessage {
     required ImageMime mime,
     required List<int> data,
     String content = '',
-  }) => ChatMessage(
-    role: role,
-    messageType: ImageMessage(mime, data),
-    content: content,
-  );
+  }) =>
+      ChatMessage(
+        role: role,
+        messageType: ImageMessage(mime, data),
+        content: content,
+      );
 
   /// Create an image URL message
   factory ChatMessage.imageUrl({
     required ChatRole role,
     required String url,
     String content = '',
-  }) => ChatMessage(
-    role: role,
-    messageType: ImageUrlMessage(url),
-    content: content,
-  );
+  }) =>
+      ChatMessage(
+        role: role,
+        messageType: ImageUrlMessage(url),
+        content: content,
+      );
 
   /// Create a tool use message
   factory ChatMessage.toolUse({
     required List<ToolCall> toolCalls,
     String content = '',
-  }) => ChatMessage(
-    role: ChatRole.assistant,
-    messageType: ToolUseMessage(toolCalls),
-    content: content,
-  );
+  }) =>
+      ChatMessage(
+        role: ChatRole.assistant,
+        messageType: ToolUseMessage(toolCalls),
+        content: content,
+      );
 
   /// Create a tool result message
   factory ChatMessage.toolResult({
     required List<ToolCall> results,
     String content = '',
-  }) => ChatMessage(
-    role: ChatRole.user,
-    messageType: ToolResultMessage(results),
-    content: content,
-  );
+  }) =>
+      ChatMessage(
+        role: ChatRole.user,
+        messageType: ToolResultMessage(results),
+        content: content,
+      );
+}
+
+/// Reasoning effort levels for models that support reasoning
+enum ReasoningEffort {
+  low,
+  medium,
+  high;
+
+  /// Convert to string value for API requests
+  String get value {
+    switch (this) {
+      case ReasoningEffort.low:
+        return 'low';
+      case ReasoningEffort.medium:
+        return 'medium';
+      case ReasoningEffort.high:
+        return 'high';
+    }
+  }
+
+  /// Create from string value
+  static ReasoningEffort? fromString(String? value) {
+    if (value == null) return null;
+    switch (value.toLowerCase()) {
+      case 'low':
+        return ReasoningEffort.low;
+      case 'medium':
+        return ReasoningEffort.medium;
+      case 'high':
+        return ReasoningEffort.high;
+      default:
+        return null;
+    }
+  }
 }

@@ -80,7 +80,7 @@ void main() {
           .geminiOpenAI()
           .apiKey('test-key')
           .model('gemini-2.5-flash-preview-05-20')
-          .reasoningEffort('low');
+          .reasoningEffort(ReasoningEffort.low);
 
       // This should not throw an error
       expect(() => builder, returnsNormally);

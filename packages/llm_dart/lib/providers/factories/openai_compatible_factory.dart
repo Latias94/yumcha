@@ -3,13 +3,15 @@ import '../../core/config.dart';
 import '../../core/registry.dart';
 import '../../core/openai_compatible_configs.dart';
 import '../../models/tool_models.dart';
+import '../../models/chat_models.dart';
 import '../openai_provider.dart';
 
 /// Generic factory for creating OpenAI-compatible provider instances
-/// 
+///
 /// This factory can create providers for any service that offers an OpenAI-compatible API,
 /// using pre-configured settings for popular providers like DeepSeek, Gemini, xAI, etc.
-class OpenAICompatibleProviderFactory implements LLMProviderFactory<ChatCapability> {
+class OpenAICompatibleProviderFactory
+    implements LLMProviderFactory<ChatCapability> {
   final OpenAICompatibleProviderConfig _config;
 
   OpenAICompatibleProviderFactory(this._config);
@@ -50,7 +52,7 @@ class OpenAICompatibleProviderFactory implements LLMProviderFactory<ChatCapabili
   OpenAIConfig _transformConfig(LLMConfig config) {
     // Get model-specific capabilities
     final modelConfig = _config.modelConfigs[config.model];
-    
+
     // Build the OpenAI config with provider-specific optimizations
     return OpenAIConfig(
       apiKey: config.apiKey!,
@@ -66,46 +68,50 @@ class OpenAICompatibleProviderFactory implements LLMProviderFactory<ChatCapabili
       tools: config.tools,
       toolChoice: config.toolChoice,
       // OpenAI-specific extensions
-      reasoningEffort: _getReasoningEffort(config),
+      reasoningEffort: ReasoningEffort.fromString(_getReasoningEffort(config)),
       jsonSchema: config.getExtension<StructuredOutputFormat>('jsonSchema'),
       voice: config.getExtension<String>('voice'),
-      embeddingEncodingFormat: config.getExtension<String>('embeddingEncodingFormat'),
+      embeddingEncodingFormat:
+          config.getExtension<String>('embeddingEncodingFormat'),
       embeddingDimensions: config.getExtension<int>('embeddingDimensions'),
     );
   }
 
   /// Get optimized max tokens based on model capabilities
-  int? _getOptimizedMaxTokens(LLMConfig config, ModelCapabilityConfig? modelConfig) {
+  int? _getOptimizedMaxTokens(
+      LLMConfig config, ModelCapabilityConfig? modelConfig) {
     if (config.maxTokens != null) {
       return config.maxTokens;
     }
-    
+
     // Use model's max context length as a reasonable default
     if (modelConfig?.maxContextLength != null) {
       // Reserve some tokens for the prompt
       return (modelConfig!.maxContextLength! * 0.8).round();
     }
-    
+
     return null;
   }
 
   /// Get optimized temperature based on model capabilities
-  double? _getOptimizedTemperature(LLMConfig config, ModelCapabilityConfig? modelConfig) {
+  double? _getOptimizedTemperature(
+      LLMConfig config, ModelCapabilityConfig? modelConfig) {
     // Some reasoning models should have temperature disabled
     if (modelConfig?.disableTemperature == true) {
       return null;
     }
-    
+
     return config.temperature;
   }
 
   /// Get optimized top_p based on model capabilities
-  double? _getOptimizedTopP(LLMConfig config, ModelCapabilityConfig? modelConfig) {
+  double? _getOptimizedTopP(
+      LLMConfig config, ModelCapabilityConfig? modelConfig) {
     // Some reasoning models should have top_p disabled
     if (modelConfig?.disableTopP == true) {
       return null;
     }
-    
+
     return config.topP;
   }
 
@@ -114,7 +120,7 @@ class OpenAICompatibleProviderFactory implements LLMProviderFactory<ChatCapabili
     if (!_config.supportsReasoningEffort) {
       return null;
     }
-    
+
     return config.getExtension<String>('reasoningEffort');
   }
 
@@ -129,7 +135,7 @@ class OpenAICompatibleProviderFactory implements LLMProviderFactory<ChatCapabili
   static OpenAICompatibleProviderFactory? createFactory(String providerId) {
     final config = OpenAICompatibleConfigs.getConfig(providerId);
     if (config == null) return null;
-    
+
     return OpenAICompatibleProviderFactory(config);
   }
 }
@@ -139,7 +145,7 @@ class OpenAICompatibleProviderRegistrar {
   /// Register all pre-configured OpenAI-compatible providers
   static void registerAll() {
     final factories = OpenAICompatibleProviderFactory.createAllFactories();
-    
+
     for (final factory in factories) {
       LLMProviderRegistry.registerOrReplace(factory);
     }
@@ -149,7 +155,7 @@ class OpenAICompatibleProviderRegistrar {
   static bool registerProvider(String providerId) {
     final factory = OpenAICompatibleProviderFactory.createFactory(providerId);
     if (factory == null) return false;
-    
+
     LLMProviderRegistry.registerOrReplace(factory);
     return true;
   }

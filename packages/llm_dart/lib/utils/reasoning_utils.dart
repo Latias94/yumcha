@@ -1,6 +1,8 @@
 /// Utilities for handling reasoning/thinking content in AI responses
 /// This matches the logic from the TypeScript implementation
 
+import '../models/chat_models.dart';
+
 /// Result of reasoning detection
 class ReasoningDetectionResult {
   final bool isReasoningJustDone;
@@ -136,7 +138,7 @@ class ReasoningUtils {
   static Map<String, dynamic> getReasoningEffortParams({
     required String providerId,
     required String model,
-    String? reasoningEffort,
+    ReasoningEffort? reasoningEffort,
   }) {
     if (reasoningEffort == null) return {};
 
@@ -149,7 +151,7 @@ class ReasoningUtils {
     if (providerId == 'openrouter') {
       return {
         'reasoning': {
-          'effort': reasoningEffort,
+          'effort': reasoningEffort.value,
         },
       };
     }
@@ -157,13 +159,13 @@ class ReasoningUtils {
     // Grok reasoning models
     if (model.contains('grok') && isKnownReasoningModel(model)) {
       return {
-        'reasoning_effort': reasoningEffort,
+        'reasoning_effort': reasoningEffort.value,
       };
     }
 
     // Default format (OpenAI, DeepSeek, etc.)
     return {
-      'reasoning_effort': reasoningEffort,
+      'reasoning_effort': reasoningEffort.value,
     };
   }
 

@@ -41,7 +41,7 @@ Future<void> basicChatExample() async {
 
   try {
     // Initialize and configure the LLM client using native DeepSeek provider
-    final llm = await LLMBuilder()
+    final llm = await ai()
         .deepseek() // Use native DeepSeek provider
         .apiKey(apiKey) // Set the API key
         .model('deepseek-chat') // Use DeepSeek Chat model (non-reasoning)
@@ -82,7 +82,7 @@ Future<void> streamingReasoningExample() async {
 
   try {
     // Initialize and configure the LLM client for streaming reasoning
-    final llm = await LLMBuilder()
+    final llm = await ai()
         .deepseek() // Use native DeepSeek provider
         .apiKey(apiKey) // Set the API key
         .model('deepseek-reasoner') // Use DeepSeek-R1 reasoning model
@@ -162,7 +162,7 @@ Future<void> nonStreamingReasoningExample() async {
 
   try {
     // Initialize and configure the LLM client for non-streaming reasoning
-    final llm = await LLMBuilder()
+    final llm = await ai()
         .deepseek() // Use native DeepSeek provider
         .apiKey(apiKey) // Set the API key
         .model('deepseek-reasoner') // Use DeepSeek-R1 reasoning model
@@ -224,7 +224,7 @@ Future<void> openaiCompatibleExample() async {
 
   try {
     // Initialize using OpenAI-compatible interface
-    final llm = await LLMBuilder()
+    final llm = await ai()
         .deepseekOpenAI() // Use DeepSeek with OpenAI-compatible interface
         .apiKey(apiKey) // Set the API key
         .model('deepseek-reasoner') // Use DeepSeek-R1 reasoning model

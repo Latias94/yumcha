@@ -58,7 +58,7 @@ Future<void> geminiOpenAIExample() async {
         .geminiOpenAI() // use OpenAI compatible interface
         .apiKey(Platform.environment['GEMINI_API_KEY'] ?? 'test-key')
         .model('gemini-2.5-flash-preview-05-20')
-        .reasoningEffort('low') // support reasoning effort level
+        .reasoningEffort(ReasoningEffort.low) // support reasoning effort level
         .temperature(0.7)
         .build();
 
@@ -105,7 +105,7 @@ Future<void> comparisonExample() async {
   try {
     // Native DeepSeek interface
     final nativeProvider = await ai()
-        .deepseek() // native interface 
+        .deepseek() // native interface
         .apiKey(Platform.environment['DEEPSEEK_API_KEY'] ?? 'sk-test')
         .model('deepseek-chat')
         .build();

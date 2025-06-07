@@ -39,7 +39,7 @@ class OpenAIConfig {
   final int? topK;
   final List<Tool>? tools;
   final ToolChoice? toolChoice;
-  final String? reasoningEffort;
+  final ReasoningEffort? reasoningEffort;
   final StructuredOutputFormat? jsonSchema;
   final String? voice;
   final String? embeddingEncodingFormat;
@@ -78,7 +78,7 @@ class OpenAIConfig {
     int? topK,
     List<Tool>? tools,
     ToolChoice? toolChoice,
-    String? reasoningEffort,
+    ReasoningEffort? reasoningEffort,
     StructuredOutputFormat? jsonSchema,
     String? voice,
     String? embeddingEncodingFormat,

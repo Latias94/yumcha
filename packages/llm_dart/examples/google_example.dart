@@ -7,8 +7,8 @@ void main() async {
   // Get Google API key from environment variable or use test key as fallback
   final apiKey = Platform.environment['GOOGLE_API_KEY'] ?? 'google-key';
 
-  // Initialize and configure the LLM client using LLMBuilder
-  final llm = await LLMBuilder()
+  // Initialize and configure the LLM client using modern API
+  final llm = await ai()
       .google() // Use Google as the LLM provider
       .apiKey(apiKey) // Set the API key
       .model('gemini-2.0-flash-exp') // Use Gemini Pro model

@@ -23,7 +23,7 @@ This directory contains comprehensive examples demonstrating how to use the LLM 
 
 - **[custom_provider_example.dart](custom_provider_example.dart)** - Full custom provider implementation
 - **[capability_query_example.dart](capability_query_example.dart)** - Provider capability discovery
-- **[api_comparison_example.dart](api_comparison_example.dart)** - Comparing different API approaches
+- **[api_features_example.dart](api_features_example.dart)** - API features and usage patterns showcase
 
 ### 🎯 Specialized Provider Examples
 
@@ -71,33 +71,32 @@ LLMProviderRegistry.register(MyCustomProviderFactory());
 final provider = await ai().provider('my_custom').build();
 ```
 
-## 📚 API Migration Guide
+## 📚 API Usage Guide
 
-### Old API (Deprecated)
-```dart
-// ❌ Old way - still works but deprecated
-final provider = await LLMBuilder()
-    .backend(LLMBackend.openai)  // Deprecated
-    .apiKey('key')
-    .build();
-```
+### Multiple Ways to Create Providers
 
-### New API (Recommended)
 ```dart
-// ✅ Method 1: Provider-specific methods
+// ✅ Method 1: Provider-specific methods (Type-safe)
 final provider = await ai()
     .openai()
-    .apiKey('key')
+    .apiKey('your-key')
+    .model('gpt-4')
     .build();
 
-// ✅ Method 2: Generic provider method (extensible)
+// ✅ Method 2: Generic provider method (Extensible)
 final provider = await ai()
     .provider('openai')
-    .apiKey('key')
+    .apiKey('your-key')
+    .model('gpt-4')
     .build();
 
-// ✅ Method 3: Convenience functions
-final provider = await openai(apiKey: 'key', model: 'gpt-4');
+// ✅ Method 3: Convenience functions (Concise)
+final provider = await createProvider(
+  providerId: 'openai',
+  apiKey: 'your-key',
+  model: 'gpt-4',
+  temperature: 0.7,
+);
 ```
 
 ## 🎯 Key Features Demonstrated
@@ -161,12 +160,12 @@ dart run examples/openai_example.dart
 
 ### 🔴 Advanced Usage:
 7. **[custom_provider_example.dart](custom_provider_example.dart)** - Build your own provider
-8. **[capability_query_example.dart](capability_query_example.dart)** - Dynamic capability discovery
+8. **[api_features_example.dart](api_features_example.dart)** - Complete API features showcase
 
 
 ## 💡 Best Practices
 
-1. **Use the new API** - Prefer `ai().openai()` over deprecated `LLMBuilder().backend()`
+1. **Use provider-specific methods** - Prefer `ai().openai()` for better IDE support and type safety
 2. **Check capabilities** - Use `provider is ChatCapability` for type safety
 3. **Handle errors properly** - Catch specific error types like `AuthError`, `RateLimitError`
 4. **Use extensions** - Leverage the extension system for provider-specific features
@@ -181,4 +180,4 @@ dart run examples/openai_example.dart
 
 ---
 
-**Note**: Examples marked with 🆕 use the new refactored API. Legacy examples still work but show deprecation warnings.
+**Note**: All examples use the modern LLM Dart API with provider registry system and capability-based design.
