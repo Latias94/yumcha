@@ -1,7 +1,6 @@
 // Import required modules from the AI Dart library for Anthropic integration
 import 'dart:io';
-import '../lib/builder/llm_builder.dart';
-import '../lib/models/chat_models.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// Example demonstrating how to use the Anthropic provider with LLMBuilder
 void main() async {

@@ -1,6 +1,5 @@
 import 'dart:io';
-import '../lib/builder/llm_builder.dart';
-import '../lib/core/chat_provider.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// Example demonstrating how to list available models from different providers
 void main() async {

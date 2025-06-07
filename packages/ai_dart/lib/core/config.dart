@@ -1,48 +1,49 @@
 import '../models/tool_models.dart';
+import 'chat_provider.dart';
 
 /// Unified configuration class for all LLM providers
-/// 
+///
 /// This class provides a common configuration interface while allowing
 /// provider-specific extensions through the [extensions] map.
 class LLMConfig {
   /// API key for authentication (if required)
   final String? apiKey;
-  
+
   /// Base URL for API requests
   final String baseUrl;
-  
+
   /// Model identifier/name to use
   final String model;
-  
+
   /// Maximum tokens to generate in responses
   final int? maxTokens;
-  
+
   /// Temperature parameter for controlling response randomness (0.0-1.0)
   final double? temperature;
-  
+
   /// System prompt/context to guide model behavior
   final String? systemPrompt;
-  
+
   /// Request timeout duration
   final Duration? timeout;
-  
+
   /// Whether to enable streaming responses by default
   final bool stream;
-  
+
   /// Top-p (nucleus) sampling parameter
   final double? topP;
-  
+
   /// Top-k sampling parameter
   final int? topK;
-  
+
   /// Function tools available to the model
   final List<Tool>? tools;
-  
+
   /// Tool choice strategy
   final ToolChoice? toolChoice;
-  
+
   /// Provider-specific configuration extensions
-  /// 
+  ///
   /// This map allows providers to store their unique configuration
   /// without polluting the common interface. Examples:
   /// - OpenAI: {'reasoningEffort': 'medium', 'voice': 'alloy'}
@@ -68,10 +69,10 @@ class LLMConfig {
 
   /// Get a provider-specific extension value
   T? getExtension<T>(String key) => extensions[key] as T?;
-  
+
   /// Check if an extension exists
   bool hasExtension(String key) => extensions.containsKey(key);
-  
+
   /// Create a new config with additional extensions
   LLMConfig withExtensions(Map<String, dynamic> newExtensions) {
     return LLMConfig(
@@ -90,12 +91,12 @@ class LLMConfig {
       extensions: {...extensions, ...newExtensions},
     );
   }
-  
+
   /// Create a new config with a single extension
   LLMConfig withExtension(String key, dynamic value) {
     return withExtensions({key: value});
   }
-  
+
   /// Create a copy with modified common parameters
   LLMConfig copyWith({
     String? apiKey,
@@ -131,43 +132,45 @@ class LLMConfig {
 
   /// Convert to JSON representation
   Map<String, dynamic> toJson() => {
-    if (apiKey != null) 'apiKey': apiKey,
-    'baseUrl': baseUrl,
-    'model': model,
-    if (maxTokens != null) 'maxTokens': maxTokens,
-    if (temperature != null) 'temperature': temperature,
-    if (systemPrompt != null) 'systemPrompt': systemPrompt,
-    if (timeout != null) 'timeout': timeout!.inMilliseconds,
-    'stream': stream,
-    if (topP != null) 'topP': topP,
-    if (topK != null) 'topK': topK,
-    if (tools != null) 'tools': tools!.map((t) => t.toJson()).toList(),
-    if (toolChoice != null) 'toolChoice': toolChoice!.toJson(),
-    'extensions': extensions,
-  };
+        if (apiKey != null) 'apiKey': apiKey,
+        'baseUrl': baseUrl,
+        'model': model,
+        if (maxTokens != null) 'maxTokens': maxTokens,
+        if (temperature != null) 'temperature': temperature,
+        if (systemPrompt != null) 'systemPrompt': systemPrompt,
+        if (timeout != null) 'timeout': timeout!.inMilliseconds,
+        'stream': stream,
+        if (topP != null) 'topP': topP,
+        if (topK != null) 'topK': topK,
+        if (tools != null) 'tools': tools!.map((t) => t.toJson()).toList(),
+        if (toolChoice != null) 'toolChoice': toolChoice!.toJson(),
+        'extensions': extensions,
+      };
 
   /// Create from JSON representation
   factory LLMConfig.fromJson(Map<String, dynamic> json) => LLMConfig(
-    apiKey: json['apiKey'] as String?,
-    baseUrl: json['baseUrl'] as String,
-    model: json['model'] as String,
-    maxTokens: json['maxTokens'] as int?,
-    temperature: json['temperature'] as double?,
-    systemPrompt: json['systemPrompt'] as String?,
-    timeout: json['timeout'] != null 
-      ? Duration(milliseconds: json['timeout'] as int)
-      : null,
-    stream: json['stream'] as bool? ?? false,
-    topP: json['topP'] as double?,
-    topK: json['topK'] as int?,
-    tools: json['tools'] != null
-      ? (json['tools'] as List).map((t) => Tool.fromJson(t as Map<String, dynamic>)).toList()
-      : null,
-    toolChoice: json['toolChoice'] != null
-      ? _parseToolChoice(json['toolChoice'] as Map<String, dynamic>)
-      : null,
-    extensions: json['extensions'] as Map<String, dynamic>? ?? {},
-  );
+        apiKey: json['apiKey'] as String?,
+        baseUrl: json['baseUrl'] as String,
+        model: json['model'] as String,
+        maxTokens: json['maxTokens'] as int?,
+        temperature: json['temperature'] as double?,
+        systemPrompt: json['systemPrompt'] as String?,
+        timeout: json['timeout'] != null
+            ? Duration(milliseconds: json['timeout'] as int)
+            : null,
+        stream: json['stream'] as bool? ?? false,
+        topP: json['topP'] as double?,
+        topK: json['topK'] as int?,
+        tools: json['tools'] != null
+            ? (json['tools'] as List)
+                .map((t) => Tool.fromJson(t as Map<String, dynamic>))
+                .toList()
+            : null,
+        toolChoice: json['toolChoice'] != null
+            ? _parseToolChoice(json['toolChoice'] as Map<String, dynamic>)
+            : null,
+        extensions: json['extensions'] as Map<String, dynamic>? ?? {},
+      );
 
   static ToolChoice _parseToolChoice(Map<String, dynamic> json) {
     final type = json['type'] as String;
@@ -187,7 +190,8 @@ class LLMConfig {
   }
 
   @override
-  String toString() => 'LLMConfig(model: $model, baseUrl: $baseUrl, extensions: ${extensions.keys})';
+  String toString() =>
+      'LLMConfig(model: $model, baseUrl: $baseUrl, extensions: ${extensions.keys})';
 
   @override
   bool operator ==(Object other) =>
@@ -210,20 +214,20 @@ class LLMConfig {
 
   @override
   int get hashCode => Object.hash(
-    apiKey,
-    baseUrl,
-    model,
-    maxTokens,
-    temperature,
-    systemPrompt,
-    timeout,
-    stream,
-    topP,
-    topK,
-    tools,
-    toolChoice,
-    extensions,
-  );
+        apiKey,
+        baseUrl,
+        model,
+        maxTokens,
+        temperature,
+        systemPrompt,
+        timeout,
+        stream,
+        topP,
+        topK,
+        tools,
+        toolChoice,
+        extensions,
+      );
 
   static bool _listEquals<T>(List<T>? a, List<T>? b) {
     if (a == null) return b == null;
@@ -244,14 +248,94 @@ class LLMConfig {
   }
 }
 
+/// OpenAI-compatible provider configuration
+class OpenAICompatibleProviderConfig {
+  /// Provider identifier
+  final String providerId;
+
+  /// Display name for UI
+  final String displayName;
+
+  /// Provider description
+  final String description;
+
+  /// Default base URL for API requests
+  final String defaultBaseUrl;
+
+  /// Default model name
+  final String defaultModel;
+
+  /// Supported capabilities for this provider
+  final Set<LLMCapability> supportedCapabilities;
+
+  /// Provider-specific model configurations
+  final Map<String, ModelCapabilityConfig> modelConfigs;
+
+  /// Whether this provider supports reasoning effort parameter
+  final bool supportsReasoningEffort;
+
+  /// Whether this provider supports structured output
+  final bool supportsStructuredOutput;
+
+  /// Custom parameter mappings for this provider
+  final Map<String, String> parameterMappings;
+
+  const OpenAICompatibleProviderConfig({
+    required this.providerId,
+    required this.displayName,
+    required this.description,
+    required this.defaultBaseUrl,
+    required this.defaultModel,
+    required this.supportedCapabilities,
+    this.modelConfigs = const {},
+    this.supportsReasoningEffort = false,
+    this.supportsStructuredOutput = false,
+    this.parameterMappings = const {},
+  });
+}
+
+/// Model-specific capability configuration
+class ModelCapabilityConfig {
+  /// Whether this model supports reasoning/thinking
+  final bool supportsReasoning;
+
+  /// Whether this model supports vision/image input
+  final bool supportsVision;
+
+  /// Whether this model supports tool calling
+  final bool supportsToolCalling;
+
+  /// Maximum context length for this model
+  final int? maxContextLength;
+
+  /// Whether temperature should be disabled for this model
+  final bool disableTemperature;
+
+  /// Whether top_p should be disabled for this model
+  final bool disableTopP;
+
+  /// Custom reasoning effort mapping for this model
+  final Map<String, dynamic>? reasoningEffortMapping;
+
+  const ModelCapabilityConfig({
+    this.supportsReasoning = false,
+    this.supportsVision = false,
+    this.supportsToolCalling = true,
+    this.maxContextLength,
+    this.disableTemperature = false,
+    this.disableTopP = false,
+    this.reasoningEffortMapping,
+  });
+}
+
 /// Abstract interface for transforming unified config to provider-specific config
 abstract class ConfigTransformer<T> {
   /// Transform unified LLMConfig to provider-specific configuration
   T transform(LLMConfig config);
-  
+
   /// Validate that the config contains all required fields for this provider
   bool validate(LLMConfig config);
-  
+
   /// Get default configuration for this provider
   LLMConfig getDefaultConfig();
 }

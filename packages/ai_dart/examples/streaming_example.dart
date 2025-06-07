@@ -1,8 +1,5 @@
-// Import required modules from the AI Dart library for streaming functionality
 import 'dart:io';
-import '../lib/builder/llm_builder.dart';
-import '../lib/models/chat_models.dart';
-import '../lib/core/chat_provider.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// Example demonstrating how to use streaming chat with LLMBuilder
 void main() async {

@@ -1,8 +1,6 @@
 import 'dart:io';
 
-import '../lib/builder/llm_builder.dart';
-import '../lib/core/chat_provider.dart';
-import '../lib/models/chat_models.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 /// Example demonstrating how to use reasoning models (o1, o3, o4 series) with thinking support
 ///

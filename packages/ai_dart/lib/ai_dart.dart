@@ -11,6 +11,7 @@ export 'core/llm_error.dart';
 export 'core/config.dart';
 export 'core/registry.dart';
 export 'core/base_http_provider.dart';
+export 'core/openai_compatible_configs.dart';
 
 // Model exports
 export 'models/chat_models.dart';

@@ -47,6 +47,14 @@ class LLMBuilder {
   LLMBuilder groq() => provider('groq');
   LLMBuilder elevenlabs() => provider('elevenlabs');
 
+  /// Convenience methods for OpenAI-compatible providers
+  /// These use the OpenAI interface but with provider-specific configurations
+  LLMBuilder deepseekOpenAI() => provider('deepseek-openai');
+  LLMBuilder geminiOpenAI() => provider('gemini-openai');
+  LLMBuilder xaiOpenAI() => provider('xai-openai');
+  LLMBuilder groqOpenAI() => provider('groq-openai');
+  LLMBuilder phindOpenAI() => provider('phind-openai');
+
   /// Sets the API key for authentication
   LLMBuilder apiKey(String key) {
     _config = _config.copyWith(apiKey: key);
@@ -121,6 +129,25 @@ class LLMBuilder {
     return this;
   }
 
+  /// Sets the reasoning effort for models that support it (e.g., Gemini)
+  /// Valid values: 'low', 'medium', 'high', or null to disable
+  LLMBuilder reasoningEffort(String? effort) {
+    _config = _config.withExtension('reasoningEffort', effort);
+    return this;
+  }
+
+  /// Sets structured output schema for JSON responses
+  LLMBuilder jsonSchema(StructuredOutputFormat schema) {
+    _config = _config.withExtension('jsonSchema', schema);
+    return this;
+  }
+
+  /// Sets voice for text-to-speech (OpenAI providers)
+  LLMBuilder voice(String voiceName) {
+    _config = _config.withExtension('voice', voiceName);
+    return this;
+  }
+
   /// Sets provider-specific extension
   LLMBuilder extension(String key, dynamic value) {
     _config = _config.withExtension(key, value);
@@ -128,11 +155,6 @@ class LLMBuilder {
   }
 
   /// Convenience methods for common extensions
-  LLMBuilder reasoningEffort(String effort) =>
-      extension('reasoningEffort', effort);
-  LLMBuilder jsonSchema(StructuredOutputFormat schema) =>
-      extension('jsonSchema', schema);
-  LLMBuilder voice(String voice) => extension('voice', voice);
   LLMBuilder embeddingEncodingFormat(String format) =>
       extension('embeddingEncodingFormat', format);
   LLMBuilder embeddingDimensions(int dimensions) =>

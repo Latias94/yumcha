@@ -7,9 +7,7 @@
 /// 4. Handle different provider capabilities consistently
 
 import 'dart:io';
-import '../lib/builder/llm_builder.dart';
-import '../lib/models/chat_models.dart';
-import '../lib/core/chat_provider.dart';
+import 'package:ai_dart/ai_dart.dart';
 
 void main() async {
   try {

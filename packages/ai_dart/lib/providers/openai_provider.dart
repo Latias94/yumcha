@@ -437,7 +437,6 @@ class OpenAIProvider extends BaseHttpProvider
   }
 
   /// Parse a Server-Sent Events (SSE) chunk from OpenAI's streaming API.
-  /// Similar to the Rust implementation's parse_sse_chunk function.
   ///
   /// Returns:
   /// - `Some(Map)` - Parsed JSON data if found

@@ -32,7 +32,7 @@ class ReasoningUtils {
     }
 
     final deltaContent = delta['content'] as String;
-    
+
     // 检查当前chunk和上一个chunk的组合是否形成###Response标记
     final combinedChunks = lastChunk + deltaContent;
     final updatedLastChunk = deltaContent;
@@ -48,8 +48,8 @@ class ReasoningUtils {
 
     // 如果有reasoning_content或reasoning或thinking，说明是在思考中
     bool updatedHasReasoningContent = hasReasoningContent;
-    if (delta['reasoning_content'] != null || 
-        delta['reasoning'] != null || 
+    if (delta['reasoning_content'] != null ||
+        delta['reasoning'] != null ||
         delta['thinking'] != null) {
       updatedHasReasoningContent = true;
     }
@@ -73,19 +73,19 @@ class ReasoningUtils {
   /// Extract reasoning content from delta
   static String? extractReasoningContent(Map<String, dynamic>? delta) {
     if (delta == null) return null;
-    
+
     return delta['reasoning_content'] as String? ??
-           delta['reasoning'] as String? ??
-           delta['thinking'] as String?;
+        delta['reasoning'] as String? ??
+        delta['thinking'] as String?;
   }
 
   /// Check if delta contains reasoning content
   static bool hasReasoningContent(Map<String, dynamic>? delta) {
     if (delta == null) return false;
-    
+
     return delta['reasoning_content'] != null ||
-           delta['reasoning'] != null ||
-           delta['thinking'] != null;
+        delta['reasoning'] != null ||
+        delta['thinking'] != null;
   }
 
   /// Filter thinking content from text for display purposes
@@ -219,8 +219,10 @@ class ReasoningUtils {
   }) {
     final now = DateTime.now();
     final timeCompletionMs = now.difference(startTime).inMilliseconds;
-    final timeFirstTokenMs = firstTokenTime?.difference(startTime).inMilliseconds ?? 0;
-    final timeThinkingMs = firstContentTime?.difference(startTime).inMilliseconds ?? 0;
+    final timeFirstTokenMs =
+        firstTokenTime?.difference(startTime).inMilliseconds ?? 0;
+    final timeThinkingMs =
+        firstContentTime?.difference(startTime).inMilliseconds ?? 0;
 
     return {
       'completion_tokens': completionTokens,

@@ -12,6 +12,7 @@ import '../providers/factories/xai_factory.dart';
 import '../providers/factories/phind_factory.dart';
 import '../providers/factories/groq_factory.dart';
 import '../providers/factories/elevenlabs_factory.dart';
+import '../providers/factories/openai_compatible_factory.dart';
 
 /// Factory interface for creating LLM provider instances
 ///
@@ -262,6 +263,9 @@ class LLMProviderRegistry {
       if (elevenLabsFactory != null) {
         registerOrReplace(elevenLabsFactory);
       }
+
+      // Register OpenAI-compatible providers
+      _registerOpenAICompatibleProviders();
     } catch (e) {
       _logger.warning('Failed to register built-in providers: $e');
       // Silently fail if provider factories are not available
@@ -356,6 +360,18 @@ class LLMProviderRegistry {
     } catch (e) {
       _logger.warning('Failed to create ElevenLabs factory: $e');
       return null;
+    }
+  }
+
+  /// Register OpenAI-compatible providers
+  static void _registerOpenAICompatibleProviders() {
+    try {
+      // Register all pre-configured OpenAI-compatible providers
+      OpenAICompatibleProviderRegistrar.registerAll();
+      _logger.fine('Registered OpenAI-compatible providers');
+    } catch (e) {
+      _logger.warning('Failed to register OpenAI-compatible providers: $e');
+      // Silently fail if OpenAI-compatible providers are not available
     }
   }
 }
