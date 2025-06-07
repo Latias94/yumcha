@@ -91,11 +91,10 @@ Future<void> streamingReasoningExample() async {
         .stream(true) // Enable streaming to see thinking process
         .build();
 
-    // Create a complex reasoning task
+    // Create a simple reasoning task that demonstrates thinking
     final messages = [
       ChatMessage.user(
-        'Solve this step by step: A farmer has 17 sheep. All but 9 die. How many sheep are left? '
-        'Please think through this carefully and explain your reasoning.',
+        'What is 25 × 4? Please show your calculation step by step.',
       ),
     ];
 
@@ -172,13 +171,10 @@ Future<void> nonStreamingReasoningExample() async {
         .stream(false) // Disable streaming for complete response
         .build();
 
-    // Create a complex reasoning task
+    // Create a simple reasoning task that demonstrates thinking
     final messages = [
       ChatMessage.user(
-        'Solve this logic puzzle: There are 3 boxes. One contains gold, one contains silver, '
-        'and one is empty. Each box has a label, but all labels are wrong. The labels say: '
-        '"Gold", "Silver", and "Empty". If you can only open one box, which one should you '
-        'open to guarantee you find the gold? Explain your reasoning step by step.',
+        'If a train travels 60 km in 45 minutes, what is its speed in km/h? Show your calculation.',
       ),
     ];
 
@@ -237,10 +233,10 @@ Future<void> openaiCompatibleExample() async {
         .stream(false) // Non-streaming for this example
         .build();
 
-    // Create a math reasoning task
+    // Create a simple reasoning task
     final messages = [
       ChatMessage.user(
-        'Solve this equation step by step: 3x + 7 = 22. Show your work.',
+        'What is 12 + 8 × 3? Please show the order of operations.',
       ),
     ];
 

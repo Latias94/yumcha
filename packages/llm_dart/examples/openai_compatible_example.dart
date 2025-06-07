@@ -32,7 +32,7 @@ Future<void> deepSeekOpenAIExample() async {
   try {
     // Easy way: Use the OpenAI-compatible interface
     final provider = await ai()
-        .deepseekOpenAI() // 使用 OpenAI 兼容接口
+        .deepseekOpenAI() // use OpenAI compatible interface
         .apiKey(Platform.environment['DEEPSEEK_API_KEY'] ?? 'sk-test')
         .model('deepseek-chat')
         .temperature(0.7)
@@ -55,10 +55,10 @@ Future<void> geminiOpenAIExample() async {
   try {
     // Easy way: Use the OpenAI-compatible interface with reasoning
     final provider = await ai()
-        .geminiOpenAI() // 使用 OpenAI 兼容接口
+        .geminiOpenAI() // use OpenAI compatible interface
         .apiKey(Platform.environment['GEMINI_API_KEY'] ?? 'test-key')
         .model('gemini-2.5-flash-preview-05-20')
-        .reasoningEffort('low') // 支持推理努力程度
+        .reasoningEffort('low') // support reasoning effort level
         .temperature(0.7)
         .build();
 
@@ -82,7 +82,7 @@ Future<void> xaiOpenAIExample() async {
   try {
     // Easy way: Use the OpenAI-compatible interface
     final provider = await ai()
-        .xaiOpenAI() // 使用 OpenAI 兼容接口
+        .xaiOpenAI() // use OpenAI compatible interface
         .apiKey(Platform.environment['XAI_API_KEY'] ?? 'xai-test')
         .model('grok-2-latest')
         .temperature(0.8)
@@ -105,14 +105,14 @@ Future<void> comparisonExample() async {
   try {
     // Native DeepSeek interface
     final nativeProvider = await ai()
-        .deepseek() // 原生接口
+        .deepseek() // native interface 
         .apiKey(Platform.environment['DEEPSEEK_API_KEY'] ?? 'sk-test')
         .model('deepseek-chat')
         .build();
 
     // OpenAI-compatible DeepSeek interface
     final compatibleProvider = await ai()
-        .deepseekOpenAI() // OpenAI 兼容接口
+        .deepseekOpenAI() // OpenAI compatible interface
         .apiKey(Platform.environment['DEEPSEEK_API_KEY'] ?? 'sk-test')
         .model('deepseek-chat')
         .build();

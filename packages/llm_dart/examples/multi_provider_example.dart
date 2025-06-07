@@ -4,8 +4,8 @@ import 'package:llm_dart/llm_dart.dart';
 
 /// Example demonstrating how to use multiple AI providers with LLMBuilder
 void main() async {
-  // Define a common question
-  const question = 'Explain the concept of machine learning in 2-3 sentences.';
+  // Define a simple, objective question that won't generate overly long responses
+  const question = 'What is the capital of Japan?';
 
   // Create different providers using new API with environment variables
   final providers = <String, ChatCapability>{

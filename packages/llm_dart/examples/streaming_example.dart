@@ -19,9 +19,9 @@ void main() async {
       )
       .build();
 
-  // Prepare conversation history with example messages
+  // Prepare conversation history with a simple question for streaming demo
   final messages = [
-    ChatMessage.user('Explain how streaming works in AI chat applications'),
+    ChatMessage.user('Count from 1 to 10 and explain each number briefly'),
   ];
 
   try {

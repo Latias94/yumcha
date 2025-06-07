@@ -2,30 +2,36 @@
 
 This directory contains comprehensive examples demonstrating how to use the LLM Dart library with its new refactored API.
 
-## 🆕 New API Examples (Recommended)
+## 📚 Examples by Difficulty Level
 
-### Basic Usage Examples
+### 🟢 Beginner Examples (Start Here)
 
-- **[new_api_example.dart](new_api_example.dart)** - Comprehensive overview of the new refactored API
-- **[openai_example.dart](openai_example.dart)** - Updated OpenAI provider example showing all 4 ways to create providers
-- **[simple_custom_provider_example.dart](simple_custom_provider_example.dart)** - Simple custom provider implementation
-
-### Provider-Specific Examples
-
+- **[simple_llm_builder_example.dart](simple_llm_builder_example.dart)** - Basic usage with multiple providers
+- **[openai_example.dart](openai_example.dart)** - OpenAI provider with all creation methods
 - **[anthropic_example.dart](anthropic_example.dart)** - Anthropic Claude models
-- **[deepseek_example.dart](deepseek_example.dart)** - DeepSeek reasoning models  
 - **[google_example.dart](google_example.dart)** - Google Gemini models
+
+### 🟡 Intermediate Examples
+
+- **[streaming_example.dart](streaming_example.dart)** - Real-time streaming responses
+- **[reasoning_example.dart](reasoning_example.dart)** - Reasoning models with thinking (optimized questions)
+- **[deepseek_example.dart](deepseek_example.dart)** - DeepSeek reasoning models (optimized questions)
+- **[multi_provider_example.dart](multi_provider_example.dart)** - Using multiple providers together
+- **[list_models_example.dart](list_models_example.dart)** - Listing available models
+
+### 🔴 Advanced Examples
+
+- **[custom_provider_example.dart](custom_provider_example.dart)** - Full custom provider implementation
+- **[capability_query_example.dart](capability_query_example.dart)** - Provider capability discovery
+- **[api_comparison_example.dart](api_comparison_example.dart)** - Comparing different API approaches
+
+### 🎯 Specialized Provider Examples
+
 - **[groq_example.dart](groq_example.dart)** - Groq fast inference
 - **[ollama_example.dart](ollama_example.dart)** - Local Ollama models
 - **[xai_example.dart](xai_example.dart)** - xAI Grok models
 - **[elevenlabs_example.dart](elevenlabs_example.dart)** - ElevenLabs TTS/STT
-
-### Advanced Examples
-
-- **[streaming_example.dart](streaming_example.dart)** - Streaming chat responses
-- **[reasoning_example.dart](reasoning_example.dart)** - Reasoning models with thinking content
-- **[multi_provider_example.dart](multi_provider_example.dart)** - Using multiple providers
-- **[list_models_example.dart](list_models_example.dart)** - Listing available models
+- **[openai_compatible_example.dart](openai_compatible_example.dart)** - OpenAI-compatible providers
 
 ## 🔧 Custom Provider Development
 
@@ -141,22 +147,22 @@ export DEEPSEEK_API_KEY="your-deepseek-key"
 dart run examples/openai_example.dart
 ```
 
-## 📖 Example Categories
+## 📖 Quick Start Guide
 
-### 🟢 Beginner Examples
-- `new_api_example.dart` - Start here for API overview
-- `simple_custom_provider_example.dart` - Basic custom provider
-- `openai_example.dart` - Multiple ways to create providers
+### 🟢 New to LLM Dart? Start Here:
+1. **[simple_llm_builder_example.dart](simple_llm_builder_example.dart)** - Basic usage patterns
+2. **[openai_example.dart](openai_example.dart)** - Learn different ways to create providers
+3. **[streaming_example.dart](streaming_example.dart)** - See real-time responses
 
-### 🟡 Intermediate Examples  
-- `streaming_example.dart` - Real-time responses
-- `multi_provider_example.dart` - Working with multiple providers
-- `reasoning_example.dart` - Advanced reasoning models
+### 🟡 Ready for More? Try These:
+4. **[reasoning_example.dart](reasoning_example.dart)** - Explore thinking models (optimized questions)
+5. **[multi_provider_example.dart](multi_provider_example.dart)** - Use multiple providers together
+6. **[deepseek_example.dart](deepseek_example.dart)** - Advanced reasoning with DeepSeek
 
-### 🔴 Advanced Examples
-- `custom_provider_example.dart` - Full custom provider implementation
-- `multi_backend_example.dart` - Complex multi-provider scenarios
-- Provider-specific examples for specialized features
+### 🔴 Advanced Usage:
+7. **[custom_provider_example.dart](custom_provider_example.dart)** - Build your own provider
+8. **[capability_query_example.dart](capability_query_example.dart)** - Dynamic capability discovery
+
 
 ## 💡 Best Practices
 
@@ -165,6 +171,7 @@ dart run examples/openai_example.dart
 3. **Handle errors properly** - Catch specific error types like `AuthError`, `RateLimitError`
 4. **Use extensions** - Leverage the extension system for provider-specific features
 5. **Register custom providers** - Use the registry system for extensibility
+6. **Choose appropriate questions** - For reasoning models, use moderately complex questions that demonstrate thinking without being excessive
 
 ## 🔗 Related Documentation
 

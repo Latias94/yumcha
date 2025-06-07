@@ -21,13 +21,11 @@ void main() async {
       )
       .build();
 
-  // Prepare conversation history with example messages
+  // Prepare conversation history with simple, clear messages
   final messages = [
-    ChatMessage.user('Explain the concept of async/await in Rust'),
-    ChatMessage.assistant(
-      'Async/await in Rust is a way to write asynchronous code...',
-    ),
-    ChatMessage.user('Can you show me a simple example?'),
+    ChatMessage.user('What is the largest planet in our solar system?'),
+    ChatMessage.assistant('Jupiter is the largest planet in our solar system.'),
+    ChatMessage.user('What about the smallest planet?'),
   ];
 
   try {

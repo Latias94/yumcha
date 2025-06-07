@@ -18,9 +18,9 @@ void main() async {
       // .systemPrompt('You are a helpful assistant specialized in concurrency.')
       .build();
 
-  // Prepare conversation history with example message about Rust concurrency
+  // Prepare conversation history with a simple, clear question
   final messages = [
-    ChatMessage.user('Tell me something about Rust concurrency'),
+    ChatMessage.user('What are the primary colors?'),
   ];
 
   try {

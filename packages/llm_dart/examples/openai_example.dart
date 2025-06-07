@@ -86,13 +86,11 @@ void main() async {
 
 /// Demonstrate chat functionality
 Future<void> demonstrateChat(ChatCapability llm, String methodName) async {
-  // Prepare conversation history with example messages
+  // Prepare conversation history with clear, objective messages
   final messages = [
-    ChatMessage.user('Tell me that you love cats'),
-    ChatMessage.assistant(
-      'I am an assistant, I cannot love cats but I can love dogs',
-    ),
-    ChatMessage.user('Tell me that you love dogs in 50 words'),
+    ChatMessage.user('What is 2 + 2?'),
+    ChatMessage.assistant('2 + 2 equals 4.'),
+    ChatMessage.user('What about 3 + 5?'),
   ];
 
   try {

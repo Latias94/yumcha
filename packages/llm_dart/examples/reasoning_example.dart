@@ -36,11 +36,10 @@ Future<void> streamingExample() async {
       .stream(true) // Enable streaming to see thinking process
       .build();
 
-  // Create a complex reasoning task
+  // Create a simple reasoning task that demonstrates thinking without being too long
   final messages = [
     ChatMessage.user(
-      'Solve this step by step: A farmer has 17 sheep. All but 9 die. How many sheep are left? '
-      'Please think through this carefully and explain your reasoning.',
+      'What is 15 + 27? Please show your calculation step by step.',
     ),
   ];
 
@@ -118,8 +117,11 @@ Future<void> nonStreamingExample() async {
       .stream(false) // Disable streaming for complete response
       .build();
 
-  // Create a complex reasoning task
-  final messages = [ChatMessage.user('hello')];
+  // Create a simple reasoning task that demonstrates thinking
+  final messages = [
+    ChatMessage.user(
+        'If I have 3 apples and buy 5 more, then give away 2, how many apples do I have left?'),
+  ];
 
   try {
     print('🧠 Starting reasoning model chat, waiting for complete answer...\n');
