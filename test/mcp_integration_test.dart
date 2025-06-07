@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yumcha/shared/infrastructure/services/ai/core/ai_response_models.dart';
 import 'package:yumcha/features/settings/domain/usecases/manage_mcp_server_usecase.dart';
 import 'package:yumcha/features/ai_management/domain/entities/ai_assistant.dart';
-import 'package:ai_dart/ai_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 void main() {
   group('AI Service Integration Tests', () {

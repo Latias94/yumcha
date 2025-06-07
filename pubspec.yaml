@@ -31,8 +31,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  ai_dart:
-    path: packages/ai_dart
+  llm_dart:
+    path: packages/llm_dart
   cupertino_icons: ^1.0.8
   http: ^1.1.0
   logger: ^2.4.0
