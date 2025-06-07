@@ -92,7 +92,8 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
               });
               widget.onModelsChanged(_models);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('删除'),
           ),
         ],
@@ -183,11 +184,12 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
         if (_models.isEmpty)
           Container(
             padding: const EdgeInsets.all(32),
-            child: const Center(
+            child: Center(
               child: Text(
                 '暂无模型\n点击"添加"按钮或"获取模型"来添加模型',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
           )
@@ -217,13 +219,16 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (!model.isEnabled)
-                        const Icon(Icons.visibility_off, color: Colors.grey),
+                        Icon(Icons.visibility_off,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () => _editModel(index),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
+                        icon: Icon(Icons.delete,
+                            color: Theme.of(context).colorScheme.error),
                         onPressed: () => _deleteModel(index),
                       ),
                     ],

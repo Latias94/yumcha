@@ -54,8 +54,8 @@ class NotificationService {
 
     switch (type) {
       case NotificationType.success:
-        backgroundColor = Colors.green.shade100;
-        textColor = Colors.green.shade800;
+        backgroundColor = colorScheme.primaryContainer;
+        textColor = colorScheme.onPrimaryContainer;
         icon = Icons.check_circle_outline;
         break;
       case NotificationType.error:
@@ -280,9 +280,9 @@ class NotificationService {
                   child: Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: textColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
                 IconButton(

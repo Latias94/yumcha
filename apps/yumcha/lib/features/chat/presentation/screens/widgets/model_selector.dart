@@ -122,7 +122,8 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.error, color: Colors.red),
+                                Icon(Icons.error,
+                                    color: Theme.of(context).colorScheme.error),
                                 const SizedBox(height: 8),
                                 Text('加载失败: ${snapshot.error}'),
                                 const SizedBox(height: 8),
@@ -143,10 +144,10 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.warning_amber_rounded,
                                   size: 48,
-                                  color: Colors.orange,
+                                  color: Theme.of(context).colorScheme.tertiary,
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
@@ -206,7 +207,8 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error, color: Colors.red),
+                        Icon(Icons.error,
+                            color: Theme.of(context).colorScheme.error),
                         const SizedBox(height: 8),
                         Text('加载提供商失败: $error'),
                         const SizedBox(height: 8),
@@ -470,7 +472,9 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
         trailing: IconButton(
           icon: Icon(
             isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: isFavorite ? Colors.red : theme.colorScheme.onSurfaceVariant,
+            color: isFavorite
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurfaceVariant,
           ),
           onPressed: () async {
             try {

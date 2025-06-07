@@ -160,11 +160,11 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         _logger.debug('获取正常对话列表: assistantId=$_selectedAssistant');
         results = await _conversationRepository
             .getConversationsByAssistantWithPagination(
-              _selectedAssistant,
-              limit: _pageSize,
-              offset: pageKey,
-              includeMessages: true, // 需要消息来获取时间戳
-            );
+          _selectedAssistant,
+          limit: _pageSize,
+          offset: pageKey,
+          includeMessages: true, // 需要消息来获取时间戳
+        );
         _logger.debug('对话列表数量: ${results.length}');
       }
 
@@ -469,7 +469,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.1),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -491,7 +494,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                 const SizedBox(width: 8),
                                 Text(
                                   '搜索中...',
-                                  style: Theme.of(context).textTheme.bodySmall
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
                                       ?.copyWith(
                                         color: Theme.of(
                                           context,
@@ -551,7 +556,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline,
+                  size: 48, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 16),
               const Text('加载失败'),
               const SizedBox(height: 8),
@@ -570,60 +576,59 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         ),
         noItemsFoundIndicatorBuilder: (context) =>
             ValueListenableBuilder<String>(
-              valueListenable: _searchQueryNotifier,
-              builder: (context, searchQuery, child) {
-                final isEmpty = searchQuery.trim().isEmpty;
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        isEmpty ? Icons.chat_bubble_outline : Icons.search_off,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        isEmpty ? "暂无聊天记录" : "未找到包含 \"$searchQuery\" 的对话",
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          valueListenable: _searchQueryNotifier,
+          builder: (context, searchQuery, child) {
+            final isEmpty = searchQuery.trim().isEmpty;
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isEmpty ? Icons.chat_bubble_outline : Icons.search_off,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isEmpty ? "暂无聊天记录" : "未找到包含 \"$searchQuery\" 的对话",
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                      ),
-                      if (isEmpty) ...[
-                        const SizedBox(height: 8),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final selectedAssistant = ref.watch(
-                              aiAssistantProvider(_selectedAssistant),
-                            );
-                            return Text(
-                              "开始与${selectedAssistant?.name ?? 'AI助手'}聊天吧！",
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
+                  ),
+                  if (isEmpty) ...[
+                    const SizedBox(height: 8),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final selectedAssistant = ref.watch(
+                          aiAssistantProvider(_selectedAssistant),
+                        );
+                        return Text(
+                          "开始与${selectedAssistant?.name ?? 'AI助手'}聊天吧！",
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onSurfaceVariant,
                                   ),
-                            );
-                          },
-                        ),
-                      ] else ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          "尝试使用不同的关键词",
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              },
-            ),
+                        );
+                      },
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      "尝试使用不同的关键词",
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
       ),
       separatorBuilder: (context, index) => const SizedBox(height: 4),
     );
@@ -681,9 +686,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             child: Text(
               groupKey,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
         // 聊天项目
@@ -715,8 +720,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   child: Text(
                     conversation.channelName,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                          fontWeight: FontWeight.w500,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -738,9 +743,11 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     child: Text(
                       conversation.messages.length.toString(),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontSize: 10,
-                      ),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontSize: 10,
+                          ),
                     ),
                   ),
                 // 更多选项按钮
@@ -761,13 +768,15 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         ],
                       ),
                     ),
-                    const PopupMenuItem<String>(
+                    PopupMenuItem<String>(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, color: Colors.red, size: 20),
-                          SizedBox(width: 12),
-                          Text('删除对话'),
+                          Icon(Icons.delete,
+                              color: Theme.of(context).colorScheme.error,
+                              size: 20),
+                          const SizedBox(width: 12),
+                          const Text('删除对话'),
                         ],
                       ),
                     ),
@@ -829,14 +838,21 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               children: [
                                 Text(
                                   selectedAssistant?.name ?? 'AI助手',
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
                                       ?.copyWith(fontWeight: FontWeight.w500),
                                 ),
                                 if (selectedAssistant != null)
                                   Text(
                                     selectedAssistant.description,
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: Colors.grey[600]),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -860,9 +876,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         // 助手列表
                         ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxHeight: assistants.length > 10
-                                ? 200
-                                : double.infinity,
+                            maxHeight:
+                                assistants.length > 10 ? 200 : double.infinity,
                           ),
                           child: assistants.isEmpty
                               ? Padding(
@@ -871,8 +886,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                     _assistantSearchQuery.isNotEmpty
                                         ? '未找到匹配的助手'
                                         : '暂无可用助手',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: Colors.grey[600]),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
                                     textAlign: TextAlign.center,
                                   ),
                                 )
@@ -928,8 +948,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                                         .textTheme
                                                         .bodySmall
                                                         ?.copyWith(
-                                                          color:
-                                                              Colors.grey[600],
+                                                          color: Theme.of(
+                                                                  context)
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
                                                         ),
                                                     maxLines: 1,
                                                     overflow:
@@ -961,7 +983,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             child: Center(
               child: Column(
                 children: [
-                  const Icon(Icons.error, color: Colors.red),
+                  Icon(Icons.error, color: Theme.of(context).colorScheme.error),
                   const SizedBox(height: 8),
                   Text('加载助手失败: $error'),
                   const SizedBox(height: 8),
@@ -1009,13 +1031,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         const SizedBox(width: 8),
                         Text(
                           "聊天历史",
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withValues(alpha: 0.8),
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
+                                        .withValues(alpha: 0.8),
+                                  ),
                         ),
                       ],
                     ),
@@ -1047,13 +1069,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         const SizedBox(width: 8),
                         Text(
                           "设置",
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withValues(alpha: 0.8),
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
+                                        .withValues(alpha: 0.8),
+                                  ),
                         ),
                       ],
                     ),

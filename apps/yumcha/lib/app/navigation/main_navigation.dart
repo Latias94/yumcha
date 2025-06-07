@@ -252,7 +252,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error, size: 64, color: Colors.red),
+            Icon(Icons.error,
+                size: 64, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
             Text('错误: ${state.error}'),
             const SizedBox(height: 16),

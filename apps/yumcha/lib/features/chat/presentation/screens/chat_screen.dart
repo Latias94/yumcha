@@ -237,7 +237,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error, size: 64, color: Colors.red),
+              Icon(Icons.error,
+                  size: 64, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 16),
               Text('加载失败: $error'),
               const SizedBox(height: 16),

@@ -79,7 +79,8 @@ class ProvidersScreen extends ConsumerWidget {
               Navigator.pop(context);
               _deleteProvider(context, ref, provider.id);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('删除'),
           ),
         ],
@@ -167,7 +168,9 @@ class ProvidersScreen extends ConsumerWidget {
                           const SizedBox(height: 16),
                           Text(
                             '暂无提供商',
-                            style: Theme.of(context).textTheme.titleLarge
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
                                 ?.copyWith(
                                   color: Theme.of(
                                     context,
@@ -177,7 +180,9 @@ class ProvidersScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           Text(
                             '点击右上角的 + 按钮添加一个',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(
                                     context,
@@ -309,7 +314,8 @@ class ProvidersScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error, color: Colors.red),
+                      Icon(Icons.error,
+                          color: Theme.of(context).colorScheme.error),
                       SizedBox(height: 16),
                       Text('加载失败: $error'),
                       SizedBox(height: 8),

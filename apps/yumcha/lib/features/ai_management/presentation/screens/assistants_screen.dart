@@ -77,7 +77,8 @@ class AssistantsScreen extends ConsumerWidget {
               Navigator.pop(context);
               _deleteAssistant(context, ref, assistant.id);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('删除'),
           ),
         ],
@@ -134,16 +135,27 @@ class AssistantsScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.smart_toy, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
+                          Icon(Icons.smart_toy,
+                              size: 64,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                          const SizedBox(height: 16),
                           Text(
                             '暂无助手',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                            style: TextStyle(
+                                fontSize: 18,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             '点击右上角的 + 按钮添加助手',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -309,7 +321,8 @@ class AssistantsScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error, color: Colors.red),
+                      Icon(Icons.error,
+                          color: Theme.of(context).colorScheme.error),
                       SizedBox(height: 16),
                       Text('加载失败: $error'),
                       SizedBox(height: 8),

@@ -404,7 +404,10 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.errorContainer,
+      ),
     );
   }
 
@@ -859,7 +862,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: SingleChildScrollView(
@@ -883,7 +887,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.psychology, size: 20, color: Colors.orange),
+              Icon(Icons.psychology,
+                  size: 20, color: Theme.of(context).colorScheme.tertiary),
               const SizedBox(width: 8),
               const Text(
                 '思考过程',
@@ -897,12 +902,18 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .tertiaryContainer
+                        .withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${_thinkingContent.length} 字符',
-                    style: const TextStyle(fontSize: 12, color: Colors.orange),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            Theme.of(context).colorScheme.onTertiaryContainer),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -921,24 +932,37 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  border:
+                      Border.all(color: Theme.of(context).colorScheme.outline),
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.orange.shade50,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .tertiaryContainer
+                      .withValues(alpha: 0.3),
                 ),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.psychology, size: 48, color: Colors.grey),
-                      SizedBox(height: 16),
+                      Icon(Icons.psychology,
+                          size: 48,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(height: 16),
                       Text(
                         '暂无思考内容',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 16),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         '推理模型（如 o1、DeepSeek R1）会在此显示思考过程',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 12),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -952,17 +976,21 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.orange.shade300),
+                  border:
+                      Border.all(color: Theme.of(context).colorScheme.outline),
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.orange.shade50,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .tertiaryContainer
+                      .withValues(alpha: 0.3),
                 ),
                 child: SingleChildScrollView(
                   child: Text(
                     _thinkingContent,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 13,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -1000,9 +1028,13 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
                 borderRadius: BorderRadius.circular(8),
-                color: Colors.blue.shade50,
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.3),
               ),
               child: SingleChildScrollView(
                 child: Text(
@@ -1044,9 +1076,13 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
                 borderRadius: BorderRadius.circular(8),
-                color: Colors.green.shade50,
+                color: Theme.of(context)
+                    .colorScheme
+                    .secondaryContainer
+                    .withValues(alpha: 0.3),
               ),
               child: SingleChildScrollView(
                 child: Text(
@@ -1088,9 +1124,13 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
                 borderRadius: BorderRadius.circular(8),
-                color: Colors.grey.shade50,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.5),
               ),
               child: SingleChildScrollView(
                 child: Text(

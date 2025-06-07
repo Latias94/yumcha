@@ -156,18 +156,20 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
             Text(
               '找到 ${_filteredModels.length} 个模型，已选择 ${_selectedModelIds.length} 个',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
             const SizedBox(height: 16),
 
             // 模型列表
             Expanded(
               child: _filteredModels.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         '没有找到匹配的模型',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     )
                   : ListView.builder(

@@ -113,10 +113,13 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
           Expanded(
             child: _mcpEnabled
                 ? _buildServersList()
-                : const Center(
+                : Center(
                     child: Text(
                       'MCP 服务未启用',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(
+                          fontSize: 16,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
           ),
@@ -127,20 +130,26 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
 
   Widget _buildServersList() {
     if (_serversConfig.servers.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.terminal_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            Icon(Icons.terminal_outlined,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 16),
             Text(
               '暂无 MCP 服务器',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               '点击右上角 + 按钮添加服务器',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -165,8 +174,9 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _getStatusColor(status),
-          child: Icon(_getStatusIcon(status), color: Colors.white, size: 20),
+          backgroundColor: _getStatusColor(status, context),
+          child: Icon(_getStatusIcon(status),
+              color: Theme.of(context).colorScheme.onPrimary, size: 20),
         ),
         title: Text(server.name),
         subtitle: Column(
@@ -188,7 +198,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                   _getStatusText(status),
                   style: TextStyle(
                     fontSize: 12,
-                    color: _getStatusColor(status),
+                    color: _getStatusColor(status, context),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -198,7 +208,8 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
               const SizedBox(height: 4),
               Text(
                 '错误: $error',
-                style: const TextStyle(fontSize: 12, color: Colors.red),
+                style: TextStyle(
+                    fontSize: 12, color: Theme.of(context).colorScheme.error),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -234,11 +245,14 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'delete',
               child: ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text('删除', style: TextStyle(color: Colors.red)),
+                leading: Icon(Icons.delete,
+                    color: Theme.of(context).colorScheme.error),
+                title: Text('删除',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error)),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
@@ -249,16 +263,17 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
     );
   }
 
-  Color _getStatusColor(McpServerStatus status) {
+  Color _getStatusColor(McpServerStatus status, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (status) {
       case McpServerStatus.connected:
-        return Colors.green;
+        return colorScheme.primary;
       case McpServerStatus.connecting:
-        return Colors.orange;
+        return colorScheme.tertiary;
       case McpServerStatus.error:
-        return Colors.red;
+        return colorScheme.error;
       case McpServerStatus.disconnected:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 
@@ -409,14 +424,14 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
     final platformName = Platform.isWindows
         ? 'Windows'
         : Platform.isMacOS
-        ? 'macOS'
-        : Platform.isLinux
-        ? 'Linux'
-        : Platform.isAndroid
-        ? 'Android'
-        : Platform.isIOS
-        ? 'iOS'
-        : '未知平台';
+            ? 'macOS'
+            : Platform.isLinux
+                ? 'Linux'
+                : Platform.isAndroid
+                    ? 'Android'
+                    : Platform.isIOS
+                        ? 'iOS'
+                        : '未知平台';
 
     final recommendedTypes = _mcpService.getRecommendedServerTypes();
 
@@ -443,8 +458,8 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
         Text(
           '推荐连接类型: ${recommendedTypes.map((t) => t.displayName).join(', ')}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         ),
         if (!isDesktop) ...[
           const SizedBox(height: 8),
@@ -460,9 +475,9 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                 child: Text(
                   '移动端建议使用 HTTP/SSE 连接远程服务器',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
-                    fontSize: 12,
-                  ),
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontSize: 12,
+                      ),
                 ),
               ),
             ],
@@ -504,9 +519,8 @@ class _McpServerEditScreenState extends State<McpServerEditScreen> {
       _descriptionController.text = server.description;
       _commandController.text = server.command;
       _argsController.text = server.args.join(' ');
-      _envController.text = server.env.entries
-          .map((e) => '${e.key}=${e.value}')
-          .join('\n');
+      _envController.text =
+          server.env.entries.map((e) => '${e.key}=${e.value}').join('\n');
       _selectedType = server.type;
       _isEnabled = server.isEnabled;
     }
@@ -706,9 +720,10 @@ class _McpServerEditScreenState extends State<McpServerEditScreen> {
                     Text(
                       _getExampleText(),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontFamily: 'monospace',
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                            fontFamily: 'monospace',
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                     ),
                   ],
                 ),
@@ -808,8 +823,7 @@ URL：http://localhost:3001/sse
       }
     }
 
-    final server =
-        widget.server?.copyWith(
+    final server = widget.server?.copyWith(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
           type: _selectedType,
@@ -870,7 +884,8 @@ URL：http://localhost:3001/sse
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.error, color: Colors.red, size: 16),
+                      Icon(Icons.error,
+                          color: Theme.of(context).colorScheme.error, size: 16),
                       const SizedBox(width: 8),
                       Expanded(child: Text(error)),
                     ],
@@ -888,9 +903,9 @@ URL：http://localhost:3001/sse
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.lightbulb,
-                        color: Colors.orange,
+                        color: Theme.of(context).colorScheme.tertiary,
                         size: 16,
                       ),
                       const SizedBox(width: 8),
@@ -930,9 +945,9 @@ URL：http://localhost:3001/sse
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.warning,
-                          color: Colors.orange,
+                          color: Theme.of(context).colorScheme.tertiary,
                           size: 16,
                         ),
                         const SizedBox(width: 8),

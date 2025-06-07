@@ -39,14 +39,18 @@ class ProviderListWidget extends ConsumerWidget {
     List<AiProvider> providers,
   ) {
     if (providers.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.smart_toy, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('暂无AI提供商'),
-            Text('请添加一个AI提供商开始使用', style: TextStyle(color: Colors.grey)),
+            Icon(Icons.smart_toy,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 16),
+            const Text('暂无AI提供商'),
+            Text('请添加一个AI提供商开始使用',
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       );
@@ -75,8 +79,11 @@ class ProviderListWidget extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: provider.isEnabled ? Colors.green : Colors.grey,
-          child: Icon(_getProviderIcon(provider.type), color: Colors.white),
+          backgroundColor: provider.isEnabled
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+          child: Icon(_getProviderIcon(provider.type),
+              color: Theme.of(context).colorScheme.onPrimary),
         ),
         title: Text(provider.name),
         subtitle: Column(
@@ -115,11 +122,14 @@ class ProviderListWidget extends ConsumerWidget {
                     title: Text('测试连接'),
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: ListTile(
-                    leading: Icon(Icons.delete, color: Colors.red),
-                    title: Text('删除', style: TextStyle(color: Colors.red)),
+                    leading: Icon(Icons.delete,
+                        color: Theme.of(context).colorScheme.error),
+                    title: Text('删除',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error)),
                   ),
                 ),
               ],

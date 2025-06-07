@@ -49,7 +49,7 @@ class ChatView extends ConsumerStatefulWidget {
 
   /// 提供商模型变化回调
   final void Function(String providerId, String modelName)?
-  onProviderModelChanged;
+      onProviderModelChanged;
 
   /// 初始要定位的消息ID
   final String? initialMessageId;
@@ -107,9 +107,8 @@ class _ChatViewState extends ConsumerState<ChatView>
       data: (assistants) {
         return providersAsync.when(
           data: (providers) {
-            final assistant = assistants
-                .where((a) => a.id == widget.assistantId)
-                .firstOrNull;
+            final assistant =
+                assistants.where((a) => a.id == widget.assistantId).firstOrNull;
             final provider = providers
                 .where((p) => p.id == widget.selectedProviderId)
                 .firstOrNull;
@@ -149,9 +148,8 @@ class _ChatViewState extends ConsumerState<ChatView>
                     autofocus: widget.suggestions.isEmpty,
                     onSendMessage: _onSendMessage,
                     onCancelMessage: _pendingStreamResponse?.cancel,
-                    onCancelEdit: _editingMessage != null
-                        ? _onCancelEdit
-                        : null,
+                    onCancelEdit:
+                        _editingMessage != null ? _onCancelEdit : null,
                     isLoading: _isLoading,
                     onAssistantChanged: (assistant) {
                       // 临时修复：助手不再关联提供商和模型
@@ -168,7 +166,7 @@ class _ChatViewState extends ConsumerState<ChatView>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error, color: Colors.red),
+                Icon(Icons.error, color: Theme.of(context).colorScheme.error),
                 const SizedBox(height: 16),
                 Text('加载提供商失败: $error'),
               ],
@@ -181,7 +179,7 @@ class _ChatViewState extends ConsumerState<ChatView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error, color: Colors.red),
+            Icon(Icons.error, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
             Text('加载助手失败: $error'),
           ],
@@ -205,9 +203,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     AiAssistant? assistant;
 
     assistantsAsync.whenData((assistants) {
-      assistant = assistants
-          .where((a) => a.id == widget.assistantId)
-          .firstOrNull;
+      assistant =
+          assistants.where((a) => a.id == widget.assistantId).firstOrNull;
     });
 
     if (assistant == null) {
@@ -499,9 +496,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     AiAssistant? assistant;
 
     assistantsAsync.whenData((assistants) {
-      assistant = assistants
-          .where((a) => a.id == widget.assistantId)
-          .firstOrNull;
+      assistant =
+          assistants.where((a) => a.id == widget.assistantId).firstOrNull;
     });
 
     if (assistant == null) {
