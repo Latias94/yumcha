@@ -390,6 +390,16 @@ class OpenAIProvider extends BaseHttpProvider
       body['response_format'] = responseFormat;
     }
 
+    // Handle extra_body parameters (for OpenAI-compatible interfaces)
+    // This merges provider-specific parameters from extra_body into the main request body
+    final extraBody = body['extra_body'] as Map<String, dynamic>?;
+    if (extraBody != null) {
+      // Merge extra_body contents into the main body
+      body.addAll(extraBody);
+      // Remove the extra_body field itself as it should not be sent to the API
+      body.remove('extra_body');
+    }
+
     return body;
   }
 
@@ -623,6 +633,7 @@ class OpenAIProvider extends BaseHttpProvider
       // Optimized logging with condition check
       if (logger.isLoggable(Level.FINE)) {
         logger.fine('OpenAI request: POST /embeddings');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
       }
 
       final response = await dio.post('embeddings', data: requestBody);
@@ -678,6 +689,7 @@ class OpenAIProvider extends BaseHttpProvider
       // Optimized logging with condition check
       if (logger.isLoggable(Level.FINE)) {
         logger.fine('OpenAI request: POST /audio/transcriptions');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
       }
 
       final response = await dio.post('audio/transcriptions', data: formData);
@@ -727,6 +739,7 @@ class OpenAIProvider extends BaseHttpProvider
       // Optimized logging with condition check
       if (logger.isLoggable(Level.FINE)) {
         logger.fine('OpenAI request: POST /audio/transcriptions (file)');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
       }
 
       final response = await dio.post('audio/transcriptions', data: formData);
@@ -781,6 +794,7 @@ class OpenAIProvider extends BaseHttpProvider
       // Optimized logging with condition check
       if (logger.isLoggable(Level.FINE)) {
         logger.fine('OpenAI request: POST /audio/speech');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
       }
 
       final response = await dio.post(
@@ -828,6 +842,7 @@ class OpenAIProvider extends BaseHttpProvider
       // Optimized logging with condition check
       if (logger.isLoggable(Level.FINE)) {
         logger.fine('OpenAI request: GET /models');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
       }
 
       final response = await dio.get('models');

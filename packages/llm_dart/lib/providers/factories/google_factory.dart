@@ -65,11 +65,17 @@ class GoogleProviderFactory implements LLMProviderFactory<ChatCapability> {
       jsonSchema: config.getExtension<StructuredOutputFormat>('jsonSchema'),
       reasoningEffort: config.getExtension<ReasoningEffort>('reasoningEffort'),
       thinkingBudgetTokens: config.getExtension<int>('thinkingBudgetTokens'),
-      includeThoughts: config.getExtension<bool>('reasoning') ??
-          config.getExtension<bool>('includeThoughts'),
+      // For Google API, includeThoughts should be true when reasoning is enabled
+      // or when explicitly set via extension
+      includeThoughts: config.getExtension<bool>('includeThoughts') ??
+          (config.getExtension<bool>('reasoning') == true ? true : null),
       enableImageGeneration: config.getExtension<bool>('enableImageGeneration'),
       responseModalities:
           config.getExtension<List<String>>('responseModalities'),
+      safetySettings:
+          config.getExtension<List<SafetySetting>>('safetySettings'),
+      maxInlineDataSize:
+          config.getExtension<int>('maxInlineDataSize') ?? 20 * 1024 * 1024,
     );
   }
 }

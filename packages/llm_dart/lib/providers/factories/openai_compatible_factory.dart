@@ -5,6 +5,7 @@ import '../../core/openai_compatible_configs.dart';
 import '../../models/tool_models.dart';
 import '../../models/chat_models.dart';
 import '../openai_provider.dart';
+import '../openai_compatible_provider.dart';
 
 /// Generic factory for creating OpenAI-compatible provider instances
 ///
@@ -31,6 +32,14 @@ class OpenAICompatibleProviderFactory
   @override
   ChatCapability create(LLMConfig config) {
     final openaiConfig = _transformConfig(config);
+
+    // Use OpenAI-compatible provider if transformers are available
+    if (_config.requestBodyTransformer != null ||
+        _config.headersTransformer != null) {
+      return OpenAICompatibleProvider(openaiConfig, _config, config);
+    }
+
+    // Use standard OpenAI provider for simple cases
     return OpenAIProvider(openaiConfig);
   }
 

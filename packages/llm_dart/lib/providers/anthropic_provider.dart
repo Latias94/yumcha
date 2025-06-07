@@ -256,6 +256,9 @@ class AnthropicChatResponse implements ChatResponse {
       completionTokens: usageData['output_tokens'] as int?,
       totalTokens: (usageData['input_tokens'] as int? ?? 0) +
           (usageData['output_tokens'] as int? ?? 0),
+      // Note: Anthropic doesn't provide separate thinking_tokens in usage
+      // Thinking content is handled separately through content blocks
+      reasoningTokens: null,
     );
   }
 

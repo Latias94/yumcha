@@ -56,7 +56,7 @@ Future<void> geminiOpenAIExample() async {
   try {
     // Easy way: Use the OpenAI-compatible interface with reasoning
     final provider = await ai()
-        .geminiOpenAI() // use OpenAI compatible interface
+        .googleOpenAI() // use OpenAI compatible interface
         .apiKey(Platform.environment['GEMINI_API_KEY'] ?? 'test-key')
         .model('gemini-2.5-flash-preview-05-20')
         .reasoningEffort(ReasoningEffort.low) // support reasoning effort level
@@ -138,7 +138,7 @@ Future<void> advancedFeaturesExample() async {
   try {
     // Using structured output with Gemini
     final provider = await ai()
-        .geminiOpenAI()
+        .googleOpenAI()
         .apiKey(Platform.environment['GEMINI_API_KEY'] ?? 'test-key')
         .model('gemini-2.0-flash')
         .jsonSchema(StructuredOutputFormat(
@@ -174,7 +174,7 @@ void demonstrateProviderCapabilities() {
 
   final providers = [
     'deepseek-openai',
-    'gemini-openai',
+    'google-openai',
     'xai-openai',
     'groq-openai',
     'phind-openai',
@@ -199,7 +199,7 @@ void capabilityCheckExample() {
 
   // Check which OpenAI-compatible providers support reasoning
   final reasoningProviders = <String>[];
-  final providers = ['deepseek-openai', 'gemini-openai', 'xai-openai'];
+  final providers = ['deepseek-openai', 'google-openai', 'xai-openai'];
 
   for (final providerId in providers) {
     if (providerId.supports(LLMCapability.reasoning)) {

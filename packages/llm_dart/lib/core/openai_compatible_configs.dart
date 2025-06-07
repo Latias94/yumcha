@@ -1,16 +1,18 @@
 import 'chat_provider.dart';
 import 'config.dart';
+import 'google_openai_transformers.dart';
 
 /// Pre-configured OpenAI-compatible provider configurations
-/// 
+///
 /// This file contains configurations for popular AI providers that offer
 /// OpenAI-compatible APIs, making it easy for users to switch between
 /// providers without manual configuration.
 class OpenAICompatibleConfigs {
   /// DeepSeek configuration using OpenAI-compatible interface
-  static const OpenAICompatibleProviderConfig deepseek = OpenAICompatibleProviderConfig(
+  static const OpenAICompatibleProviderConfig deepseek =
+      OpenAICompatibleProviderConfig(
     providerId: 'deepseek-openai',
-    displayName: 'DeepSeek (OpenAI兼容)',
+    displayName: 'DeepSeek (OpenAI-compatible)',
     description: 'DeepSeek AI models using OpenAI-compatible interface',
     defaultBaseUrl: 'https://api.deepseek.com/v1/',
     defaultModel: 'deepseek-chat',
@@ -41,9 +43,10 @@ class OpenAICompatibleConfigs {
   );
 
   /// Google Gemini configuration using OpenAI-compatible interface
-  static const OpenAICompatibleProviderConfig gemini = OpenAICompatibleProviderConfig(
-    providerId: 'gemini-openai',
-    displayName: 'Google Gemini (OpenAI兼容)',
+  static final OpenAICompatibleProviderConfig gemini =
+      OpenAICompatibleProviderConfig(
+    providerId: 'google-openai',
+    displayName: 'Google Gemini (OpenAI-compatible)',
     description: 'Google Gemini models using OpenAI-compatible interface',
     defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     defaultModel: 'gemini-2.0-flash',
@@ -58,7 +61,12 @@ class OpenAICompatibleConfigs {
     supportsStructuredOutput: true,
     parameterMappings: {
       'reasoning_effort': 'reasoning_effort', // low, medium, high
+      'include_thoughts': 'include_thoughts', // Google-specific thinking config
+      'thinking_budget': 'thinking_budget', // Google-specific thinking budget
     },
+    // Use Google-specific transformers for thinking support
+    requestBodyTransformer: GoogleRequestBodyTransformer(),
+    headersTransformer: GoogleHeadersTransformer(),
     modelConfigs: {
       'gemini-2.0-flash': ModelCapabilityConfig(
         supportsReasoning: false,
@@ -82,9 +90,10 @@ class OpenAICompatibleConfigs {
   );
 
   /// xAI Grok configuration using OpenAI-compatible interface
-  static const OpenAICompatibleProviderConfig xai = OpenAICompatibleProviderConfig(
+  static const OpenAICompatibleProviderConfig xai =
+      OpenAICompatibleProviderConfig(
     providerId: 'xai-openai',
-    displayName: 'xAI Grok (OpenAI兼容)',
+    displayName: 'xAI Grok (OpenAI-compatible)',
     description: 'xAI Grok models using OpenAI-compatible interface',
     defaultBaseUrl: 'https://api.x.ai/v1/',
     defaultModel: 'grok-2-latest',
@@ -113,10 +122,12 @@ class OpenAICompatibleConfigs {
   );
 
   /// Groq configuration using OpenAI-compatible interface
-  static const OpenAICompatibleProviderConfig groq = OpenAICompatibleProviderConfig(
+  static const OpenAICompatibleProviderConfig groq =
+      OpenAICompatibleProviderConfig(
     providerId: 'groq-openai',
-    displayName: 'Groq (OpenAI兼容)',
-    description: 'Groq AI models using OpenAI-compatible interface for ultra-fast inference',
+    displayName: 'Groq (OpenAI-compatible)',
+    description:
+        'Groq AI models using OpenAI-compatible interface for ultra-fast inference',
     defaultBaseUrl: 'https://api.groq.com/openai/v1/',
     defaultModel: 'llama-3.3-70b-versatile',
     supportedCapabilities: {
@@ -143,9 +154,10 @@ class OpenAICompatibleConfigs {
   );
 
   /// Phind configuration using OpenAI-compatible interface
-  static const OpenAICompatibleProviderConfig phind = OpenAICompatibleProviderConfig(
+  static const OpenAICompatibleProviderConfig phind =
+      OpenAICompatibleProviderConfig(
     providerId: 'phind-openai',
-    displayName: 'Phind (OpenAI兼容)',
+    displayName: 'Phind (OpenAI-compatible)',
     description: 'Phind AI models using OpenAI-compatible interface',
     defaultBaseUrl: 'https://https://api.phind.com/v1/',
     defaultModel: 'Phind-70B',
@@ -182,7 +194,7 @@ class OpenAICompatibleConfigs {
     switch (providerId) {
       case 'deepseek-openai':
         return deepseek;
-      case 'gemini-openai':
+      case 'google-openai':
         return gemini;
       case 'xai-openai':
         return xai;
@@ -201,7 +213,8 @@ class OpenAICompatibleConfigs {
   }
 
   /// Get model capabilities for a specific provider and model
-  static ModelCapabilityConfig? getModelCapabilities(String providerId, String model) {
+  static ModelCapabilityConfig? getModelCapabilities(
+      String providerId, String model) {
     final config = getConfig(providerId);
     return config?.modelConfigs[model];
   }

@@ -280,6 +280,12 @@ class OpenAICompatibleProviderConfig {
   /// Custom parameter mappings for this provider
   final Map<String, String> parameterMappings;
 
+  /// Custom request body transformer for provider-specific parameters
+  final RequestBodyTransformer? requestBodyTransformer;
+
+  /// Custom headers transformer for provider-specific headers
+  final HeadersTransformer? headersTransformer;
+
   const OpenAICompatibleProviderConfig({
     required this.providerId,
     required this.displayName,
@@ -291,6 +297,8 @@ class OpenAICompatibleProviderConfig {
     this.supportsReasoningEffort = false,
     this.supportsStructuredOutput = false,
     this.parameterMappings = const {},
+    this.requestBodyTransformer,
+    this.headersTransformer,
   });
 }
 
@@ -338,4 +346,36 @@ abstract class ConfigTransformer<T> {
 
   /// Get default configuration for this provider
   LLMConfig getDefaultConfig();
+}
+
+/// Abstract interface for transforming request body for provider-specific parameters
+abstract class RequestBodyTransformer {
+  /// Transform the request body to include provider-specific parameters
+  ///
+  /// [body] - The original OpenAI-compatible request body
+  /// [config] - The LLM configuration containing extensions and parameters
+  /// [providerConfig] - The provider-specific configuration
+  ///
+  /// Returns the transformed request body with provider-specific parameters
+  Map<String, dynamic> transform(
+    Map<String, dynamic> body,
+    LLMConfig config,
+    OpenAICompatibleProviderConfig providerConfig,
+  );
+}
+
+/// Abstract interface for transforming headers for provider-specific requirements
+abstract class HeadersTransformer {
+  /// Transform the headers to include provider-specific headers
+  ///
+  /// [headers] - The original headers map
+  /// [config] - The LLM configuration containing extensions and parameters
+  /// [providerConfig] - The provider-specific configuration
+  ///
+  /// Returns the transformed headers with provider-specific additions
+  Map<String, String> transform(
+    Map<String, String> headers,
+    LLMConfig config,
+    OpenAICompatibleProviderConfig providerConfig,
+  );
 }

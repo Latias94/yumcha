@@ -9,7 +9,7 @@ void main() {
 
       // Check that OpenAI-compatible providers are registered
       expect(providers, contains('deepseek-openai'));
-      expect(providers, contains('gemini-openai'));
+      expect(providers, contains('google-openai'));
       expect(providers, contains('xai-openai'));
       expect(providers, contains('groq-openai'));
       expect(providers, contains('phind-openai'));
@@ -24,7 +24,7 @@ void main() {
     });
 
     test('should have correct default configurations', () {
-      final factory = LLMProviderRegistry.getFactory('gemini-openai');
+      final factory = LLMProviderRegistry.getFactory('google-openai');
       expect(factory, isNotNull);
 
       final config = factory!.getDefaultConfig();
@@ -39,7 +39,7 @@ void main() {
       expect('deepseek-openai'.supports(LLMCapability.reasoning), isTrue);
       expect('deepseek-openai'.supports(LLMCapability.textToSpeech), isFalse);
 
-      expect('gemini-openai'.supports(LLMCapability.embedding), isTrue);
+      expect('google-openai'.supports(LLMCapability.embedding), isTrue);
       expect('groq-openai'.supports(LLMCapability.embedding), isFalse);
     });
 
@@ -48,7 +48,7 @@ void main() {
       final builder1 = ai().deepseekOpenAI();
       expect(builder1, isA<LLMBuilder>());
 
-      final builder2 = ai().geminiOpenAI();
+      final builder2 = ai().googleOpenAI();
       expect(builder2, isA<LLMBuilder>());
 
       final builder3 = ai().xaiOpenAI();
@@ -77,7 +77,7 @@ void main() {
 
     test('should support reasoning effort configuration', () async {
       final builder = ai()
-          .geminiOpenAI()
+          .googleOpenAI()
           .apiKey('test-key')
           .model('gemini-2.5-flash-preview-05-20')
           .reasoningEffort(ReasoningEffort.low);
@@ -99,7 +99,7 @@ void main() {
       );
 
       final builder = ai()
-          .geminiOpenAI()
+          .googleOpenAI()
           .apiKey('test-key')
           .model('gemini-2.0-flash')
           .jsonSchema(schema);
