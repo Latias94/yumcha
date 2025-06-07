@@ -222,6 +222,6 @@ class ConfigUtils {
 
   /// Build request timeout from config
   static Duration getRequestTimeout(LLMConfig config) {
-    return config.timeout ?? const Duration(seconds: 30);
+    return config.timeout ?? const Duration(seconds: 60);
   }
 }

@@ -307,8 +307,8 @@ class XAIProvider extends BaseHttpProvider {
     final dio = Dio(
       BaseOptions(
         baseUrl: config.baseUrl,
-        connectTimeout: config.timeout ?? const Duration(seconds: 30),
-        receiveTimeout: config.timeout ?? const Duration(seconds: 30),
+        connectTimeout: config.timeout ?? const Duration(seconds: 60),
+        receiveTimeout: config.timeout ?? const Duration(seconds: 60),
         headers: {
           'Authorization': 'Bearer ${config.apiKey}',
           'Content-Type': 'application/json',

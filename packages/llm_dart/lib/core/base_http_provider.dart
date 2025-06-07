@@ -212,8 +212,8 @@ abstract class BaseHttpProvider implements ChatCapability {
     return Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: timeout ?? const Duration(seconds: 30),
-        receiveTimeout: timeout ?? const Duration(seconds: 30),
+        connectTimeout: timeout ?? const Duration(seconds: 60),
+        receiveTimeout: timeout ?? const Duration(seconds: 60),
         headers: headers,
       ),
     );
