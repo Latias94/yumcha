@@ -244,6 +244,11 @@ class OpenAIProvider extends BaseHttpProvider
     return OpenAIChatResponse(responseData, thinkingContent);
   }
 
+  // State tracking for stream processing
+  bool _hasReasoningContent = false;
+  String _lastChunk = '';
+  final StringBuffer _thinkingBuffer = StringBuffer();
+
   @override
   List<ChatStreamEvent> parseStreamEvents(String chunk) {
     final events = <ChatStreamEvent>[];
@@ -252,31 +257,46 @@ class OpenAIProvider extends BaseHttpProvider
     final json = _parseSSEChunk(chunk);
     if (json == null) return events;
 
-    // Use existing stream parsing logic
+    // Use existing stream parsing logic with proper state tracking
     final parsedEvents = _parseStreamEventWithReasoning(
       json,
-      false, // hasReasoningContent - would need to track this
-      '', // lastChunk - would need to track this
-      StringBuffer(), // thinkingBuffer - would need to track this
+      _hasReasoningContent,
+      _lastChunk,
+      _thinkingBuffer,
     );
 
     events.addAll(parsedEvents);
     return events;
   }
 
+  /// Reset stream state (call this when starting a new stream)
+  void _resetStreamState() {
+    _hasReasoningContent = false;
+    _lastChunk = '';
+    _thinkingBuffer.clear();
+  }
+
   /// Get provider ID based on base URL
   String _getProviderId() {
     final baseUrl = config.baseUrl.toLowerCase();
+
+    // Check for specific providers based on URL patterns
     if (baseUrl.contains('openrouter')) {
       return 'openrouter';
     } else if (baseUrl.contains('groq')) {
       return 'groq';
     } else if (baseUrl.contains('deepseek')) {
       return 'deepseek';
+    } else if (baseUrl.contains('azure')) {
+      return 'azure-openai';
+    } else if (baseUrl.contains('copilot') || baseUrl.contains('github')) {
+      return 'copilot';
+    } else if (baseUrl.contains('together')) {
+      return 'together';
     } else if (baseUrl.contains('openai')) {
       return 'openai';
     } else {
-      return 'openai'; // Default fallback
+      return 'openai'; // Default fallback for OpenAI-compatible APIs
     }
   }
 
@@ -346,6 +366,7 @@ class OpenAIProvider extends BaseHttpProvider
         providerId: providerId,
         model: config.model,
         reasoningEffort: config.reasoningEffort,
+        maxTokens: config.maxTokens,
       ),
     );
 
@@ -482,15 +503,6 @@ class OpenAIProvider extends BaseHttpProvider
     return null;
   }
 
-  /// Get delta from JSON response
-  Map<String, dynamic>? _getDelta(Map<String, dynamic> json) {
-    final choices = json['choices'] as List?;
-    if (choices == null || choices.isEmpty) return null;
-
-    final choice = choices.first as Map<String, dynamic>;
-    return choice['delta'] as Map<String, dynamic>?;
-  }
-
   /// Parse stream events with reasoning support
   List<ChatStreamEvent> _parseStreamEventWithReasoning(
     Map<String, dynamic> json,
@@ -511,6 +523,7 @@ class OpenAIProvider extends BaseHttpProvider
 
     if (reasoningContent != null && reasoningContent.isNotEmpty) {
       thinkingBuffer.write(reasoningContent);
+      _hasReasoningContent = true; // Update state
       events.add(ThinkingDeltaEvent(reasoningContent));
       return events;
     }
@@ -518,12 +531,18 @@ class OpenAIProvider extends BaseHttpProvider
     // Handle regular content
     final content = delta['content'] as String?;
     if (content != null && content.isNotEmpty) {
+      // Update last chunk for reasoning detection
+      _lastChunk = content;
+
       // Check reasoning status using utils
       final reasoningResult = ReasoningUtils.checkReasoningStatus(
         delta: delta,
-        hasReasoningContent: hasReasoningContent,
+        hasReasoningContent: _hasReasoningContent,
         lastChunk: lastChunk,
       );
+
+      // Update state based on reasoning detection
+      _hasReasoningContent = reasoningResult.hasReasoningContent;
 
       if (reasoningResult.isReasoningJustDone) {
         logger.fine('Reasoning phase completed, starting response phase');
@@ -531,13 +550,23 @@ class OpenAIProvider extends BaseHttpProvider
 
       // Filter out thinking tags for models that use <think> tags
       if (ReasoningUtils.containsThinkingTags(content)) {
+        // Extract thinking content and add to buffer
+        final thinkMatch =
+            RegExp(r'<think>(.*?)</think>', dotAll: true).firstMatch(content);
+        if (thinkMatch != null) {
+          final thinkingText = thinkMatch.group(1)?.trim();
+          if (thinkingText != null && thinkingText.isNotEmpty) {
+            thinkingBuffer.write(thinkingText);
+            events.add(ThinkingDeltaEvent(thinkingText));
+          }
+        }
         // Don't emit content that contains thinking tags
         return events;
       }
 
       // If we previously had reasoning content and now have regular content,
       // this might be the start of the actual response
-      if (hasReasoningContent && content.trim().isNotEmpty) {
+      if (_hasReasoningContent && content.trim().isNotEmpty) {
         logger.fine('Transitioning from reasoning to response content');
       }
 
@@ -575,6 +604,9 @@ class OpenAIProvider extends BaseHttpProvider
       }, thinkingContent);
 
       events.add(CompletionEvent(response));
+
+      // Reset state after completion
+      _resetStreamState();
     }
 
     return events;
@@ -908,6 +940,264 @@ class OpenAIProvider extends BaseHttpProvider
       throw handleDioError(e);
     } catch (e) {
       throw GenericError('Unexpected error: $e');
+    }
+  }
+
+  // Image Generation methods
+
+  /// Generate images using OpenAI's DALL-E models
+  ///
+  /// Parameters match the TypeScript GenerateImageParams interface:
+  /// - model: The model to use (e.g., 'dall-e-3', 'dall-e-2')
+  /// - prompt: The text prompt for image generation
+  /// - negativePrompt: Optional negative prompt (for compatible providers)
+  /// - imageSize: Image dimensions (e.g., '1024x1024')
+  /// - batchSize: Number of images to generate
+  /// - seed: Random seed for reproducible results
+  /// - numInferenceSteps: Number of inference steps (for compatible providers)
+  /// - guidanceScale: Guidance scale for generation (for compatible providers)
+  /// - promptEnhancement: Whether to enhance the prompt (for compatible providers)
+  Future<List<String>> generateImage({
+    String? model,
+    required String prompt,
+    String? negativePrompt,
+    String? imageSize,
+    int? batchSize,
+    String? seed,
+    int? numInferenceSteps,
+    double? guidanceScale,
+    bool? promptEnhancement,
+  }) async {
+    if (config.apiKey.isEmpty) {
+      throw const AuthError('Missing OpenAI API key');
+    }
+
+    try {
+      final requestBody = <String, dynamic>{
+        'model': model ?? config.model,
+        'prompt': prompt,
+        if (negativePrompt != null) 'negative_prompt': negativePrompt,
+        if (imageSize != null) 'image_size': imageSize,
+        if (batchSize != null) 'batch_size': batchSize,
+        if (seed != null) 'seed': int.tryParse(seed),
+        if (numInferenceSteps != null) 'num_inference_steps': numInferenceSteps,
+        if (guidanceScale != null) 'guidance_scale': guidanceScale,
+        if (promptEnhancement != null) 'prompt_enhancement': promptEnhancement,
+      };
+
+      // Optimized logging with condition check
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI request: POST /images/generations');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
+      }
+
+      final response = await dio.post('images/generations', data: requestBody);
+
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
+
+      // Enhanced error handling for image generation
+      if (response.statusCode != 200) {
+        final statusCode = response.statusCode;
+        final errorData = response.data;
+
+        if (statusCode == 401) {
+          throw const AuthError('Invalid OpenAI API key for image generation');
+        } else if (statusCode == 429) {
+          throw const ProviderError('Rate limit exceeded for image generation');
+        } else {
+          throw ResponseFormatError(
+            'OpenAI image generation API returned error status: $statusCode',
+            errorData?.toString() ?? '',
+          );
+        }
+      }
+
+      final responseData = response.data as Map<String, dynamic>;
+      final data = responseData['data'] as List?;
+
+      if (data == null) {
+        throw const ResponseFormatError(
+          'Invalid response format from OpenAI image generation API',
+          'Missing data field',
+        );
+      }
+
+      // Extract URLs from response
+      final urls = data
+          .map((item) => (item as Map<String, dynamic>)['url'] as String?)
+          .where((url) => url != null)
+          .cast<String>()
+          .toList();
+
+      return urls;
+    } on DioException catch (e) {
+      throw handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
+
+  /// Get embedding dimensions for a model
+  Future<int> getEmbeddingDimensions() async {
+    if (config.apiKey.isEmpty) {
+      throw const AuthError('Missing OpenAI API key');
+    }
+
+    try {
+      final requestBody = {
+        'model': config.model,
+        'input': 'hi', // Simple test input
+      };
+
+      final response = await dio.post('embeddings', data: requestBody);
+
+      if (response.statusCode != 200) {
+        throw ResponseFormatError(
+          'Failed to get embedding dimensions',
+          response.data?.toString() ?? '',
+        );
+      }
+
+      final responseData = response.data as Map<String, dynamic>;
+      final data = responseData['data'] as List?;
+
+      if (data == null || data.isEmpty) {
+        throw const ResponseFormatError(
+          'Invalid embedding response format',
+          'Missing data field',
+        );
+      }
+
+      final embedding =
+          (data.first as Map<String, dynamic>)['embedding'] as List?;
+      if (embedding == null) {
+        throw const ResponseFormatError(
+          'Invalid embedding response format',
+          'Missing embedding field',
+        );
+      }
+
+      return embedding.length;
+    } on DioException catch (e) {
+      throw handleDioError(e);
+    } catch (e) {
+      throw GenericError('Unexpected error: $e');
+    }
+  }
+
+  /// Generate suggestions for follow-up questions
+  ///
+  /// This method calls the OpenAI advice_questions endpoint to generate
+  /// relevant follow-up questions based on the conversation history.
+  /// Note: This endpoint may not be available on all OpenAI-compatible providers.
+  Future<List<String>> generateSuggestions(List<ChatMessage> messages) async {
+    if (config.apiKey.isEmpty) {
+      throw const AuthError('Missing OpenAI API key');
+    }
+
+    try {
+      final requestBody = {
+        'messages': messages
+            .where((m) => m.role == ChatRole.user)
+            .map((m) => {'role': m.role.name, 'content': m.content})
+            .toList(),
+        'model': config.model,
+        'max_tokens': 0,
+        'temperature': 0,
+        'n': 0,
+      };
+
+      // Optimized logging with condition check
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI request: POST /advice_questions');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
+      }
+
+      final response = await dio.post('advice_questions', data: requestBody);
+
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
+
+      if (response.statusCode != 200) {
+        // Suggestions are optional, so we don't throw errors for this endpoint
+        logger.warning('Failed to get suggestions: ${response.statusCode}');
+        return [];
+      }
+
+      final responseData = response.data as Map<String, dynamic>?;
+      final questions = responseData?['questions'] as List?;
+
+      if (questions == null) {
+        return [];
+      }
+
+      return questions
+          .where((q) => q != null && q.toString().isNotEmpty)
+          .map((q) => q.toString())
+          .toList();
+    } on DioException catch (e) {
+      // Suggestions are optional, so we log the error but don't throw
+      logger.warning('Failed to generate suggestions: $e');
+      return [];
+    } catch (e) {
+      logger.warning('Unexpected error generating suggestions: $e');
+      return [];
+    }
+  }
+
+  /// Check if a model is valid and accessible
+  ///
+  /// This method sends a simple test request to verify that the model
+  /// is available and the API key has the necessary permissions.
+  Future<({bool valid, String? error})> checkModel() async {
+    if (config.apiKey.isEmpty) {
+      return (valid: false, error: 'Missing OpenAI API key');
+    }
+
+    try {
+      final requestBody = {
+        'model': config.model,
+        'messages': [
+          {'role': 'user', 'content': 'hi'}
+        ],
+        'stream': false,
+        'max_tokens': 1, // Minimal tokens to reduce cost
+      };
+
+      // Optimized logging with condition check
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI model check: POST /chat/completions');
+        logger.fine('OpenAI request headers: ${dio.options.headers}');
+      }
+
+      final response = await dio.post('chat/completions', data: requestBody);
+
+      if (logger.isLoggable(Level.FINE)) {
+        logger.fine('OpenAI HTTP status: ${response.statusCode}');
+      }
+
+      if (response.statusCode != 200) {
+        return (
+          valid: false,
+          error: 'Model check failed with status: ${response.statusCode}'
+        );
+      }
+
+      final responseData = response.data as Map<String, dynamic>?;
+      final choices = responseData?['choices'] as List?;
+      final hasValidResponse = choices != null &&
+          choices.isNotEmpty &&
+          choices.first['message'] != null;
+
+      return (valid: hasValidResponse, error: null);
+    } on DioException catch (e) {
+      final errorMessage = e.response?.data?.toString() ?? e.message;
+      return (valid: false, error: 'Model check failed: $errorMessage');
+    } catch (e) {
+      return (valid: false, error: 'Unexpected error: $e');
     }
   }
 }

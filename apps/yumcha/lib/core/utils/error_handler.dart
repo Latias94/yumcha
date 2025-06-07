@@ -34,12 +34,12 @@ class NetworkError extends AppError {
     dynamic originalError,
     StackTrace? stackTrace,
   }) : super(
-         message: message,
-         type: ErrorType.network,
-         code: code,
-         originalError: originalError,
-         stackTrace: stackTrace,
-       );
+          message: message,
+          type: ErrorType.network,
+          code: code,
+          originalError: originalError,
+          stackTrace: stackTrace,
+        );
 }
 
 /// 数据库错误
@@ -50,12 +50,12 @@ class DatabaseError extends AppError {
     dynamic originalError,
     StackTrace? stackTrace,
   }) : super(
-         message: message,
-         type: ErrorType.database,
-         code: code,
-         originalError: originalError,
-         stackTrace: stackTrace,
-       );
+          message: message,
+          type: ErrorType.database,
+          code: code,
+          originalError: originalError,
+          stackTrace: stackTrace,
+        );
 }
 
 /// API错误
@@ -69,12 +69,12 @@ class ApiError extends AppError {
     dynamic originalError,
     StackTrace? stackTrace,
   }) : super(
-         message: message,
-         type: ErrorType.api,
-         code: code,
-         originalError: originalError,
-         stackTrace: stackTrace,
-       );
+          message: message,
+          type: ErrorType.api,
+          code: code,
+          originalError: originalError,
+          stackTrace: stackTrace,
+        );
 }
 
 /// 验证错误
@@ -88,12 +88,12 @@ class ValidationError extends AppError {
     dynamic originalError,
     StackTrace? stackTrace,
   }) : super(
-         message: message,
-         type: ErrorType.validation,
-         code: code,
-         originalError: originalError,
-         stackTrace: stackTrace,
-       );
+          message: message,
+          type: ErrorType.validation,
+          code: code,
+          originalError: originalError,
+          stackTrace: stackTrace,
+        );
 }
 
 /// 权限错误
@@ -104,12 +104,12 @@ class PermissionError extends AppError {
     dynamic originalError,
     StackTrace? stackTrace,
   }) : super(
-         message: message,
-         type: ErrorType.permission,
-         code: code,
-         originalError: originalError,
-         stackTrace: stackTrace,
-       );
+          message: message,
+          type: ErrorType.permission,
+          code: code,
+          originalError: originalError,
+          stackTrace: stackTrace,
+        );
 }
 
 /// 统一错误处理工具类

@@ -1,4 +1,10 @@
 // ignore_for_file: avoid_print
+
+import 'dart:async';
+import 'dart:io';
+import 'dart:math';
+import 'package:llm_dart/llm_dart.dart';
+
 /// Example demonstrating how to create and register a custom AI provider
 ///
 /// This example shows:
@@ -7,11 +13,6 @@
 /// 3. How to register the provider
 /// 4. How to use the custom provider
 /// 5. How to handle provider-specific configurations
-
-import 'dart:async';
-import 'dart:io';
-import 'dart:math';
-import 'package:llm_dart/llm_dart.dart';
 
 /// Mock implementation of ChatResponse for demonstration
 class MockChatResponse implements ChatResponse {

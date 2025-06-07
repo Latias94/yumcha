@@ -213,8 +213,6 @@ extension ProviderCapabilityExtensions on String {
 
 /// Example using extensions
 void extensionExample() {
-  // ignore_for_file: avoid_print
-
   print('\n=== Extension Example ===\n');
 
   // Check capabilities using extensions

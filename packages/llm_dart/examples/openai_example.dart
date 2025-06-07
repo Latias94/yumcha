@@ -17,8 +17,8 @@ void main() async {
         .openai() // Use OpenAI provider
         .apiKey(apiKey) // Set the API key
         .model('gpt-4o') // Use GPT-4o model
-        .reasoningEffort(ReasoningEffort
-            .high) // Set reasoning effort level (OpenAI extension)
+        .reasoning(true) // Enable reasoning
+        .reasoningEffort(ReasoningEffort.high) // Set reasoning effort level
         .maxTokens(512) // Limit response length
         .temperature(0.7) // Control response randomness (0.0-1.0)
         .stream(false) // Disable streaming responses
@@ -55,6 +55,7 @@ void main() async {
         .provider('openai') // Generic provider method
         .apiKey(apiKey)
         .model('gpt-4o')
+        .reasoning(true) // Enable reasoning
         .extension('reasoningEffort', 'high') // Generic extension method
         .maxTokens(512)
         .temperature(0.7)
@@ -73,6 +74,7 @@ void main() async {
         .provider('openai') // Use provider method
         .apiKey(apiKey)
         .model('gpt-4o')
+        .reasoning(true) // Enable reasoning
         .reasoningEffort(ReasoningEffort.high)
         .maxTokens(512)
         .temperature(0.7)

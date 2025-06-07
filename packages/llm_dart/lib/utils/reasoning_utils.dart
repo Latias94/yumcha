@@ -139,6 +139,7 @@ class ReasoningUtils {
     required String providerId,
     required String model,
     ReasoningEffort? reasoningEffort,
+    int? maxTokens,
   }) {
     if (reasoningEffort == null) return {};
 
@@ -160,6 +161,33 @@ class ReasoningUtils {
     if (model.contains('grok') && isKnownReasoningModel(model)) {
       return {
         'reasoning_effort': reasoningEffort.value,
+      };
+    }
+
+    // Claude 3.7 Sonnet thinking support
+    if (model.contains('claude-3.7-sonnet') ||
+        model.contains('claude-3-7-sonnet')) {
+      const effortRatios = {
+        ReasoningEffort.high: 0.8,
+        ReasoningEffort.medium: 0.5,
+        ReasoningEffort.low: 0.2,
+      };
+
+      final effortRatio = effortRatios[reasoningEffort];
+      if (effortRatio == null) {
+        return {};
+      }
+
+      final defaultMaxTokens = 4096; // DEFAULT_MAX_TOKENS equivalent
+      final effectiveMaxTokens = maxTokens ?? defaultMaxTokens;
+      final budgetTokens =
+          (effectiveMaxTokens * effortRatio).clamp(1024, 32000).truncate();
+
+      return {
+        'thinking': {
+          'type': 'enabled',
+          'budget_tokens': budgetTokens,
+        },
       };
     }
 

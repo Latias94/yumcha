@@ -18,7 +18,7 @@ void main() {
     test('should have correct provider information', () {
       final factory = LLMProviderRegistry.getFactory('deepseek-openai');
       expect(factory, isNotNull);
-      expect(factory!.displayName, equals('DeepSeek (OpenAI兼容)'));
+      expect(factory!.displayName, equals('DeepSeek (OpenAI-compatible)'));
       expect(factory.supportedCapabilities, contains(LLMCapability.chat));
       expect(factory.supportedCapabilities, contains(LLMCapability.reasoning));
     });
