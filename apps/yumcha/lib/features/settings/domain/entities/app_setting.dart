@@ -252,6 +252,13 @@ class SettingKeys {
   static const String colorMode = 'theme.color_mode';
   static const String dynamicColorEnabled = 'theme.dynamic_color_enabled';
   static const String themeScheme = 'theme.scheme';
+  static const String contrastLevel = 'theme.contrast_level';
+  static const String customPrimaryColor = 'theme.custom_primary_color';
+  static const String customSecondaryColor = 'theme.custom_secondary_color';
+  static const String customTertiaryColor = 'theme.custom_tertiary_color';
+  static const String useCustomColors = 'theme.use_custom_colors';
+  static const String surfaceStyle = 'theme.surface_style';
+  static const String borderRadius = 'theme.border_radius';
 
   // 聊天设置
   static const String chatBubbleStyle = 'chat.bubble_style';

@@ -33,7 +33,8 @@ import '../../../ai_management/presentation/screens/assistants_screen.dart';
 import '../../../debug/presentation/screens/ai_debug_test_screen.dart';
 import 'default_models_screen.dart';
 import 'mcp_settings_screen.dart';
-import '../providers/theme_provider.dart';
+import 'theme_settings_screen.dart';
+import '../../../../app/theme/theme_provider.dart';
 import '../../../debug/presentation/screens/thinking_process_demo.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -63,11 +64,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             delegate: SliverChildListDelegate([
               // 通用设置
               _buildSectionHeader("通用设置"),
-              _buildColorModeItem(themeSettings, themeNotifier),
+              _buildThemeSettingsItem(themeSettings),
               _buildDynamicColorItem(themeSettings, themeNotifier),
-              if (themeSettings.shouldShowThemeSelector)
-                _buildThemeSelectionItem(themeSettings, themeNotifier),
-              _buildContrastLevelItem(themeSettings, themeNotifier),
 
               const SizedBox(height: 24),
 
@@ -116,29 +114,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildColorModeItem(
-    ThemeSettings themeSettings,
-    ThemeNotifier themeNotifier,
-  ) {
+  Widget _buildThemeSettingsItem(ThemeSettings themeSettings) {
+    final isDynamicColorEnabled = themeSettings.dynamicColorEnabled &&
+        themeSettings.isDynamicColorAvailable;
+
     return ListTile(
-      leading: const Icon(Icons.palette_outlined),
-      title: const Text("颜色模式"),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            themeSettings.colorModeDisplayName,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.keyboard_arrow_down),
-        ],
+      leading: Icon(
+        Icons.palette_outlined,
+        color: isDynamicColorEnabled
+            ? Theme.of(context)
+                .colorScheme
+                .onSurfaceVariant
+                .withValues(alpha: 0.5)
+            : null,
       ),
-      onTap: () {
-        _showColorModeDialog(themeSettings, themeNotifier);
-      },
+      title: Text(
+        "主题设置",
+        style: isDynamicColorEnabled
+            ? TextStyle(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.5))
+            : null,
+      ),
+      subtitle: Text(
+        isDynamicColorEnabled
+            ? "动态颜色已启用"
+            : "${themeSettings.colorModeDisplayName} · ${themeSettings.themeSchemeDisplayName} · ${themeSettings.contrastLevelDisplayName}",
+        style: TextStyle(
+          color: isDynamicColorEnabled
+              ? Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.5)
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: Icon(
+        Icons.keyboard_arrow_right,
+        color: isDynamicColorEnabled
+            ? Theme.of(context)
+                .colorScheme
+                .onSurfaceVariant
+                .withValues(alpha: 0.5)
+            : null,
+      ),
+      onTap: isDynamicColorEnabled
+          ? null
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const ThemeSettingsScreen()),
+              );
+            },
     );
   }
 
@@ -234,10 +264,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ) {
     const TextStyle style = TextStyle(fontSize: 12);
     final List<bool> isSelected = <bool>[
-      themeSettings.themeScheme == AppThemeScheme.pink,
-      themeSettings.themeScheme == AppThemeScheme.green,
-      themeSettings.themeScheme == AppThemeScheme.blue,
+      themeSettings.themeScheme == AppThemeScheme.ocean,
       themeSettings.themeScheme == AppThemeScheme.monochrome,
+      themeSettings.themeScheme == AppThemeScheme.forest,
+      themeSettings.themeScheme == AppThemeScheme.warmOrange,
     ];
 
     return ToggleButtons(
@@ -246,16 +276,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         AppThemeScheme newScheme;
         switch (newIndex) {
           case 0:
-            newScheme = AppThemeScheme.pink;
+            newScheme = AppThemeScheme.ocean;
             break;
           case 1:
-            newScheme = AppThemeScheme.green;
+            newScheme = AppThemeScheme.monochrome;
             break;
           case 2:
-            newScheme = AppThemeScheme.blue;
+            newScheme = AppThemeScheme.forest;
             break;
           case 3:
-            newScheme = AppThemeScheme.monochrome;
+            newScheme = AppThemeScheme.warmOrange;
             break;
           default:
             return;
@@ -265,12 +295,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       borderRadius: BorderRadius.circular(8),
       constraints: const BoxConstraints(minHeight: 48, minWidth: 80),
       children: <Widget>[
-        _buildThemeButton('温柔\n粉色', AppThemeScheme.pink, themeNotifier, style),
-        _buildThemeButton('自然\n绿色', AppThemeScheme.green, themeNotifier, style),
-        _buildThemeButton('清新\n蓝色', AppThemeScheme.blue, themeNotifier, style),
+        _buildThemeButton('深邃\n海洋', AppThemeScheme.ocean, themeNotifier, style),
         _buildThemeButton(
-          '简约\n黑白',
-          AppThemeScheme.monochrome,
+            '简约\n黑白', AppThemeScheme.monochrome, themeNotifier, style),
+        _buildThemeButton(
+            '专注\n森林', AppThemeScheme.forest, themeNotifier, style),
+        _buildThemeButton(
+          '温暖\n橙色',
+          AppThemeScheme.warmOrange,
           themeNotifier,
           style,
         ),

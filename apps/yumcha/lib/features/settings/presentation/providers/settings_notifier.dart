@@ -270,6 +270,48 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     );
   }
 
+  /// 获取对比度级别
+  int getContrastLevel() {
+    return getValueOrDefault<int>(SettingKeys.contrastLevel, 0);
+  }
+
+  /// 设置对比度级别
+  Future<void> setContrastLevel(int level) async {
+    await setSetting(
+      key: SettingKeys.contrastLevel,
+      value: level,
+      description: '应用对比度级别',
+    );
+  }
+
+  /// 获取自定义主色调
+  int? getCustomPrimaryColor() {
+    return getValue<int>(SettingKeys.customPrimaryColor);
+  }
+
+  /// 设置自定义主色调
+  Future<void> setCustomPrimaryColor(int color) async {
+    await setSetting(
+      key: SettingKeys.customPrimaryColor,
+      value: color,
+      description: '自定义主色调',
+    );
+  }
+
+  /// 获取是否使用自定义颜色
+  bool getUseCustomColors() {
+    return getValueOrDefault<bool>(SettingKeys.useCustomColors, false);
+  }
+
+  /// 设置是否使用自定义颜色
+  Future<void> setUseCustomColors(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.useCustomColors,
+      value: enabled,
+      description: '使用自定义颜色',
+    );
+  }
+
   // === 聊天设置方法 ===
 
   /// 获取聊天气泡样式
@@ -337,8 +379,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 /// 设置管理 Provider
 final settingsNotifierProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>(
-      (ref) => SettingsNotifier(),
-    );
+  (ref) => SettingsNotifier(),
+);
 
 /// 获取特定设置值的 Provider
 final settingValueProvider = Provider.family<dynamic, String>((ref, key) {

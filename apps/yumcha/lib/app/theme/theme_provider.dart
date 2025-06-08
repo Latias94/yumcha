@@ -3,16 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
+import 'theme_color_schemes.dart';
 
 // 主题模式枚举
 enum AppColorMode { system, light, dark }
 
 // 主题方案枚举
 enum AppThemeScheme {
-  pink, // 粉色主题（温柔）
-  green, // 绿色主题（自然）
-  blue, // 蓝色主题（清新）
-  monochrome, // 黑白主题（简约）
+  ocean, // 海洋蓝 - 深邃宁静
+  monochrome, // 极简灰 - 经典永恒
+  forest, // 森林绿 - 专注护眼
+  warmOrange, // 暖橙 - 温暖友好
 }
 
 // 对比度类型枚举
@@ -82,28 +83,14 @@ class ThemeSettings {
   // 获取主题方案显示名称
   String get themeSchemeDisplayName {
     switch (themeScheme) {
-      case AppThemeScheme.pink:
-        return '粉色';
-      case AppThemeScheme.green:
-        return '绿色';
-      case AppThemeScheme.blue:
-        return '蓝色';
+      case AppThemeScheme.ocean:
+        return '海洋蓝';
       case AppThemeScheme.monochrome:
-        return '黑白';
-    }
-  }
-
-  // 获取主题方案描述
-  String get themeSchemeDescription {
-    switch (themeScheme) {
-      case AppThemeScheme.pink:
-        return '温柔粉色，浪漫优雅';
-      case AppThemeScheme.green:
-        return '自然绿色，清新舒适';
-      case AppThemeScheme.blue:
-        return '清新蓝色，沉稳专业';
-      case AppThemeScheme.monochrome:
-        return '黑白简约，经典永恒';
+        return '极简灰';
+      case AppThemeScheme.forest:
+        return '森林绿';
+      case AppThemeScheme.warmOrange:
+        return '暖橙';
     }
   }
 
@@ -153,7 +140,7 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
             colorMode: AppColorMode.system,
             dynamicColorEnabled: true,
             isDynamicColorAvailable: false,
-            themeScheme: AppThemeScheme.pink,
+            themeScheme: AppThemeScheme.ocean,
             contrastLevel: AppContrastLevel.standard,
           ),
         ) {
@@ -289,6 +276,17 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       );
     }
 
+    // 检查是否有自定义颜色方案
+    final customColorScheme = ThemeColorSchemes.getColorSchemeForTheme(
+      state.themeScheme.name,
+      Brightness.light,
+      state.contrastLevel.name,
+    );
+
+    if (customColorScheme != null) {
+      return _getCustomTheme(customColorScheme, Brightness.light);
+    }
+
     return _getFlexTheme(Brightness.light);
   }
 
@@ -299,6 +297,17 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         colorScheme: _darkDynamicColorScheme,
         useMaterial3: true,
       );
+    }
+
+    // 检查是否有自定义颜色方案
+    final customColorScheme = ThemeColorSchemes.getColorSchemeForTheme(
+      state.themeScheme.name,
+      Brightness.dark,
+      state.contrastLevel.name,
+    );
+
+    if (customColorScheme != null) {
+      return _getCustomTheme(customColorScheme, Brightness.dark);
     }
 
     return _getFlexTheme(Brightness.dark);
@@ -401,14 +410,14 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
   // 获取 FlexScheme
   FlexScheme _getFlexScheme() {
     switch (state.themeScheme) {
-      case AppThemeScheme.pink:
-        return FlexScheme.sakura; // 樱花粉色
-      case AppThemeScheme.green:
-        return FlexScheme.greenM3; // Material 3 绿色
-      case AppThemeScheme.blue:
-        return FlexScheme.blue; // 清新蓝色
+      case AppThemeScheme.ocean:
+        return FlexScheme.deepBlue; // 深蓝色（临时映射）
       case AppThemeScheme.monochrome:
         return FlexScheme.greyLaw; // 灰色法则（黑白主题）
+      case AppThemeScheme.forest:
+        return FlexScheme.greenM3; // Material 3 绿色
+      case AppThemeScheme.warmOrange:
+        return FlexScheme.orangeM3; // 橙色
     }
   }
 
@@ -427,14 +436,14 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
 
   FlexScheme _getFlexSchemeForPreview(AppThemeScheme scheme) {
     switch (scheme) {
-      case AppThemeScheme.pink:
-        return FlexScheme.sakura; // 樱花粉色
-      case AppThemeScheme.green:
-        return FlexScheme.greenM3; // Material 3 绿色
-      case AppThemeScheme.blue:
-        return FlexScheme.blue; // 清新蓝色
+      case AppThemeScheme.ocean:
+        return FlexScheme.deepBlue; // 深蓝色（临时映射）
       case AppThemeScheme.monochrome:
         return FlexScheme.greyLaw; // 灰色法则（黑白主题）
+      case AppThemeScheme.forest:
+        return FlexScheme.greenM3; // Material 3 绿色
+      case AppThemeScheme.warmOrange:
+        return FlexScheme.orangeM3; // 橙色
     }
   }
 
@@ -460,6 +469,76 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       case AppContrastLevel.high:
         return 0; // 高对比度不使用表面混合
     }
+  }
+
+  // 获取自定义主题
+  ThemeData _getCustomTheme(ColorScheme colorScheme, Brightness brightness) {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      colorScheme: colorScheme,
+      // 应用自定义样式
+      appBarTheme: AppBarTheme(
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
   }
 }
 

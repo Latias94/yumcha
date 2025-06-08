@@ -7,7 +7,7 @@ import 'shared/infrastructure/services/notification_service.dart';
 import 'shared/infrastructure/services/logger_service.dart';
 import 'shared/infrastructure/services/database_service.dart';
 import 'shared/infrastructure/services/preference_service.dart';
-import 'features/settings/presentation/providers/theme_provider.dart';
+import 'app/theme/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // 确保绑定已初始化
