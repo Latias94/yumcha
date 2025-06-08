@@ -104,14 +104,14 @@ class PlatformUtils {
       return {
         'stdio_command': 'C:\\tools\\mcp-server.exe',
         'stdio_args': '--config "C:\\tools\\config.json"',
-        'http_url': 'http://localhost:8080/mcp',
+        'http_url': 'http://localhost:3000/mcp',
         'sse_url': 'http://localhost:3001/sse',
       };
     } else if (Platform.isMacOS || Platform.isLinux) {
       return {
         'stdio_command': '/usr/local/bin/mcp-server',
         'stdio_args': '--config /etc/mcp/config.json',
-        'http_url': 'http://localhost:8080/mcp',
+        'http_url': 'http://localhost:3000/mcp',
         'sse_url': 'http://localhost:3001/sse',
       };
     } else {

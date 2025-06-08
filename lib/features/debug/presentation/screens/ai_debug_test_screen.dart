@@ -44,6 +44,9 @@ import '../../../ai_management/domain/entities/ai_provider.dart' as models;
 import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../../chat/domain/entities/message.dart';
 import '../../../settings/domain/entities/mcp_server_config.dart';
+import '../../../settings/presentation/providers/settings_notifier.dart';
+import '../../../settings/presentation/providers/mcp_service_provider.dart';
+import '../../../settings/presentation/screens/mcp_settings_screen.dart';
 import 'dart:convert';
 
 class AiDebugScreen extends ConsumerStatefulWidget {
@@ -141,27 +144,25 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   /// 加载可用的MCP服务器
   Future<void> _loadMcpServers() async {
     try {
-      // 创建测试用的MCP服务器配置
-      final testServers = [
-        McpServerConfig.create(
-          name: '测试STDIO服务器',
-          description: '用于测试的STDIO MCP服务器（推荐）',
-          type: McpServerType.stdio,
-          command: 'python tools/mcp_test_server.py',
-        ),
-        // 暂时禁用SSE和HTTP，因为需要更复杂的服务器实现
-        // McpServerConfig.create(
-        //   name: '测试SSE服务器',
-        //   description: '用于测试的SSE MCP服务器',
-        //   type: McpServerType.sse,
-        //   command: 'http://localhost:8080',
-        // ),
-      ];
+      // 从设置中获取已配置的MCP服务器
+      final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+      final mcpServersConfig = settingsNotifier.getMcpServers();
+      final configuredServers = mcpServersConfig.servers;
 
       setState(() {
-        _availableMcpServers = testServers;
+        _availableMcpServers = configuredServers;
       });
-      _updateMcpDebugInfo('📋 已加载 ${testServers.length} 个测试MCP服务器\n');
+
+      if (configuredServers.isNotEmpty) {
+        _updateMcpDebugInfo('📋 已加载 ${configuredServers.length} 个已配置的MCP服务器\n');
+        for (final server in configuredServers) {
+          _updateMcpDebugInfo(
+              '  - ${server.name} (${server.type.displayName}) ${server.isEnabled ? '已启用' : '已禁用'}\n');
+        }
+      } else {
+        _updateMcpDebugInfo('📋 暂无已配置的MCP服务器\n');
+        _updateMcpDebugInfo('💡 请先在设置页面配置MCP服务器\n');
+      }
     } catch (e) {
       _updateMcpDebugInfo('❌ 加载MCP服务器失败: $e\n');
     }
@@ -485,10 +486,22 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听设置变化，当MCP服务器配置发生变化时重新加载
+    ref.listen(settingsNotifierProvider, (previous, next) {
+      if (!next.isLoading && next.error == null) {
+        _loadMcpServers();
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI聊天API调试 (llm_dart)'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadMcpServers,
+            tooltip: '刷新MCP服务器',
+          ),
           IconButton(
             icon: const Icon(Icons.clear_all),
             onPressed: () {
@@ -765,24 +778,70 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                         Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    '暂无可用的MCP服务器\n'
-                    '请先安装依赖：pip install -r tools/requirements.txt\n'
-                    '然后启动测试服务器：python tools/mcp_test_server.py',
-                    style: TextStyle(fontSize: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '暂无已配置的MCP服务器',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '请先在设置页面配置MCP服务器，然后返回此页面进行测试。',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const McpSettingsScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.settings, size: 16),
+                        label: const Text('前往MCP设置',
+                            style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: _availableMcpServers.map((server) {
+                  children: _availableMcpServers
+                      .where((server) => server.isEnabled)
+                      .map((server) {
                     final isSelected =
                         _selectedMcpServerIds.contains(server.id);
+                    final mcpState = ref.watch(mcpServiceProvider);
+                    final serverStatus = mcpState.serverStatuses[server.id] ??
+                        McpServerStatus.disconnected;
+
                     return FilterChip(
-                      label: Text(
-                        '${server.name} (${server.type.displayName})',
-                        style: const TextStyle(fontSize: 12),
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getServerStatusIcon(serverStatus),
+                            size: 12,
+                            color: _getServerStatusColor(serverStatus, context),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${server.name} (${server.type.displayName})',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
                       ),
                       selected: isSelected,
                       onSelected: (selected) {
@@ -807,15 +866,13 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                       .withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
+                child: Text(
                   '💡 启用MCP工具后，AI可以调用选中服务器提供的工具。\n'
-                  '测试消息示例：\n'
-                  '• "请使用echo工具回显\'Hello MCP\'"\n'
-                  '• "请使用add工具计算5+3"\n'
-                  '• "请使用get_time工具获取当前时间"\n'
-                  '• "请使用weather工具查询北京天气"\n'
-                  '• "请使用random_number工具生成1到100的随机数"',
-                  style: TextStyle(fontSize: 11),
+                  '${_availableMcpServers.where((s) => s.isEnabled).isEmpty ? '请先在设置页面配置并启用MCP服务器。' : '测试消息示例：\n'
+                      '• "请帮我调用可用的工具"\n'
+                      '• "请列出你可以使用的工具"\n'
+                      '• "请使用工具帮我完成任务"'}',
+                  style: const TextStyle(fontSize: 11),
                 ),
               ),
             ],
@@ -841,8 +898,12 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               controller: _messageController,
               decoration: InputDecoration(
                 labelText: '输入消息',
-                hintText:
-                    _enableMcpTools ? '请使用echo工具回显"Hello MCP"' : '你好，请介绍一下你自己。',
+                hintText: _enableMcpTools &&
+                        _availableMcpServers
+                            .where((s) => s.isEnabled)
+                            .isNotEmpty
+                    ? '请帮我调用可用的工具'
+                    : '你好，请介绍一下你自己。',
                 border: const OutlineInputBorder(),
               ),
               maxLines: 3,
@@ -1394,5 +1455,34 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         ],
       ),
     );
+  }
+
+  /// 获取服务器状态图标
+  IconData _getServerStatusIcon(McpServerStatus status) {
+    switch (status) {
+      case McpServerStatus.connected:
+        return Icons.check_circle;
+      case McpServerStatus.connecting:
+        return Icons.sync;
+      case McpServerStatus.error:
+        return Icons.error;
+      case McpServerStatus.disconnected:
+        return Icons.circle_outlined;
+    }
+  }
+
+  /// 获取服务器状态颜色
+  Color _getServerStatusColor(McpServerStatus status, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    switch (status) {
+      case McpServerStatus.connected:
+        return colorScheme.primary;
+      case McpServerStatus.connecting:
+        return colorScheme.tertiary;
+      case McpServerStatus.error:
+        return colorScheme.error;
+      case McpServerStatus.disconnected:
+        return colorScheme.onSurfaceVariant;
+    }
   }
 }
