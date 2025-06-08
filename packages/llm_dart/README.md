@@ -1,12 +1,14 @@
 # LLM Dart Library
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Dart](https://img.shields.io/badge/Dart-3.0+-blue.svg)](https://dart.dev)
-[![Flutter](https://img.shields.io/badge/Flutter-3.8+-blue.svg)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-3.5.0+-blue.svg)](https://dart.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-3.8.0+-blue.svg)](https://flutter.dev)
 
 A modular Dart library for AI provider interactions, inspired by the Rust [graniet/llm](https://github.com/graniet/llm) library. This library provides a unified interface for interacting with different AI providers using Dio for HTTP requests.
 
 **🧠 Full access to model thinking processes** - llm_dart provides direct access to the internal reasoning and thought processes of supported AI models (Claude, OpenAI o1, DeepSeek, Gemini), giving you unprecedented insight into how AI models arrive at their conclusions.
+
+> **Part of yumcha project**: This library is extracted from the [yumcha](https://github.com/Latias94/yumcha) AI chat client to provide reusable LLM functionality under MIT license, while the main Flutter app uses AGPL v3.
 
 ## Features
 
@@ -38,11 +40,29 @@ A modular Dart library for AI provider interactions, inspired by the Rust [grani
 
 ## Installation
 
+### As part of yumcha project
+
+This library is part of the [yumcha](https://github.com/Latias94/yumcha) monorepo. If you're working with the full project:
+
+```bash
+git clone https://github.com/Latias94/yumcha.git
+cd yumcha
+melos bootstrap
+```
+
+### Standalone usage
+
 Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  dio: ^5.0.0
+  llm_dart: ^0.1.0
+  dio: ^5.8.0  # Required HTTP client
+```
+
+Then run:
+```bash
+dart pub get
 ```
 
 ## Quick Start

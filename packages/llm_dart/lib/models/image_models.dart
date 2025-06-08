@@ -1,4 +1,5 @@
 /// Image generation related models for AI image generation functionality
+library;
 
 import '../core/chat_provider.dart' show UsageInfo;
 

@@ -1,4 +1,5 @@
 /// Audio-related models for Text-to-Speech (TTS) and Speech-to-Text (STT) functionality
+library;
 
 import '../core/chat_provider.dart' show UsageInfo;
 

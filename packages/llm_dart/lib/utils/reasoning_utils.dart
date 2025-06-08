@@ -1,5 +1,6 @@
 /// Utilities for handling reasoning/thinking content in AI responses
 /// This matches the logic from the TypeScript implementation
+library;
 
 import '../models/chat_models.dart';
 
@@ -91,7 +92,7 @@ class ReasoningUtils {
   }
 
   /// Filter thinking content from text for display purposes
-  /// Removes <think>...</think> tags and their content
+  /// Removes `<think>...</think>` tags and their content
   static String filterThinkingContent(String content) {
     // Remove <think>...</think> tags and their content
     return content
