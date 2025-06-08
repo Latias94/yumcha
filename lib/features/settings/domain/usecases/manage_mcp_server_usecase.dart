@@ -47,8 +47,7 @@ class McpToolResult {
   bool get isSuccess => error == null;
 }
 
-/// MCP 服务器连接状态
-enum McpServerStatus { disconnected, connecting, connected, error }
+// McpServerStatus 已在 mcp_server_config.dart 中定义
 
 /// MCP 服务器实例
 class McpServerInstance {
@@ -323,7 +322,15 @@ class ManageMcpServerUseCase {
       );
 
       final duration = DateTime.now().difference(startTime);
-      final resultText = result.content.map((c) => c.toString()).join('\n');
+      final resultText = result.content.map((c) {
+        if (c is TextContent) {
+          return c.text;
+        } else if (c is ImageContent) {
+          return '[图像内容: ${c.data}]';
+        } else {
+          return c.toString();
+        }
+      }).join('\n');
 
       _logger.info('MCP 工具调用成功', {
         'tool': toolName,

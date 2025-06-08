@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../../features/ai_management/domain/entities/ai_provider.dart'
+    as models;
 import '../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../features/chat/domain/entities/message.dart';
 import '../../../../features/ai_management/domain/entities/ai_model.dart';
+import '../../../../features/settings/domain/entities/mcp_server_config.dart';
+import '../../../../features/settings/domain/usecases/manage_mcp_server_usecase.dart';
 import 'core/ai_service_base.dart';
 import 'core/ai_response_models.dart';
 import 'chat/chat_service.dart';
@@ -71,6 +74,7 @@ class AiServiceManager {
   // 核心依赖
   final LoggerService _logger = LoggerService();
   final Map<String, AiServiceBase> _services = {}; // 服务注册表
+  final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase(); // MCP服务
   bool _isInitialized = false; // 初始化状态标记
 
   /// 获取聊天服务
@@ -110,6 +114,15 @@ class AiServiceManager {
   /// - 多种语音模型
   /// - 音频格式转换
   SpeechService get speechService => _getService<SpeechService>('speech');
+
+  /// 获取MCP服务
+  ///
+  /// 提供MCP (Model Context Protocol) 功能，支持：
+  /// - 外部工具连接和调用
+  /// - 多种连接类型 (STDIO、HTTP、SSE)
+  /// - 平台适配和兼容性检查
+  /// - 工具发现和管理
+  ManageMcpServerUseCase get mcpService => _mcpService;
 
   /// 初始化所有AI服务
   ///
@@ -438,9 +451,8 @@ class AiServiceManager {
 
       stats[serviceName] = {
         'name': service.serviceName,
-        'capabilities': service.supportedCapabilities
-            .map((c) => c.name)
-            .toList(),
+        'capabilities':
+            service.supportedCapabilities.map((c) => c.name).toList(),
         'initialized': _isInitialized,
       };
 

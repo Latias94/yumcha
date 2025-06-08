@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
+    as models;
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/chat/domain/entities/message.dart';
 import '../../../../../features/ai_management/domain/entities/ai_model.dart';
@@ -31,33 +32,33 @@ final aiModelServiceProvider = Provider<ModelService>((ref) {
 /// 发送聊天消息Provider（单次响应）
 final sendChatMessageProvider =
     FutureProvider.family<AiResponse, SendChatMessageParams>((
-      ref,
-      params,
-    ) async {
-      final chatService = ref.read(aiChatServiceProvider);
+  ref,
+  params,
+) async {
+  final chatService = ref.read(aiChatServiceProvider);
 
-      return await chatService.sendMessage(
-        provider: params.provider,
-        assistant: params.assistant,
-        modelName: params.modelName,
-        chatHistory: params.chatHistory,
-        userMessage: params.userMessage,
-      );
-    });
+  return await chatService.sendMessage(
+    provider: params.provider,
+    assistant: params.assistant,
+    modelName: params.modelName,
+    chatHistory: params.chatHistory,
+    userMessage: params.userMessage,
+  );
+});
 
 /// 发送流式聊天消息Provider（实时响应）
 final sendChatMessageStreamProvider =
     StreamProvider.family<AiStreamEvent, SendChatMessageParams>((ref, params) {
-      final chatService = ref.read(aiChatServiceProvider);
+  final chatService = ref.read(aiChatServiceProvider);
 
-      return chatService.sendMessageStream(
-        provider: params.provider,
-        assistant: params.assistant,
-        modelName: params.modelName,
-        chatHistory: params.chatHistory,
-        userMessage: params.userMessage,
-      );
-    });
+  return chatService.sendMessageStream(
+    provider: params.provider,
+    assistant: params.assistant,
+    modelName: params.modelName,
+    chatHistory: params.chatHistory,
+    userMessage: params.userMessage,
+  );
+});
 
 /// 测试AI提供商连接的Provider
 final testAiProviderProvider = FutureProvider.family<bool, TestProviderParams>((
@@ -88,7 +89,7 @@ final providerModelsProvider = FutureProvider.family<List<AiModel>, String>((
 });
 
 /// 获取AI服务统计信息的Provider
-final aiServiceStatsProvider = Provider.family<AiServiceStats, String>((
+final aiChatServiceStatsProvider = Provider.family<AiServiceStats, String>((
   ref,
   providerId,
 ) {
@@ -99,12 +100,12 @@ final aiServiceStatsProvider = Provider.family<AiServiceStats, String>((
 /// 检测模型能力的Provider
 final modelCapabilitiesProvider =
     Provider.family<Set<String>, ModelCapabilityParams>((ref, params) {
-      final modelService = ref.read(aiModelServiceProvider);
-      return modelService.detectModelCapabilities(
-        provider: params.provider,
-        modelName: params.modelName,
-      );
-    });
+  final modelService = ref.read(aiModelServiceProvider);
+  return modelService.detectModelCapabilities(
+    provider: params.provider,
+    modelName: params.modelName,
+  );
+});
 
 // ============================================================================
 // 智能聊天Providers
@@ -153,40 +154,40 @@ final smartChatProvider = FutureProvider.family<AiResponse, SmartChatParams>((
 /// 智能流式聊天Provider - 需要指定providerId和modelName
 final smartChatStreamProvider =
     StreamProvider.family<AiStreamEvent, SmartChatParams>((ref, params) {
-      final providerId = params.providerId;
-      final modelName = params.modelName;
+  final providerId = params.providerId;
+  final modelName = params.modelName;
 
-      if (providerId == null) {
-        throw Exception('Provider ID not specified');
-      }
+  if (providerId == null) {
+    throw Exception('Provider ID not specified');
+  }
 
-      if (modelName == null) {
-        throw Exception('Model name not specified');
-      }
+  if (modelName == null) {
+    throw Exception('Model name not specified');
+  }
 
-      final provider = ref.read(aiProviderProvider(providerId));
-      final assistant = params.assistantId != null
-          ? ref.read(aiAssistantProvider(params.assistantId!))
-          : ref.read(aiAssistantNotifierProvider).value?.firstOrNull;
+  final provider = ref.read(aiProviderProvider(providerId));
+  final assistant = params.assistantId != null
+      ? ref.read(aiAssistantProvider(params.assistantId!))
+      : ref.read(aiAssistantNotifierProvider).value?.firstOrNull;
 
-      if (provider == null) {
-        throw Exception('Provider not found: $providerId');
-      }
+  if (provider == null) {
+    throw Exception('Provider not found: $providerId');
+  }
 
-      if (assistant == null) {
-        throw Exception('No assistant available');
-      }
+  if (assistant == null) {
+    throw Exception('No assistant available');
+  }
 
-      final chatService = ref.read(aiChatServiceProvider);
+  final chatService = ref.read(aiChatServiceProvider);
 
-      return chatService.sendMessageStream(
-        provider: provider,
-        assistant: assistant,
-        modelName: modelName,
-        chatHistory: params.chatHistory,
-        userMessage: params.userMessage,
-      );
-    });
+  return chatService.sendMessageStream(
+    provider: provider,
+    assistant: assistant,
+    modelName: modelName,
+    chatHistory: params.chatHistory,
+    userMessage: params.userMessage,
+  );
+});
 
 // ============================================================================
 // 对话聊天Providers - 包含完整业务逻辑
@@ -195,22 +196,22 @@ final smartChatStreamProvider =
 /// 对话聊天Provider - 包含标题生成、对话保存等完整业务逻辑
 final conversationChatProvider =
     FutureProvider.family<ConversationChatResponse, ConversationChatParams>((
-      ref,
-      params,
-    ) async {
-      // TODO: 实现完整的对话聊天逻辑
-      throw UnimplementedError('conversationChatProvider 待实现');
-    });
+  ref,
+  params,
+) async {
+  // TODO: 实现完整的对话聊天逻辑
+  throw UnimplementedError('conversationChatProvider 待实现');
+});
 
 /// 对话流式聊天Provider - 包含完整业务逻辑的流式聊天接口
 final conversationChatStreamProvider =
     StreamProvider.family<ConversationChatStreamEvent, ConversationChatParams>((
-      ref,
-      params,
-    ) {
-      // TODO: 实现完整的对话流式聊天逻辑
-      throw UnimplementedError('conversationChatStreamProvider 待实现');
-    });
+  ref,
+  params,
+) {
+  // TODO: 实现完整的对话流式聊天逻辑
+  throw UnimplementedError('conversationChatStreamProvider 待实现');
+});
 
 /// 清除模型缓存的Provider
 final clearModelCacheProvider = Provider.family<void, String?>((

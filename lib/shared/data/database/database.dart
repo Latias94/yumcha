@@ -75,6 +75,11 @@ class Assistants extends Table {
   BoolColumn get enableEmbedding =>
       boolean().withDefault(const Constant(false))();
 
+  // MCP 配置
+  TextColumn get mcpServerIds => text()
+      .map(const StringListConverter())
+      .withDefault(const Constant('[]'))(); // JSON string - MCP服务器ID列表
+
   // 状态
   BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
 
@@ -159,19 +164,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (Migrator m) async {
-      await m.createAll();
-      await _createIndexes(m);
-    },
-    onUpgrade: (Migrator m, int from, int to) async {
-      // 数据库迁移策略
-      await _performMigration(m, from, to);
-    },
-  );
+        onCreate: (Migrator m) async {
+          await m.createAll();
+          await _createIndexes(m);
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          // 数据库迁移策略
+          await _performMigration(m, from, to);
+        },
+      );
 
   /// 创建索引以提高查询性能
   Future<void> _createIndexes(Migrator m) async {
@@ -205,8 +210,15 @@ class AppDatabase extends _$AppDatabase {
       );
     }
 
+    // 版本2到版本3：为助手表添加MCP服务器ID字段
+    if (from < 3) {
+      await m.database.customStatement(
+        'ALTER TABLE assistants ADD COLUMN mcp_server_ids TEXT NOT NULL DEFAULT "[]";',
+      );
+    }
+
     // 未来版本升级时在此处添加迁移逻辑
-    // if (from < 3) {
+    // if (from < 4) {
     //   await m.createTable(newTable);
     // }
   }
@@ -223,7 +235,8 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateProvider(String id, ProvidersCompanion provider) async {
     final result = await (update(
       providers,
-    )..where((p) => p.id.equals(id))).write(provider);
+    )..where((p) => p.id.equals(id)))
+        .write(provider);
     return result > 0;
   }
 
@@ -242,7 +255,8 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateAssistant(String id, AssistantsCompanion assistant) async {
     final result = await (update(
       assistants,
-    )..where((a) => a.id.equals(id))).write(assistant);
+    )..where((a) => a.id.equals(id)))
+        .write(assistant);
     return result > 0;
   }
 
@@ -256,8 +270,9 @@ class AppDatabase extends _$AppDatabase {
 
   // 对话相关操作
   Future<List<ConversationData>> getAllConversations() => (select(
-    conversations,
-  )..orderBy([(c) => OrderingTerm.desc(c.lastMessageAt)])).get();
+        conversations,
+      )..orderBy([(c) => OrderingTerm.desc(c.lastMessageAt)]))
+          .get();
 
   // 分页获取所有对话
   Future<List<ConversationData>> getAllConversationsWithPagination({
@@ -319,7 +334,8 @@ class AppDatabase extends _$AppDatabase {
   ) async {
     final result = await (update(
       conversations,
-    )..where((c) => c.id.equals(id))).write(conversation);
+    )..where((c) => c.id.equals(id)))
+        .write(conversation);
     return result > 0;
   }
 
@@ -346,7 +362,8 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateMessage(String id, MessagesCompanion message) async {
     final result = await (update(
       messages,
-    )..where((m) => m.id.equals(id))).write(message);
+    )..where((m) => m.id.equals(id)))
+        .write(message);
     return result > 0;
   }
 

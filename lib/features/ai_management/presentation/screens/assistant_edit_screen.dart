@@ -31,6 +31,9 @@ import '../../domain/entities/ai_assistant.dart';
 import '../../domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../providers/ai_assistant_notifier.dart';
+import '../../../settings/domain/entities/mcp_server_config.dart';
+import '../../../settings/presentation/providers/settings_notifier.dart';
+import '../../../settings/presentation/providers/mcp_service_provider.dart';
 
 class AssistantEditScreen extends ConsumerStatefulWidget {
   final AiAssistant? assistant;
@@ -67,6 +70,9 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
   late double _contextLength; // 改为double以支持滑动条
   bool _streamOutput = true;
   bool _injectTimestamp = false; // 注入消息时间
+
+  // MCP配置
+  List<String> _selectedMcpServerIds = [];
 
   bool _isLoading = false;
   bool get _isEditing => widget.assistant != null;
@@ -165,6 +171,9 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
     }
     _streamOutput = assistant?.streamOutput ?? true;
     _injectTimestamp = false; // 新参数，默认false
+
+    // MCP配置
+    _selectedMcpServerIds = List.from(assistant?.mcpServerIds ?? []);
   }
 
   @override
@@ -270,6 +279,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
         enableReasoning: false,
         enableVision: false,
         enableEmbedding: false,
+        mcpServerIds: _selectedMcpServerIds,
         isEnabled: _isEnabled,
         createdAt: widget.assistant?.createdAt ?? now,
         updatedAt: now,
@@ -376,9 +386,9 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                 Text(
                   '助手名称与头像', // 修改标题以更准确描述内容
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    // 使用 titleLarge
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                        // 使用 titleLarge
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -433,9 +443,9 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
               Text(
                 'AI参数',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  // 使用 titleLarge
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      // 使用 titleLarge
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
               const SizedBox(height: 16), // 调整标题和第一个参数组的间距
               // 温度设置
@@ -610,6 +620,11 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                   ],
                 ),
               ),
+              const SizedBox(height: 32), // 增加间距以分隔不同的配置组
+
+              // MCP 配置
+              _buildMcpConfigSection(),
+
               const SizedBox(height: 24), // 参数组之间的间距
               // 流式输出
               SwitchListTile(
@@ -674,16 +689,16 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
         Text(
           description,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         ),
         if (additionalInfo != null) ...[
           const SizedBox(height: 4),
           Text(
             additionalInfo,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
         ],
         const SizedBox(height: 8),
@@ -705,9 +720,9 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
               Text(
                 '系统提示词',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  // 使用 titleLarge
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      // 使用 titleLarge
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -746,10 +761,12 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                     Text(
                       '日期: {cur_date}, 时间: {cur_time}, 日期和时间: {cur_datetime}, 模型ID: {model_id}, 模型名称: {model_name}, 语言环境: {locale}, 时区: {timezone}, 系统版本: {system_version}, 设备信息: {device_info}, 电池电量: {battery_level}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant, // 保持 onSurfaceVariant
-                      ),
+                            color: Theme.of(
+                              context,
+                            )
+                                .colorScheme
+                                .onSurfaceVariant, // 保持 onSurfaceVariant
+                          ),
                     ),
                   ],
                 ),
@@ -757,6 +774,179 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// 构建MCP配置部分
+  Widget _buildMcpConfigSection() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final mcpState = ref.watch(mcpServiceProvider);
+        final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+        final mcpServers = settingsNotifier.getMcpServers();
+
+        if (!mcpState.isEnabled || mcpServers.servers.isEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'MCP 工具',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      mcpState.isEnabled ? '暂无可用的 MCP 服务器' : 'MCP 服务未启用',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      mcpState.isEnabled
+                          ? '请先在设置中添加 MCP 服务器配置'
+                          : '请在设置中启用 MCP 服务并配置服务器',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'MCP 工具',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '选择此助手可以使用的 MCP 服务器。MCP 服务器提供外部工具和功能扩展。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            ...mcpServers.servers.map((server) => _buildMcpServerItem(server)),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 构建单个MCP服务器选择项
+  Widget _buildMcpServerItem(McpServerConfig server) {
+    final isSelected = _selectedMcpServerIds.contains(server.id);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: CheckboxListTile(
+        value: isSelected,
+        onChanged: server.isEnabled
+            ? (value) {
+                setState(() {
+                  if (value == true) {
+                    _selectedMcpServerIds.add(server.id);
+                  } else {
+                    _selectedMcpServerIds.remove(server.id);
+                  }
+                });
+              }
+            : null,
+        title: Text(
+          server.name,
+          style: TextStyle(
+            color: server.isEnabled
+                ? null
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (server.description.isNotEmpty)
+              Text(
+                server.description,
+                style: TextStyle(
+                  color: server.isEnabled
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.6),
+                ),
+              ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Chip(
+                  label: Text(
+                    server.type.displayName,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                const SizedBox(width: 8),
+                if (!server.isEnabled)
+                  Chip(
+                    label: const Text(
+                      '已禁用',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.errorContainer,
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          ),
+        ),
+        tileColor: isSelected
+            ? Theme.of(context)
+                .colorScheme
+                .primaryContainer
+                .withValues(alpha: 0.3)
+            : null,
       ),
     );
   }

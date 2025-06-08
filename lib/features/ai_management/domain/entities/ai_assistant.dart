@@ -93,6 +93,12 @@ class AiAssistant {
   /// 是否支持向量嵌入
   final bool enableEmbedding;
 
+  // ========== MCP 配置 ==========
+
+  /// 关联的 MCP 服务器 ID 列表
+  /// 助手可以使用这些 MCP 服务器提供的工具
+  final List<String> mcpServerIds;
+
   // ========== 元数据 ==========
 
   /// 是否启用此助手
@@ -126,6 +132,7 @@ class AiAssistant {
     this.enableReasoning = false,
     this.enableVision = false,
     this.enableEmbedding = false,
+    this.mcpServerIds = const [],
     this.isEnabled = true,
     required this.createdAt,
     required this.updatedAt,
@@ -153,6 +160,7 @@ class AiAssistant {
     bool? enableReasoning,
     bool? enableVision,
     bool? enableEmbedding,
+    List<String>? mcpServerIds,
     bool? isEnabled,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -180,6 +188,7 @@ class AiAssistant {
       enableReasoning: enableReasoning ?? this.enableReasoning,
       enableVision: enableVision ?? this.enableVision,
       enableEmbedding: enableEmbedding ?? this.enableEmbedding,
+      mcpServerIds: mcpServerIds ?? this.mcpServerIds,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

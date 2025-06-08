@@ -1,10 +1,11 @@
 import 'dart:async';
+import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
     as models;
-import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/chat/domain/entities/message.dart';
-import '../core/ai_service_base.dart';
+import '../../../../../features/settings/domain/usecases/manage_mcp_server_usecase.dart';
 import '../core/ai_response_models.dart';
+import '../core/ai_service_base.dart';
 import 'package:llm_dart/llm_dart.dart';
 
 /// 聊天服务 - AI对话功能的核心实现
@@ -112,6 +113,9 @@ class ChatService extends AiServiceBase {
   /// - 🕒 **时间信息**：最后请求时间、服务启动时间
   final Map<String, AiServiceStats> _stats = {};
 
+  /// MCP服务管理器
+  final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase();
+
   /// 服务初始化状态标记
   bool _isInitialized = false;
 
@@ -120,12 +124,12 @@ class ChatService extends AiServiceBase {
 
   @override
   Set<AiCapability> get supportedCapabilities => {
-    AiCapability.chat, // 基础聊天对话
-    AiCapability.streaming, // 流式响应
-    AiCapability.toolCalling, // 工具调用
-    AiCapability.reasoning, // 推理思考
-    AiCapability.vision, // 视觉理解
-  };
+        AiCapability.chat, // 基础聊天对话
+        AiCapability.streaming, // 流式响应
+        AiCapability.toolCalling, // 工具调用
+        AiCapability.reasoning, // 推理思考
+        AiCapability.vision, // 视觉理解
+      };
 
   @override
   Future<void> initialize() async {
@@ -181,8 +185,13 @@ class ChatService extends AiServiceBase {
       // 构建消息列表
       final messages = _buildMessageList(adapter, chatHistory, userMessage);
 
+      // 获取MCP工具（如果助手启用了工具功能）
+      final tools = assistant.enableTools
+          ? await _getMcpTools(assistant.mcpServerIds)
+          : <Tool>[];
+
       // 发送请求
-      final response = await chatProvider.chatWithTools(messages, null);
+      final response = await chatProvider.chatWithTools(messages, tools);
 
       final duration = context.elapsed;
 
@@ -488,5 +497,18 @@ class ChatService extends AiServiceBase {
   /// 生成请求ID
   String _generateRequestId() {
     return 'chat_${DateTime.now().millisecondsSinceEpoch}_${_stats.length}';
+  }
+
+  /// 获取MCP工具列表
+  ///
+  /// @param mcpServerIds 助手配置的MCP服务器ID列表
+  /// @returns 可用的MCP工具列表，转换为llm_dart的Tool格式
+  Future<List<Tool>> _getMcpTools(List<String> mcpServerIds) async {
+    // TODO: 实现MCP工具集成
+    // 当前返回空列表，待MCP服务完全集成后实现
+    logger.info('MCP工具集成待实现', {
+      'serverIds': mcpServerIds,
+    });
+    return [];
   }
 }

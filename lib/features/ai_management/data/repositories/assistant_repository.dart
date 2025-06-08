@@ -47,7 +47,7 @@ class AssistantRepository {
   // 根据提供商分组获取助手 - 已移除，因为助手不再关联特定提供商
   @Deprecated('助手不再关联特定提供商，请使用 getAllAssistants() 方法')
   Future<Map<String, List<AiAssistant>>>
-  getAssistantsByProviderGrouped() async {
+      getAssistantsByProviderGrouped() async {
     // 返回空的分组，因为助手不再关联提供商
     return {};
   }
@@ -89,6 +89,7 @@ class AssistantRepository {
       enableReasoning: data.enableReasoning,
       enableVision: data.enableVision,
       enableEmbedding: data.enableEmbedding,
+      mcpServerIds: data.mcpServerIds,
       isEnabled: data.isEnabled,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
@@ -119,6 +120,7 @@ class AssistantRepository {
       enableReasoning: Value(assistant.enableReasoning),
       enableVision: Value(assistant.enableVision),
       enableEmbedding: Value(assistant.enableEmbedding),
+      mcpServerIds: Value(assistant.mcpServerIds),
       isEnabled: Value(assistant.isEnabled),
       createdAt: Value(assistant.createdAt),
       updatedAt: Value(assistant.updatedAt),

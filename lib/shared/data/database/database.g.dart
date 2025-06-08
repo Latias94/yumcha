@@ -12,129 +12,86 @@ class $ProvidersTable extends Providers
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   @override
   late final GeneratedColumnWithTypeConverter<ProviderType, int> type =
-      GeneratedColumn<int>(
-        'type',
-        aliasedName,
-        false,
-        type: DriftSqlType.int,
-        requiredDuringInsert: true,
-      ).withConverter<ProviderType>($ProvidersTable.$convertertype);
+      GeneratedColumn<int>('type', aliasedName, false,
+              type: DriftSqlType.int, requiredDuringInsert: true)
+          .withConverter<ProviderType>($ProvidersTable.$convertertype);
   static const VerificationMeta _apiKeyMeta = const VerificationMeta('apiKey');
   @override
   late final GeneratedColumn<String> apiKey = GeneratedColumn<String>(
-    'api_key',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _baseUrlMeta = const VerificationMeta(
-    'baseUrl',
-  );
+      'api_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _baseUrlMeta =
+      const VerificationMeta('baseUrl');
   @override
   late final GeneratedColumn<String> baseUrl = GeneratedColumn<String>(
-    'base_url',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
+      'base_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   late final GeneratedColumnWithTypeConverter<List<AiModel>, String> models =
-      GeneratedColumn<String>(
-        'models',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        defaultValue: const Constant('[]'),
-      ).withConverter<List<AiModel>>($ProvidersTable.$convertermodels);
+      GeneratedColumn<String>('models', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant('[]'))
+          .withConverter<List<AiModel>>($ProvidersTable.$convertermodels);
   @override
   late final GeneratedColumnWithTypeConverter<Map<String, String>, String>
-  customHeaders = GeneratedColumn<String>(
-    'custom_headers',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  ).withConverter<Map<String, String>>($ProvidersTable.$convertercustomHeaders);
-  static const VerificationMeta _isEnabledMeta = const VerificationMeta(
-    'isEnabled',
-  );
+      customHeaders = GeneratedColumn<String>(
+              'custom_headers', aliasedName, false,
+              type: DriftSqlType.string, requiredDuringInsert: true)
+          .withConverter<Map<String, String>>(
+              $ProvidersTable.$convertercustomHeaders);
+  static const VerificationMeta _isEnabledMeta =
+      const VerificationMeta('isEnabled');
   @override
   late final GeneratedColumn<bool> isEnabled = GeneratedColumn<bool>(
-    'is_enabled',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_enabled" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
+      'is_enabled', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_enabled" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    type,
-    apiKey,
-    baseUrl,
-    models,
-    customHeaders,
-    isEnabled,
-    createdAt,
-    updatedAt,
-  ];
+        id,
+        name,
+        type,
+        apiKey,
+        baseUrl,
+        models,
+        customHeaders,
+        isEnabled,
+        createdAt,
+        updatedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'providers';
   @override
-  VerificationContext validateIntegrity(
-    Insertable<ProviderData> instance, {
-    bool isInserting = false,
-  }) {
+  VerificationContext validateIntegrity(Insertable<ProviderData> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -144,45 +101,33 @@ class $ProvidersTable extends Providers
     }
     if (data.containsKey('name')) {
       context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
     if (data.containsKey('api_key')) {
-      context.handle(
-        _apiKeyMeta,
-        apiKey.isAcceptableOrUnknown(data['api_key']!, _apiKeyMeta),
-      );
+      context.handle(_apiKeyMeta,
+          apiKey.isAcceptableOrUnknown(data['api_key']!, _apiKeyMeta));
     } else if (isInserting) {
       context.missing(_apiKeyMeta);
     }
     if (data.containsKey('base_url')) {
-      context.handle(
-        _baseUrlMeta,
-        baseUrl.isAcceptableOrUnknown(data['base_url']!, _baseUrlMeta),
-      );
+      context.handle(_baseUrlMeta,
+          baseUrl.isAcceptableOrUnknown(data['base_url']!, _baseUrlMeta));
     }
     if (data.containsKey('is_enabled')) {
-      context.handle(
-        _isEnabledMeta,
-        isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta),
-      );
+      context.handle(_isEnabledMeta,
+          isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta));
     }
     if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
     if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
@@ -195,52 +140,28 @@ class $ProvidersTable extends Providers
   ProviderData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ProviderData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      type: $ProvidersTable.$convertertype.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
-          data['${effectivePrefix}type'],
-        )!,
-      ),
-      apiKey: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}api_key'],
-      )!,
-      baseUrl: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}base_url'],
-      ),
-      models: $ProvidersTable.$convertermodels.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}models'],
-        )!,
-      ),
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      type: $ProvidersTable.$convertertype.fromSql(attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}type'])!),
+      apiKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}api_key'])!,
+      baseUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}base_url']),
+      models: $ProvidersTable.$convertermodels.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}models'])!),
       customHeaders: $ProvidersTable.$convertercustomHeaders.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}custom_headers'],
-        )!,
-      ),
-      isEnabled: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_enabled'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.string, data['${effectivePrefix}custom_headers'])!),
+      isEnabled: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_enabled'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
   }
 
@@ -268,18 +189,17 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
   final bool isEnabled;
   final DateTime createdAt;
   final DateTime updatedAt;
-  const ProviderData({
-    required this.id,
-    required this.name,
-    required this.type,
-    required this.apiKey,
-    this.baseUrl,
-    required this.models,
-    required this.customHeaders,
-    required this.isEnabled,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+  const ProviderData(
+      {required this.id,
+      required this.name,
+      required this.type,
+      required this.apiKey,
+      this.baseUrl,
+      required this.models,
+      required this.customHeaders,
+      required this.isEnabled,
+      required this.createdAt,
+      required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -293,14 +213,12 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
       map['base_url'] = Variable<String>(baseUrl);
     }
     {
-      map['models'] = Variable<String>(
-        $ProvidersTable.$convertermodels.toSql(models),
-      );
+      map['models'] =
+          Variable<String>($ProvidersTable.$convertermodels.toSql(models));
     }
     {
       map['custom_headers'] = Variable<String>(
-        $ProvidersTable.$convertercustomHeaders.toSql(customHeaders),
-      );
+          $ProvidersTable.$convertercustomHeaders.toSql(customHeaders));
     }
     map['is_enabled'] = Variable<bool>(isEnabled);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -325,23 +243,19 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
     );
   }
 
-  factory ProviderData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory ProviderData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ProviderData(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      type: $ProvidersTable.$convertertype.fromJson(
-        serializer.fromJson<int>(json['type']),
-      ),
+      type: $ProvidersTable.$convertertype
+          .fromJson(serializer.fromJson<int>(json['type'])),
       apiKey: serializer.fromJson<String>(json['apiKey']),
       baseUrl: serializer.fromJson<String?>(json['baseUrl']),
       models: serializer.fromJson<List<AiModel>>(json['models']),
-      customHeaders: serializer.fromJson<Map<String, String>>(
-        json['customHeaders'],
-      ),
+      customHeaders:
+          serializer.fromJson<Map<String, String>>(json['customHeaders']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -353,9 +267,8 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'type': serializer.toJson<int>(
-        $ProvidersTable.$convertertype.toJson(type),
-      ),
+      'type':
+          serializer.toJson<int>($ProvidersTable.$convertertype.toJson(type)),
       'apiKey': serializer.toJson<String>(apiKey),
       'baseUrl': serializer.toJson<String?>(baseUrl),
       'models': serializer.toJson<List<AiModel>>(models),
@@ -366,29 +279,29 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
     };
   }
 
-  ProviderData copyWith({
-    String? id,
-    String? name,
-    ProviderType? type,
-    String? apiKey,
-    Value<String?> baseUrl = const Value.absent(),
-    List<AiModel>? models,
-    Map<String, String>? customHeaders,
-    bool? isEnabled,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) => ProviderData(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    type: type ?? this.type,
-    apiKey: apiKey ?? this.apiKey,
-    baseUrl: baseUrl.present ? baseUrl.value : this.baseUrl,
-    models: models ?? this.models,
-    customHeaders: customHeaders ?? this.customHeaders,
-    isEnabled: isEnabled ?? this.isEnabled,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
+  ProviderData copyWith(
+          {String? id,
+          String? name,
+          ProviderType? type,
+          String? apiKey,
+          Value<String?> baseUrl = const Value.absent(),
+          List<AiModel>? models,
+          Map<String, String>? customHeaders,
+          bool? isEnabled,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      ProviderData(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        type: type ?? this.type,
+        apiKey: apiKey ?? this.apiKey,
+        baseUrl: baseUrl.present ? baseUrl.value : this.baseUrl,
+        models: models ?? this.models,
+        customHeaders: customHeaders ?? this.customHeaders,
+        isEnabled: isEnabled ?? this.isEnabled,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
   ProviderData copyWithCompanion(ProvidersCompanion data) {
     return ProviderData(
       id: data.id.present ? data.id.value : this.id,
@@ -424,18 +337,8 @@ class ProviderData extends DataClass implements Insertable<ProviderData> {
   }
 
   @override
-  int get hashCode => Object.hash(
-    id,
-    name,
-    type,
-    apiKey,
-    baseUrl,
-    models,
-    customHeaders,
-    isEnabled,
-    createdAt,
-    updatedAt,
-  );
+  int get hashCode => Object.hash(id, name, type, apiKey, baseUrl, models,
+      customHeaders, isEnabled, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -489,13 +392,13 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       name = Value(name),
-       type = Value(type),
-       apiKey = Value(apiKey),
-       customHeaders = Value(customHeaders),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt);
+  })  : id = Value(id),
+        name = Value(name),
+        type = Value(type),
+        apiKey = Value(apiKey),
+        customHeaders = Value(customHeaders),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
   static Insertable<ProviderData> custom({
     Expression<String>? id,
     Expression<String>? name,
@@ -524,19 +427,18 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     });
   }
 
-  ProvidersCompanion copyWith({
-    Value<String>? id,
-    Value<String>? name,
-    Value<ProviderType>? type,
-    Value<String>? apiKey,
-    Value<String?>? baseUrl,
-    Value<List<AiModel>>? models,
-    Value<Map<String, String>>? customHeaders,
-    Value<bool>? isEnabled,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<int>? rowid,
-  }) {
+  ProvidersCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<ProviderType>? type,
+      Value<String>? apiKey,
+      Value<String?>? baseUrl,
+      Value<List<AiModel>>? models,
+      Value<Map<String, String>>? customHeaders,
+      Value<bool>? isEnabled,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
     return ProvidersCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
@@ -562,9 +464,8 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
       map['name'] = Variable<String>(name.value);
     }
     if (type.present) {
-      map['type'] = Variable<int>(
-        $ProvidersTable.$convertertype.toSql(type.value),
-      );
+      map['type'] =
+          Variable<int>($ProvidersTable.$convertertype.toSql(type.value));
     }
     if (apiKey.present) {
       map['api_key'] = Variable<String>(apiKey.value);
@@ -574,13 +475,11 @@ class ProvidersCompanion extends UpdateCompanion<ProviderData> {
     }
     if (models.present) {
       map['models'] = Variable<String>(
-        $ProvidersTable.$convertermodels.toSql(models.value),
-      );
+          $ProvidersTable.$convertermodels.toSql(models.value));
     }
     if (customHeaders.present) {
       map['custom_headers'] = Variable<String>(
-        $ProvidersTable.$convertercustomHeaders.toSql(customHeaders.value),
-      );
+          $ProvidersTable.$convertercustomHeaders.toSql(customHeaders.value));
     }
     if (isEnabled.present) {
       map['is_enabled'] = Variable<bool>(isEnabled.value);
@@ -625,334 +524,241 @@ class $AssistantsTable extends Assistants
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _descriptionMeta = const VerificationMeta(
-    'description',
-  );
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _descriptionMeta =
+      const VerificationMeta('description');
   @override
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
-    'description',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'description', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _avatarMeta = const VerificationMeta('avatar');
   @override
   late final GeneratedColumn<String> avatar = GeneratedColumn<String>(
-    'avatar',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('🤖'),
-  );
-  static const VerificationMeta _systemPromptMeta = const VerificationMeta(
-    'systemPrompt',
-  );
+      'avatar', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('🤖'));
+  static const VerificationMeta _systemPromptMeta =
+      const VerificationMeta('systemPrompt');
   @override
   late final GeneratedColumn<String> systemPrompt = GeneratedColumn<String>(
-    'system_prompt',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _temperatureMeta = const VerificationMeta(
-    'temperature',
-  );
+      'system_prompt', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _temperatureMeta =
+      const VerificationMeta('temperature');
   @override
   late final GeneratedColumn<double> temperature = GeneratedColumn<double>(
-    'temperature',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0.7),
-  );
+      'temperature', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.7));
   static const VerificationMeta _topPMeta = const VerificationMeta('topP');
   @override
   late final GeneratedColumn<double> topP = GeneratedColumn<double>(
-    'top_p',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(1.0),
-  );
-  static const VerificationMeta _maxTokensMeta = const VerificationMeta(
-    'maxTokens',
-  );
+      'top_p', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1.0));
+  static const VerificationMeta _maxTokensMeta =
+      const VerificationMeta('maxTokens');
   @override
   late final GeneratedColumn<int> maxTokens = GeneratedColumn<int>(
-    'max_tokens',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(2048),
-  );
-  static const VerificationMeta _contextLengthMeta = const VerificationMeta(
-    'contextLength',
-  );
+      'max_tokens', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(2048));
+  static const VerificationMeta _contextLengthMeta =
+      const VerificationMeta('contextLength');
   @override
   late final GeneratedColumn<int> contextLength = GeneratedColumn<int>(
-    'context_length',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(10),
-  );
-  static const VerificationMeta _streamOutputMeta = const VerificationMeta(
-    'streamOutput',
-  );
+      'context_length', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(10));
+  static const VerificationMeta _streamOutputMeta =
+      const VerificationMeta('streamOutput');
   @override
   late final GeneratedColumn<bool> streamOutput = GeneratedColumn<bool>(
-    'stream_output',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("stream_output" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _frequencyPenaltyMeta = const VerificationMeta(
-    'frequencyPenalty',
-  );
+      'stream_output', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("stream_output" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _frequencyPenaltyMeta =
+      const VerificationMeta('frequencyPenalty');
   @override
   late final GeneratedColumn<double> frequencyPenalty = GeneratedColumn<double>(
-    'frequency_penalty',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _presencePenaltyMeta = const VerificationMeta(
-    'presencePenalty',
-  );
+      'frequency_penalty', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _presencePenaltyMeta =
+      const VerificationMeta('presencePenalty');
   @override
   late final GeneratedColumn<double> presencePenalty = GeneratedColumn<double>(
-    'presence_penalty',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
+      'presence_penalty', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   @override
   late final GeneratedColumnWithTypeConverter<Map<String, String>, String>
-  customHeaders =
-      GeneratedColumn<String>(
-        'custom_headers',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        defaultValue: const Constant('{}'),
-      ).withConverter<Map<String, String>>(
-        $AssistantsTable.$convertercustomHeaders,
-      );
+      customHeaders = GeneratedColumn<String>(
+              'custom_headers', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant('{}'))
+          .withConverter<Map<String, String>>(
+              $AssistantsTable.$convertercustomHeaders);
   @override
   late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  customBody = GeneratedColumn<String>(
-    'custom_body',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('{}'),
-  ).withConverter<Map<String, dynamic>>($AssistantsTable.$convertercustomBody);
+      customBody = GeneratedColumn<String>('custom_body', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant('{}'))
+          .withConverter<Map<String, dynamic>>(
+              $AssistantsTable.$convertercustomBody);
   @override
   late final GeneratedColumnWithTypeConverter<List<String>, String>
-  stopSequences = GeneratedColumn<String>(
-    'stop_sequences',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('[]'),
-  ).withConverter<List<String>>($AssistantsTable.$converterstopSequences);
+      stopSequences = GeneratedColumn<String>(
+              'stop_sequences', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant('[]'))
+          .withConverter<List<String>>(
+              $AssistantsTable.$converterstopSequences);
   static const VerificationMeta _enableCodeExecutionMeta =
       const VerificationMeta('enableCodeExecution');
   @override
   late final GeneratedColumn<bool> enableCodeExecution = GeneratedColumn<bool>(
-    'enable_code_execution',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("enable_code_execution" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
+      'enable_code_execution', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_code_execution" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _enableImageGenerationMeta =
       const VerificationMeta('enableImageGeneration');
   @override
   late final GeneratedColumn<bool> enableImageGeneration =
-      GeneratedColumn<bool>(
-        'enable_image_generation',
-        aliasedName,
-        false,
-        type: DriftSqlType.bool,
-        requiredDuringInsert: false,
-        defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'CHECK ("enable_image_generation" IN (0, 1))',
-        ),
-        defaultValue: const Constant(false),
-      );
-  static const VerificationMeta _enableToolsMeta = const VerificationMeta(
-    'enableTools',
-  );
+      GeneratedColumn<bool>('enable_image_generation', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("enable_image_generation" IN (0, 1))'),
+          defaultValue: const Constant(false));
+  static const VerificationMeta _enableToolsMeta =
+      const VerificationMeta('enableTools');
   @override
   late final GeneratedColumn<bool> enableTools = GeneratedColumn<bool>(
-    'enable_tools',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("enable_tools" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _enableReasoningMeta = const VerificationMeta(
-    'enableReasoning',
-  );
+      'enable_tools', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_tools" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _enableReasoningMeta =
+      const VerificationMeta('enableReasoning');
   @override
   late final GeneratedColumn<bool> enableReasoning = GeneratedColumn<bool>(
-    'enable_reasoning',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("enable_reasoning" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _enableVisionMeta = const VerificationMeta(
-    'enableVision',
-  );
+      'enable_reasoning', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_reasoning" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _enableVisionMeta =
+      const VerificationMeta('enableVision');
   @override
   late final GeneratedColumn<bool> enableVision = GeneratedColumn<bool>(
-    'enable_vision',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("enable_vision" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _enableEmbeddingMeta = const VerificationMeta(
-    'enableEmbedding',
-  );
+      'enable_vision', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_vision" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _enableEmbeddingMeta =
+      const VerificationMeta('enableEmbedding');
   @override
   late final GeneratedColumn<bool> enableEmbedding = GeneratedColumn<bool>(
-    'enable_embedding',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("enable_embedding" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _isEnabledMeta = const VerificationMeta(
-    'isEnabled',
-  );
+      'enable_embedding', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_embedding" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  late final GeneratedColumnWithTypeConverter<List<String>, String>
+      mcpServerIds = GeneratedColumn<String>(
+              'mcp_server_ids', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant('[]'))
+          .withConverter<List<String>>($AssistantsTable.$convertermcpServerIds);
+  static const VerificationMeta _isEnabledMeta =
+      const VerificationMeta('isEnabled');
   @override
   late final GeneratedColumn<bool> isEnabled = GeneratedColumn<bool>(
-    'is_enabled',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_enabled" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
+      'is_enabled', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_enabled" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   @override
   List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    description,
-    avatar,
-    systemPrompt,
-    temperature,
-    topP,
-    maxTokens,
-    contextLength,
-    streamOutput,
-    frequencyPenalty,
-    presencePenalty,
-    customHeaders,
-    customBody,
-    stopSequences,
-    enableCodeExecution,
-    enableImageGeneration,
-    enableTools,
-    enableReasoning,
-    enableVision,
-    enableEmbedding,
-    isEnabled,
-    createdAt,
-    updatedAt,
-  ];
+        id,
+        name,
+        description,
+        avatar,
+        systemPrompt,
+        temperature,
+        topP,
+        maxTokens,
+        contextLength,
+        streamOutput,
+        frequencyPenalty,
+        presencePenalty,
+        customHeaders,
+        customBody,
+        stopSequences,
+        enableCodeExecution,
+        enableImageGeneration,
+        enableTools,
+        enableReasoning,
+        enableVision,
+        enableEmbedding,
+        mcpServerIds,
+        isEnabled,
+        createdAt,
+        updatedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'assistants';
   @override
-  VerificationContext validateIntegrity(
-    Insertable<AssistantData> instance, {
-    bool isInserting = false,
-  }) {
+  VerificationContext validateIntegrity(Insertable<AssistantData> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -962,168 +768,115 @@ class $AssistantsTable extends Assistants
     }
     if (data.containsKey('name')) {
       context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
     if (data.containsKey('description')) {
       context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
           _descriptionMeta,
-        ),
-      );
+          description.isAcceptableOrUnknown(
+              data['description']!, _descriptionMeta));
     } else if (isInserting) {
       context.missing(_descriptionMeta);
     }
     if (data.containsKey('avatar')) {
-      context.handle(
-        _avatarMeta,
-        avatar.isAcceptableOrUnknown(data['avatar']!, _avatarMeta),
-      );
+      context.handle(_avatarMeta,
+          avatar.isAcceptableOrUnknown(data['avatar']!, _avatarMeta));
     }
     if (data.containsKey('system_prompt')) {
       context.handle(
-        _systemPromptMeta,
-        systemPrompt.isAcceptableOrUnknown(
-          data['system_prompt']!,
           _systemPromptMeta,
-        ),
-      );
+          systemPrompt.isAcceptableOrUnknown(
+              data['system_prompt']!, _systemPromptMeta));
     } else if (isInserting) {
       context.missing(_systemPromptMeta);
     }
     if (data.containsKey('temperature')) {
       context.handle(
-        _temperatureMeta,
-        temperature.isAcceptableOrUnknown(
-          data['temperature']!,
           _temperatureMeta,
-        ),
-      );
+          temperature.isAcceptableOrUnknown(
+              data['temperature']!, _temperatureMeta));
     }
     if (data.containsKey('top_p')) {
       context.handle(
-        _topPMeta,
-        topP.isAcceptableOrUnknown(data['top_p']!, _topPMeta),
-      );
+          _topPMeta, topP.isAcceptableOrUnknown(data['top_p']!, _topPMeta));
     }
     if (data.containsKey('max_tokens')) {
-      context.handle(
-        _maxTokensMeta,
-        maxTokens.isAcceptableOrUnknown(data['max_tokens']!, _maxTokensMeta),
-      );
+      context.handle(_maxTokensMeta,
+          maxTokens.isAcceptableOrUnknown(data['max_tokens']!, _maxTokensMeta));
     }
     if (data.containsKey('context_length')) {
       context.handle(
-        _contextLengthMeta,
-        contextLength.isAcceptableOrUnknown(
-          data['context_length']!,
           _contextLengthMeta,
-        ),
-      );
+          contextLength.isAcceptableOrUnknown(
+              data['context_length']!, _contextLengthMeta));
     }
     if (data.containsKey('stream_output')) {
       context.handle(
-        _streamOutputMeta,
-        streamOutput.isAcceptableOrUnknown(
-          data['stream_output']!,
           _streamOutputMeta,
-        ),
-      );
+          streamOutput.isAcceptableOrUnknown(
+              data['stream_output']!, _streamOutputMeta));
     }
     if (data.containsKey('frequency_penalty')) {
       context.handle(
-        _frequencyPenaltyMeta,
-        frequencyPenalty.isAcceptableOrUnknown(
-          data['frequency_penalty']!,
           _frequencyPenaltyMeta,
-        ),
-      );
+          frequencyPenalty.isAcceptableOrUnknown(
+              data['frequency_penalty']!, _frequencyPenaltyMeta));
     }
     if (data.containsKey('presence_penalty')) {
       context.handle(
-        _presencePenaltyMeta,
-        presencePenalty.isAcceptableOrUnknown(
-          data['presence_penalty']!,
           _presencePenaltyMeta,
-        ),
-      );
+          presencePenalty.isAcceptableOrUnknown(
+              data['presence_penalty']!, _presencePenaltyMeta));
     }
     if (data.containsKey('enable_code_execution')) {
       context.handle(
-        _enableCodeExecutionMeta,
-        enableCodeExecution.isAcceptableOrUnknown(
-          data['enable_code_execution']!,
           _enableCodeExecutionMeta,
-        ),
-      );
+          enableCodeExecution.isAcceptableOrUnknown(
+              data['enable_code_execution']!, _enableCodeExecutionMeta));
     }
     if (data.containsKey('enable_image_generation')) {
       context.handle(
-        _enableImageGenerationMeta,
-        enableImageGeneration.isAcceptableOrUnknown(
-          data['enable_image_generation']!,
           _enableImageGenerationMeta,
-        ),
-      );
+          enableImageGeneration.isAcceptableOrUnknown(
+              data['enable_image_generation']!, _enableImageGenerationMeta));
     }
     if (data.containsKey('enable_tools')) {
       context.handle(
-        _enableToolsMeta,
-        enableTools.isAcceptableOrUnknown(
-          data['enable_tools']!,
           _enableToolsMeta,
-        ),
-      );
+          enableTools.isAcceptableOrUnknown(
+              data['enable_tools']!, _enableToolsMeta));
     }
     if (data.containsKey('enable_reasoning')) {
       context.handle(
-        _enableReasoningMeta,
-        enableReasoning.isAcceptableOrUnknown(
-          data['enable_reasoning']!,
           _enableReasoningMeta,
-        ),
-      );
+          enableReasoning.isAcceptableOrUnknown(
+              data['enable_reasoning']!, _enableReasoningMeta));
     }
     if (data.containsKey('enable_vision')) {
       context.handle(
-        _enableVisionMeta,
-        enableVision.isAcceptableOrUnknown(
-          data['enable_vision']!,
           _enableVisionMeta,
-        ),
-      );
+          enableVision.isAcceptableOrUnknown(
+              data['enable_vision']!, _enableVisionMeta));
     }
     if (data.containsKey('enable_embedding')) {
       context.handle(
-        _enableEmbeddingMeta,
-        enableEmbedding.isAcceptableOrUnknown(
-          data['enable_embedding']!,
           _enableEmbeddingMeta,
-        ),
-      );
+          enableEmbedding.isAcceptableOrUnknown(
+              data['enable_embedding']!, _enableEmbeddingMeta));
     }
     if (data.containsKey('is_enabled')) {
-      context.handle(
-        _isEnabledMeta,
-        isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta),
-      );
+      context.handle(_isEnabledMeta,
+          isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta));
     }
     if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
     if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     }
     return context;
   }
@@ -1134,108 +887,61 @@ class $AssistantsTable extends Assistants
   AssistantData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return AssistantData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      )!,
-      avatar: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}avatar'],
-      )!,
-      systemPrompt: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}system_prompt'],
-      )!,
-      temperature: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}temperature'],
-      )!,
-      topP: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}top_p'],
-      )!,
-      maxTokens: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}max_tokens'],
-      )!,
-      contextLength: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}context_length'],
-      )!,
-      streamOutput: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}stream_output'],
-      )!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      description: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}description'])!,
+      avatar: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}avatar'])!,
+      systemPrompt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}system_prompt'])!,
+      temperature: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}temperature'])!,
+      topP: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}top_p'])!,
+      maxTokens: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}max_tokens'])!,
+      contextLength: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}context_length'])!,
+      streamOutput: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}stream_output'])!,
       frequencyPenalty: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}frequency_penalty'],
-      ),
+          DriftSqlType.double, data['${effectivePrefix}frequency_penalty']),
       presencePenalty: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}presence_penalty'],
-      ),
+          DriftSqlType.double, data['${effectivePrefix}presence_penalty']),
       customHeaders: $AssistantsTable.$convertercustomHeaders.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}custom_headers'],
-        )!,
-      ),
-      customBody: $AssistantsTable.$convertercustomBody.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}custom_body'],
-        )!,
-      ),
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.string, data['${effectivePrefix}custom_headers'])!),
+      customBody: $AssistantsTable.$convertercustomBody.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}custom_body'])!),
       stopSequences: $AssistantsTable.$converterstopSequences.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}stop_sequences'],
-        )!,
-      ),
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.string, data['${effectivePrefix}stop_sequences'])!),
       enableCodeExecution: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enable_code_execution'],
-      )!,
+          DriftSqlType.bool, data['${effectivePrefix}enable_code_execution'])!,
       enableImageGeneration: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enable_image_generation'],
-      )!,
-      enableTools: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enable_tools'],
-      )!,
-      enableReasoning: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enable_reasoning'],
-      )!,
-      enableVision: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enable_vision'],
-      )!,
-      enableEmbedding: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}enable_embedding'],
-      )!,
-      isEnabled: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_enabled'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
+          DriftSqlType.bool,
+          data['${effectivePrefix}enable_image_generation'])!,
+      enableTools: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}enable_tools'])!,
+      enableReasoning: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}enable_reasoning'])!,
+      enableVision: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}enable_vision'])!,
+      enableEmbedding: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}enable_embedding'])!,
+      mcpServerIds: $AssistantsTable.$convertermcpServerIds.fromSql(
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.string, data['${effectivePrefix}mcp_server_ids'])!),
+      isEnabled: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_enabled'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
   }
 
@@ -1249,6 +955,8 @@ class $AssistantsTable extends Assistants
   static TypeConverter<Map<String, dynamic>, String> $convertercustomBody =
       const DynamicMapConverter();
   static TypeConverter<List<String>, String> $converterstopSequences =
+      const StringListConverter();
+  static TypeConverter<List<String>, String> $convertermcpServerIds =
       const StringListConverter();
 }
 
@@ -1274,35 +982,36 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
   final bool enableReasoning;
   final bool enableVision;
   final bool enableEmbedding;
+  final List<String> mcpServerIds;
   final bool isEnabled;
   final DateTime createdAt;
   final DateTime updatedAt;
-  const AssistantData({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.avatar,
-    required this.systemPrompt,
-    required this.temperature,
-    required this.topP,
-    required this.maxTokens,
-    required this.contextLength,
-    required this.streamOutput,
-    this.frequencyPenalty,
-    this.presencePenalty,
-    required this.customHeaders,
-    required this.customBody,
-    required this.stopSequences,
-    required this.enableCodeExecution,
-    required this.enableImageGeneration,
-    required this.enableTools,
-    required this.enableReasoning,
-    required this.enableVision,
-    required this.enableEmbedding,
-    required this.isEnabled,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+  const AssistantData(
+      {required this.id,
+      required this.name,
+      required this.description,
+      required this.avatar,
+      required this.systemPrompt,
+      required this.temperature,
+      required this.topP,
+      required this.maxTokens,
+      required this.contextLength,
+      required this.streamOutput,
+      this.frequencyPenalty,
+      this.presencePenalty,
+      required this.customHeaders,
+      required this.customBody,
+      required this.stopSequences,
+      required this.enableCodeExecution,
+      required this.enableImageGeneration,
+      required this.enableTools,
+      required this.enableReasoning,
+      required this.enableVision,
+      required this.enableEmbedding,
+      required this.mcpServerIds,
+      required this.isEnabled,
+      required this.createdAt,
+      required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1324,18 +1033,15 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     }
     {
       map['custom_headers'] = Variable<String>(
-        $AssistantsTable.$convertercustomHeaders.toSql(customHeaders),
-      );
+          $AssistantsTable.$convertercustomHeaders.toSql(customHeaders));
     }
     {
       map['custom_body'] = Variable<String>(
-        $AssistantsTable.$convertercustomBody.toSql(customBody),
-      );
+          $AssistantsTable.$convertercustomBody.toSql(customBody));
     }
     {
       map['stop_sequences'] = Variable<String>(
-        $AssistantsTable.$converterstopSequences.toSql(stopSequences),
-      );
+          $AssistantsTable.$converterstopSequences.toSql(stopSequences));
     }
     map['enable_code_execution'] = Variable<bool>(enableCodeExecution);
     map['enable_image_generation'] = Variable<bool>(enableImageGeneration);
@@ -1343,6 +1049,10 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
     map['enable_reasoning'] = Variable<bool>(enableReasoning);
     map['enable_vision'] = Variable<bool>(enableVision);
     map['enable_embedding'] = Variable<bool>(enableEmbedding);
+    {
+      map['mcp_server_ids'] = Variable<String>(
+          $AssistantsTable.$convertermcpServerIds.toSql(mcpServerIds));
+    }
     map['is_enabled'] = Variable<bool>(isEnabled);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1376,16 +1086,15 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       enableReasoning: Value(enableReasoning),
       enableVision: Value(enableVision),
       enableEmbedding: Value(enableEmbedding),
+      mcpServerIds: Value(mcpServerIds),
       isEnabled: Value(isEnabled),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
   }
 
-  factory AssistantData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory AssistantData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return AssistantData(
       id: serializer.fromJson<String>(json['id']),
@@ -1400,21 +1109,19 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       streamOutput: serializer.fromJson<bool>(json['streamOutput']),
       frequencyPenalty: serializer.fromJson<double?>(json['frequencyPenalty']),
       presencePenalty: serializer.fromJson<double?>(json['presencePenalty']),
-      customHeaders: serializer.fromJson<Map<String, String>>(
-        json['customHeaders'],
-      ),
+      customHeaders:
+          serializer.fromJson<Map<String, String>>(json['customHeaders']),
       customBody: serializer.fromJson<Map<String, dynamic>>(json['customBody']),
       stopSequences: serializer.fromJson<List<String>>(json['stopSequences']),
-      enableCodeExecution: serializer.fromJson<bool>(
-        json['enableCodeExecution'],
-      ),
-      enableImageGeneration: serializer.fromJson<bool>(
-        json['enableImageGeneration'],
-      ),
+      enableCodeExecution:
+          serializer.fromJson<bool>(json['enableCodeExecution']),
+      enableImageGeneration:
+          serializer.fromJson<bool>(json['enableImageGeneration']),
       enableTools: serializer.fromJson<bool>(json['enableTools']),
       enableReasoning: serializer.fromJson<bool>(json['enableReasoning']),
       enableVision: serializer.fromJson<bool>(json['enableVision']),
       enableEmbedding: serializer.fromJson<bool>(json['enableEmbedding']),
+      mcpServerIds: serializer.fromJson<List<String>>(json['mcpServerIds']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1445,81 +1152,83 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       'enableReasoning': serializer.toJson<bool>(enableReasoning),
       'enableVision': serializer.toJson<bool>(enableVision),
       'enableEmbedding': serializer.toJson<bool>(enableEmbedding),
+      'mcpServerIds': serializer.toJson<List<String>>(mcpServerIds),
       'isEnabled': serializer.toJson<bool>(isEnabled),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
 
-  AssistantData copyWith({
-    String? id,
-    String? name,
-    String? description,
-    String? avatar,
-    String? systemPrompt,
-    double? temperature,
-    double? topP,
-    int? maxTokens,
-    int? contextLength,
-    bool? streamOutput,
-    Value<double?> frequencyPenalty = const Value.absent(),
-    Value<double?> presencePenalty = const Value.absent(),
-    Map<String, String>? customHeaders,
-    Map<String, dynamic>? customBody,
-    List<String>? stopSequences,
-    bool? enableCodeExecution,
-    bool? enableImageGeneration,
-    bool? enableTools,
-    bool? enableReasoning,
-    bool? enableVision,
-    bool? enableEmbedding,
-    bool? isEnabled,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) => AssistantData(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    description: description ?? this.description,
-    avatar: avatar ?? this.avatar,
-    systemPrompt: systemPrompt ?? this.systemPrompt,
-    temperature: temperature ?? this.temperature,
-    topP: topP ?? this.topP,
-    maxTokens: maxTokens ?? this.maxTokens,
-    contextLength: contextLength ?? this.contextLength,
-    streamOutput: streamOutput ?? this.streamOutput,
-    frequencyPenalty: frequencyPenalty.present
-        ? frequencyPenalty.value
-        : this.frequencyPenalty,
-    presencePenalty: presencePenalty.present
-        ? presencePenalty.value
-        : this.presencePenalty,
-    customHeaders: customHeaders ?? this.customHeaders,
-    customBody: customBody ?? this.customBody,
-    stopSequences: stopSequences ?? this.stopSequences,
-    enableCodeExecution: enableCodeExecution ?? this.enableCodeExecution,
-    enableImageGeneration: enableImageGeneration ?? this.enableImageGeneration,
-    enableTools: enableTools ?? this.enableTools,
-    enableReasoning: enableReasoning ?? this.enableReasoning,
-    enableVision: enableVision ?? this.enableVision,
-    enableEmbedding: enableEmbedding ?? this.enableEmbedding,
-    isEnabled: isEnabled ?? this.isEnabled,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
+  AssistantData copyWith(
+          {String? id,
+          String? name,
+          String? description,
+          String? avatar,
+          String? systemPrompt,
+          double? temperature,
+          double? topP,
+          int? maxTokens,
+          int? contextLength,
+          bool? streamOutput,
+          Value<double?> frequencyPenalty = const Value.absent(),
+          Value<double?> presencePenalty = const Value.absent(),
+          Map<String, String>? customHeaders,
+          Map<String, dynamic>? customBody,
+          List<String>? stopSequences,
+          bool? enableCodeExecution,
+          bool? enableImageGeneration,
+          bool? enableTools,
+          bool? enableReasoning,
+          bool? enableVision,
+          bool? enableEmbedding,
+          List<String>? mcpServerIds,
+          bool? isEnabled,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      AssistantData(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        description: description ?? this.description,
+        avatar: avatar ?? this.avatar,
+        systemPrompt: systemPrompt ?? this.systemPrompt,
+        temperature: temperature ?? this.temperature,
+        topP: topP ?? this.topP,
+        maxTokens: maxTokens ?? this.maxTokens,
+        contextLength: contextLength ?? this.contextLength,
+        streamOutput: streamOutput ?? this.streamOutput,
+        frequencyPenalty: frequencyPenalty.present
+            ? frequencyPenalty.value
+            : this.frequencyPenalty,
+        presencePenalty: presencePenalty.present
+            ? presencePenalty.value
+            : this.presencePenalty,
+        customHeaders: customHeaders ?? this.customHeaders,
+        customBody: customBody ?? this.customBody,
+        stopSequences: stopSequences ?? this.stopSequences,
+        enableCodeExecution: enableCodeExecution ?? this.enableCodeExecution,
+        enableImageGeneration:
+            enableImageGeneration ?? this.enableImageGeneration,
+        enableTools: enableTools ?? this.enableTools,
+        enableReasoning: enableReasoning ?? this.enableReasoning,
+        enableVision: enableVision ?? this.enableVision,
+        enableEmbedding: enableEmbedding ?? this.enableEmbedding,
+        mcpServerIds: mcpServerIds ?? this.mcpServerIds,
+        isEnabled: isEnabled ?? this.isEnabled,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
   AssistantData copyWithCompanion(AssistantsCompanion data) {
     return AssistantData(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
+      description:
+          data.description.present ? data.description.value : this.description,
       avatar: data.avatar.present ? data.avatar.value : this.avatar,
       systemPrompt: data.systemPrompt.present
           ? data.systemPrompt.value
           : this.systemPrompt,
-      temperature: data.temperature.present
-          ? data.temperature.value
-          : this.temperature,
+      temperature:
+          data.temperature.present ? data.temperature.value : this.temperature,
       topP: data.topP.present ? data.topP.value : this.topP,
       maxTokens: data.maxTokens.present ? data.maxTokens.value : this.maxTokens,
       contextLength: data.contextLength.present
@@ -1537,9 +1246,8 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       customHeaders: data.customHeaders.present
           ? data.customHeaders.value
           : this.customHeaders,
-      customBody: data.customBody.present
-          ? data.customBody.value
-          : this.customBody,
+      customBody:
+          data.customBody.present ? data.customBody.value : this.customBody,
       stopSequences: data.stopSequences.present
           ? data.stopSequences.value
           : this.stopSequences,
@@ -1549,9 +1257,8 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       enableImageGeneration: data.enableImageGeneration.present
           ? data.enableImageGeneration.value
           : this.enableImageGeneration,
-      enableTools: data.enableTools.present
-          ? data.enableTools.value
-          : this.enableTools,
+      enableTools:
+          data.enableTools.present ? data.enableTools.value : this.enableTools,
       enableReasoning: data.enableReasoning.present
           ? data.enableReasoning.value
           : this.enableReasoning,
@@ -1561,6 +1268,9 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
       enableEmbedding: data.enableEmbedding.present
           ? data.enableEmbedding.value
           : this.enableEmbedding,
+      mcpServerIds: data.mcpServerIds.present
+          ? data.mcpServerIds.value
+          : this.mcpServerIds,
       isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1591,6 +1301,7 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
           ..write('enableReasoning: $enableReasoning, ')
           ..write('enableVision: $enableVision, ')
           ..write('enableEmbedding: $enableEmbedding, ')
+          ..write('mcpServerIds: $mcpServerIds, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -1600,31 +1311,32 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
 
   @override
   int get hashCode => Object.hashAll([
-    id,
-    name,
-    description,
-    avatar,
-    systemPrompt,
-    temperature,
-    topP,
-    maxTokens,
-    contextLength,
-    streamOutput,
-    frequencyPenalty,
-    presencePenalty,
-    customHeaders,
-    customBody,
-    stopSequences,
-    enableCodeExecution,
-    enableImageGeneration,
-    enableTools,
-    enableReasoning,
-    enableVision,
-    enableEmbedding,
-    isEnabled,
-    createdAt,
-    updatedAt,
-  ]);
+        id,
+        name,
+        description,
+        avatar,
+        systemPrompt,
+        temperature,
+        topP,
+        maxTokens,
+        contextLength,
+        streamOutput,
+        frequencyPenalty,
+        presencePenalty,
+        customHeaders,
+        customBody,
+        stopSequences,
+        enableCodeExecution,
+        enableImageGeneration,
+        enableTools,
+        enableReasoning,
+        enableVision,
+        enableEmbedding,
+        mcpServerIds,
+        isEnabled,
+        createdAt,
+        updatedAt
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1650,6 +1362,7 @@ class AssistantData extends DataClass implements Insertable<AssistantData> {
           other.enableReasoning == this.enableReasoning &&
           other.enableVision == this.enableVision &&
           other.enableEmbedding == this.enableEmbedding &&
+          other.mcpServerIds == this.mcpServerIds &&
           other.isEnabled == this.isEnabled &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -1677,6 +1390,7 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
   final Value<bool> enableReasoning;
   final Value<bool> enableVision;
   final Value<bool> enableEmbedding;
+  final Value<List<String>> mcpServerIds;
   final Value<bool> isEnabled;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1703,6 +1417,7 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     this.enableReasoning = const Value.absent(),
     this.enableVision = const Value.absent(),
     this.enableEmbedding = const Value.absent(),
+    this.mcpServerIds = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1730,14 +1445,15 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     this.enableReasoning = const Value.absent(),
     this.enableVision = const Value.absent(),
     this.enableEmbedding = const Value.absent(),
+    this.mcpServerIds = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       name = Value(name),
-       description = Value(description),
-       systemPrompt = Value(systemPrompt);
+  })  : id = Value(id),
+        name = Value(name),
+        description = Value(description),
+        systemPrompt = Value(systemPrompt);
   static Insertable<AssistantData> custom({
     Expression<String>? id,
     Expression<String>? name,
@@ -1760,6 +1476,7 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     Expression<bool>? enableReasoning,
     Expression<bool>? enableVision,
     Expression<bool>? enableEmbedding,
+    Expression<String>? mcpServerIds,
     Expression<bool>? isEnabled,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1789,6 +1506,7 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
       if (enableReasoning != null) 'enable_reasoning': enableReasoning,
       if (enableVision != null) 'enable_vision': enableVision,
       if (enableEmbedding != null) 'enable_embedding': enableEmbedding,
+      if (mcpServerIds != null) 'mcp_server_ids': mcpServerIds,
       if (isEnabled != null) 'is_enabled': isEnabled,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1796,33 +1514,33 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     });
   }
 
-  AssistantsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? name,
-    Value<String>? description,
-    Value<String>? avatar,
-    Value<String>? systemPrompt,
-    Value<double>? temperature,
-    Value<double>? topP,
-    Value<int>? maxTokens,
-    Value<int>? contextLength,
-    Value<bool>? streamOutput,
-    Value<double?>? frequencyPenalty,
-    Value<double?>? presencePenalty,
-    Value<Map<String, String>>? customHeaders,
-    Value<Map<String, dynamic>>? customBody,
-    Value<List<String>>? stopSequences,
-    Value<bool>? enableCodeExecution,
-    Value<bool>? enableImageGeneration,
-    Value<bool>? enableTools,
-    Value<bool>? enableReasoning,
-    Value<bool>? enableVision,
-    Value<bool>? enableEmbedding,
-    Value<bool>? isEnabled,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<int>? rowid,
-  }) {
+  AssistantsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<String>? description,
+      Value<String>? avatar,
+      Value<String>? systemPrompt,
+      Value<double>? temperature,
+      Value<double>? topP,
+      Value<int>? maxTokens,
+      Value<int>? contextLength,
+      Value<bool>? streamOutput,
+      Value<double?>? frequencyPenalty,
+      Value<double?>? presencePenalty,
+      Value<Map<String, String>>? customHeaders,
+      Value<Map<String, dynamic>>? customBody,
+      Value<List<String>>? stopSequences,
+      Value<bool>? enableCodeExecution,
+      Value<bool>? enableImageGeneration,
+      Value<bool>? enableTools,
+      Value<bool>? enableReasoning,
+      Value<bool>? enableVision,
+      Value<bool>? enableEmbedding,
+      Value<List<String>>? mcpServerIds,
+      Value<bool>? isEnabled,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
     return AssistantsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
@@ -1846,6 +1564,7 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
       enableReasoning: enableReasoning ?? this.enableReasoning,
       enableVision: enableVision ?? this.enableVision,
       enableEmbedding: enableEmbedding ?? this.enableEmbedding,
+      mcpServerIds: mcpServerIds ?? this.mcpServerIds,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1894,26 +1613,22 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     }
     if (customHeaders.present) {
       map['custom_headers'] = Variable<String>(
-        $AssistantsTable.$convertercustomHeaders.toSql(customHeaders.value),
-      );
+          $AssistantsTable.$convertercustomHeaders.toSql(customHeaders.value));
     }
     if (customBody.present) {
       map['custom_body'] = Variable<String>(
-        $AssistantsTable.$convertercustomBody.toSql(customBody.value),
-      );
+          $AssistantsTable.$convertercustomBody.toSql(customBody.value));
     }
     if (stopSequences.present) {
       map['stop_sequences'] = Variable<String>(
-        $AssistantsTable.$converterstopSequences.toSql(stopSequences.value),
-      );
+          $AssistantsTable.$converterstopSequences.toSql(stopSequences.value));
     }
     if (enableCodeExecution.present) {
       map['enable_code_execution'] = Variable<bool>(enableCodeExecution.value);
     }
     if (enableImageGeneration.present) {
-      map['enable_image_generation'] = Variable<bool>(
-        enableImageGeneration.value,
-      );
+      map['enable_image_generation'] =
+          Variable<bool>(enableImageGeneration.value);
     }
     if (enableTools.present) {
       map['enable_tools'] = Variable<bool>(enableTools.value);
@@ -1926,6 +1641,10 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
     }
     if (enableEmbedding.present) {
       map['enable_embedding'] = Variable<bool>(enableEmbedding.value);
+    }
+    if (mcpServerIds.present) {
+      map['mcp_server_ids'] = Variable<String>(
+          $AssistantsTable.$convertermcpServerIds.toSql(mcpServerIds.value));
     }
     if (isEnabled.present) {
       map['is_enabled'] = Variable<bool>(isEnabled.value);
@@ -1966,6 +1685,7 @@ class AssistantsCompanion extends UpdateCompanion<AssistantData> {
           ..write('enableReasoning: $enableReasoning, ')
           ..write('enableVision: $enableVision, ')
           ..write('enableEmbedding: $enableEmbedding, ')
+          ..write('mcpServerIds: $mcpServerIds, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1984,109 +1704,68 @@ class $ConversationsTable extends Conversations
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
-    'title',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _assistantIdMeta = const VerificationMeta(
-    'assistantId',
-  );
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _assistantIdMeta =
+      const VerificationMeta('assistantId');
   @override
   late final GeneratedColumn<String> assistantId = GeneratedColumn<String>(
-    'assistant_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _providerIdMeta = const VerificationMeta(
-    'providerId',
-  );
+      'assistant_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _providerIdMeta =
+      const VerificationMeta('providerId');
   @override
   late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
-    'provider_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _modelIdMeta = const VerificationMeta(
-    'modelId',
-  );
+      'provider_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _modelIdMeta =
+      const VerificationMeta('modelId');
   @override
   late final GeneratedColumn<String> modelId = GeneratedColumn<String>(
-    'model_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _lastMessageAtMeta = const VerificationMeta(
-    'lastMessageAt',
-  );
+      'model_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _lastMessageAtMeta =
+      const VerificationMeta('lastMessageAt');
   @override
   late final GeneratedColumn<DateTime> lastMessageAt =
-      GeneratedColumn<DateTime>(
-        'last_message_at',
-        aliasedName,
-        false,
-        type: DriftSqlType.dateTime,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
+      GeneratedColumn<DateTime>('last_message_at', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns => [
-    id,
-    title,
-    assistantId,
-    providerId,
-    modelId,
-    lastMessageAt,
-    createdAt,
-    updatedAt,
-  ];
+        id,
+        title,
+        assistantId,
+        providerId,
+        modelId,
+        lastMessageAt,
+        createdAt,
+        updatedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'conversations';
   @override
-  VerificationContext validateIntegrity(
-    Insertable<ConversationData> instance, {
-    bool isInserting = false,
-  }) {
+  VerificationContext validateIntegrity(Insertable<ConversationData> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -2096,61 +1775,47 @@ class $ConversationsTable extends Conversations
     }
     if (data.containsKey('title')) {
       context.handle(
-        _titleMeta,
-        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
-      );
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
     } else if (isInserting) {
       context.missing(_titleMeta);
     }
     if (data.containsKey('assistant_id')) {
       context.handle(
-        _assistantIdMeta,
-        assistantId.isAcceptableOrUnknown(
-          data['assistant_id']!,
           _assistantIdMeta,
-        ),
-      );
+          assistantId.isAcceptableOrUnknown(
+              data['assistant_id']!, _assistantIdMeta));
     } else if (isInserting) {
       context.missing(_assistantIdMeta);
     }
     if (data.containsKey('provider_id')) {
       context.handle(
-        _providerIdMeta,
-        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
-      );
+          _providerIdMeta,
+          providerId.isAcceptableOrUnknown(
+              data['provider_id']!, _providerIdMeta));
     } else if (isInserting) {
       context.missing(_providerIdMeta);
     }
     if (data.containsKey('model_id')) {
-      context.handle(
-        _modelIdMeta,
-        modelId.isAcceptableOrUnknown(data['model_id']!, _modelIdMeta),
-      );
+      context.handle(_modelIdMeta,
+          modelId.isAcceptableOrUnknown(data['model_id']!, _modelIdMeta));
     }
     if (data.containsKey('last_message_at')) {
       context.handle(
-        _lastMessageAtMeta,
-        lastMessageAt.isAcceptableOrUnknown(
-          data['last_message_at']!,
           _lastMessageAtMeta,
-        ),
-      );
+          lastMessageAt.isAcceptableOrUnknown(
+              data['last_message_at']!, _lastMessageAtMeta));
     } else if (isInserting) {
       context.missing(_lastMessageAtMeta);
     }
     if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
     if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
@@ -2163,38 +1828,22 @@ class $ConversationsTable extends Conversations
   ConversationData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ConversationData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      title: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}title'],
-      )!,
-      assistantId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}assistant_id'],
-      )!,
-      providerId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}provider_id'],
-      )!,
-      modelId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}model_id'],
-      ),
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      assistantId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}assistant_id'])!,
+      providerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}provider_id'])!,
+      modelId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}model_id']),
       lastMessageAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}last_message_at'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
+          DriftSqlType.dateTime, data['${effectivePrefix}last_message_at'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
   }
 
@@ -2214,16 +1863,15 @@ class ConversationData extends DataClass
   final DateTime lastMessageAt;
   final DateTime createdAt;
   final DateTime updatedAt;
-  const ConversationData({
-    required this.id,
-    required this.title,
-    required this.assistantId,
-    required this.providerId,
-    this.modelId,
-    required this.lastMessageAt,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+  const ConversationData(
+      {required this.id,
+      required this.title,
+      required this.assistantId,
+      required this.providerId,
+      this.modelId,
+      required this.lastMessageAt,
+      required this.createdAt,
+      required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2255,10 +1903,8 @@ class ConversationData extends DataClass
     );
   }
 
-  factory ConversationData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory ConversationData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ConversationData(
       id: serializer.fromJson<String>(json['id']),
@@ -2286,35 +1932,33 @@ class ConversationData extends DataClass
     };
   }
 
-  ConversationData copyWith({
-    String? id,
-    String? title,
-    String? assistantId,
-    String? providerId,
-    Value<String?> modelId = const Value.absent(),
-    DateTime? lastMessageAt,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) => ConversationData(
-    id: id ?? this.id,
-    title: title ?? this.title,
-    assistantId: assistantId ?? this.assistantId,
-    providerId: providerId ?? this.providerId,
-    modelId: modelId.present ? modelId.value : this.modelId,
-    lastMessageAt: lastMessageAt ?? this.lastMessageAt,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
+  ConversationData copyWith(
+          {String? id,
+          String? title,
+          String? assistantId,
+          String? providerId,
+          Value<String?> modelId = const Value.absent(),
+          DateTime? lastMessageAt,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      ConversationData(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        assistantId: assistantId ?? this.assistantId,
+        providerId: providerId ?? this.providerId,
+        modelId: modelId.present ? modelId.value : this.modelId,
+        lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
   ConversationData copyWithCompanion(ConversationsCompanion data) {
     return ConversationData(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
-      assistantId: data.assistantId.present
-          ? data.assistantId.value
-          : this.assistantId,
-      providerId: data.providerId.present
-          ? data.providerId.value
-          : this.providerId,
+      assistantId:
+          data.assistantId.present ? data.assistantId.value : this.assistantId,
+      providerId:
+          data.providerId.present ? data.providerId.value : this.providerId,
       modelId: data.modelId.present ? data.modelId.value : this.modelId,
       lastMessageAt: data.lastMessageAt.present
           ? data.lastMessageAt.value
@@ -2340,16 +1984,8 @@ class ConversationData extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(
-    id,
-    title,
-    assistantId,
-    providerId,
-    modelId,
-    lastMessageAt,
-    createdAt,
-    updatedAt,
-  );
+  int get hashCode => Object.hash(id, title, assistantId, providerId, modelId,
+      lastMessageAt, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2395,13 +2031,13 @@ class ConversationsCompanion extends UpdateCompanion<ConversationData> {
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       title = Value(title),
-       assistantId = Value(assistantId),
-       providerId = Value(providerId),
-       lastMessageAt = Value(lastMessageAt),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt);
+  })  : id = Value(id),
+        title = Value(title),
+        assistantId = Value(assistantId),
+        providerId = Value(providerId),
+        lastMessageAt = Value(lastMessageAt),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
   static Insertable<ConversationData> custom({
     Expression<String>? id,
     Expression<String>? title,
@@ -2426,17 +2062,16 @@ class ConversationsCompanion extends UpdateCompanion<ConversationData> {
     });
   }
 
-  ConversationsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? title,
-    Value<String>? assistantId,
-    Value<String>? providerId,
-    Value<String?>? modelId,
-    Value<DateTime>? lastMessageAt,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<int>? rowid,
-  }) {
+  ConversationsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? title,
+      Value<String>? assistantId,
+      Value<String>? providerId,
+      Value<String?>? modelId,
+      Value<DateTime>? lastMessageAt,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
     return ConversationsCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
@@ -2509,123 +2144,78 @@ class $MessagesTable extends Messages
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _conversationIdMeta = const VerificationMeta(
-    'conversationId',
-  );
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _conversationIdMeta =
+      const VerificationMeta('conversationId');
   @override
   late final GeneratedColumn<String> conversationId = GeneratedColumn<String>(
-    'conversation_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _contentMeta = const VerificationMeta(
-    'content',
-  );
+      'conversation_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
   @override
   late final GeneratedColumn<String> content = GeneratedColumn<String>(
-    'content',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'content', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _authorMeta = const VerificationMeta('author');
   @override
   late final GeneratedColumn<String> author = GeneratedColumn<String>(
-    'author',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _isFromUserMeta = const VerificationMeta(
-    'isFromUser',
-  );
+      'author', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _isFromUserMeta =
+      const VerificationMeta('isFromUser');
   @override
   late final GeneratedColumn<bool> isFromUser = GeneratedColumn<bool>(
-    'is_from_user',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_from_user" IN (0, 1))',
-    ),
-  );
-  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
-    'imageUrl',
-  );
+      'is_from_user', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_from_user" IN (0, 1))'));
+  static const VerificationMeta _imageUrlMeta =
+      const VerificationMeta('imageUrl');
   @override
   late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
-    'image_url',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _avatarUrlMeta = const VerificationMeta(
-    'avatarUrl',
-  );
+      'image_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _avatarUrlMeta =
+      const VerificationMeta('avatarUrl');
   @override
   late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
-    'avatar_url',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _timestampMeta = const VerificationMeta(
-    'timestamp',
-  );
+      'avatar_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _timestampMeta =
+      const VerificationMeta('timestamp');
   @override
   late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
-    'timestamp',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
+      'timestamp', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns => [
-    id,
-    conversationId,
-    content,
-    author,
-    isFromUser,
-    imageUrl,
-    avatarUrl,
-    timestamp,
-    createdAt,
-  ];
+        id,
+        conversationId,
+        content,
+        author,
+        isFromUser,
+        imageUrl,
+        avatarUrl,
+        timestamp,
+        createdAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'messages';
   @override
-  VerificationContext validateIntegrity(
-    Insertable<MessageData> instance, {
-    bool isInserting = false,
-  }) {
+  VerificationContext validateIntegrity(Insertable<MessageData> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -2635,67 +2225,49 @@ class $MessagesTable extends Messages
     }
     if (data.containsKey('conversation_id')) {
       context.handle(
-        _conversationIdMeta,
-        conversationId.isAcceptableOrUnknown(
-          data['conversation_id']!,
           _conversationIdMeta,
-        ),
-      );
+          conversationId.isAcceptableOrUnknown(
+              data['conversation_id']!, _conversationIdMeta));
     } else if (isInserting) {
       context.missing(_conversationIdMeta);
     }
     if (data.containsKey('content')) {
-      context.handle(
-        _contentMeta,
-        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
-      );
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
     } else if (isInserting) {
       context.missing(_contentMeta);
     }
     if (data.containsKey('author')) {
-      context.handle(
-        _authorMeta,
-        author.isAcceptableOrUnknown(data['author']!, _authorMeta),
-      );
+      context.handle(_authorMeta,
+          author.isAcceptableOrUnknown(data['author']!, _authorMeta));
     } else if (isInserting) {
       context.missing(_authorMeta);
     }
     if (data.containsKey('is_from_user')) {
       context.handle(
-        _isFromUserMeta,
-        isFromUser.isAcceptableOrUnknown(
-          data['is_from_user']!,
           _isFromUserMeta,
-        ),
-      );
+          isFromUser.isAcceptableOrUnknown(
+              data['is_from_user']!, _isFromUserMeta));
     } else if (isInserting) {
       context.missing(_isFromUserMeta);
     }
     if (data.containsKey('image_url')) {
-      context.handle(
-        _imageUrlMeta,
-        imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta),
-      );
+      context.handle(_imageUrlMeta,
+          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
     }
     if (data.containsKey('avatar_url')) {
-      context.handle(
-        _avatarUrlMeta,
-        avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta),
-      );
+      context.handle(_avatarUrlMeta,
+          avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta));
     }
     if (data.containsKey('timestamp')) {
-      context.handle(
-        _timestampMeta,
-        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
-      );
+      context.handle(_timestampMeta,
+          timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta));
     } else if (isInserting) {
       context.missing(_timestampMeta);
     }
     if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
@@ -2708,42 +2280,24 @@ class $MessagesTable extends Messages
   MessageData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return MessageData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       conversationId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}conversation_id'],
-      )!,
-      content: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}content'],
-      )!,
-      author: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}author'],
-      )!,
-      isFromUser: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_from_user'],
-      )!,
-      imageUrl: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}image_url'],
-      ),
-      avatarUrl: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}avatar_url'],
-      ),
-      timestamp: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}timestamp'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
+          DriftSqlType.string, data['${effectivePrefix}conversation_id'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content'])!,
+      author: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}author'])!,
+      isFromUser: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_from_user'])!,
+      imageUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
+      avatarUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}avatar_url']),
+      timestamp: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}timestamp'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
   }
 
@@ -2763,17 +2317,16 @@ class MessageData extends DataClass implements Insertable<MessageData> {
   final String? avatarUrl;
   final DateTime timestamp;
   final DateTime createdAt;
-  const MessageData({
-    required this.id,
-    required this.conversationId,
-    required this.content,
-    required this.author,
-    required this.isFromUser,
-    this.imageUrl,
-    this.avatarUrl,
-    required this.timestamp,
-    required this.createdAt,
-  });
+  const MessageData(
+      {required this.id,
+      required this.conversationId,
+      required this.content,
+      required this.author,
+      required this.isFromUser,
+      this.imageUrl,
+      this.avatarUrl,
+      required this.timestamp,
+      required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2811,10 +2364,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     );
   }
 
-  factory MessageData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory MessageData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return MessageData(
       id: serializer.fromJson<String>(json['id']),
@@ -2844,27 +2395,27 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     };
   }
 
-  MessageData copyWith({
-    String? id,
-    String? conversationId,
-    String? content,
-    String? author,
-    bool? isFromUser,
-    Value<String?> imageUrl = const Value.absent(),
-    Value<String?> avatarUrl = const Value.absent(),
-    DateTime? timestamp,
-    DateTime? createdAt,
-  }) => MessageData(
-    id: id ?? this.id,
-    conversationId: conversationId ?? this.conversationId,
-    content: content ?? this.content,
-    author: author ?? this.author,
-    isFromUser: isFromUser ?? this.isFromUser,
-    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
-    avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
-    timestamp: timestamp ?? this.timestamp,
-    createdAt: createdAt ?? this.createdAt,
-  );
+  MessageData copyWith(
+          {String? id,
+          String? conversationId,
+          String? content,
+          String? author,
+          bool? isFromUser,
+          Value<String?> imageUrl = const Value.absent(),
+          Value<String?> avatarUrl = const Value.absent(),
+          DateTime? timestamp,
+          DateTime? createdAt}) =>
+      MessageData(
+        id: id ?? this.id,
+        conversationId: conversationId ?? this.conversationId,
+        content: content ?? this.content,
+        author: author ?? this.author,
+        isFromUser: isFromUser ?? this.isFromUser,
+        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+        avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
+        timestamp: timestamp ?? this.timestamp,
+        createdAt: createdAt ?? this.createdAt,
+      );
   MessageData copyWithCompanion(MessagesCompanion data) {
     return MessageData(
       id: data.id.present ? data.id.value : this.id,
@@ -2873,9 +2424,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           : this.conversationId,
       content: data.content.present ? data.content.value : this.content,
       author: data.author.present ? data.author.value : this.author,
-      isFromUser: data.isFromUser.present
-          ? data.isFromUser.value
-          : this.isFromUser,
+      isFromUser:
+          data.isFromUser.present ? data.isFromUser.value : this.isFromUser,
       imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
       avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
@@ -2900,17 +2450,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
   }
 
   @override
-  int get hashCode => Object.hash(
-    id,
-    conversationId,
-    content,
-    author,
-    isFromUser,
-    imageUrl,
-    avatarUrl,
-    timestamp,
-    createdAt,
-  );
+  int get hashCode => Object.hash(id, conversationId, content, author,
+      isFromUser, imageUrl, avatarUrl, timestamp, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2960,13 +2501,13 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     required DateTime timestamp,
     required DateTime createdAt,
     this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       conversationId = Value(conversationId),
-       content = Value(content),
-       author = Value(author),
-       isFromUser = Value(isFromUser),
-       timestamp = Value(timestamp),
-       createdAt = Value(createdAt);
+  })  : id = Value(id),
+        conversationId = Value(conversationId),
+        content = Value(content),
+        author = Value(author),
+        isFromUser = Value(isFromUser),
+        timestamp = Value(timestamp),
+        createdAt = Value(createdAt);
   static Insertable<MessageData> custom({
     Expression<String>? id,
     Expression<String>? conversationId,
@@ -2993,18 +2534,17 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     });
   }
 
-  MessagesCompanion copyWith({
-    Value<String>? id,
-    Value<String>? conversationId,
-    Value<String>? content,
-    Value<String>? author,
-    Value<bool>? isFromUser,
-    Value<String?>? imageUrl,
-    Value<String?>? avatarUrl,
-    Value<DateTime>? timestamp,
-    Value<DateTime>? createdAt,
-    Value<int>? rowid,
-  }) {
+  MessagesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? conversationId,
+      Value<String>? content,
+      Value<String>? author,
+      Value<bool>? isFromUser,
+      Value<String?>? imageUrl,
+      Value<String?>? avatarUrl,
+      Value<DateTime>? timestamp,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
     return MessagesCompanion(
       id: id ?? this.id,
       conversationId: conversationId ?? this.conversationId,
@@ -3082,46 +2622,28 @@ class $FavoriteModelsTable extends FavoriteModels
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _providerIdMeta = const VerificationMeta(
-    'providerId',
-  );
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _providerIdMeta =
+      const VerificationMeta('providerId');
   @override
   late final GeneratedColumn<String> providerId = GeneratedColumn<String>(
-    'provider_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _modelNameMeta = const VerificationMeta(
-    'modelName',
-  );
+      'provider_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _modelNameMeta =
+      const VerificationMeta('modelName');
   @override
   late final GeneratedColumn<String> modelName = GeneratedColumn<String>(
-    'model_name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
+      'model_name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   @override
   List<GeneratedColumn> get $columns => [id, providerId, modelName, createdAt];
   @override
@@ -3130,10 +2652,8 @@ class $FavoriteModelsTable extends FavoriteModels
   String get actualTableName => $name;
   static const String $name = 'favorite_models';
   @override
-  VerificationContext validateIntegrity(
-    Insertable<FavoriteModelData> instance, {
-    bool isInserting = false,
-  }) {
+  VerificationContext validateIntegrity(Insertable<FavoriteModelData> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -3143,25 +2663,21 @@ class $FavoriteModelsTable extends FavoriteModels
     }
     if (data.containsKey('provider_id')) {
       context.handle(
-        _providerIdMeta,
-        providerId.isAcceptableOrUnknown(data['provider_id']!, _providerIdMeta),
-      );
+          _providerIdMeta,
+          providerId.isAcceptableOrUnknown(
+              data['provider_id']!, _providerIdMeta));
     } else if (isInserting) {
       context.missing(_providerIdMeta);
     }
     if (data.containsKey('model_name')) {
-      context.handle(
-        _modelNameMeta,
-        modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta),
-      );
+      context.handle(_modelNameMeta,
+          modelName.isAcceptableOrUnknown(data['model_name']!, _modelNameMeta));
     } else if (isInserting) {
       context.missing(_modelNameMeta);
     }
     if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
     return context;
   }
@@ -3172,22 +2688,14 @@ class $FavoriteModelsTable extends FavoriteModels
   FavoriteModelData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return FavoriteModelData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      providerId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}provider_id'],
-      )!,
-      modelName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}model_name'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      providerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}provider_id'])!,
+      modelName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}model_name'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
   }
 
@@ -3203,12 +2711,11 @@ class FavoriteModelData extends DataClass
   final String providerId;
   final String modelName;
   final DateTime createdAt;
-  const FavoriteModelData({
-    required this.id,
-    required this.providerId,
-    required this.modelName,
-    required this.createdAt,
-  });
+  const FavoriteModelData(
+      {required this.id,
+      required this.providerId,
+      required this.modelName,
+      required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3228,10 +2735,8 @@ class FavoriteModelData extends DataClass
     );
   }
 
-  factory FavoriteModelData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory FavoriteModelData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return FavoriteModelData(
       id: serializer.fromJson<String>(json['id']),
@@ -3251,23 +2756,22 @@ class FavoriteModelData extends DataClass
     };
   }
 
-  FavoriteModelData copyWith({
-    String? id,
-    String? providerId,
-    String? modelName,
-    DateTime? createdAt,
-  }) => FavoriteModelData(
-    id: id ?? this.id,
-    providerId: providerId ?? this.providerId,
-    modelName: modelName ?? this.modelName,
-    createdAt: createdAt ?? this.createdAt,
-  );
+  FavoriteModelData copyWith(
+          {String? id,
+          String? providerId,
+          String? modelName,
+          DateTime? createdAt}) =>
+      FavoriteModelData(
+        id: id ?? this.id,
+        providerId: providerId ?? this.providerId,
+        modelName: modelName ?? this.modelName,
+        createdAt: createdAt ?? this.createdAt,
+      );
   FavoriteModelData copyWithCompanion(FavoriteModelsCompanion data) {
     return FavoriteModelData(
       id: data.id.present ? data.id.value : this.id,
-      providerId: data.providerId.present
-          ? data.providerId.value
-          : this.providerId,
+      providerId:
+          data.providerId.present ? data.providerId.value : this.providerId,
       modelName: data.modelName.present ? data.modelName.value : this.modelName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -3315,9 +2819,9 @@ class FavoriteModelsCompanion extends UpdateCompanion<FavoriteModelData> {
     required String modelName,
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       providerId = Value(providerId),
-       modelName = Value(modelName);
+  })  : id = Value(id),
+        providerId = Value(providerId),
+        modelName = Value(modelName);
   static Insertable<FavoriteModelData> custom({
     Expression<String>? id,
     Expression<String>? providerId,
@@ -3334,13 +2838,12 @@ class FavoriteModelsCompanion extends UpdateCompanion<FavoriteModelData> {
     });
   }
 
-  FavoriteModelsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? providerId,
-    Value<String>? modelName,
-    Value<DateTime>? createdAt,
-    Value<int>? rowid,
-  }) {
+  FavoriteModelsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? providerId,
+      Value<String>? modelName,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
     return FavoriteModelsCompanion(
       id: id ?? this.id,
       providerId: providerId ?? this.providerId,
@@ -3393,130 +2896,84 @@ class $SettingsTable extends Settings
   static const VerificationMeta _keyMeta = const VerificationMeta('key');
   @override
   late final GeneratedColumn<String> key = GeneratedColumn<String>(
-    'key',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _valueMeta = const VerificationMeta('value');
   @override
   late final GeneratedColumn<String> value = GeneratedColumn<String>(
-    'value',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'value', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumn<String> type = GeneratedColumn<String>(
-    'type',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _descriptionMeta = const VerificationMeta(
-    'description',
-  );
+      'type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _descriptionMeta =
+      const VerificationMeta('description');
   @override
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
-    'description',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
+      'description', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
-  );
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   @override
-  List<GeneratedColumn> get $columns => [
-    key,
-    value,
-    type,
-    description,
-    createdAt,
-    updatedAt,
-  ];
+  List<GeneratedColumn> get $columns =>
+      [key, value, type, description, createdAt, updatedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'settings';
   @override
-  VerificationContext validateIntegrity(
-    Insertable<SettingData> instance, {
-    bool isInserting = false,
-  }) {
+  VerificationContext validateIntegrity(Insertable<SettingData> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('key')) {
       context.handle(
-        _keyMeta,
-        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
-      );
+          _keyMeta, key.isAcceptableOrUnknown(data['key']!, _keyMeta));
     } else if (isInserting) {
       context.missing(_keyMeta);
     }
     if (data.containsKey('value')) {
       context.handle(
-        _valueMeta,
-        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
-      );
+          _valueMeta, value.isAcceptableOrUnknown(data['value']!, _valueMeta));
     } else if (isInserting) {
       context.missing(_valueMeta);
     }
     if (data.containsKey('type')) {
       context.handle(
-        _typeMeta,
-        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
-      );
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
     } else if (isInserting) {
       context.missing(_typeMeta);
     }
     if (data.containsKey('description')) {
       context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
           _descriptionMeta,
-        ),
-      );
+          description.isAcceptableOrUnknown(
+              data['description']!, _descriptionMeta));
     }
     if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
     if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
     }
     return context;
   }
@@ -3527,30 +2984,18 @@ class $SettingsTable extends Settings
   SettingData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return SettingData(
-      key: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}key'],
-      )!,
-      value: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}value'],
-      )!,
-      type: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}type'],
-      )!,
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      ),
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
+      key: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}key'])!,
+      value: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}value'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      description: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}description']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
   }
 
@@ -3567,14 +3012,13 @@ class SettingData extends DataClass implements Insertable<SettingData> {
   final String? description;
   final DateTime createdAt;
   final DateTime updatedAt;
-  const SettingData({
-    required this.key,
-    required this.value,
-    required this.type,
-    this.description,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+  const SettingData(
+      {required this.key,
+      required this.value,
+      required this.type,
+      this.description,
+      required this.createdAt,
+      required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3602,10 +3046,8 @@ class SettingData extends DataClass implements Insertable<SettingData> {
     );
   }
 
-  factory SettingData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory SettingData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return SettingData(
       key: serializer.fromJson<String>(json['key']),
@@ -3629,29 +3071,28 @@ class SettingData extends DataClass implements Insertable<SettingData> {
     };
   }
 
-  SettingData copyWith({
-    String? key,
-    String? value,
-    String? type,
-    Value<String?> description = const Value.absent(),
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) => SettingData(
-    key: key ?? this.key,
-    value: value ?? this.value,
-    type: type ?? this.type,
-    description: description.present ? description.value : this.description,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
+  SettingData copyWith(
+          {String? key,
+          String? value,
+          String? type,
+          Value<String?> description = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      SettingData(
+        key: key ?? this.key,
+        value: value ?? this.value,
+        type: type ?? this.type,
+        description: description.present ? description.value : this.description,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
   SettingData copyWithCompanion(SettingsCompanion data) {
     return SettingData(
       key: data.key.present ? data.key.value : this.key,
       value: data.value.present ? data.value.value : this.value,
       type: data.type.present ? data.type.value : this.type,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
+      description:
+          data.description.present ? data.description.value : this.description,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -3710,9 +3151,9 @@ class SettingsCompanion extends UpdateCompanion<SettingData> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
-  }) : key = Value(key),
-       value = Value(value),
-       type = Value(type);
+  })  : key = Value(key),
+        value = Value(value),
+        type = Value(type);
   static Insertable<SettingData> custom({
     Expression<String>? key,
     Expression<String>? value,
@@ -3733,15 +3174,14 @@ class SettingsCompanion extends UpdateCompanion<SettingData> {
     });
   }
 
-  SettingsCompanion copyWith({
-    Value<String>? key,
-    Value<String>? value,
-    Value<String>? type,
-    Value<String?>? description,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<int>? rowid,
-  }) {
+  SettingsCompanion copyWith(
+      {Value<String>? key,
+      Value<String>? value,
+      Value<String>? type,
+      Value<String?>? description,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
     return SettingsCompanion(
       key: key ?? this.key,
       value: value ?? this.value,
@@ -3809,43 +3249,41 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    providers,
-    assistants,
-    conversations,
-    messages,
-    favoriteModels,
-    settings,
-  ];
+        providers,
+        assistants,
+        conversations,
+        messages,
+        favoriteModels,
+        settings
+      ];
 }
 
-typedef $$ProvidersTableCreateCompanionBuilder =
-    ProvidersCompanion Function({
-      required String id,
-      required String name,
-      required ProviderType type,
-      required String apiKey,
-      Value<String?> baseUrl,
-      Value<List<AiModel>> models,
-      required Map<String, String> customHeaders,
-      Value<bool> isEnabled,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      Value<int> rowid,
-    });
-typedef $$ProvidersTableUpdateCompanionBuilder =
-    ProvidersCompanion Function({
-      Value<String> id,
-      Value<String> name,
-      Value<ProviderType> type,
-      Value<String> apiKey,
-      Value<String?> baseUrl,
-      Value<List<AiModel>> models,
-      Value<Map<String, String>> customHeaders,
-      Value<bool> isEnabled,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
+typedef $$ProvidersTableCreateCompanionBuilder = ProvidersCompanion Function({
+  required String id,
+  required String name,
+  required ProviderType type,
+  required String apiKey,
+  Value<String?> baseUrl,
+  Value<List<AiModel>> models,
+  required Map<String, String> customHeaders,
+  Value<bool> isEnabled,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$ProvidersTableUpdateCompanionBuilder = ProvidersCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<ProviderType> type,
+  Value<String> apiKey,
+  Value<String?> baseUrl,
+  Value<List<AiModel>> models,
+  Value<Map<String, String>> customHeaders,
+  Value<bool> isEnabled,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
 
 class $$ProvidersTableFilterComposer
     extends Composer<_$AppDatabase, $ProvidersTable> {
@@ -3857,61 +3295,41 @@ class $$ProvidersTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.name, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<ProviderType, ProviderType, int> get type =>
       $composableBuilder(
-        column: $table.type,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
+          column: $table.type,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<String> get apiKey => $composableBuilder(
-    column: $table.apiKey,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.apiKey, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get baseUrl => $composableBuilder(
-    column: $table.baseUrl,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.baseUrl, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<List<AiModel>, List<AiModel>, String>
-  get models => $composableBuilder(
-    column: $table.models,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
+      get models => $composableBuilder(
+          column: $table.models,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
-  ColumnWithTypeConverterFilters<
-    Map<String, String>,
-    Map<String, String>,
-    String
-  >
-  get customHeaders => $composableBuilder(
-    column: $table.customHeaders,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
+  ColumnWithTypeConverterFilters<Map<String, String>, Map<String, String>,
+          String>
+      get customHeaders => $composableBuilder(
+          column: $table.customHeaders,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<bool> get isEnabled => $composableBuilder(
-    column: $table.isEnabled,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.isEnabled, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProvidersTableOrderingComposer
@@ -3924,54 +3342,35 @@ class $$ProvidersTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.name, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get type => $composableBuilder(
-    column: $table.type,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.type, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get apiKey => $composableBuilder(
-    column: $table.apiKey,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.apiKey, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get baseUrl => $composableBuilder(
-    column: $table.baseUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.baseUrl, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get models => $composableBuilder(
-    column: $table.models,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.models, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get customHeaders => $composableBuilder(
-    column: $table.customHeaders,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.customHeaders,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get isEnabled => $composableBuilder(
-    column: $table.isEnabled,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.isEnabled, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProvidersTableAnnotationComposer
@@ -4002,10 +3401,8 @@ class $$ProvidersTableAnnotationComposer
       $composableBuilder(column: $table.models, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<Map<String, String>, String>
-  get customHeaders => $composableBuilder(
-    column: $table.customHeaders,
-    builder: (column) => column,
-  );
+      get customHeaders => $composableBuilder(
+          column: $table.customHeaders, builder: (column) => column);
 
   GeneratedColumn<bool> get isEnabled =>
       $composableBuilder(column: $table.isEnabled, builder: (column) => column);
@@ -4017,27 +3414,23 @@ class $$ProvidersTableAnnotationComposer
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
-class $$ProvidersTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ProvidersTable,
-          ProviderData,
-          $$ProvidersTableFilterComposer,
-          $$ProvidersTableOrderingComposer,
-          $$ProvidersTableAnnotationComposer,
-          $$ProvidersTableCreateCompanionBuilder,
-          $$ProvidersTableUpdateCompanionBuilder,
-          (
-            ProviderData,
-            BaseReferences<_$AppDatabase, $ProvidersTable, ProviderData>,
-          ),
-          ProviderData,
-          PrefetchHooks Function()
-        > {
+class $$ProvidersTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ProvidersTable,
+    ProviderData,
+    $$ProvidersTableFilterComposer,
+    $$ProvidersTableOrderingComposer,
+    $$ProvidersTableAnnotationComposer,
+    $$ProvidersTableCreateCompanionBuilder,
+    $$ProvidersTableUpdateCompanionBuilder,
+    (
+      ProviderData,
+      BaseReferences<_$AppDatabase, $ProvidersTable, ProviderData>
+    ),
+    ProviderData,
+    PrefetchHooks Function()> {
   $$ProvidersTableTableManager(_$AppDatabase db, $ProvidersTable table)
-    : super(
-        TableManagerState(
+      : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -4046,139 +3439,136 @@ class $$ProvidersTableTableManager
               $$ProvidersTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$ProvidersTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<ProviderType> type = const Value.absent(),
-                Value<String> apiKey = const Value.absent(),
-                Value<String?> baseUrl = const Value.absent(),
-                Value<List<AiModel>> models = const Value.absent(),
-                Value<Map<String, String>> customHeaders = const Value.absent(),
-                Value<bool> isEnabled = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ProvidersCompanion(
-                id: id,
-                name: name,
-                type: type,
-                apiKey: apiKey,
-                baseUrl: baseUrl,
-                models: models,
-                customHeaders: customHeaders,
-                isEnabled: isEnabled,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String name,
-                required ProviderType type,
-                required String apiKey,
-                Value<String?> baseUrl = const Value.absent(),
-                Value<List<AiModel>> models = const Value.absent(),
-                required Map<String, String> customHeaders,
-                Value<bool> isEnabled = const Value.absent(),
-                required DateTime createdAt,
-                required DateTime updatedAt,
-                Value<int> rowid = const Value.absent(),
-              }) => ProvidersCompanion.insert(
-                id: id,
-                name: name,
-                type: type,
-                apiKey: apiKey,
-                baseUrl: baseUrl,
-                models: models,
-                customHeaders: customHeaders,
-                isEnabled: isEnabled,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<ProviderType> type = const Value.absent(),
+            Value<String> apiKey = const Value.absent(),
+            Value<String?> baseUrl = const Value.absent(),
+            Value<List<AiModel>> models = const Value.absent(),
+            Value<Map<String, String>> customHeaders = const Value.absent(),
+            Value<bool> isEnabled = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProvidersCompanion(
+            id: id,
+            name: name,
+            type: type,
+            apiKey: apiKey,
+            baseUrl: baseUrl,
+            models: models,
+            customHeaders: customHeaders,
+            isEnabled: isEnabled,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            required ProviderType type,
+            required String apiKey,
+            Value<String?> baseUrl = const Value.absent(),
+            Value<List<AiModel>> models = const Value.absent(),
+            required Map<String, String> customHeaders,
+            Value<bool> isEnabled = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProvidersCompanion.insert(
+            id: id,
+            name: name,
+            type: type,
+            apiKey: apiKey,
+            baseUrl: baseUrl,
+            models: models,
+            customHeaders: customHeaders,
+            isEnabled: isEnabled,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ),
-      );
+        ));
 }
 
-typedef $$ProvidersTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ProvidersTable,
+typedef $$ProvidersTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ProvidersTable,
+    ProviderData,
+    $$ProvidersTableFilterComposer,
+    $$ProvidersTableOrderingComposer,
+    $$ProvidersTableAnnotationComposer,
+    $$ProvidersTableCreateCompanionBuilder,
+    $$ProvidersTableUpdateCompanionBuilder,
+    (
       ProviderData,
-      $$ProvidersTableFilterComposer,
-      $$ProvidersTableOrderingComposer,
-      $$ProvidersTableAnnotationComposer,
-      $$ProvidersTableCreateCompanionBuilder,
-      $$ProvidersTableUpdateCompanionBuilder,
-      (
-        ProviderData,
-        BaseReferences<_$AppDatabase, $ProvidersTable, ProviderData>,
-      ),
-      ProviderData,
-      PrefetchHooks Function()
-    >;
-typedef $$AssistantsTableCreateCompanionBuilder =
-    AssistantsCompanion Function({
-      required String id,
-      required String name,
-      required String description,
-      Value<String> avatar,
-      required String systemPrompt,
-      Value<double> temperature,
-      Value<double> topP,
-      Value<int> maxTokens,
-      Value<int> contextLength,
-      Value<bool> streamOutput,
-      Value<double?> frequencyPenalty,
-      Value<double?> presencePenalty,
-      Value<Map<String, String>> customHeaders,
-      Value<Map<String, dynamic>> customBody,
-      Value<List<String>> stopSequences,
-      Value<bool> enableCodeExecution,
-      Value<bool> enableImageGeneration,
-      Value<bool> enableTools,
-      Value<bool> enableReasoning,
-      Value<bool> enableVision,
-      Value<bool> enableEmbedding,
-      Value<bool> isEnabled,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
-typedef $$AssistantsTableUpdateCompanionBuilder =
-    AssistantsCompanion Function({
-      Value<String> id,
-      Value<String> name,
-      Value<String> description,
-      Value<String> avatar,
-      Value<String> systemPrompt,
-      Value<double> temperature,
-      Value<double> topP,
-      Value<int> maxTokens,
-      Value<int> contextLength,
-      Value<bool> streamOutput,
-      Value<double?> frequencyPenalty,
-      Value<double?> presencePenalty,
-      Value<Map<String, String>> customHeaders,
-      Value<Map<String, dynamic>> customBody,
-      Value<List<String>> stopSequences,
-      Value<bool> enableCodeExecution,
-      Value<bool> enableImageGeneration,
-      Value<bool> enableTools,
-      Value<bool> enableReasoning,
-      Value<bool> enableVision,
-      Value<bool> enableEmbedding,
-      Value<bool> isEnabled,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
+      BaseReferences<_$AppDatabase, $ProvidersTable, ProviderData>
+    ),
+    ProviderData,
+    PrefetchHooks Function()>;
+typedef $$AssistantsTableCreateCompanionBuilder = AssistantsCompanion Function({
+  required String id,
+  required String name,
+  required String description,
+  Value<String> avatar,
+  required String systemPrompt,
+  Value<double> temperature,
+  Value<double> topP,
+  Value<int> maxTokens,
+  Value<int> contextLength,
+  Value<bool> streamOutput,
+  Value<double?> frequencyPenalty,
+  Value<double?> presencePenalty,
+  Value<Map<String, String>> customHeaders,
+  Value<Map<String, dynamic>> customBody,
+  Value<List<String>> stopSequences,
+  Value<bool> enableCodeExecution,
+  Value<bool> enableImageGeneration,
+  Value<bool> enableTools,
+  Value<bool> enableReasoning,
+  Value<bool> enableVision,
+  Value<bool> enableEmbedding,
+  Value<List<String>> mcpServerIds,
+  Value<bool> isEnabled,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$AssistantsTableUpdateCompanionBuilder = AssistantsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> description,
+  Value<String> avatar,
+  Value<String> systemPrompt,
+  Value<double> temperature,
+  Value<double> topP,
+  Value<int> maxTokens,
+  Value<int> contextLength,
+  Value<bool> streamOutput,
+  Value<double?> frequencyPenalty,
+  Value<double?> presencePenalty,
+  Value<Map<String, String>> customHeaders,
+  Value<Map<String, dynamic>> customBody,
+  Value<List<String>> stopSequences,
+  Value<bool> enableCodeExecution,
+  Value<bool> enableImageGeneration,
+  Value<bool> enableTools,
+  Value<bool> enableReasoning,
+  Value<bool> enableVision,
+  Value<bool> enableEmbedding,
+  Value<List<String>> mcpServerIds,
+  Value<bool> isEnabled,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
 
 class $$AssistantsTableFilterComposer
     extends Composer<_$AppDatabase, $AssistantsTable> {
@@ -4190,135 +3580,95 @@ class $$AssistantsTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.name, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.description, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get avatar => $composableBuilder(
-    column: $table.avatar,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.avatar, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get systemPrompt => $composableBuilder(
-    column: $table.systemPrompt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.systemPrompt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get temperature => $composableBuilder(
-    column: $table.temperature,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.temperature, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get topP => $composableBuilder(
-    column: $table.topP,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.topP, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get maxTokens => $composableBuilder(
-    column: $table.maxTokens,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.maxTokens, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get contextLength => $composableBuilder(
-    column: $table.contextLength,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.contextLength, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get streamOutput => $composableBuilder(
-    column: $table.streamOutput,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.streamOutput, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get frequencyPenalty => $composableBuilder(
-    column: $table.frequencyPenalty,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.frequencyPenalty,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get presencePenalty => $composableBuilder(
-    column: $table.presencePenalty,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.presencePenalty,
+      builder: (column) => ColumnFilters(column));
 
-  ColumnWithTypeConverterFilters<
-    Map<String, String>,
-    Map<String, String>,
-    String
-  >
-  get customHeaders => $composableBuilder(
-    column: $table.customHeaders,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
+  ColumnWithTypeConverterFilters<Map<String, String>, Map<String, String>,
+          String>
+      get customHeaders => $composableBuilder(
+          column: $table.customHeaders,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
-  ColumnWithTypeConverterFilters<
-    Map<String, dynamic>,
-    Map<String, dynamic>,
-    String
-  >
-  get customBody => $composableBuilder(
-    column: $table.customBody,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
+  ColumnWithTypeConverterFilters<Map<String, dynamic>, Map<String, dynamic>,
+          String>
+      get customBody => $composableBuilder(
+          column: $table.customBody,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnWithTypeConverterFilters<List<String>, List<String>, String>
-  get stopSequences => $composableBuilder(
-    column: $table.stopSequences,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
+      get stopSequences => $composableBuilder(
+          column: $table.stopSequences,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<bool> get enableCodeExecution => $composableBuilder(
-    column: $table.enableCodeExecution,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.enableCodeExecution,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get enableImageGeneration => $composableBuilder(
-    column: $table.enableImageGeneration,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.enableImageGeneration,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get enableTools => $composableBuilder(
-    column: $table.enableTools,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.enableTools, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get enableReasoning => $composableBuilder(
-    column: $table.enableReasoning,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.enableReasoning,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get enableVision => $composableBuilder(
-    column: $table.enableVision,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.enableVision, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get enableEmbedding => $composableBuilder(
-    column: $table.enableEmbedding,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.enableEmbedding,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+      get mcpServerIds => $composableBuilder(
+          column: $table.mcpServerIds,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<bool> get isEnabled => $composableBuilder(
-    column: $table.isEnabled,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.isEnabled, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$AssistantsTableOrderingComposer
@@ -4331,124 +3681,92 @@ class $$AssistantsTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.name, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.description, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get avatar => $composableBuilder(
-    column: $table.avatar,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.avatar, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get systemPrompt => $composableBuilder(
-    column: $table.systemPrompt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.systemPrompt,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get temperature => $composableBuilder(
-    column: $table.temperature,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.temperature, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get topP => $composableBuilder(
-    column: $table.topP,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.topP, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get maxTokens => $composableBuilder(
-    column: $table.maxTokens,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.maxTokens, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get contextLength => $composableBuilder(
-    column: $table.contextLength,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.contextLength,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get streamOutput => $composableBuilder(
-    column: $table.streamOutput,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.streamOutput,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get frequencyPenalty => $composableBuilder(
-    column: $table.frequencyPenalty,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.frequencyPenalty,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get presencePenalty => $composableBuilder(
-    column: $table.presencePenalty,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.presencePenalty,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get customHeaders => $composableBuilder(
-    column: $table.customHeaders,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.customHeaders,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get customBody => $composableBuilder(
-    column: $table.customBody,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.customBody, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get stopSequences => $composableBuilder(
-    column: $table.stopSequences,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.stopSequences,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get enableCodeExecution => $composableBuilder(
-    column: $table.enableCodeExecution,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.enableCodeExecution,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get enableImageGeneration => $composableBuilder(
-    column: $table.enableImageGeneration,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.enableImageGeneration,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get enableTools => $composableBuilder(
-    column: $table.enableTools,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.enableTools, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get enableReasoning => $composableBuilder(
-    column: $table.enableReasoning,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.enableReasoning,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get enableVision => $composableBuilder(
-    column: $table.enableVision,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.enableVision,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get enableEmbedding => $composableBuilder(
-    column: $table.enableEmbedding,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.enableEmbedding,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mcpServerIds => $composableBuilder(
+      column: $table.mcpServerIds,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get isEnabled => $composableBuilder(
-    column: $table.isEnabled,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.isEnabled, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$AssistantsTableAnnotationComposer
@@ -4467,22 +3785,16 @@ class $$AssistantsTableAnnotationComposer
       $composableBuilder(column: $table.name, builder: (column) => column);
 
   GeneratedColumn<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => column,
-  );
+      column: $table.description, builder: (column) => column);
 
   GeneratedColumn<String> get avatar =>
       $composableBuilder(column: $table.avatar, builder: (column) => column);
 
   GeneratedColumn<String> get systemPrompt => $composableBuilder(
-    column: $table.systemPrompt,
-    builder: (column) => column,
-  );
+      column: $table.systemPrompt, builder: (column) => column);
 
   GeneratedColumn<double> get temperature => $composableBuilder(
-    column: $table.temperature,
-    builder: (column) => column,
-  );
+      column: $table.temperature, builder: (column) => column);
 
   GeneratedColumn<double> get topP =>
       $composableBuilder(column: $table.topP, builder: (column) => column);
@@ -4491,72 +3803,50 @@ class $$AssistantsTableAnnotationComposer
       $composableBuilder(column: $table.maxTokens, builder: (column) => column);
 
   GeneratedColumn<int> get contextLength => $composableBuilder(
-    column: $table.contextLength,
-    builder: (column) => column,
-  );
+      column: $table.contextLength, builder: (column) => column);
 
   GeneratedColumn<bool> get streamOutput => $composableBuilder(
-    column: $table.streamOutput,
-    builder: (column) => column,
-  );
+      column: $table.streamOutput, builder: (column) => column);
 
   GeneratedColumn<double> get frequencyPenalty => $composableBuilder(
-    column: $table.frequencyPenalty,
-    builder: (column) => column,
-  );
+      column: $table.frequencyPenalty, builder: (column) => column);
 
   GeneratedColumn<double> get presencePenalty => $composableBuilder(
-    column: $table.presencePenalty,
-    builder: (column) => column,
-  );
+      column: $table.presencePenalty, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<Map<String, String>, String>
-  get customHeaders => $composableBuilder(
-    column: $table.customHeaders,
-    builder: (column) => column,
-  );
+      get customHeaders => $composableBuilder(
+          column: $table.customHeaders, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  get customBody => $composableBuilder(
-    column: $table.customBody,
-    builder: (column) => column,
-  );
+      get customBody => $composableBuilder(
+          column: $table.customBody, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<List<String>, String> get stopSequences =>
       $composableBuilder(
-        column: $table.stopSequences,
-        builder: (column) => column,
-      );
+          column: $table.stopSequences, builder: (column) => column);
 
   GeneratedColumn<bool> get enableCodeExecution => $composableBuilder(
-    column: $table.enableCodeExecution,
-    builder: (column) => column,
-  );
+      column: $table.enableCodeExecution, builder: (column) => column);
 
   GeneratedColumn<bool> get enableImageGeneration => $composableBuilder(
-    column: $table.enableImageGeneration,
-    builder: (column) => column,
-  );
+      column: $table.enableImageGeneration, builder: (column) => column);
 
   GeneratedColumn<bool> get enableTools => $composableBuilder(
-    column: $table.enableTools,
-    builder: (column) => column,
-  );
+      column: $table.enableTools, builder: (column) => column);
 
   GeneratedColumn<bool> get enableReasoning => $composableBuilder(
-    column: $table.enableReasoning,
-    builder: (column) => column,
-  );
+      column: $table.enableReasoning, builder: (column) => column);
 
   GeneratedColumn<bool> get enableVision => $composableBuilder(
-    column: $table.enableVision,
-    builder: (column) => column,
-  );
+      column: $table.enableVision, builder: (column) => column);
 
   GeneratedColumn<bool> get enableEmbedding => $composableBuilder(
-    column: $table.enableEmbedding,
-    builder: (column) => column,
-  );
+      column: $table.enableEmbedding, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<String>, String> get mcpServerIds =>
+      $composableBuilder(
+          column: $table.mcpServerIds, builder: (column) => column);
 
   GeneratedColumn<bool> get isEnabled =>
       $composableBuilder(column: $table.isEnabled, builder: (column) => column);
@@ -4568,27 +3858,23 @@ class $$AssistantsTableAnnotationComposer
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
-class $$AssistantsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $AssistantsTable,
-          AssistantData,
-          $$AssistantsTableFilterComposer,
-          $$AssistantsTableOrderingComposer,
-          $$AssistantsTableAnnotationComposer,
-          $$AssistantsTableCreateCompanionBuilder,
-          $$AssistantsTableUpdateCompanionBuilder,
-          (
-            AssistantData,
-            BaseReferences<_$AppDatabase, $AssistantsTable, AssistantData>,
-          ),
-          AssistantData,
-          PrefetchHooks Function()
-        > {
+class $$AssistantsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AssistantsTable,
+    AssistantData,
+    $$AssistantsTableFilterComposer,
+    $$AssistantsTableOrderingComposer,
+    $$AssistantsTableAnnotationComposer,
+    $$AssistantsTableCreateCompanionBuilder,
+    $$AssistantsTableUpdateCompanionBuilder,
+    (
+      AssistantData,
+      BaseReferences<_$AppDatabase, $AssistantsTable, AssistantData>
+    ),
+    AssistantData,
+    PrefetchHooks Function()> {
   $$AssistantsTableTableManager(_$AppDatabase db, $AssistantsTable table)
-    : super(
-        TableManagerState(
+      : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -4597,163 +3883,164 @@ class $$AssistantsTableTableManager
               $$AssistantsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$AssistantsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> description = const Value.absent(),
-                Value<String> avatar = const Value.absent(),
-                Value<String> systemPrompt = const Value.absent(),
-                Value<double> temperature = const Value.absent(),
-                Value<double> topP = const Value.absent(),
-                Value<int> maxTokens = const Value.absent(),
-                Value<int> contextLength = const Value.absent(),
-                Value<bool> streamOutput = const Value.absent(),
-                Value<double?> frequencyPenalty = const Value.absent(),
-                Value<double?> presencePenalty = const Value.absent(),
-                Value<Map<String, String>> customHeaders = const Value.absent(),
-                Value<Map<String, dynamic>> customBody = const Value.absent(),
-                Value<List<String>> stopSequences = const Value.absent(),
-                Value<bool> enableCodeExecution = const Value.absent(),
-                Value<bool> enableImageGeneration = const Value.absent(),
-                Value<bool> enableTools = const Value.absent(),
-                Value<bool> enableReasoning = const Value.absent(),
-                Value<bool> enableVision = const Value.absent(),
-                Value<bool> enableEmbedding = const Value.absent(),
-                Value<bool> isEnabled = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => AssistantsCompanion(
-                id: id,
-                name: name,
-                description: description,
-                avatar: avatar,
-                systemPrompt: systemPrompt,
-                temperature: temperature,
-                topP: topP,
-                maxTokens: maxTokens,
-                contextLength: contextLength,
-                streamOutput: streamOutput,
-                frequencyPenalty: frequencyPenalty,
-                presencePenalty: presencePenalty,
-                customHeaders: customHeaders,
-                customBody: customBody,
-                stopSequences: stopSequences,
-                enableCodeExecution: enableCodeExecution,
-                enableImageGeneration: enableImageGeneration,
-                enableTools: enableTools,
-                enableReasoning: enableReasoning,
-                enableVision: enableVision,
-                enableEmbedding: enableEmbedding,
-                isEnabled: isEnabled,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String name,
-                required String description,
-                Value<String> avatar = const Value.absent(),
-                required String systemPrompt,
-                Value<double> temperature = const Value.absent(),
-                Value<double> topP = const Value.absent(),
-                Value<int> maxTokens = const Value.absent(),
-                Value<int> contextLength = const Value.absent(),
-                Value<bool> streamOutput = const Value.absent(),
-                Value<double?> frequencyPenalty = const Value.absent(),
-                Value<double?> presencePenalty = const Value.absent(),
-                Value<Map<String, String>> customHeaders = const Value.absent(),
-                Value<Map<String, dynamic>> customBody = const Value.absent(),
-                Value<List<String>> stopSequences = const Value.absent(),
-                Value<bool> enableCodeExecution = const Value.absent(),
-                Value<bool> enableImageGeneration = const Value.absent(),
-                Value<bool> enableTools = const Value.absent(),
-                Value<bool> enableReasoning = const Value.absent(),
-                Value<bool> enableVision = const Value.absent(),
-                Value<bool> enableEmbedding = const Value.absent(),
-                Value<bool> isEnabled = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => AssistantsCompanion.insert(
-                id: id,
-                name: name,
-                description: description,
-                avatar: avatar,
-                systemPrompt: systemPrompt,
-                temperature: temperature,
-                topP: topP,
-                maxTokens: maxTokens,
-                contextLength: contextLength,
-                streamOutput: streamOutput,
-                frequencyPenalty: frequencyPenalty,
-                presencePenalty: presencePenalty,
-                customHeaders: customHeaders,
-                customBody: customBody,
-                stopSequences: stopSequences,
-                enableCodeExecution: enableCodeExecution,
-                enableImageGeneration: enableImageGeneration,
-                enableTools: enableTools,
-                enableReasoning: enableReasoning,
-                enableVision: enableVision,
-                enableEmbedding: enableEmbedding,
-                isEnabled: isEnabled,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String> description = const Value.absent(),
+            Value<String> avatar = const Value.absent(),
+            Value<String> systemPrompt = const Value.absent(),
+            Value<double> temperature = const Value.absent(),
+            Value<double> topP = const Value.absent(),
+            Value<int> maxTokens = const Value.absent(),
+            Value<int> contextLength = const Value.absent(),
+            Value<bool> streamOutput = const Value.absent(),
+            Value<double?> frequencyPenalty = const Value.absent(),
+            Value<double?> presencePenalty = const Value.absent(),
+            Value<Map<String, String>> customHeaders = const Value.absent(),
+            Value<Map<String, dynamic>> customBody = const Value.absent(),
+            Value<List<String>> stopSequences = const Value.absent(),
+            Value<bool> enableCodeExecution = const Value.absent(),
+            Value<bool> enableImageGeneration = const Value.absent(),
+            Value<bool> enableTools = const Value.absent(),
+            Value<bool> enableReasoning = const Value.absent(),
+            Value<bool> enableVision = const Value.absent(),
+            Value<bool> enableEmbedding = const Value.absent(),
+            Value<List<String>> mcpServerIds = const Value.absent(),
+            Value<bool> isEnabled = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AssistantsCompanion(
+            id: id,
+            name: name,
+            description: description,
+            avatar: avatar,
+            systemPrompt: systemPrompt,
+            temperature: temperature,
+            topP: topP,
+            maxTokens: maxTokens,
+            contextLength: contextLength,
+            streamOutput: streamOutput,
+            frequencyPenalty: frequencyPenalty,
+            presencePenalty: presencePenalty,
+            customHeaders: customHeaders,
+            customBody: customBody,
+            stopSequences: stopSequences,
+            enableCodeExecution: enableCodeExecution,
+            enableImageGeneration: enableImageGeneration,
+            enableTools: enableTools,
+            enableReasoning: enableReasoning,
+            enableVision: enableVision,
+            enableEmbedding: enableEmbedding,
+            mcpServerIds: mcpServerIds,
+            isEnabled: isEnabled,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            required String description,
+            Value<String> avatar = const Value.absent(),
+            required String systemPrompt,
+            Value<double> temperature = const Value.absent(),
+            Value<double> topP = const Value.absent(),
+            Value<int> maxTokens = const Value.absent(),
+            Value<int> contextLength = const Value.absent(),
+            Value<bool> streamOutput = const Value.absent(),
+            Value<double?> frequencyPenalty = const Value.absent(),
+            Value<double?> presencePenalty = const Value.absent(),
+            Value<Map<String, String>> customHeaders = const Value.absent(),
+            Value<Map<String, dynamic>> customBody = const Value.absent(),
+            Value<List<String>> stopSequences = const Value.absent(),
+            Value<bool> enableCodeExecution = const Value.absent(),
+            Value<bool> enableImageGeneration = const Value.absent(),
+            Value<bool> enableTools = const Value.absent(),
+            Value<bool> enableReasoning = const Value.absent(),
+            Value<bool> enableVision = const Value.absent(),
+            Value<bool> enableEmbedding = const Value.absent(),
+            Value<List<String>> mcpServerIds = const Value.absent(),
+            Value<bool> isEnabled = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AssistantsCompanion.insert(
+            id: id,
+            name: name,
+            description: description,
+            avatar: avatar,
+            systemPrompt: systemPrompt,
+            temperature: temperature,
+            topP: topP,
+            maxTokens: maxTokens,
+            contextLength: contextLength,
+            streamOutput: streamOutput,
+            frequencyPenalty: frequencyPenalty,
+            presencePenalty: presencePenalty,
+            customHeaders: customHeaders,
+            customBody: customBody,
+            stopSequences: stopSequences,
+            enableCodeExecution: enableCodeExecution,
+            enableImageGeneration: enableImageGeneration,
+            enableTools: enableTools,
+            enableReasoning: enableReasoning,
+            enableVision: enableVision,
+            enableEmbedding: enableEmbedding,
+            mcpServerIds: mcpServerIds,
+            isEnabled: isEnabled,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ),
-      );
+        ));
 }
 
-typedef $$AssistantsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $AssistantsTable,
+typedef $$AssistantsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $AssistantsTable,
+    AssistantData,
+    $$AssistantsTableFilterComposer,
+    $$AssistantsTableOrderingComposer,
+    $$AssistantsTableAnnotationComposer,
+    $$AssistantsTableCreateCompanionBuilder,
+    $$AssistantsTableUpdateCompanionBuilder,
+    (
       AssistantData,
-      $$AssistantsTableFilterComposer,
-      $$AssistantsTableOrderingComposer,
-      $$AssistantsTableAnnotationComposer,
-      $$AssistantsTableCreateCompanionBuilder,
-      $$AssistantsTableUpdateCompanionBuilder,
-      (
-        AssistantData,
-        BaseReferences<_$AppDatabase, $AssistantsTable, AssistantData>,
-      ),
-      AssistantData,
-      PrefetchHooks Function()
-    >;
-typedef $$ConversationsTableCreateCompanionBuilder =
-    ConversationsCompanion Function({
-      required String id,
-      required String title,
-      required String assistantId,
-      required String providerId,
-      Value<String?> modelId,
-      required DateTime lastMessageAt,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      Value<int> rowid,
-    });
-typedef $$ConversationsTableUpdateCompanionBuilder =
-    ConversationsCompanion Function({
-      Value<String> id,
-      Value<String> title,
-      Value<String> assistantId,
-      Value<String> providerId,
-      Value<String?> modelId,
-      Value<DateTime> lastMessageAt,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
+      BaseReferences<_$AppDatabase, $AssistantsTable, AssistantData>
+    ),
+    AssistantData,
+    PrefetchHooks Function()>;
+typedef $$ConversationsTableCreateCompanionBuilder = ConversationsCompanion
+    Function({
+  required String id,
+  required String title,
+  required String assistantId,
+  required String providerId,
+  Value<String?> modelId,
+  required DateTime lastMessageAt,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$ConversationsTableUpdateCompanionBuilder = ConversationsCompanion
+    Function({
+  Value<String> id,
+  Value<String> title,
+  Value<String> assistantId,
+  Value<String> providerId,
+  Value<String?> modelId,
+  Value<DateTime> lastMessageAt,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
 
 class $$ConversationsTableFilterComposer
     extends Composer<_$AppDatabase, $ConversationsTable> {
@@ -4765,44 +4052,28 @@ class $$ConversationsTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.title, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get assistantId => $composableBuilder(
-    column: $table.assistantId,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.assistantId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.providerId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get modelId => $composableBuilder(
-    column: $table.modelId,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.modelId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get lastMessageAt => $composableBuilder(
-    column: $table.lastMessageAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.lastMessageAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$ConversationsTableOrderingComposer
@@ -4815,44 +4086,29 @@ class $$ConversationsTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.title, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get assistantId => $composableBuilder(
-    column: $table.assistantId,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.assistantId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.providerId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get modelId => $composableBuilder(
-    column: $table.modelId,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.modelId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get lastMessageAt => $composableBuilder(
-    column: $table.lastMessageAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.lastMessageAt,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ConversationsTableAnnotationComposer
@@ -4871,22 +4127,16 @@ class $$ConversationsTableAnnotationComposer
       $composableBuilder(column: $table.title, builder: (column) => column);
 
   GeneratedColumn<String> get assistantId => $composableBuilder(
-    column: $table.assistantId,
-    builder: (column) => column,
-  );
+      column: $table.assistantId, builder: (column) => column);
 
   GeneratedColumn<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => column,
-  );
+      column: $table.providerId, builder: (column) => column);
 
   GeneratedColumn<String> get modelId =>
       $composableBuilder(column: $table.modelId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastMessageAt => $composableBuilder(
-    column: $table.lastMessageAt,
-    builder: (column) => column,
-  );
+      column: $table.lastMessageAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4895,31 +4145,23 @@ class $$ConversationsTableAnnotationComposer
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
-class $$ConversationsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ConversationsTable,
-          ConversationData,
-          $$ConversationsTableFilterComposer,
-          $$ConversationsTableOrderingComposer,
-          $$ConversationsTableAnnotationComposer,
-          $$ConversationsTableCreateCompanionBuilder,
-          $$ConversationsTableUpdateCompanionBuilder,
-          (
-            ConversationData,
-            BaseReferences<
-              _$AppDatabase,
-              $ConversationsTable,
-              ConversationData
-            >,
-          ),
-          ConversationData,
-          PrefetchHooks Function()
-        > {
+class $$ConversationsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ConversationsTable,
+    ConversationData,
+    $$ConversationsTableFilterComposer,
+    $$ConversationsTableOrderingComposer,
+    $$ConversationsTableAnnotationComposer,
+    $$ConversationsTableCreateCompanionBuilder,
+    $$ConversationsTableUpdateCompanionBuilder,
+    (
+      ConversationData,
+      BaseReferences<_$AppDatabase, $ConversationsTable, ConversationData>
+    ),
+    ConversationData,
+    PrefetchHooks Function()> {
   $$ConversationsTableTableManager(_$AppDatabase db, $ConversationsTable table)
-    : super(
-        TableManagerState(
+      : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -4928,101 +4170,96 @@ class $$ConversationsTableTableManager
               $$ConversationsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$ConversationsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> title = const Value.absent(),
-                Value<String> assistantId = const Value.absent(),
-                Value<String> providerId = const Value.absent(),
-                Value<String?> modelId = const Value.absent(),
-                Value<DateTime> lastMessageAt = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ConversationsCompanion(
-                id: id,
-                title: title,
-                assistantId: assistantId,
-                providerId: providerId,
-                modelId: modelId,
-                lastMessageAt: lastMessageAt,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String title,
-                required String assistantId,
-                required String providerId,
-                Value<String?> modelId = const Value.absent(),
-                required DateTime lastMessageAt,
-                required DateTime createdAt,
-                required DateTime updatedAt,
-                Value<int> rowid = const Value.absent(),
-              }) => ConversationsCompanion.insert(
-                id: id,
-                title: title,
-                assistantId: assistantId,
-                providerId: providerId,
-                modelId: modelId,
-                lastMessageAt: lastMessageAt,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String> assistantId = const Value.absent(),
+            Value<String> providerId = const Value.absent(),
+            Value<String?> modelId = const Value.absent(),
+            Value<DateTime> lastMessageAt = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ConversationsCompanion(
+            id: id,
+            title: title,
+            assistantId: assistantId,
+            providerId: providerId,
+            modelId: modelId,
+            lastMessageAt: lastMessageAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String title,
+            required String assistantId,
+            required String providerId,
+            Value<String?> modelId = const Value.absent(),
+            required DateTime lastMessageAt,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ConversationsCompanion.insert(
+            id: id,
+            title: title,
+            assistantId: assistantId,
+            providerId: providerId,
+            modelId: modelId,
+            lastMessageAt: lastMessageAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ),
-      );
+        ));
 }
 
-typedef $$ConversationsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ConversationsTable,
+typedef $$ConversationsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ConversationsTable,
+    ConversationData,
+    $$ConversationsTableFilterComposer,
+    $$ConversationsTableOrderingComposer,
+    $$ConversationsTableAnnotationComposer,
+    $$ConversationsTableCreateCompanionBuilder,
+    $$ConversationsTableUpdateCompanionBuilder,
+    (
       ConversationData,
-      $$ConversationsTableFilterComposer,
-      $$ConversationsTableOrderingComposer,
-      $$ConversationsTableAnnotationComposer,
-      $$ConversationsTableCreateCompanionBuilder,
-      $$ConversationsTableUpdateCompanionBuilder,
-      (
-        ConversationData,
-        BaseReferences<_$AppDatabase, $ConversationsTable, ConversationData>,
-      ),
-      ConversationData,
-      PrefetchHooks Function()
-    >;
-typedef $$MessagesTableCreateCompanionBuilder =
-    MessagesCompanion Function({
-      required String id,
-      required String conversationId,
-      required String content,
-      required String author,
-      required bool isFromUser,
-      Value<String?> imageUrl,
-      Value<String?> avatarUrl,
-      required DateTime timestamp,
-      required DateTime createdAt,
-      Value<int> rowid,
-    });
-typedef $$MessagesTableUpdateCompanionBuilder =
-    MessagesCompanion Function({
-      Value<String> id,
-      Value<String> conversationId,
-      Value<String> content,
-      Value<String> author,
-      Value<bool> isFromUser,
-      Value<String?> imageUrl,
-      Value<String?> avatarUrl,
-      Value<DateTime> timestamp,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
+      BaseReferences<_$AppDatabase, $ConversationsTable, ConversationData>
+    ),
+    ConversationData,
+    PrefetchHooks Function()>;
+typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
+  required String id,
+  required String conversationId,
+  required String content,
+  required String author,
+  required bool isFromUser,
+  Value<String?> imageUrl,
+  Value<String?> avatarUrl,
+  required DateTime timestamp,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
+  Value<String> id,
+  Value<String> conversationId,
+  Value<String> content,
+  Value<String> author,
+  Value<bool> isFromUser,
+  Value<String?> imageUrl,
+  Value<String?> avatarUrl,
+  Value<DateTime> timestamp,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
 
 class $$MessagesTableFilterComposer
     extends Composer<_$AppDatabase, $MessagesTable> {
@@ -5034,49 +4271,32 @@ class $$MessagesTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get conversationId => $composableBuilder(
-    column: $table.conversationId,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.conversationId,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get content => $composableBuilder(
-    column: $table.content,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.content, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get author => $composableBuilder(
-    column: $table.author,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.author, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get isFromUser => $composableBuilder(
-    column: $table.isFromUser,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.isFromUser, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get imageUrl => $composableBuilder(
-    column: $table.imageUrl,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get avatarUrl => $composableBuilder(
-    column: $table.avatarUrl,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.avatarUrl, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get timestamp => $composableBuilder(
-    column: $table.timestamp,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.timestamp, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$MessagesTableOrderingComposer
@@ -5089,49 +4309,32 @@ class $$MessagesTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get conversationId => $composableBuilder(
-    column: $table.conversationId,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.conversationId,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get content => $composableBuilder(
-    column: $table.content,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.content, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get author => $composableBuilder(
-    column: $table.author,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.author, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get isFromUser => $composableBuilder(
-    column: $table.isFromUser,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.isFromUser, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get imageUrl => $composableBuilder(
-    column: $table.imageUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get avatarUrl => $composableBuilder(
-    column: $table.avatarUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.avatarUrl, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get timestamp => $composableBuilder(
-    column: $table.timestamp,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.timestamp, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$MessagesTableAnnotationComposer
@@ -5147,9 +4350,7 @@ class $$MessagesTableAnnotationComposer
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get conversationId => $composableBuilder(
-    column: $table.conversationId,
-    builder: (column) => column,
-  );
+      column: $table.conversationId, builder: (column) => column);
 
   GeneratedColumn<String> get content =>
       $composableBuilder(column: $table.content, builder: (column) => column);
@@ -5158,9 +4359,7 @@ class $$MessagesTableAnnotationComposer
       $composableBuilder(column: $table.author, builder: (column) => column);
 
   GeneratedColumn<bool> get isFromUser => $composableBuilder(
-    column: $table.isFromUser,
-    builder: (column) => column,
-  );
+      column: $table.isFromUser, builder: (column) => column);
 
   GeneratedColumn<String> get imageUrl =>
       $composableBuilder(column: $table.imageUrl, builder: (column) => column);
@@ -5175,27 +4374,20 @@ class $$MessagesTableAnnotationComposer
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
 
-class $$MessagesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $MessagesTable,
-          MessageData,
-          $$MessagesTableFilterComposer,
-          $$MessagesTableOrderingComposer,
-          $$MessagesTableAnnotationComposer,
-          $$MessagesTableCreateCompanionBuilder,
-          $$MessagesTableUpdateCompanionBuilder,
-          (
-            MessageData,
-            BaseReferences<_$AppDatabase, $MessagesTable, MessageData>,
-          ),
-          MessageData,
-          PrefetchHooks Function()
-        > {
+class $$MessagesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $MessagesTable,
+    MessageData,
+    $$MessagesTableFilterComposer,
+    $$MessagesTableOrderingComposer,
+    $$MessagesTableAnnotationComposer,
+    $$MessagesTableCreateCompanionBuilder,
+    $$MessagesTableUpdateCompanionBuilder,
+    (MessageData, BaseReferences<_$AppDatabase, $MessagesTable, MessageData>),
+    MessageData,
+    PrefetchHooks Function()> {
   $$MessagesTableTableManager(_$AppDatabase db, $MessagesTable table)
-    : super(
-        TableManagerState(
+      : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -5204,92 +4396,89 @@ class $$MessagesTableTableManager
               $$MessagesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$MessagesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> conversationId = const Value.absent(),
-                Value<String> content = const Value.absent(),
-                Value<String> author = const Value.absent(),
-                Value<bool> isFromUser = const Value.absent(),
-                Value<String?> imageUrl = const Value.absent(),
-                Value<String?> avatarUrl = const Value.absent(),
-                Value<DateTime> timestamp = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => MessagesCompanion(
-                id: id,
-                conversationId: conversationId,
-                content: content,
-                author: author,
-                isFromUser: isFromUser,
-                imageUrl: imageUrl,
-                avatarUrl: avatarUrl,
-                timestamp: timestamp,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String conversationId,
-                required String content,
-                required String author,
-                required bool isFromUser,
-                Value<String?> imageUrl = const Value.absent(),
-                Value<String?> avatarUrl = const Value.absent(),
-                required DateTime timestamp,
-                required DateTime createdAt,
-                Value<int> rowid = const Value.absent(),
-              }) => MessagesCompanion.insert(
-                id: id,
-                conversationId: conversationId,
-                content: content,
-                author: author,
-                isFromUser: isFromUser,
-                imageUrl: imageUrl,
-                avatarUrl: avatarUrl,
-                timestamp: timestamp,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> conversationId = const Value.absent(),
+            Value<String> content = const Value.absent(),
+            Value<String> author = const Value.absent(),
+            Value<bool> isFromUser = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> avatarUrl = const Value.absent(),
+            Value<DateTime> timestamp = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MessagesCompanion(
+            id: id,
+            conversationId: conversationId,
+            content: content,
+            author: author,
+            isFromUser: isFromUser,
+            imageUrl: imageUrl,
+            avatarUrl: avatarUrl,
+            timestamp: timestamp,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String conversationId,
+            required String content,
+            required String author,
+            required bool isFromUser,
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> avatarUrl = const Value.absent(),
+            required DateTime timestamp,
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MessagesCompanion.insert(
+            id: id,
+            conversationId: conversationId,
+            content: content,
+            author: author,
+            isFromUser: isFromUser,
+            imageUrl: imageUrl,
+            avatarUrl: avatarUrl,
+            timestamp: timestamp,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ),
-      );
+        ));
 }
 
-typedef $$MessagesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $MessagesTable,
-      MessageData,
-      $$MessagesTableFilterComposer,
-      $$MessagesTableOrderingComposer,
-      $$MessagesTableAnnotationComposer,
-      $$MessagesTableCreateCompanionBuilder,
-      $$MessagesTableUpdateCompanionBuilder,
-      (MessageData, BaseReferences<_$AppDatabase, $MessagesTable, MessageData>),
-      MessageData,
-      PrefetchHooks Function()
-    >;
-typedef $$FavoriteModelsTableCreateCompanionBuilder =
-    FavoriteModelsCompanion Function({
-      required String id,
-      required String providerId,
-      required String modelName,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
-typedef $$FavoriteModelsTableUpdateCompanionBuilder =
-    FavoriteModelsCompanion Function({
-      Value<String> id,
-      Value<String> providerId,
-      Value<String> modelName,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
+typedef $$MessagesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $MessagesTable,
+    MessageData,
+    $$MessagesTableFilterComposer,
+    $$MessagesTableOrderingComposer,
+    $$MessagesTableAnnotationComposer,
+    $$MessagesTableCreateCompanionBuilder,
+    $$MessagesTableUpdateCompanionBuilder,
+    (MessageData, BaseReferences<_$AppDatabase, $MessagesTable, MessageData>),
+    MessageData,
+    PrefetchHooks Function()>;
+typedef $$FavoriteModelsTableCreateCompanionBuilder = FavoriteModelsCompanion
+    Function({
+  required String id,
+  required String providerId,
+  required String modelName,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+typedef $$FavoriteModelsTableUpdateCompanionBuilder = FavoriteModelsCompanion
+    Function({
+  Value<String> id,
+  Value<String> providerId,
+  Value<String> modelName,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
 
 class $$FavoriteModelsTableFilterComposer
     extends Composer<_$AppDatabase, $FavoriteModelsTable> {
@@ -5301,24 +4490,16 @@ class $$FavoriteModelsTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.providerId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get modelName => $composableBuilder(
-    column: $table.modelName,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.modelName, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$FavoriteModelsTableOrderingComposer
@@ -5331,24 +4512,16 @@ class $$FavoriteModelsTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.providerId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get modelName => $composableBuilder(
-    column: $table.modelName,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.modelName, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$FavoriteModelsTableAnnotationComposer
@@ -5364,9 +4537,7 @@ class $$FavoriteModelsTableAnnotationComposer
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get providerId => $composableBuilder(
-    column: $table.providerId,
-    builder: (column) => column,
-  );
+      column: $table.providerId, builder: (column) => column);
 
   GeneratedColumn<String> get modelName =>
       $composableBuilder(column: $table.modelName, builder: (column) => column);
@@ -5375,33 +4546,24 @@ class $$FavoriteModelsTableAnnotationComposer
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
 
-class $$FavoriteModelsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $FavoriteModelsTable,
-          FavoriteModelData,
-          $$FavoriteModelsTableFilterComposer,
-          $$FavoriteModelsTableOrderingComposer,
-          $$FavoriteModelsTableAnnotationComposer,
-          $$FavoriteModelsTableCreateCompanionBuilder,
-          $$FavoriteModelsTableUpdateCompanionBuilder,
-          (
-            FavoriteModelData,
-            BaseReferences<
-              _$AppDatabase,
-              $FavoriteModelsTable,
-              FavoriteModelData
-            >,
-          ),
-          FavoriteModelData,
-          PrefetchHooks Function()
-        > {
+class $$FavoriteModelsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $FavoriteModelsTable,
+    FavoriteModelData,
+    $$FavoriteModelsTableFilterComposer,
+    $$FavoriteModelsTableOrderingComposer,
+    $$FavoriteModelsTableAnnotationComposer,
+    $$FavoriteModelsTableCreateCompanionBuilder,
+    $$FavoriteModelsTableUpdateCompanionBuilder,
+    (
+      FavoriteModelData,
+      BaseReferences<_$AppDatabase, $FavoriteModelsTable, FavoriteModelData>
+    ),
+    FavoriteModelData,
+    PrefetchHooks Function()> {
   $$FavoriteModelsTableTableManager(
-    _$AppDatabase db,
-    $FavoriteModelsTable table,
-  ) : super(
-        TableManagerState(
+      _$AppDatabase db, $FavoriteModelsTable table)
+      : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -5410,79 +4572,74 @@ class $$FavoriteModelsTableTableManager
               $$FavoriteModelsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$FavoriteModelsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> providerId = const Value.absent(),
-                Value<String> modelName = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => FavoriteModelsCompanion(
-                id: id,
-                providerId: providerId,
-                modelName: modelName,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String providerId,
-                required String modelName,
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => FavoriteModelsCompanion.insert(
-                id: id,
-                providerId: providerId,
-                modelName: modelName,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> providerId = const Value.absent(),
+            Value<String> modelName = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FavoriteModelsCompanion(
+            id: id,
+            providerId: providerId,
+            modelName: modelName,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String providerId,
+            required String modelName,
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FavoriteModelsCompanion.insert(
+            id: id,
+            providerId: providerId,
+            modelName: modelName,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ),
-      );
+        ));
 }
 
-typedef $$FavoriteModelsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $FavoriteModelsTable,
+typedef $$FavoriteModelsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $FavoriteModelsTable,
+    FavoriteModelData,
+    $$FavoriteModelsTableFilterComposer,
+    $$FavoriteModelsTableOrderingComposer,
+    $$FavoriteModelsTableAnnotationComposer,
+    $$FavoriteModelsTableCreateCompanionBuilder,
+    $$FavoriteModelsTableUpdateCompanionBuilder,
+    (
       FavoriteModelData,
-      $$FavoriteModelsTableFilterComposer,
-      $$FavoriteModelsTableOrderingComposer,
-      $$FavoriteModelsTableAnnotationComposer,
-      $$FavoriteModelsTableCreateCompanionBuilder,
-      $$FavoriteModelsTableUpdateCompanionBuilder,
-      (
-        FavoriteModelData,
-        BaseReferences<_$AppDatabase, $FavoriteModelsTable, FavoriteModelData>,
-      ),
-      FavoriteModelData,
-      PrefetchHooks Function()
-    >;
-typedef $$SettingsTableCreateCompanionBuilder =
-    SettingsCompanion Function({
-      required String key,
-      required String value,
-      required String type,
-      Value<String?> description,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
-typedef $$SettingsTableUpdateCompanionBuilder =
-    SettingsCompanion Function({
-      Value<String> key,
-      Value<String> value,
-      Value<String> type,
-      Value<String?> description,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
+      BaseReferences<_$AppDatabase, $FavoriteModelsTable, FavoriteModelData>
+    ),
+    FavoriteModelData,
+    PrefetchHooks Function()>;
+typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
+  required String key,
+  required String value,
+  required String type,
+  Value<String?> description,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
+  Value<String> key,
+  Value<String> value,
+  Value<String> type,
+  Value<String?> description,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
 
 class $$SettingsTableFilterComposer
     extends Composer<_$AppDatabase, $SettingsTable> {
@@ -5494,34 +4651,22 @@ class $$SettingsTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get key => $composableBuilder(
-    column: $table.key,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.key, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get value => $composableBuilder(
-    column: $table.value,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.value, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get type => $composableBuilder(
-    column: $table.type,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.type, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.description, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$SettingsTableOrderingComposer
@@ -5534,34 +4679,22 @@ class $$SettingsTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get key => $composableBuilder(
-    column: $table.key,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.key, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get value => $composableBuilder(
-    column: $table.value,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.value, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get type => $composableBuilder(
-    column: $table.type,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.type, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.description, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$SettingsTableAnnotationComposer
@@ -5583,9 +4716,7 @@ class $$SettingsTableAnnotationComposer
       $composableBuilder(column: $table.type, builder: (column) => column);
 
   GeneratedColumn<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => column,
-  );
+      column: $table.description, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5594,27 +4725,20 @@ class $$SettingsTableAnnotationComposer
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
-class $$SettingsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $SettingsTable,
-          SettingData,
-          $$SettingsTableFilterComposer,
-          $$SettingsTableOrderingComposer,
-          $$SettingsTableAnnotationComposer,
-          $$SettingsTableCreateCompanionBuilder,
-          $$SettingsTableUpdateCompanionBuilder,
-          (
-            SettingData,
-            BaseReferences<_$AppDatabase, $SettingsTable, SettingData>,
-          ),
-          SettingData,
-          PrefetchHooks Function()
-        > {
+class $$SettingsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SettingsTable,
+    SettingData,
+    $$SettingsTableFilterComposer,
+    $$SettingsTableOrderingComposer,
+    $$SettingsTableAnnotationComposer,
+    $$SettingsTableCreateCompanionBuilder,
+    $$SettingsTableUpdateCompanionBuilder,
+    (SettingData, BaseReferences<_$AppDatabase, $SettingsTable, SettingData>),
+    SettingData,
+    PrefetchHooks Function()> {
   $$SettingsTableTableManager(_$AppDatabase db, $SettingsTable table)
-    : super(
-        TableManagerState(
+      : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -5623,64 +4747,61 @@ class $$SettingsTableTableManager
               $$SettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$SettingsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> key = const Value.absent(),
-                Value<String> value = const Value.absent(),
-                Value<String> type = const Value.absent(),
-                Value<String?> description = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SettingsCompanion(
-                key: key,
-                value: value,
-                type: type,
-                description: description,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String key,
-                required String value,
-                required String type,
-                Value<String?> description = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SettingsCompanion.insert(
-                key: key,
-                value: value,
-                type: type,
-                description: description,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<String?> description = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SettingsCompanion(
+            key: key,
+            value: value,
+            type: type,
+            description: description,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String key,
+            required String value,
+            required String type,
+            Value<String?> description = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SettingsCompanion.insert(
+            key: key,
+            value: value,
+            type: type,
+            description: description,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ),
-      );
+        ));
 }
 
-typedef $$SettingsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $SettingsTable,
-      SettingData,
-      $$SettingsTableFilterComposer,
-      $$SettingsTableOrderingComposer,
-      $$SettingsTableAnnotationComposer,
-      $$SettingsTableCreateCompanionBuilder,
-      $$SettingsTableUpdateCompanionBuilder,
-      (SettingData, BaseReferences<_$AppDatabase, $SettingsTable, SettingData>),
-      SettingData,
-      PrefetchHooks Function()
-    >;
+typedef $$SettingsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SettingsTable,
+    SettingData,
+    $$SettingsTableFilterComposer,
+    $$SettingsTableOrderingComposer,
+    $$SettingsTableAnnotationComposer,
+    $$SettingsTableCreateCompanionBuilder,
+    $$SettingsTableUpdateCompanionBuilder,
+    (SettingData, BaseReferences<_$AppDatabase, $SettingsTable, SettingData>),
+    SettingData,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;

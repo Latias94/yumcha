@@ -40,8 +40,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/mcp_server_config.dart';
 import '../providers/settings_notifier.dart';
+import '../providers/mcp_service_provider.dart';
 import '../../domain/usecases/manage_mcp_server_usecase.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
+import '../../../debug/presentation/screens/mcp_debug_screen.dart';
 
 class McpSettingsScreen extends ConsumerStatefulWidget {
   const McpSettingsScreen({super.key});
@@ -51,9 +53,7 @@ class McpSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
-  final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase();
   late McpServersConfig _serversConfig;
-  bool _mcpEnabled = false;
 
   @override
   void initState() {
@@ -62,22 +62,48 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
   }
 
   void _loadSettings() {
-    final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
-    _mcpEnabled = settingsNotifier.getMcpEnabled();
-    _serversConfig = settingsNotifier.getMcpServers();
-    _mcpService.setEnabled(_mcpEnabled);
+    // 延迟加载，确保provider已经初始化
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+      final mcpEnabled = settingsNotifier.getMcpEnabled();
+      _serversConfig = settingsNotifier.getMcpServers();
 
-    if (_mcpEnabled) {
-      _mcpService.initializeServers(_serversConfig.enabledServers);
-    }
+      // 同步MCP服务状态
+      ref.read(mcpServiceProvider.notifier).setEnabled(mcpEnabled);
+      if (mcpEnabled) {
+        ref
+            .read(mcpServiceProvider.notifier)
+            .initializeServers(_serversConfig.enabledServers);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final mcpState = ref.watch(mcpServiceProvider);
+
+    // 监听设置变化，更新本地服务器配置
+    ref.listen(settingsNotifierProvider, (previous, next) {
+      if (!next.isLoading && next.error == null) {
+        final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+        final newServersConfig = settingsNotifier.getMcpServers();
+        if (newServersConfig != _serversConfig) {
+          setState(() {
+            _serversConfig = newServersConfig;
+          });
+        }
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('MCP 设置'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: _openMcpDebug,
+            tooltip: 'MCP调试',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _addServer,
@@ -95,10 +121,10 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                 SwitchListTile(
                   title: const Text('启用 MCP'),
                   subtitle: const Text('启用 Model Context Protocol 支持'),
-                  value: _mcpEnabled,
+                  value: mcpState.isEnabled,
                   onChanged: _toggleMcp,
                 ),
-                if (_mcpEnabled) ...[
+                if (mcpState.isEnabled) ...[
                   const Divider(height: 1),
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -111,7 +137,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
 
           // 服务器列表
           Expanded(
-            child: _mcpEnabled
+            child: mcpState.isEnabled
                 ? _buildServersList()
                 : Center(
                     child: Text(
@@ -167,8 +193,8 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
   }
 
   Widget _buildServerCard(McpServerConfig server) {
-    final status = _mcpService.getServerStatus(server.id);
-    final error = _mcpService.getServerError(server.id);
+    final status = ref.watch(mcpServerStatusProvider(server.id));
+    final error = ref.watch(mcpServerErrorProvider(server.id));
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -304,22 +330,23 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
   }
 
   Future<void> _toggleMcp(bool enabled) async {
-    setState(() {
-      _mcpEnabled = enabled;
-    });
-
-    final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
-    await settingsNotifier.setMcpEnabled(enabled);
-
-    _mcpService.setEnabled(enabled);
+    final mcpNotifier = ref.read(mcpServiceProvider.notifier);
+    await mcpNotifier.setEnabled(enabled);
 
     if (enabled) {
-      await _mcpService.initializeServers(_serversConfig.enabledServers);
-    } else {
-      await _mcpService.disconnectAllServers();
+      await mcpNotifier.initializeServers(_serversConfig.enabledServers);
     }
 
     NotificationService().showSuccess(enabled ? 'MCP 服务已启用' : 'MCP 服务已禁用');
+  }
+
+  void _openMcpDebug() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const McpDebugScreen(),
+      ),
+    );
   }
 
   void _addServer() {
@@ -353,8 +380,11 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
     final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
     await settingsNotifier.setMcpServers(_serversConfig);
 
-    if (_mcpEnabled && server.isEnabled) {
-      await _mcpService.initializeServers(_serversConfig.enabledServers);
+    final mcpState = ref.read(mcpServiceProvider);
+    if (mcpState.isEnabled && server.isEnabled) {
+      await ref
+          .read(mcpServiceProvider.notifier)
+          .initializeServers(_serversConfig.enabledServers);
     }
 
     NotificationService().showSuccess('服务器配置已保存');
@@ -369,12 +399,10 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
         _editServer(server);
         break;
       case 'connect':
-        await _mcpService.reconnectServer(server.id);
-        setState(() {});
+        await ref.read(mcpServiceProvider.notifier).reconnectServer(server.id);
         break;
       case 'disconnect':
-        await _mcpService.disconnectServer(server.id);
-        setState(() {});
+        await ref.read(mcpServiceProvider.notifier).disconnectServer(server.id);
         break;
       case 'delete':
         _deleteServer(server);
@@ -406,7 +434,9 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
               );
               await settingsNotifier.setMcpServers(_serversConfig);
 
-              await _mcpService.disconnectServer(server.id);
+              await ref
+                  .read(mcpServiceProvider.notifier)
+                  .disconnectServer(server.id);
 
               NotificationService().showSuccess('服务器已删除');
             },
@@ -433,7 +463,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                         ? 'iOS'
                         : '未知平台';
 
-    final recommendedTypes = _mcpService.getRecommendedServerTypes();
+    final recommendedTypes = _getRecommendedServerTypes();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,6 +515,18 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
         ],
       ],
     );
+  }
+
+  /// 获取推荐的服务器类型
+  List<McpServerType> _getRecommendedServerTypes() {
+    final isDesktop =
+        Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
+    if (isDesktop) {
+      return [McpServerType.stdio, McpServerType.http, McpServerType.sse];
+    } else {
+      return [McpServerType.http, McpServerType.sse];
+    }
   }
 }
 

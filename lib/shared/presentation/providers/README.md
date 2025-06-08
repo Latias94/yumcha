@@ -18,7 +18,6 @@ lib/providers/
 ├── ai_assistant_notifier.dart      # 🤖 AI助手状态管理
 ├── ai_provider_notifier.dart       # 🔌 AI提供商状态管理
 ├── chat_configuration_notifier.dart # ⚙️ 聊天配置状态管理
-├── chat_notifier.dart              # 💬 聊天状态管理（旧版）
 ├── conversation_notifier.dart      # 💬 对话状态管理（主要）
 └── favorite_model_notifier.dart    # ⭐ 收藏模型状态管理
 ```

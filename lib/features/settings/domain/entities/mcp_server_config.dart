@@ -10,6 +10,7 @@
 /// - 📱 **平台适配**: 根据平台能力自动适配连接方式
 /// - ✅ **启用控制**: 可以启用或禁用特定服务器
 /// - 🔄 **序列化支持**: 支持 JSON 序列化和反序列化
+/// - 🛠️ **工具管理**: 管理服务器提供的工具列表
 ///
 /// 连接类型说明：
 /// - **STDIO**: 本地进程通信（桌面平台）
@@ -33,17 +34,23 @@ class McpServerConfig {
   /// 服务器连接类型
   final McpServerType type;
 
-  /// 启动命令
+  /// 启动命令（STDIO类型）或服务器URL（HTTP/SSE类型）
   final String command;
 
-  /// 命令参数列表
+  /// 命令参数列表（仅STDIO类型使用）
   final List<String> args;
 
   /// 环境变量配置
   final Map<String, String> env;
 
+  /// 自定义HTTP头部（仅HTTP/SSE类型使用）
+  final Map<String, String> headers;
+
   /// 是否启用此服务器
   final bool isEnabled;
+
+  /// 服务器提供的工具列表
+  final List<McpTool> tools;
 
   /// 创建时间
   final DateTime createdAt;
@@ -59,13 +66,16 @@ class McpServerConfig {
     required this.command,
     required this.args,
     required this.env,
+    required this.headers,
     required this.isEnabled,
+    required this.tools,
     required this.createdAt,
     required this.updatedAt,
   });
 
   /// 从 JSON 创建配置
   factory McpServerConfig.fromJson(Map<String, dynamic> json) {
+    final toolsList = json['tools'] as List? ?? [];
     return McpServerConfig(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -74,7 +84,11 @@ class McpServerConfig {
       command: json['command'] as String,
       args: List<String>.from(json['args'] as List? ?? []),
       env: Map<String, String>.from(json['env'] as Map? ?? {}),
+      headers: Map<String, String>.from(json['headers'] as Map? ?? {}),
       isEnabled: json['isEnabled'] as bool? ?? true,
+      tools: toolsList
+          .map((tool) => McpTool.fromJson(tool as Map<String, dynamic>))
+          .toList(),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -90,7 +104,9 @@ class McpServerConfig {
       'command': command,
       'args': args,
       'env': env,
+      'headers': headers,
       'isEnabled': isEnabled,
+      'tools': tools.map((tool) => tool.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -105,7 +121,9 @@ class McpServerConfig {
     String? command,
     List<String>? args,
     Map<String, String>? env,
+    Map<String, String>? headers,
     bool? isEnabled,
+    List<McpTool>? tools,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -117,7 +135,9 @@ class McpServerConfig {
       command: command ?? this.command,
       args: args ?? this.args,
       env: env ?? this.env,
+      headers: headers ?? this.headers,
       isEnabled: isEnabled ?? this.isEnabled,
+      tools: tools ?? this.tools,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -131,6 +151,7 @@ class McpServerConfig {
     required String command,
     List<String>? args,
     Map<String, String>? env,
+    Map<String, String>? headers,
     bool isEnabled = true,
   }) {
     final now = DateTime.now();
@@ -142,7 +163,9 @@ class McpServerConfig {
       command: command,
       args: args ?? [],
       env: env ?? {},
+      headers: headers ?? {},
       isEnabled: isEnabled,
+      tools: [],
       createdAt: now,
       updatedAt: now,
     );
@@ -321,5 +344,115 @@ class McpServersConfig {
   @override
   String toString() {
     return 'McpServersConfig(servers: ${servers.length}, updatedAt: $updatedAt)';
+  }
+}
+
+/// MCP 工具配置数据模型
+///
+/// 表示 MCP 服务器提供的工具信息。
+///
+/// 核心特性：
+/// - 🛠️ **工具信息**: 工具名称、描述、输入模式
+/// - ✅ **启用控制**: 可以启用或禁用特定工具
+/// - 📋 **参数定义**: 支持工具参数的结构化定义
+/// - 🔄 **序列化支持**: 支持 JSON 序列化和反序列化
+class McpTool {
+  /// 工具名称
+  final String name;
+
+  /// 工具描述
+  final String? description;
+
+  /// 是否启用此工具
+  final bool isEnabled;
+
+  /// 工具输入参数模式
+  final Map<String, dynamic>? inputSchema;
+
+  const McpTool({
+    required this.name,
+    this.description,
+    this.isEnabled = true,
+    this.inputSchema,
+  });
+
+  /// 从 JSON 创建工具配置
+  factory McpTool.fromJson(Map<String, dynamic> json) {
+    return McpTool(
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      isEnabled: json['isEnabled'] as bool? ?? true,
+      inputSchema: json['inputSchema'] as Map<String, dynamic>?,
+    );
+  }
+
+  /// 转换为 JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'description': description,
+      'isEnabled': isEnabled,
+      'inputSchema': inputSchema,
+    };
+  }
+
+  /// 创建副本
+  McpTool copyWith({
+    String? name,
+    String? description,
+    bool? isEnabled,
+    Map<String, dynamic>? inputSchema,
+  }) {
+    return McpTool(
+      name: name ?? this.name,
+      description: description ?? this.description,
+      isEnabled: isEnabled ?? this.isEnabled,
+      inputSchema: inputSchema ?? this.inputSchema,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'McpTool(name: $name, enabled: $isEnabled)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is McpTool && other.name == name;
+  }
+
+  @override
+  int get hashCode => name.hashCode;
+}
+
+/// MCP 服务器状态枚举
+///
+/// 表示 MCP 服务器的连接状态。
+enum McpServerStatus {
+  /// 未连接
+  disconnected,
+
+  /// 连接中
+  connecting,
+
+  /// 已连接
+  connected,
+
+  /// 连接错误
+  error;
+
+  /// 获取状态显示名称
+  String get displayName {
+    switch (this) {
+      case McpServerStatus.disconnected:
+        return '未连接';
+      case McpServerStatus.connecting:
+        return '连接中';
+      case McpServerStatus.connected:
+        return '已连接';
+      case McpServerStatus.error:
+        return '连接失败';
+    }
   }
 }

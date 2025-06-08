@@ -41,9 +41,7 @@ class SettingRepository {
       description: description,
     );
 
-    await _database
-        .into(_database.settings)
-        .insertOnConflictUpdate(
+    await _database.into(_database.settings).insertOnConflictUpdate(
           SettingsCompanion(
             key: Value(setting.key),
             value: Value(setting.value),
@@ -60,9 +58,7 @@ class SettingRepository {
     final existingSetting = await getSetting(key);
     if (existingSetting != null) {
       final updatedSetting = existingSetting.updateValue(value);
-      await _database
-          .update(_database.settings)
-          .replace(
+      await _database.update(_database.settings).replace(
             SettingsCompanion(
               key: Value(updatedSetting.key),
               value: Value(updatedSetting.value),
@@ -81,7 +77,8 @@ class SettingRepository {
   Future<void> deleteSetting(String key) async {
     await (_database.delete(
       _database.settings,
-    )..where((tbl) => tbl.key.equals(key))).go();
+    )..where((tbl) => tbl.key.equals(key)))
+        .go();
   }
 
   /// 批量设置
@@ -282,6 +279,36 @@ class SettingRepository {
       key: SettingKeys.debugMode,
       value: enabled,
       description: '调试模式启用状态',
+    );
+  }
+
+  // === 便捷方法：MCP 设置 ===
+
+  /// 获取 MCP 启用状态
+  Future<bool?> getMcpEnabled() async {
+    return await getSettingValue<bool>(SettingKeys.mcpEnabled);
+  }
+
+  /// 设置 MCP 启用状态
+  Future<void> setMcpEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.mcpEnabled,
+      value: enabled,
+      description: 'MCP 服务启用状态',
+    );
+  }
+
+  /// 获取 MCP 服务器配置
+  Future<Map<String, dynamic>?> getMcpServers() async {
+    return await getSettingValue<Map<String, dynamic>>(SettingKeys.mcpServers);
+  }
+
+  /// 设置 MCP 服务器配置
+  Future<void> setMcpServers(Map<String, dynamic> config) async {
+    await setSetting(
+      key: SettingKeys.mcpServers,
+      value: config,
+      description: 'MCP 服务器配置',
     );
   }
 }
