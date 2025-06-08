@@ -1,8 +1,6 @@
 # yumcha
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-
-An AI chat client Flutter application with MCP (Model Context Protocol) integration.
+A cross-platform AI chat application built with Flutter, supporting multiple AI providers and real-time streaming conversations.
 
 ## 📦 Packages
 
@@ -14,9 +12,17 @@ This repository contains multiple packages:
 
 **[apps/yumcha](apps/yumcha/)** - The main Flutter application for AI chat.
 
-> **Acknowledgments**: The UI design of this application is primarily inspired by [rikkahub](https://github.com/rikkahub/rikkahub) - A native Android LLM chat client that supports switching between different providers for conversations. We appreciate their excellent design and user experience contributions to the AI chat client community.
+- **Multi-Provider Support**: OpenAI, DeepSeek, Anthropic, Google, Ollama, Phind, and more
+- **AI Assistants**: Create personalized AI assistants with custom prompts and parameters
+- **Real-time Streaming**: Support for both streaming and non-streaming responses
+- **Reasoning Models**: Support for advanced reasoning models like OpenAI o1 and DeepSeek R1
+- **Model Favorites**: Bookmark frequently used models for quick access
+- **Chat History**: Complete conversation management and search functionality
+- **Cross-Platform**: Runs on Android, iOS, Windows, macOS, Linux, and Web
+- **Material Design 3**: Modern UI with dynamic color support
 
 ### 🤖 LLM Dart Library
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **[packages/llm_dart](packages/llm_dart/)** - A modular Dart library for AI provider interactions
@@ -27,7 +33,6 @@ This repository contains multiple packages:
 - **Streaming**: Real-time response streaming
 - **Tool calling**: Function calling capabilities
 - **Examples**: [Comprehensive examples and documentation](packages/llm_dart/examples/)
-
 
 ## 📄 Licenses
 
@@ -73,6 +78,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📄 License
 
 This project uses dual licensing:
+
 - The Flutter application is licensed under the AGPL v3 License
 - The LLM Dart library is licensed under the MIT License
 
