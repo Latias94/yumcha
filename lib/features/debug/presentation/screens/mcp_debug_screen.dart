@@ -131,39 +131,66 @@ class _McpDebugScreenState extends ConsumerState<McpDebugScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // MCP服务状态概览
-          _buildMcpStatusOverview(mcpState, mcpServers),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // 响应式布局：小屏幕使用垂直布局，大屏幕使用水平布局
+          final isWideScreen = constraints.maxWidth > 800;
 
-          const Divider(height: 1),
+          return Column(
+            children: [
+              // 主要内容区域 - 可滚动
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // MCP服务状态概览
+                      _buildMcpStatusOverview(mcpState, mcpServers),
 
-          // 服务器列表和控制
-          Expanded(
-            child: Row(
-              children: [
-                // 左侧：服务器列表
-                Expanded(
-                  flex: 1,
-                  child: _buildServerDebugList(mcpServers),
+                      const Divider(height: 1),
+
+                      // 服务器列表和工具测试面板
+                      if (isWideScreen)
+                        // 大屏幕：水平布局
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 左侧：服务器列表
+                              Expanded(
+                                flex: 1,
+                                child: _buildServerDebugList(mcpServers),
+                              ),
+
+                              const VerticalDivider(width: 1),
+
+                              // 右侧：工具测试面板
+                              Expanded(
+                                flex: 1,
+                                child: _buildToolTestPanel(),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        // 小屏幕：垂直布局
+                        Column(
+                          children: [
+                            _buildServerDebugList(mcpServers),
+                            const Divider(height: 1),
+                            _buildToolTestPanel(),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
+              ),
 
-                const VerticalDivider(width: 1),
-
-                // 右侧：工具测试面板
-                Expanded(
-                  flex: 1,
-                  child: _buildToolTestPanel(),
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1),
-
-          // 可收起的调试日志面板
-          _buildCollapsibleDebugPanel(),
-        ],
+              // 调试日志面板 - 固定在底部
+              const Divider(height: 1),
+              _buildCollapsibleDebugPanel(),
+            ],
+          );
+        },
       ),
     );
   }
@@ -262,43 +289,47 @@ class _McpDebugScreenState extends ConsumerState<McpDebugScreen> {
 
   Widget _buildServerDebugList(McpServersConfig serversConfig) {
     if (serversConfig.servers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.terminal_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '暂无MCP服务器配置',
-              style: TextStyle(
-                fontSize: 16,
+      return Container(
+        constraints: const BoxConstraints(minHeight: 300),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.terminal_outlined,
+                size: 64,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '请先在MCP设置中添加服务器',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 16),
+              Text(
+                '暂无MCP服务器配置',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                '请先在MCP设置中添加服务器',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
+    return Container(
+      constraints: const BoxConstraints(minHeight: 300),
       padding: const EdgeInsets.all(16),
-      itemCount: serversConfig.servers.length,
-      itemBuilder: (context, index) {
-        final server = serversConfig.servers[index];
-        return _buildServerDebugCard(server);
-      },
+      child: Column(
+        children: serversConfig.servers.map((server) {
+          return _buildServerDebugCard(server);
+        }).toList(),
+      ),
     );
   }
 
@@ -464,133 +495,133 @@ class _McpDebugScreenState extends ConsumerState<McpDebugScreen> {
   }
 
   Widget _buildCollapsibleDebugPanel() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      height: _isDebugPanelExpanded ? 300 : 60,
-      child: Column(
-        children: [
-          // 面板头部 - 可点击收起/展开
-          Container(
-            height: 60,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _isDebugPanelExpanded = !_isDebugPanelExpanded;
-                });
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Icon(
-                      _isDebugPanelExpanded
-                          ? Icons.keyboard_arrow_down
-                          : Icons.keyboard_arrow_up,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 面板头部 - 可点击收起/展开
+        Container(
+          height: 60,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _isDebugPanelExpanded = !_isDebugPanelExpanded;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    _isDebugPanelExpanded
+                        ? Icons.keyboard_arrow_down
+                        : Icons.keyboard_arrow_up,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'MCP调试日志',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: Theme.of(context).primaryColor,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'MCP调试日志',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
+                  ),
+                  const Spacer(),
+                  if (_logEntries.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                    ),
-                    const Spacer(),
-                    if (_logEntries.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .primaryColor
-                              .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${_logEntries.length} 条',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).primaryColor,
-                          ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .primaryColor
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_logEntries.length} 条',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      onPressed: () => _copyToClipboard(_debugLogs),
-                      tooltip: '复制日志',
                     ),
-                    Text(
-                      _isDebugPanelExpanded ? '收起' : '展开',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.copy),
+                    onPressed: () => _copyToClipboard(_debugLogs),
+                    tooltip: '复制日志',
+                  ),
+                  Text(
+                    _isDebugPanelExpanded ? '收起' : '展开',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).primaryColor,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
+        ),
 
-          // 面板内容 - 只在展开时显示
-          if (_isDebugPanelExpanded)
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'MCP调试日志',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: _clearLogs,
-                          tooltip: '清空日志',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Theme.of(context).colorScheme.outline),
-                          borderRadius: BorderRadius.circular(8),
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                        ),
-                        child: SingleChildScrollView(
-                          child: Text(
-                            _debugLogs.isEmpty ? '暂无调试日志...' : _debugLogs,
-                            style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 12,
+        // 面板内容 - 只在展开时显示
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          height: _isDebugPanelExpanded ? 250 : 0,
+          child: _isDebugPanelExpanded
+              ? Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            '调试日志内容',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: _clearLogs,
+                            tooltip: '清空日志',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                                color: Theme.of(context).colorScheme.outline),
+                            borderRadius: BorderRadius.circular(8),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                          ),
+                          child: SingleChildScrollView(
+                            child: Text(
+                              _debugLogs.isEmpty ? '暂无调试日志...' : _debugLogs,
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 
@@ -727,6 +758,7 @@ class _McpDebugScreenState extends ConsumerState<McpDebugScreen> {
 
   Widget _buildToolTestPanel() {
     return Container(
+      constraints: const BoxConstraints(minHeight: 300),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -769,7 +801,8 @@ class _McpDebugScreenState extends ConsumerState<McpDebugScreen> {
           const SizedBox(height: 16),
 
           // 结果显示
-          Expanded(
+          SizedBox(
+            height: 400, // 固定高度，避免布局问题
             child: _buildTestResults(),
           ),
         ],
