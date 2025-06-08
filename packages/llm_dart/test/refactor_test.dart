@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import '../lib/llm_dart.dart';
+import 'package:llm_dart/llm_dart.dart';
 
 void main() {
   group('Refactored LLM Dart Tests', () {

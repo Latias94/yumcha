@@ -1,3 +1,4 @@
+import 'package:chinese_font_library/chinese_font_library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/navigation/app_router.dart';
@@ -50,8 +51,10 @@ class YumchaApp extends ConsumerWidget {
 
     return MaterialApp(
       title: 'Yumcha',
-      theme: themeNotifier.getLightTheme(),
-      darkTheme: themeNotifier.getDarkTheme(),
+      theme:
+          themeNotifier.getLightTheme().useSystemChineseFont(Brightness.light),
+      darkTheme:
+          themeNotifier.getDarkTheme().useSystemChineseFont(Brightness.dark),
       themeMode: themeSettings.themeMode,
       scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
       initialRoute: AppRouter.home,
