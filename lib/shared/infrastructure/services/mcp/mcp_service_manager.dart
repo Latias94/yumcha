@@ -48,7 +48,7 @@ class McpServiceManager {
   final LoggerService _logger = LoggerService();
   final McpClientService _clientService = McpClientService();
   final McpToolService _toolService = McpToolService();
-  
+
   bool _isInitialized = false;
   bool _isEnabled = false;
 
@@ -85,7 +85,7 @@ class McpServiceManager {
     try {
       // 初始化客户端服务
       await _clientService.initialize();
-      
+
       // 初始化工具服务
       await _toolService.initialize();
 
@@ -103,7 +103,7 @@ class McpServiceManager {
   Future<void> setEnabled(bool enabled) async {
     _isEnabled = enabled;
     _logger.info('MCP服务${enabled ? '已启用' : '已禁用'}');
-    
+
     if (!enabled) {
       await disconnectAllServers();
     }
@@ -119,9 +119,9 @@ class McpServiceManager {
     }
 
     await _ensureInitialized();
-    
+
     _logger.info('初始化MCP服务器', {'count': servers.length});
-    
+
     for (final server in servers) {
       if (server.isEnabled && _isPlatformSupported(server.type)) {
         try {
@@ -175,17 +175,18 @@ class McpServiceManager {
   /// 获取推荐的服务器类型
   ///
   /// 根据当前平台返回推荐的MCP服务器连接类型：
-  /// - 桌面平台：STDIO、HTTP、SSE
-  /// - 移动平台：HTTP、SSE
+  /// - 桌面平台：STDIO、StreamableHTTP
+  /// - 移动平台：StreamableHTTP
   ///
   /// @returns 推荐的服务器类型列表
   List<McpServerType> getRecommendedServerTypes() {
-    final isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-    
+    final isDesktop =
+        Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
     if (isDesktop) {
-      return [McpServerType.stdio, McpServerType.http, McpServerType.sse];
+      return [McpServerType.stdio, McpServerType.streamableHttp];
     } else {
-      return [McpServerType.http, McpServerType.sse];
+      return [McpServerType.streamableHttp];
     }
   }
 
@@ -193,7 +194,8 @@ class McpServiceManager {
   ///
   /// @param assistantMcpServerIds 助手配置的MCP服务器ID列表
   /// @returns 可用的工具列表
-  Future<List<McpTool>> getAvailableTools([List<String>? assistantMcpServerIds]) async {
+  Future<List<McpTool>> getAvailableTools(
+      [List<String>? assistantMcpServerIds]) async {
     await _ensureInitialized();
     return await _toolService.getAvailableTools(assistantMcpServerIds);
   }
@@ -240,7 +242,7 @@ class McpServiceManager {
   /// 检查服务健康状态
   Future<Map<String, bool>> checkServiceHealth() async {
     final health = <String, bool>{};
-    
+
     try {
       health['manager'] = _isInitialized && _isEnabled;
       health['clientService'] = await _clientService.checkHealth();
@@ -262,14 +264,14 @@ class McpServiceManager {
 
   /// 检查平台是否支持指定的服务器类型
   bool _isPlatformSupported(McpServerType type) {
-    final isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-    
+    final isDesktop =
+        Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
     switch (type) {
       case McpServerType.stdio:
         return isDesktop; // STDIO仅在桌面平台支持
-      case McpServerType.http:
-      case McpServerType.sse:
-        return true; // HTTP和SSE在所有平台都支持
+      case McpServerType.streamableHttp:
+        return true; // StreamableHTTP在所有平台都支持
     }
   }
 }

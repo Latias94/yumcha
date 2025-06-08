@@ -13,9 +13,8 @@
 // - ⚠️ **错误处理**: 显示连接错误和状态信息
 //
 // 🔌 **支持的连接类型**:
-// - **STDIO**: 标准输入输出，适用于本地进程通信（桌面平台推荐）
-// - **HTTP**: HTTP API 接口，适用于远程服务调用（所有平台）
-// - **SSE**: 服务器发送事件，适用于实时数据推送（所有平台）
+// - **STDIO**: 标准输入输出，适用于本地进程通信（仅桌面平台）
+// - **StreamableHTTP**: HTTP/SSE 连接，适用于远程服务调用（所有平台）
 //
 // 📱 **界面特点**:
 // - 使用卡片式布局展示服务器信息
@@ -503,7 +502,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  '移动端建议使用 HTTP/SSE 连接远程服务器',
+                  '移动端建议使用 StreamableHTTP 连接远程服务器',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.secondary,
                         fontSize: 12,
@@ -523,9 +522,9 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
         Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
     if (isDesktop) {
-      return [McpServerType.stdio, McpServerType.http, McpServerType.sse];
+      return [McpServerType.stdio, McpServerType.streamableHttp];
     } else {
-      return [McpServerType.http, McpServerType.sse];
+      return [McpServerType.streamableHttp];
     }
   }
 }
@@ -707,7 +706,7 @@ class _McpServerEditScreenState extends State<McpServerEditScreen> {
                             : 'URL',
                         hintText: _selectedType == McpServerType.stdio
                             ? '例如：/usr/local/bin/mcp-server'
-                            : '例如：http://localhost:3000/mcp',
+                            : '例如：http://localhost:8080/mcp',
                         border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
@@ -790,14 +789,10 @@ class _McpServerEditScreenState extends State<McpServerEditScreen> {
 环境变量：
 LOG_LEVEL=info
 MAX_FILE_SIZE=10MB''';
-        case McpServerType.http:
-          return '''名称：Web API 工具
-URL：${examples['command'] ?? 'http://localhost:3000/mcp'}
-描述：${examples['description'] ?? '提供网络搜索和API调用功能'}''';
-        case McpServerType.sse:
-          return '''名称：实时数据工具
-URL：${examples['command'] ?? 'http://localhost:3001/sse'}
-描述：${examples['description'] ?? '提供实时数据流处理功能'}''';
+        case McpServerType.streamableHttp:
+          return '''名称：远程API工具
+URL：${examples['command'] ?? 'http://localhost:8080/mcp'}
+描述：${examples['description'] ?? '远程 StreamableHTTP MCP 服务器（支持HTTP和SSE）'}''';
       }
     }
 
@@ -810,14 +805,10 @@ URL：${examples['command'] ?? 'http://localhost:3001/sse'}
 环境变量：
 LOG_LEVEL=info
 MAX_FILE_SIZE=10MB''';
-      case McpServerType.http:
-        return '''名称：Web API 工具
-URL：http://localhost:3000/mcp
-描述：提供网络搜索和API调用功能''';
-      case McpServerType.sse:
-        return '''名称：实时数据工具
-URL：http://localhost:3001/sse
-描述：提供实时数据流处理功能''';
+      case McpServerType.streamableHttp:
+        return '''名称：远程API工具
+URL：http://localhost:8080/mcp
+描述：远程 StreamableHTTP MCP 服务器（支持HTTP和SSE）''';
     }
   }
 
@@ -837,10 +828,8 @@ URL：http://localhost:3001/sse
     switch (type) {
       case McpServerType.stdio:
         return Icons.terminal;
-      case McpServerType.http:
-        return Icons.http;
-      case McpServerType.sse:
-        return Icons.stream;
+      case McpServerType.streamableHttp:
+        return Icons.cloud;
     }
   }
 

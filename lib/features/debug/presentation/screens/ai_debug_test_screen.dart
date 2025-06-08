@@ -39,9 +39,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/infrastructure/services/ai/providers/ai_service_provider.dart';
+
 import '../../../ai_management/domain/entities/ai_provider.dart' as models;
 import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../../chat/domain/entities/message.dart';
+import '../../../settings/domain/entities/mcp_server_config.dart';
 import 'dart:convert';
 
 class AiDebugScreen extends ConsumerStatefulWidget {
@@ -69,6 +71,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   bool _isLoading = false;
   bool _isStreamMode = false;
   bool _isResponsePanelExpanded = true;
+  bool _enableMcpTools = false;
 
   // 结果显示
   String _response = '';
@@ -78,6 +81,11 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   String _responseBody = '';
   final List<String> _streamChunks = [];
   final List<String> _thinkingChunks = [];
+
+  // MCP相关
+  String _mcpDebugInfo = '';
+  List<McpServerConfig> _availableMcpServers = [];
+  List<String> _selectedMcpServerIds = [];
 
   // 预设配置
   static const Map<String, Map<String, String>> _presets = {
@@ -127,6 +135,36 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   void initState() {
     super.initState();
     _loadPreset('OpenAI GPT-4');
+    _loadMcpServers();
+  }
+
+  /// 加载可用的MCP服务器
+  Future<void> _loadMcpServers() async {
+    try {
+      // 创建测试用的MCP服务器配置
+      final testServers = [
+        McpServerConfig.create(
+          name: '测试STDIO服务器',
+          description: '用于测试的STDIO MCP服务器（推荐）',
+          type: McpServerType.stdio,
+          command: 'python tools/mcp_test_server.py',
+        ),
+        // 暂时禁用SSE和HTTP，因为需要更复杂的服务器实现
+        // McpServerConfig.create(
+        //   name: '测试SSE服务器',
+        //   description: '用于测试的SSE MCP服务器',
+        //   type: McpServerType.sse,
+        //   command: 'http://localhost:8080',
+        // ),
+      ];
+
+      setState(() {
+        _availableMcpServers = testServers;
+      });
+      _updateMcpDebugInfo('📋 已加载 ${testServers.length} 个测试MCP服务器\n');
+    } catch (e) {
+      _updateMcpDebugInfo('❌ 加载MCP服务器失败: $e\n');
+    }
   }
 
   @override
@@ -197,6 +235,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       _responseBody = '';
       _streamChunks.clear();
       _thinkingChunks.clear();
+      _mcpDebugInfo = '';
     });
 
     // 生成请求体
@@ -212,8 +251,27 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         'API端点: ${_baseUrlController.text.isEmpty ? "默认" : _baseUrlController.text}\n',
       );
       _updateDebugInfo(
-        '参数: temperature=${_temperatureController.text}, topP=${_topPController.text}\n\n',
+        '参数: temperature=${_temperatureController.text}, topP=${_topPController.text}\n',
       );
+
+      // MCP调试信息
+      if (_enableMcpTools) {
+        _updateDebugInfo('🔧 MCP工具: 已启用\n');
+        _updateDebugInfo('选择的服务器: ${_selectedMcpServerIds.length} 个\n');
+        _updateMcpDebugInfo('🔧 MCP工具调试开始...\n');
+        _updateMcpDebugInfo('启用状态: $_enableMcpTools\n');
+        _updateMcpDebugInfo('选择的服务器ID: ${_selectedMcpServerIds.join(", ")}\n');
+        for (final serverId in _selectedMcpServerIds) {
+          final server =
+              _availableMcpServers.firstWhere((s) => s.id == serverId);
+          _updateMcpDebugInfo(
+              '服务器: ${server.name} (${server.type.displayName})\n');
+        }
+        _updateMcpDebugInfo('\n');
+      } else {
+        _updateDebugInfo('🔧 MCP工具: 未启用\n');
+      }
+      _updateDebugInfo('\n');
 
       await _sendMessageWithAiDartService(message);
     } catch (e) {
@@ -261,6 +319,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         maxTokens: int.tryParse(_maxTokensController.text) ?? 1000,
         topP: double.tryParse(_topPController.text) ?? 0.9,
         enableReasoning: false,
+        mcpServerIds: _enableMcpTools ? _selectedMcpServerIds : [],
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -402,6 +461,12 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     });
   }
 
+  void _updateMcpDebugInfo(String info) {
+    setState(() {
+      _mcpDebugInfo += info;
+    });
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -457,6 +522,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                   _buildApiConfigSection(),
                   const SizedBox(height: 16),
                   _buildParametersSection(),
+                  const SizedBox(height: 16),
+                  _buildMcpSection(),
                   const SizedBox(height: 16),
                   _buildMessageSection(),
                   const SizedBox(height: 16),
@@ -653,6 +720,111 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     );
   }
 
+  Widget _buildMcpSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.extension,
+                    size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  'MCP工具测试',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                Switch(
+                  value: _enableMcpTools,
+                  onChanged: (value) {
+                    setState(() {
+                      _enableMcpTools = value;
+                      if (!value) {
+                        _selectedMcpServerIds.clear();
+                      }
+                    });
+                  },
+                ),
+              ],
+            ),
+            if (_enableMcpTools) ...[
+              const SizedBox(height: 12),
+              const Text(
+                '选择MCP服务器:',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              if (_availableMcpServers.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '暂无可用的MCP服务器\n'
+                    '请先安装依赖：pip install -r tools/requirements.txt\n'
+                    '然后启动测试服务器：python tools/mcp_test_server.py',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: _availableMcpServers.map((server) {
+                    final isSelected =
+                        _selectedMcpServerIds.contains(server.id);
+                    return FilterChip(
+                      label: Text(
+                        '${server.name} (${server.type.displayName})',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedMcpServerIds.add(server.id);
+                          } else {
+                            _selectedMcpServerIds.remove(server.id);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  '💡 启用MCP工具后，AI可以调用选中服务器提供的工具。\n'
+                  '测试消息示例：\n'
+                  '• "请使用echo工具回显\'Hello MCP\'"\n'
+                  '• "请使用add工具计算5+3"\n'
+                  '• "请使用get_time工具获取当前时间"\n'
+                  '• "请使用weather工具查询北京天气"\n'
+                  '• "请使用random_number工具生成1到100的随机数"',
+                  style: TextStyle(fontSize: 11),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMessageSection() {
     return Card(
       child: Padding(
@@ -667,10 +839,11 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _messageController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '输入消息',
-                hintText: '你好，请介绍一下你自己。',
-                border: OutlineInputBorder(),
+                hintText:
+                    _enableMcpTools ? '请使用echo工具回显"Hello MCP"' : '你好，请介绍一下你自己。',
+                border: const OutlineInputBorder(),
               ),
               maxLines: 3,
             ),
@@ -794,7 +967,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           if (_isResponsePanelExpanded)
             Expanded(
               child: DefaultTabController(
-                length: 5,
+                length: _enableMcpTools ? 6 : 5,
                 child: Column(
                   children: [
                     // 标签栏
@@ -802,14 +975,15 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                       color: Theme.of(
                         context,
                       ).colorScheme.surfaceContainerHighest,
-                      child: const TabBar(
+                      child: TabBar(
                         isScrollable: true,
                         tabs: [
-                          Tab(text: '响应内容'),
-                          Tab(text: '思考过程'),
-                          Tab(text: '请求体'),
-                          Tab(text: '响应体'),
-                          Tab(text: '调试信息'),
+                          const Tab(text: '响应内容'),
+                          const Tab(text: '思考过程'),
+                          const Tab(text: '请求体'),
+                          const Tab(text: '响应体'),
+                          const Tab(text: '调试信息'),
+                          if (_enableMcpTools) const Tab(text: 'MCP调试'),
                         ],
                       ),
                     ),
@@ -823,6 +997,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                           _buildRequestTab(),
                           _buildResponseBodyTab(),
                           _buildDebugTab(),
+                          if (_enableMcpTools) _buildMcpDebugTab(),
                         ],
                       ),
                     ),
@@ -1135,6 +1310,82 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               child: SingleChildScrollView(
                 child: Text(
                   _debugInfo.isEmpty ? '等待调试信息...' : _debugInfo,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMcpDebugTab() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.extension,
+                  size: 20, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text(
+                'MCP调试信息',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              if (_mcpDebugInfo.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.copy),
+                  onPressed: () => _copyToClipboard(_mcpDebugInfo),
+                  tooltip: '复制MCP调试信息',
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_selectedMcpServerIds.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '已选择的MCP服务器: ${_selectedMcpServerIds.length} 个\n'
+                '服务器ID: ${_selectedMcpServerIds.join(", ")}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                border:
+                    Border.all(color: Theme.of(context).colorScheme.outline),
+                borderRadius: BorderRadius.circular(8),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.1),
+              ),
+              child: SingleChildScrollView(
+                child: Text(
+                  _mcpDebugInfo.isEmpty
+                      ? '等待MCP调试信息...\n\n'
+                          '💡 提示：\n'
+                          '1. 启用MCP工具开关\n'
+                          '2. 选择要使用的MCP服务器\n'
+                          '3. 发送包含工具调用请求的消息\n'
+                          '4. 观察AI是否能识别并调用MCP工具'
+                      : _mcpDebugInfo,
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
                 ),
               ),

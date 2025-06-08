@@ -3,9 +3,10 @@ import '../../../../../features/ai_management/domain/entities/ai_assistant.dart'
 import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
     as models;
 import '../../../../../features/chat/domain/entities/message.dart';
-import '../../../../../features/settings/domain/usecases/manage_mcp_server_usecase.dart';
+
 import '../core/ai_response_models.dart';
 import '../core/ai_service_base.dart';
+import '../../mcp/mcp_service_manager.dart';
 import 'package:llm_dart/llm_dart.dart';
 
 /// 聊天服务 - AI对话功能的核心实现
@@ -112,9 +113,6 @@ class ChatService extends AiServiceBase {
   /// - ⏱️ **性能数据**：平均响应时间、最长/最短耗时
   /// - 🕒 **时间信息**：最后请求时间、服务启动时间
   final Map<String, AiServiceStats> _stats = {};
-
-  /// MCP服务管理器
-  final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase();
 
   /// 服务初始化状态标记
   bool _isInitialized = false;
@@ -504,11 +502,50 @@ class ChatService extends AiServiceBase {
   /// @param mcpServerIds 助手配置的MCP服务器ID列表
   /// @returns 可用的MCP工具列表，转换为llm_dart的Tool格式
   Future<List<Tool>> _getMcpTools(List<String> mcpServerIds) async {
-    // TODO: 实现MCP工具集成
-    // 当前返回空列表，待MCP服务完全集成后实现
-    logger.info('MCP工具集成待实现', {
-      'serverIds': mcpServerIds,
-    });
-    return [];
+    if (mcpServerIds.isEmpty) {
+      return [];
+    }
+
+    try {
+      // 获取MCP服务管理器
+      final mcpManager = McpServiceManager();
+
+      // 获取可用的MCP工具
+      final mcpTools = await mcpManager.getAvailableTools(mcpServerIds);
+
+      if (mcpTools.isEmpty) {
+        logger.info('未找到可用的MCP工具', {
+          'serverIds': mcpServerIds,
+        });
+        return [];
+      }
+
+      // 转换为llm_dart的Tool格式
+      final tools = mcpTools.map((mcpTool) {
+        return Tool.function(
+          name: mcpTool.name,
+          description: mcpTool.description ?? '无描述',
+          parameters: ParametersSchema(
+            schemaType: 'object',
+            properties: {},
+            required: [],
+          ),
+        );
+      }).toList();
+
+      logger.info('MCP工具集成成功', {
+        'serverIds': mcpServerIds,
+        'toolCount': tools.length,
+        'tools': mcpTools.map((t) => t.name).toList(),
+      });
+
+      return tools;
+    } catch (e) {
+      logger.error('MCP工具集成失败', {
+        'serverIds': mcpServerIds,
+        'error': e.toString(),
+      });
+      return [];
+    }
   }
 }

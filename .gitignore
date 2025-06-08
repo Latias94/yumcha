@@ -51,3 +51,4 @@ test_high_similarity.mp3
 test_balanced.mp3
 
 .vscode/
+.venv/

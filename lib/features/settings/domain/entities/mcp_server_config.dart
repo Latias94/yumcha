@@ -4,7 +4,7 @@
 /// MCP 是一个开放协议，允许 AI 应用连接到外部工具和数据源。
 ///
 /// 核心特性：
-/// - 🔌 **多协议支持**: 支持 STDIO、HTTP、SSE 连接类型
+/// - 🔌 **多协议支持**: 支持 STDIO、StreamableHTTP 连接类型
 /// - ⚙️ **命令配置**: 支持自定义启动命令和参数
 /// - 🌐 **环境变量**: 支持自定义环境变量配置
 /// - 📱 **平台适配**: 根据平台能力自动适配连接方式
@@ -13,9 +13,8 @@
 /// - 🛠️ **工具管理**: 管理服务器提供的工具列表
 ///
 /// 连接类型说明：
-/// - **STDIO**: 本地进程通信（桌面平台）
-/// - **HTTP**: HTTP API 连接（所有平台）
-/// - **SSE**: 服务器发送事件（所有平台）
+/// - **STDIO**: 本地进程通信（仅桌面平台）
+/// - **StreamableHTTP**: HTTP/SSE 连接（所有平台，支持HTTP和SSE协议）
 ///
 /// 使用场景：
 /// - MCP 服务器的配置管理
@@ -34,7 +33,7 @@ class McpServerConfig {
   /// 服务器连接类型
   final McpServerType type;
 
-  /// 启动命令（STDIO类型）或服务器URL（HTTP/SSE类型）
+  /// 启动命令（STDIO类型）或服务器URL（StreamableHTTP类型）
   final String command;
 
   /// 命令参数列表（仅STDIO类型使用）
@@ -43,7 +42,7 @@ class McpServerConfig {
   /// 环境变量配置
   final Map<String, String> env;
 
-  /// 自定义HTTP头部（仅HTTP/SSE类型使用）
+  /// 自定义HTTP头部（仅StreamableHTTP类型使用）
   final Map<String, String> headers;
 
   /// 是否启用此服务器
@@ -191,18 +190,14 @@ class McpServerConfig {
 /// 定义 MCP 服务器支持的连接方式，不同类型适用于不同的部署场景。
 ///
 /// 连接类型说明：
-/// - **STDIO**: 标准输入输出，适用于本地进程通信
-/// - **HTTP**: HTTP API 接口，适用于远程服务调用
-/// - **SSE**: 服务器发送事件，适用于实时数据推送
+/// - **STDIO**: 标准输入输出，适用于本地进程通信（仅桌面平台）
+/// - **StreamableHTTP**: HTTP/SSE 连接，适用于远程服务调用（所有平台）
 enum McpServerType {
   /// 标准输入输出连接（本地进程）
   stdio,
 
-  /// HTTP API 连接（远程服务）
-  http,
-
-  /// 服务器发送事件连接（实时推送）
-  sse;
+  /// StreamableHTTP 连接（远程服务，支持HTTP和SSE）
+  streamableHttp;
 
   /// 从字符串创建类型
   static McpServerType fromString(String value) {
@@ -210,9 +205,10 @@ enum McpServerType {
       case 'stdio':
         return McpServerType.stdio;
       case 'http':
-        return McpServerType.http;
       case 'sse':
-        return McpServerType.sse;
+      case 'streamablehttp':
+      case 'streamable_http':
+        return McpServerType.streamableHttp;
       default:
         return McpServerType.stdio;
     }
@@ -224,10 +220,8 @@ enum McpServerType {
     switch (this) {
       case McpServerType.stdio:
         return 'stdio';
-      case McpServerType.http:
-        return 'http';
-      case McpServerType.sse:
-        return 'sse';
+      case McpServerType.streamableHttp:
+        return 'streamableHttp';
     }
   }
 
@@ -236,10 +230,8 @@ enum McpServerType {
     switch (this) {
       case McpServerType.stdio:
         return 'Standard I/O';
-      case McpServerType.http:
-        return 'HTTP';
-      case McpServerType.sse:
-        return 'Server-Sent Events';
+      case McpServerType.streamableHttp:
+        return 'StreamableHTTP';
     }
   }
 }

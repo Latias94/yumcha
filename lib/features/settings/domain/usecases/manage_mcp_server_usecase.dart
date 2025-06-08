@@ -130,17 +130,23 @@ class ManageMcpServerUseCase {
       switch (config.type) {
         case McpServerType.stdio:
           transport = StdioClientTransport(
-            StdioServerParameters(command: config.command, args: config.args),
+            StdioServerParameters(
+              command: config.command,
+              args: config.args,
+              environment: config.env,
+            ),
           );
           break;
-        case McpServerType.http:
+        case McpServerType.streamableHttp:
+          // 使用StreamableHttpClientTransport进行HTTP/SSE连接
           transport = StreamableHttpClientTransport(
-            Uri.parse(config.command), // 对于 HTTP，command 字段存储 URL
+            Uri.parse(config.command),
+            opts: StreamableHttpClientTransportOptions(
+              requestInit: config.headers.isNotEmpty
+                  ? {'headers': config.headers}
+                  : null,
+            ),
           );
-          break;
-        case McpServerType.sse:
-          // SSE 暂时使用 HTTP 传输
-          transport = StreamableHttpClientTransport(Uri.parse(config.command));
           break;
       }
 
@@ -386,8 +392,7 @@ class ManageMcpServerUseCase {
     switch (type) {
       case McpServerType.stdio:
         return PlatformUtils.supportsLocalProcesses;
-      case McpServerType.http:
-      case McpServerType.sse:
+      case McpServerType.streamableHttp:
         return PlatformUtils.supportsNetworkConnections;
     }
   }
@@ -401,7 +406,7 @@ class ManageMcpServerUseCase {
     }
 
     if (PlatformUtils.supportsNetworkConnections) {
-      types.addAll([McpServerType.http, McpServerType.sse]);
+      types.add(McpServerType.streamableHttp);
     }
 
     return types;
@@ -420,15 +425,10 @@ class ManageMcpServerUseCase {
               ? '${PlatformUtils.platformName} 可执行文件路径'
               : '本地可执行文件（当前平台不支持）',
         };
-      case McpServerType.http:
+      case McpServerType.streamableHttp:
         return {
-          'command': examples['http_url'] ?? 'http://localhost:3000/mcp',
-          'description': '本地或远程 HTTP MCP 服务器',
-        };
-      case McpServerType.sse:
-        return {
-          'command': examples['sse_url'] ?? 'http://localhost:3001/sse',
-          'description': '支持实时数据流的 SSE 服务器',
+          'command': examples['http_url'] ?? 'http://localhost:8080/mcp',
+          'description': '远程 StreamableHTTP MCP 服务器（支持HTTP和SSE）',
         };
     }
   }
@@ -479,7 +479,7 @@ class ManageMcpServerUseCase {
     }
 
     // 检查URL格式
-    if (config.type == McpServerType.http || config.type == McpServerType.sse) {
+    if (config.type == McpServerType.streamableHttp) {
       if (config.command.isEmpty) {
         result['isValid'] = false;
         result['errors'].add('${config.type.displayName} 连接类型需要指定URL');
