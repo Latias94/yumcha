@@ -114,8 +114,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
       }
 
       // 2. 尝试获取最后使用的助手ID
-      final lastUsedAssistantId = await _preferenceService
-          .getLastUsedAssistantId();
+      final lastUsedAssistantId =
+          await _preferenceService.getLastUsedAssistantId();
       if (lastUsedAssistantId != null) {
         final assistant = await _assistantRepository.getAssistant(
           lastUsedAssistantId,
@@ -333,18 +333,36 @@ class _ChatInputState extends ConsumerState<ChatInput>
   }
 
   Widget _buildInputField(ThemeData theme, bool isEditing) {
+    final isDesktop = MediaQuery.of(context).size.width > 768;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: EdgeInsets.fromLTRB(
+        isDesktop ? 20 : 16,
+        8,
+        isDesktop ? 20 : 16,
+        0,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.8,
+            alpha: 0.7,
           ),
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.2),
+            color: _focusNode.hasFocus
+                ? theme.colorScheme.primary.withValues(alpha: 0.4)
+                : theme.colorScheme.outline.withValues(alpha: 0.2),
             width: 1,
           ),
+          boxShadow: _focusNode.hasFocus
+              ? [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
         ),
         child: TextField(
           controller: _textController,
@@ -362,15 +380,21 @@ class _ChatInputState extends ConsumerState<ChatInput>
                 : (isEditing ? '编辑消息...' : '输入消息...'),
             hintStyle: TextStyle(
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              fontSize: 15,
             ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 16,
+              horizontal: 20,
+              vertical: 14,
             ),
           ),
-          maxLines: null,
+          maxLines: isDesktop ? 5 : 4,
+          minLines: 1,
           textCapitalization: TextCapitalization.sentences,
+          style: const TextStyle(
+            fontSize: 15,
+            height: 1.4,
+          ),
         ),
       ),
     );

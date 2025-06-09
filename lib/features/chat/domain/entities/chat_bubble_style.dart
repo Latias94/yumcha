@@ -19,7 +19,11 @@ enum ChatBubbleStyle {
 
   /// 列表样式
   /// 特点：无背景色，占满宽度，类似文档或邮件的显示方式
-  list('list', '列表样式');
+  list('list', '列表样式'),
+
+  /// 现代卡片样式
+  /// 特点：卡片式设计，带阴影和边框，适合桌面端使用
+  card('card', '现代卡片');
 
   const ChatBubbleStyle(this.value, this.displayName);
 

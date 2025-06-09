@@ -27,62 +27,27 @@
 // - 直观的效果预览
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/chat_bubble_style.dart';
-import '../../../../shared/infrastructure/services/preference_service.dart';
+import '../providers/chat_style_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 
-class DisplaySettingsScreen extends StatefulWidget {
+class DisplaySettingsScreen extends ConsumerWidget {
   const DisplaySettingsScreen({super.key});
 
-  @override
-  State<DisplaySettingsScreen> createState() => _DisplaySettingsScreenState();
-}
-
-class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
-  late final PreferenceService _preferenceService;
-  ChatBubbleStyle _currentStyle = ChatBubbleStyle.list;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _preferenceService = PreferenceService();
-    _loadCurrentStyle();
-  }
-
-  Future<void> _loadCurrentStyle() async {
+  Future<void> _saveStyle(WidgetRef ref, ChatBubbleStyle style) async {
     try {
-      final styleValue = await _preferenceService.getChatBubbleStyle();
-      setState(() {
-        _currentStyle = ChatBubbleStyle.fromValue(styleValue);
-        _isLoading = false;
-      });
+      await ref.read(chatStyleProvider.notifier).updateStyle(style);
+      NotificationService().showSuccess('已切换到${style.displayName}样式');
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _saveStyle(ChatBubbleStyle style) async {
-    try {
-      await _preferenceService.saveChatBubbleStyle(style.value);
-      setState(() {
-        _currentStyle = style;
-      });
-
-      if (mounted) {
-        NotificationService().showSuccess('已切换到${style.displayName}样式');
-      }
-    } catch (e) {
-      if (mounted) {
-        NotificationService().showError('保存设置失败');
-      }
+      NotificationService().showError('保存设置失败');
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chatStyleState = ref.watch(chatStyleProvider);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -95,7 +60,7 @@ class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
           ),
           SliverList(
             delegate: SliverChildListDelegate([
-              if (_isLoading)
+              if (chatStyleState.isLoading)
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.all(32),
@@ -103,15 +68,13 @@ class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
                   ),
                 )
               else ...[
-                _buildSectionHeader("消息显示样式"),
-                _buildStyleOption(ChatBubbleStyle.list),
-                _buildStyleOption(ChatBubbleStyle.bubble),
-
+                _buildSectionHeader(context, "消息显示样式"),
+                _buildStyleOption(context, ref, ChatBubbleStyle.list),
+                _buildStyleOption(context, ref, ChatBubbleStyle.card),
+                _buildStyleOption(context, ref, ChatBubbleStyle.bubble),
                 const SizedBox(height: 24),
-
-                _buildSectionHeader("样式预览"),
-                _buildPreviewSection(),
-
+                _buildSectionHeader(context, "样式预览"),
+                _buildPreviewSection(context, ref),
                 const SizedBox(height: 32),
               ],
             ]),
@@ -121,21 +84,23 @@ class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.w600,
-        ),
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }
 
-  Widget _buildStyleOption(ChatBubbleStyle style) {
-    final isSelected = _currentStyle == style;
+  Widget _buildStyleOption(
+      BuildContext context, WidgetRef ref, ChatBubbleStyle style) {
+    final currentStyle = ref.watch(currentChatStyleProvider);
+    final isSelected = currentStyle == style;
 
     String subtitle;
     switch (style) {
@@ -145,22 +110,27 @@ class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
       case ChatBubbleStyle.list:
         subtitle = "列表样式，无背景色，适合长文本阅读";
         break;
+      case ChatBubbleStyle.card:
+        subtitle = "现代卡片样式，带阴影和边框，适合桌面端";
+        break;
     }
 
     return RadioListTile<ChatBubbleStyle>(
       title: Text(style.displayName),
       subtitle: Text(subtitle),
       value: style,
-      groupValue: _currentStyle,
+      groupValue: currentStyle,
       onChanged: (value) {
         if (value != null) {
-          _saveStyle(value);
+          _saveStyle(ref, value);
         }
       },
       secondary: Icon(
-        style == ChatBubbleStyle.bubble
-            ? Icons.chat_bubble_outline
-            : Icons.list,
+        switch (style) {
+          ChatBubbleStyle.bubble => Icons.chat_bubble_outline,
+          ChatBubbleStyle.list => Icons.list,
+          ChatBubbleStyle.card => Icons.credit_card_rounded,
+        },
         color: isSelected
             ? Theme.of(context).colorScheme.primary
             : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -168,7 +138,7 @@ class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
     );
   }
 
-  Widget _buildPreviewSection() {
+  Widget _buildPreviewSection(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -188,12 +158,14 @@ class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
           const SizedBox(height: 16),
 
           // 用户消息预览
-          _buildPreviewMessage("这是一条用户消息的预览效果", isFromUser: true),
+          _buildPreviewMessage(context, ref, "这是一条用户消息的预览效果", isFromUser: true),
 
           const SizedBox(height: 8),
 
           // AI消息预览
           _buildPreviewMessage(
+            context,
+            ref,
             "这是一条AI回复消息的预览效果，可能会比较长一些，用来展示不同样式下的显示效果。",
             isFromUser: false,
           ),
@@ -202,71 +174,140 @@ class _DisplaySettingsScreenState extends State<DisplaySettingsScreen> {
     );
   }
 
-  Widget _buildPreviewMessage(String content, {required bool isFromUser}) {
+  Widget _buildPreviewMessage(
+      BuildContext context, WidgetRef ref, String content,
+      {required bool isFromUser}) {
     final theme = Theme.of(context);
+    final currentStyle = ref.watch(currentChatStyleProvider);
 
-    if (_currentStyle == ChatBubbleStyle.bubble) {
-      // 气泡样式预览
-      final bubbleColor = isFromUser
-          ? theme.colorScheme.primary
-          : theme.colorScheme.surfaceContainerHighest;
-      final textColor = isFromUser
-          ? theme.colorScheme.onPrimary
-          : theme.colorScheme.onSurface;
+    switch (currentStyle) {
+      case ChatBubbleStyle.bubble:
+        // 气泡样式预览
+        final bubbleColor = isFromUser
+            ? theme.colorScheme.primary
+            : theme.colorScheme.surfaceContainerHighest;
+        final textColor = isFromUser
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurface;
 
-      return Align(
-        alignment: isFromUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.7,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: bubbleColor,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: isFromUser
-                  ? const Radius.circular(16)
-                  : const Radius.circular(4),
-              bottomRight: isFromUser
-                  ? const Radius.circular(4)
-                  : const Radius.circular(16),
+        return Align(
+          alignment: isFromUser ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.7,
             ),
-          ),
-          child: Text(
-            content,
-            style: TextStyle(color: textColor, fontSize: 14),
-          ),
-        ),
-      );
-    } else {
-      // 列表样式预览
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isFromUser ? "用户" : "AI助手",
-              style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: bubbleColor,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(16),
+                topRight: const Radius.circular(16),
+                bottomLeft: isFromUser
+                    ? const Radius.circular(16)
+                    : const Radius.circular(4),
+                bottomRight: isFromUser
+                    ? const Radius.circular(4)
+                    : const Radius.circular(16),
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
+            child: Text(
               content,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface,
-                fontSize: 14,
+              style: TextStyle(color: textColor, fontSize: 14),
+            ),
+          ),
+        );
+
+      case ChatBubbleStyle.card:
+        // 卡片样式预览
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                width: 1,
               ),
             ),
-          ],
-        ),
-      );
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: isFromUser
+                              ? theme.colorScheme.primaryContainer
+                              : theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          isFromUser
+                              ? Icons.person_rounded
+                              : Icons.smart_toy_rounded,
+                          color: isFromUser
+                              ? theme.colorScheme.onPrimaryContainer
+                              : theme.colorScheme.onSecondaryContainer,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isFromUser ? "用户" : "AI助手",
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    content,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+      case ChatBubbleStyle.list:
+        // 列表样式预览
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isFromUser ? "用户" : "AI助手",
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                content,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        );
     }
   }
 }

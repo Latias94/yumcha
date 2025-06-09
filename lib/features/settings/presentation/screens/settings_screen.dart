@@ -36,6 +36,7 @@ import 'mcp_settings_screen.dart';
 import 'theme_settings_screen.dart';
 import '../../../../app/theme/theme_provider.dart';
 import '../../../debug/presentation/screens/thinking_process_demo.dart';
+import '../../../chat/presentation/screens/chat_display_settings_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -66,6 +67,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildSectionHeader("通用设置"),
               _buildThemeSettingsItem(themeSettings),
               _buildDynamicColorItem(themeSettings, themeNotifier),
+              _buildChatDisplaySettingsItem(),
 
               const SizedBox(height: 24),
 
@@ -360,6 +362,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ProvidersScreen()),
+        );
+      },
+    );
+  }
+
+  Widget _buildChatDisplaySettingsItem() {
+    return ListTile(
+      leading: const Icon(Icons.chat_bubble_outline),
+      title: const Text("聊天显示"),
+      subtitle: const Text("设置聊天消息的显示样式"),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const DisplaySettingsScreen()),
         );
       },
     );
