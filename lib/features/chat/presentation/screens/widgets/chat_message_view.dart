@@ -116,17 +116,26 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
             const SizedBox(height: 12),
           ],
 
-          // 消息内容容器
+          // 消息内容容器 - 智能主题适配
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(isDesktop ? 20.0 : 16.0),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest,
+              // 根据主题智能选择背景色
+              color: _getListStyleBackgroundColor(theme),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
                 width: 1,
               ),
+              // 添加轻微阴影增强层次感
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.02),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: _buildMarkdownContent(
               context,
@@ -503,9 +512,9 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
           ),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: theme.colorScheme.shadow.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
@@ -658,6 +667,21 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
       return '${difference.inDays}天前';
     } else {
       return '${timestamp.month}/${timestamp.day}';
+    }
+  }
+
+  /// 获取列表样式的背景色 - 智能主题适配
+  Color _getListStyleBackgroundColor(ThemeData theme) {
+    final brightness = theme.brightness;
+    final colorScheme = theme.colorScheme;
+
+    // 根据亮暗模式和主题特性智能选择背景色
+    if (brightness == Brightness.light) {
+      // 浅色模式：使用最浅的表面容器色，确保良好的对比度
+      return colorScheme.surfaceContainerLowest;
+    } else {
+      // 深色模式：使用稍微亮一点的表面容器色，避免过于暗淡
+      return colorScheme.surfaceContainerLow;
     }
   }
 }

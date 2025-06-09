@@ -282,32 +282,97 @@ class DisplaySettingsScreen extends ConsumerWidget {
         );
 
       case ChatBubbleStyle.list:
-        // 列表样式预览
+        // 列表样式预览 - 匹配实际的列表样式
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          margin: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isFromUser ? "用户" : "AI助手",
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
+              // 角色标识和时间戳
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isFromUser
+                          ? theme.colorScheme.primaryContainer
+                              .withValues(alpha: 0.3)
+                          : theme.colorScheme.secondaryContainer
+                              .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      isFromUser ? "用户" : "AI助手",
+                      style: TextStyle(
+                        color: isFromUser
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.secondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    "刚刚",
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.7),
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 2),
-              Text(
-                content,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 14,
+              const SizedBox(height: 8),
+
+              // 消息内容容器
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _getListStyleBackgroundColor(theme),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color:
+                        theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.shadow.withValues(alpha: 0.02),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  content,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
           ),
         );
+    }
+  }
+
+  /// 获取列表样式的背景色 - 智能主题适配
+  Color _getListStyleBackgroundColor(ThemeData theme) {
+    final brightness = theme.brightness;
+    final colorScheme = theme.colorScheme;
+
+    // 根据亮暗模式和主题特性智能选择背景色
+    if (brightness == Brightness.light) {
+      // 浅色模式：使用最浅的表面容器色，确保良好的对比度
+      return colorScheme.surfaceContainerLowest;
+    } else {
+      // 深色模式：使用稍微亮一点的表面容器色，避免过于暗淡
+      return colorScheme.surfaceContainerLow;
     }
   }
 }
