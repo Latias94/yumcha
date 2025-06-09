@@ -2196,6 +2196,42 @@ class $MessagesTable extends Messages
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _parentMessageIdMeta =
+      const VerificationMeta('parentMessageId');
+  @override
+  late final GeneratedColumn<String> parentMessageId = GeneratedColumn<String>(
+      'parent_message_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _metadataMeta =
+      const VerificationMeta('metadata');
+  @override
+  late final GeneratedColumn<String> metadata = GeneratedColumn<String>(
+      'metadata', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2206,7 +2242,12 @@ class $MessagesTable extends Messages
         imageUrl,
         avatarUrl,
         timestamp,
-        createdAt
+        createdAt,
+        updatedAt,
+        parentMessageId,
+        version,
+        isActive,
+        metadata
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2271,6 +2312,30 @@ class $MessagesTable extends Messages
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('parent_message_id')) {
+      context.handle(
+          _parentMessageIdMeta,
+          parentMessageId.isAcceptableOrUnknown(
+              data['parent_message_id']!, _parentMessageIdMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
+    if (data.containsKey('metadata')) {
+      context.handle(_metadataMeta,
+          metadata.isAcceptableOrUnknown(data['metadata']!, _metadataMeta));
+    }
     return context;
   }
 
@@ -2298,6 +2363,16 @@ class $MessagesTable extends Messages
           .read(DriftSqlType.dateTime, data['${effectivePrefix}timestamp'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      parentMessageId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}parent_message_id']),
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      metadata: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata']),
     );
   }
 
@@ -2317,6 +2392,11 @@ class MessageData extends DataClass implements Insertable<MessageData> {
   final String? avatarUrl;
   final DateTime timestamp;
   final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? parentMessageId;
+  final int version;
+  final bool isActive;
+  final String? metadata;
   const MessageData(
       {required this.id,
       required this.conversationId,
@@ -2326,7 +2406,12 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       this.imageUrl,
       this.avatarUrl,
       required this.timestamp,
-      required this.createdAt});
+      required this.createdAt,
+      required this.updatedAt,
+      this.parentMessageId,
+      required this.version,
+      required this.isActive,
+      this.metadata});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2343,6 +2428,15 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     }
     map['timestamp'] = Variable<DateTime>(timestamp);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || parentMessageId != null) {
+      map['parent_message_id'] = Variable<String>(parentMessageId);
+    }
+    map['version'] = Variable<int>(version);
+    map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || metadata != null) {
+      map['metadata'] = Variable<String>(metadata);
+    }
     return map;
   }
 
@@ -2361,6 +2455,15 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           : Value(avatarUrl),
       timestamp: Value(timestamp),
       createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      parentMessageId: parentMessageId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentMessageId),
+      version: Value(version),
+      isActive: Value(isActive),
+      metadata: metadata == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadata),
     );
   }
 
@@ -2377,6 +2480,11 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       avatarUrl: serializer.fromJson<String?>(json['avatarUrl']),
       timestamp: serializer.fromJson<DateTime>(json['timestamp']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      parentMessageId: serializer.fromJson<String?>(json['parentMessageId']),
+      version: serializer.fromJson<int>(json['version']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      metadata: serializer.fromJson<String?>(json['metadata']),
     );
   }
   @override
@@ -2392,6 +2500,11 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       'avatarUrl': serializer.toJson<String?>(avatarUrl),
       'timestamp': serializer.toJson<DateTime>(timestamp),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'parentMessageId': serializer.toJson<String?>(parentMessageId),
+      'version': serializer.toJson<int>(version),
+      'isActive': serializer.toJson<bool>(isActive),
+      'metadata': serializer.toJson<String?>(metadata),
     };
   }
 
@@ -2404,7 +2517,12 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           Value<String?> imageUrl = const Value.absent(),
           Value<String?> avatarUrl = const Value.absent(),
           DateTime? timestamp,
-          DateTime? createdAt}) =>
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<String?> parentMessageId = const Value.absent(),
+          int? version,
+          bool? isActive,
+          Value<String?> metadata = const Value.absent()}) =>
       MessageData(
         id: id ?? this.id,
         conversationId: conversationId ?? this.conversationId,
@@ -2415,6 +2533,13 @@ class MessageData extends DataClass implements Insertable<MessageData> {
         avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
         timestamp: timestamp ?? this.timestamp,
         createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        parentMessageId: parentMessageId.present
+            ? parentMessageId.value
+            : this.parentMessageId,
+        version: version ?? this.version,
+        isActive: isActive ?? this.isActive,
+        metadata: metadata.present ? metadata.value : this.metadata,
       );
   MessageData copyWithCompanion(MessagesCompanion data) {
     return MessageData(
@@ -2430,6 +2555,13 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      parentMessageId: data.parentMessageId.present
+          ? data.parentMessageId.value
+          : this.parentMessageId,
+      version: data.version.present ? data.version.value : this.version,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      metadata: data.metadata.present ? data.metadata.value : this.metadata,
     );
   }
 
@@ -2444,14 +2576,32 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           ..write('imageUrl: $imageUrl, ')
           ..write('avatarUrl: $avatarUrl, ')
           ..write('timestamp: $timestamp, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('parentMessageId: $parentMessageId, ')
+          ..write('version: $version, ')
+          ..write('isActive: $isActive, ')
+          ..write('metadata: $metadata')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, conversationId, content, author,
-      isFromUser, imageUrl, avatarUrl, timestamp, createdAt);
+  int get hashCode => Object.hash(
+      id,
+      conversationId,
+      content,
+      author,
+      isFromUser,
+      imageUrl,
+      avatarUrl,
+      timestamp,
+      createdAt,
+      updatedAt,
+      parentMessageId,
+      version,
+      isActive,
+      metadata);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2464,7 +2614,12 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           other.imageUrl == this.imageUrl &&
           other.avatarUrl == this.avatarUrl &&
           other.timestamp == this.timestamp &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.parentMessageId == this.parentMessageId &&
+          other.version == this.version &&
+          other.isActive == this.isActive &&
+          other.metadata == this.metadata);
 }
 
 class MessagesCompanion extends UpdateCompanion<MessageData> {
@@ -2477,6 +2632,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
   final Value<String?> avatarUrl;
   final Value<DateTime> timestamp;
   final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<String?> parentMessageId;
+  final Value<int> version;
+  final Value<bool> isActive;
+  final Value<String?> metadata;
   final Value<int> rowid;
   const MessagesCompanion({
     this.id = const Value.absent(),
@@ -2488,6 +2648,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     this.avatarUrl = const Value.absent(),
     this.timestamp = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.parentMessageId = const Value.absent(),
+    this.version = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.metadata = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MessagesCompanion.insert({
@@ -2500,6 +2665,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     this.avatarUrl = const Value.absent(),
     required DateTime timestamp,
     required DateTime createdAt,
+    required DateTime updatedAt,
+    this.parentMessageId = const Value.absent(),
+    this.version = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.metadata = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         conversationId = Value(conversationId),
@@ -2507,7 +2677,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
         author = Value(author),
         isFromUser = Value(isFromUser),
         timestamp = Value(timestamp),
-        createdAt = Value(createdAt);
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
   static Insertable<MessageData> custom({
     Expression<String>? id,
     Expression<String>? conversationId,
@@ -2518,6 +2689,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     Expression<String>? avatarUrl,
     Expression<DateTime>? timestamp,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? parentMessageId,
+    Expression<int>? version,
+    Expression<bool>? isActive,
+    Expression<String>? metadata,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2530,6 +2706,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       if (avatarUrl != null) 'avatar_url': avatarUrl,
       if (timestamp != null) 'timestamp': timestamp,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (parentMessageId != null) 'parent_message_id': parentMessageId,
+      if (version != null) 'version': version,
+      if (isActive != null) 'is_active': isActive,
+      if (metadata != null) 'metadata': metadata,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2544,6 +2725,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       Value<String?>? avatarUrl,
       Value<DateTime>? timestamp,
       Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<String?>? parentMessageId,
+      Value<int>? version,
+      Value<bool>? isActive,
+      Value<String?>? metadata,
       Value<int>? rowid}) {
     return MessagesCompanion(
       id: id ?? this.id,
@@ -2555,6 +2741,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       timestamp: timestamp ?? this.timestamp,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      parentMessageId: parentMessageId ?? this.parentMessageId,
+      version: version ?? this.version,
+      isActive: isActive ?? this.isActive,
+      metadata: metadata ?? this.metadata,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2589,6 +2780,21 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (parentMessageId.present) {
+      map['parent_message_id'] = Variable<String>(parentMessageId.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (metadata.present) {
+      map['metadata'] = Variable<String>(metadata.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2607,6 +2813,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
           ..write('avatarUrl: $avatarUrl, ')
           ..write('timestamp: $timestamp, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('parentMessageId: $parentMessageId, ')
+          ..write('version: $version, ')
+          ..write('isActive: $isActive, ')
+          ..write('metadata: $metadata, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4246,6 +4457,11 @@ typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
   Value<String?> avatarUrl,
   required DateTime timestamp,
   required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<String?> parentMessageId,
+  Value<int> version,
+  Value<bool> isActive,
+  Value<String?> metadata,
   Value<int> rowid,
 });
 typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
@@ -4258,6 +4474,11 @@ typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
   Value<String?> avatarUrl,
   Value<DateTime> timestamp,
   Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<String?> parentMessageId,
+  Value<int> version,
+  Value<bool> isActive,
+  Value<String?> metadata,
   Value<int> rowid,
 });
 
@@ -4297,6 +4518,22 @@ class $$MessagesTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get parentMessageId => $composableBuilder(
+      column: $table.parentMessageId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadata => $composableBuilder(
+      column: $table.metadata, builder: (column) => ColumnFilters(column));
 }
 
 class $$MessagesTableOrderingComposer
@@ -4335,6 +4572,22 @@ class $$MessagesTableOrderingComposer
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get parentMessageId => $composableBuilder(
+      column: $table.parentMessageId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadata => $composableBuilder(
+      column: $table.metadata, builder: (column) => ColumnOrderings(column));
 }
 
 class $$MessagesTableAnnotationComposer
@@ -4372,6 +4625,21 @@ class $$MessagesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get parentMessageId => $composableBuilder(
+      column: $table.parentMessageId, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get metadata =>
+      $composableBuilder(column: $table.metadata, builder: (column) => column);
 }
 
 class $$MessagesTableTableManager extends RootTableManager<
@@ -4406,6 +4674,11 @@ class $$MessagesTableTableManager extends RootTableManager<
             Value<String?> avatarUrl = const Value.absent(),
             Value<DateTime> timestamp = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<String?> parentMessageId = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<String?> metadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MessagesCompanion(
@@ -4418,6 +4691,11 @@ class $$MessagesTableTableManager extends RootTableManager<
             avatarUrl: avatarUrl,
             timestamp: timestamp,
             createdAt: createdAt,
+            updatedAt: updatedAt,
+            parentMessageId: parentMessageId,
+            version: version,
+            isActive: isActive,
+            metadata: metadata,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -4430,6 +4708,11 @@ class $$MessagesTableTableManager extends RootTableManager<
             Value<String?> avatarUrl = const Value.absent(),
             required DateTime timestamp,
             required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<String?> parentMessageId = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<String?> metadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MessagesCompanion.insert(
@@ -4442,6 +4725,11 @@ class $$MessagesTableTableManager extends RootTableManager<
             avatarUrl: avatarUrl,
             timestamp: timestamp,
             createdAt: createdAt,
+            updatedAt: updatedAt,
+            parentMessageId: parentMessageId,
+            version: version,
+            isActive: isActive,
+            metadata: metadata,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

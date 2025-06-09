@@ -30,7 +30,7 @@ A cross-platform AI chat application built with Flutter, supporting multiple AI 
 - **Material Design 3** - Modern design system with dynamic colors
 - **Riverpod 2.6+** - State management
 - **Drift 2.16+** - SQLite database ORM
-- **[llm_dart](https://pub.dev/packages/llm_dart)** - Open-source AI interface library supporting multiple LLM providers (MIT License)
+- **[llm_dart](https://github.com/Latias94/llm_dart)** - Open-source AI interface library supporting multiple LLM providers (MIT License)
 
 ## Getting Started
 
@@ -53,6 +53,7 @@ flutter pub get
 ```
 
 3. Run the application:
+4. 
 ```bash
 flutter run
 ```

@@ -339,6 +339,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                 timestamp: _streamingMessage!.timestamp,
                 isFromUser: false,
                 author: _streamingMessage!.author,
+                duration: _pendingStreamResponse!.duration,
               );
 
               final index = _messages.indexOf(_streamingMessage!);
@@ -422,6 +423,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           timestamp: DateTime.now(),
           isFromUser: false,
           author: assistant.name,
+          duration: response.duration,
         );
 
         setState(() {

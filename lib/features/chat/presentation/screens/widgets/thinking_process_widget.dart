@@ -7,11 +7,15 @@ class ThinkingProcessWidget extends StatefulWidget {
   const ThinkingProcessWidget({
     super.key,
     required this.thinkingContent,
+    this.duration,
     this.isExpanded = false,
   });
 
   /// 思考过程内容
   final String thinkingContent;
+
+  /// 思考过程耗时
+  final Duration? duration;
 
   /// 是否默认展开
   final bool isExpanded;
@@ -108,24 +112,25 @@ class _ThinkingProcessWidgetState extends State<ThinkingProcessWidget>
                     ),
                   ),
 
-                  // 耗时提示（模拟）
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '耗时',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: theme.colorScheme.onPrimaryContainer,
+                  // 耗时显示
+                  if (widget.duration != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _formatDuration(widget.duration!),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
                       ),
                     ),
-                  ),
                   const SizedBox(width: 8),
 
                   // 展开/折叠图标
@@ -248,6 +253,19 @@ class _ThinkingProcessWidgetState extends State<ThinkingProcessWidget>
     ];
 
     return markdownPatterns.any((pattern) => pattern.hasMatch(text));
+  }
+
+  /// 格式化耗时显示
+  String _formatDuration(Duration duration) {
+    if (duration.inSeconds < 1) {
+      return '${duration.inMilliseconds}ms';
+    } else if (duration.inSeconds < 60) {
+      return '${duration.inSeconds}s';
+    } else {
+      final minutes = duration.inMinutes;
+      final seconds = duration.inSeconds % 60;
+      return '${minutes}m${seconds}s';
+    }
   }
 }
 

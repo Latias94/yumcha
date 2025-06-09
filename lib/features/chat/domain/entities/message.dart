@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'message_metadata.dart';
 
 /// 聊天消息数据模型
 ///
@@ -46,6 +47,21 @@ class Message {
   /// 是否为用户发送的消息（true: 用户消息，false: AI 回复）
   final bool isFromUser;
 
+  /// AI 响应耗时（仅对 AI 消息有效）- 保留向后兼容
+  final Duration? duration;
+
+  /// 消息元数据（AI响应的详细信息）
+  final MessageMetadata? metadata;
+
+  /// 父消息ID（用于重新生成的消息）
+  final String? parentMessageId;
+
+  /// 消息版本号
+  final int version;
+
+  /// 是否为当前活跃版本
+  final bool isActive;
+
   const Message({
     this.id,
     required this.author,
@@ -54,6 +70,11 @@ class Message {
     this.imageUrl,
     this.avatarUrl,
     required this.isFromUser,
+    this.duration,
+    this.metadata,
+    this.parentMessageId,
+    this.version = 1,
+    this.isActive = true,
   });
 
   Message copyWith({
@@ -64,6 +85,11 @@ class Message {
     String? imageUrl,
     String? avatarUrl,
     bool? isFromUser,
+    Duration? duration,
+    MessageMetadata? metadata,
+    String? parentMessageId,
+    int? version,
+    bool? isActive,
   }) {
     return Message(
       id: id ?? this.id,
@@ -73,7 +99,46 @@ class Message {
       imageUrl: imageUrl ?? this.imageUrl,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isFromUser: isFromUser ?? this.isFromUser,
+      duration: duration ?? this.duration,
+      metadata: metadata ?? this.metadata,
+      parentMessageId: parentMessageId ?? this.parentMessageId,
+      version: version ?? this.version,
+      isActive: isActive ?? this.isActive,
     );
+  }
+
+  /// 获取思考过程耗时
+  Duration? get thinkingDuration {
+    if (metadata?.thinkingDurationMs != null) {
+      return Duration(milliseconds: metadata!.thinkingDurationMs!);
+    }
+    return null;
+  }
+
+  /// 获取总响应耗时（优先使用元数据）
+  Duration? get totalDuration {
+    if (metadata?.totalDurationMs != null) {
+      return Duration(milliseconds: metadata!.totalDurationMs!);
+    }
+    return duration; // 向后兼容
+  }
+
+  /// 获取内容生成耗时
+  Duration? get contentDuration {
+    if (metadata?.contentDurationMs != null) {
+      return Duration(milliseconds: metadata!.contentDurationMs!);
+    }
+    return null;
+  }
+
+  /// 是否包含思考过程
+  bool get hasThinking {
+    return metadata?.hasThinking ?? false;
+  }
+
+  /// 是否使用了工具调用
+  bool get hasToolCalls {
+    return metadata?.hasToolCalls ?? false;
   }
 
   @override

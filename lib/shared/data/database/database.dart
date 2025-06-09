@@ -119,7 +119,7 @@ class Conversations extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-// 消息表
+// 消息表 - 重构版本，支持版本管理和丰富元数据
 @DataClassName('MessageData')
 class Messages extends Table {
   TextColumn get id => text()();
@@ -131,6 +131,16 @@ class Messages extends Table {
   TextColumn get avatarUrl => text().nullable()();
   DateTimeColumn get timestamp => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  // 版本管理
+  TextColumn get parentMessageId => text().nullable()(); // 父消息ID（用于重新生成的消息）
+  IntColumn get version => integer().withDefault(const Constant(1))(); // 消息版本号
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))(); // 是否为当前活跃版本
+
+  // AI响应元数据（JSON格式）
+  TextColumn get metadata => text().nullable()(); // 存储AI响应的详细信息
 
   @override
   Set<Column> get primaryKey => {id};

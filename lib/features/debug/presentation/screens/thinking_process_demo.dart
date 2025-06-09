@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../chat/domain/entities/message.dart';
+import '../../../chat/domain/entities/message_metadata.dart';
 import '../../../chat/presentation/screens/widgets/chat_message_view.dart';
 
 /// 思考过程功能演示页面
@@ -50,7 +51,7 @@ class ThinkingProcessDemo extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // 包含思考过程的AI回复
+          // 包含思考过程的AI回复（带耗时信息）
           ChatMessageView(
             message: Message(
               author: 'AI助手',
@@ -135,6 +136,20 @@ class ThinkingProcessDemo extends StatelessWidget {
 总的来说，如果你是新项目且追求性能，我更推荐Flutter；如果团队有React经验且希望快速开发，React Native是不错的选择。''',
               timestamp: DateTime.now(),
               isFromUser: false,
+              duration: const Duration(seconds: 3, milliseconds: 250), // 3.25秒
+              metadata: MessageMetadata(
+                totalDurationMs: 3250,
+                thinkingDurationMs: 2100, // 思考过程耗时2.1秒
+                contentDurationMs: 1150, // 内容生成耗时1.15秒
+                hasThinking: true,
+                modelName: 'gpt-4o',
+                providerId: 'openai',
+                tokenUsage: TokenUsage(
+                  promptTokens: 150,
+                  completionTokens: 580,
+                  totalTokens: 730,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -174,6 +189,7 @@ class ThinkingProcessDemo extends StatelessWidget {
 如果你有编程基础，特别是移动开发经验，学习会更快一些。建议从官方文档和实际项目开始！''',
               timestamp: DateTime.now(),
               isFromUser: false,
+              duration: const Duration(milliseconds: 850), // 0.85秒
             ),
           ),
           const SizedBox(height: 16),
@@ -232,6 +248,20 @@ Riverpod的主要优势：
 - **测试友好**：容易mock和测试''',
               timestamp: DateTime.now(),
               isFromUser: false,
+              duration: const Duration(seconds: 2, milliseconds: 100), // 2.1秒
+              metadata: MessageMetadata(
+                totalDurationMs: 2100,
+                thinkingDurationMs: 1200, // 思考过程耗时1.2秒
+                contentDurationMs: 900, // 内容生成耗时0.9秒
+                hasThinking: true,
+                modelName: 'claude-3.5-sonnet',
+                providerId: 'anthropic',
+                tokenUsage: TokenUsage(
+                  promptTokens: 120,
+                  completionTokens: 420,
+                  totalTokens: 540,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 32),

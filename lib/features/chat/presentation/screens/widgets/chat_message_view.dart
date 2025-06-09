@@ -112,6 +112,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
               thinkingResult.hasThinkingProcess) ...[
             ThinkingProcessWidget(
               thinkingContent: thinkingResult.thinkingContent,
+              duration: widget.message.thinkingDuration ??
+                  widget.message.totalDuration,
             ),
             const SizedBox(height: 12),
           ],
@@ -244,6 +246,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                   thinkingResult.hasThinkingProcess) ...[
                 ThinkingProcessWidget(
                   thinkingContent: thinkingResult.thinkingContent,
+                  duration: widget.message.thinkingDuration ??
+                      widget.message.totalDuration,
                 ),
                 const SizedBox(height: 16),
               ],
@@ -289,6 +293,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
               ),
               child: ThinkingProcessWidget(
                 thinkingContent: thinkingResult.thinkingContent,
+                duration: widget.message.thinkingDuration ??
+                    widget.message.totalDuration,
               ),
             ),
             const SizedBox(height: 8),

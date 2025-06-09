@@ -1,6 +1,7 @@
 import '../../../../shared/data/database/database.dart';
 import '../../domain/entities/conversation_ui_state.dart';
 import '../../domain/entities/message.dart';
+import '../../domain/entities/message_metadata.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
@@ -49,12 +50,12 @@ class ConversationRepository {
     int offset = 0,
     bool includeMessages = false, // 是否包含消息内容
   }) async {
-    final conversationDataList = await _database
-        .getConversationsByAssistantWithPagination(
-          assistantId,
-          limit: limit,
-          offset: offset,
-        );
+    final conversationDataList =
+        await _database.getConversationsByAssistantWithPagination(
+      assistantId,
+      limit: limit,
+      offset: offset,
+    );
     final conversations = <ConversationUiState>[];
 
     for (final conversationData in conversationDataList) {
@@ -175,6 +176,7 @@ class ConversationRepository {
             isFromUser: message.isFromUser,
             imageUrl: message.imageUrl,
             avatarUrl: message.avatarUrl,
+            duration: message.duration,
           );
         }
         _logger.info('创建新对话: ${conversation.id}');
@@ -233,6 +235,7 @@ class ConversationRepository {
             imageUrl: message.imageUrl,
             avatarUrl: message.avatarUrl,
             timestamp: message.timestamp,
+            duration: message.duration,
           );
         }
 
@@ -259,6 +262,7 @@ class ConversationRepository {
     String? imageUrl,
     String? avatarUrl,
     DateTime? timestamp,
+    Duration? duration,
   }) async {
     final id = _uuid.v4();
     final now = timestamp ?? DateTime.now();
@@ -273,6 +277,8 @@ class ConversationRepository {
       avatarUrl: Value(avatarUrl),
       timestamp: Value(now),
       createdAt: Value(DateTime.now()),
+      updatedAt: Value(DateTime.now()),
+      // 暂时不设置元数据，保持向后兼容
     );
 
     await _database.insertMessage(companion);
@@ -300,6 +306,7 @@ class ConversationRepository {
     required bool isFromUser,
     String? imageUrl,
     String? avatarUrl,
+    Duration? duration,
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
@@ -314,6 +321,8 @@ class ConversationRepository {
       avatarUrl: Value(avatarUrl),
       timestamp: Value(now),
       createdAt: Value(now),
+      updatedAt: Value(now),
+      // 暂时不设置元数据，保持向后兼容
     );
 
     await _database.insertMessage(companion);
@@ -435,6 +444,17 @@ class ConversationRepository {
 
   // 将消息数据库模型转换为业务模型
   Message _messageDataToModel(MessageData data) {
+    // 解析元数据
+    MessageMetadata? metadata;
+    if (data.metadata != null) {
+      try {
+        metadata = MessageMetadata.fromJsonString(data.metadata!);
+      } catch (e) {
+        // 如果解析失败，忽略元数据
+        _logger.warning('解析消息元数据失败: $e');
+      }
+    }
+
     return Message(
       id: data.id,
       author: data.author,
@@ -443,6 +463,14 @@ class ConversationRepository {
       imageUrl: data.imageUrl,
       avatarUrl: data.avatarUrl,
       isFromUser: data.isFromUser,
+      metadata: metadata,
+      parentMessageId: data.parentMessageId,
+      version: data.version,
+      isActive: data.isActive,
+      // 向后兼容：如果没有元数据但有总耗时，使用总耗时
+      duration: metadata?.totalDurationMs != null
+          ? Duration(milliseconds: metadata!.totalDurationMs!)
+          : null,
     );
   }
 }

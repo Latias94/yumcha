@@ -19,6 +19,7 @@ class StreamResponse {
 
   String _content = '';
   String _thinking = '';
+  Duration? _duration;
   StreamSubscription<AiStreamEvent>? _subscription;
   bool _isCanceled = false;
   bool _isDone = false;
@@ -28,6 +29,9 @@ class StreamResponse {
 
   /// 获取当前累积的思考内容
   String get thinking => _thinking;
+
+  /// 获取响应耗时
+  Duration? get duration => _duration;
 
   /// 获取完整的内容（包含思考内容）
   String get fullContent {
@@ -58,6 +62,7 @@ class StreamResponse {
           _thinking += event.thinkingDelta!;
           onUpdate?.call();
         } else if (event.isDone) {
+          _duration = event.duration;
           _isDone = true;
           onDone?.call(null);
         }
