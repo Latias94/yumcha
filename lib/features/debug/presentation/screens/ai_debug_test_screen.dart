@@ -38,6 +38,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/infrastructure/services/ai/providers/ai_service_provider.dart';
 
 import '../../../ai_management/domain/entities/ai_provider.dart' as models;
@@ -48,6 +49,7 @@ import '../../../settings/presentation/providers/settings_notifier.dart';
 import '../../../settings/presentation/providers/mcp_service_provider.dart';
 import '../../../settings/presentation/screens/mcp_settings_screen.dart';
 import 'dart:convert';
+import 'dart:async';
 
 class AiDebugScreen extends ConsumerStatefulWidget {
   const AiDebugScreen({super.key});
@@ -89,6 +91,22 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   String _mcpDebugInfo = '';
   List<McpServerConfig> _availableMcpServers = [];
   List<String> _selectedMcpServerIds = [];
+
+  // 请求取消相关
+  Completer<void>? _currentRequestCompleter;
+
+  // SharedPreferences 键名常量
+  static const String _prefKeyApiKey = 'debug_api_key';
+  static const String _prefKeyBaseUrl = 'debug_base_url';
+  static const String _prefKeyModel = 'debug_model';
+  static const String _prefKeyMessage = 'debug_message';
+  static const String _prefKeySystemPrompt = 'debug_system_prompt';
+  static const String _prefKeyTemperature = 'debug_temperature';
+  static const String _prefKeyTopP = 'debug_top_p';
+  static const String _prefKeyMaxTokens = 'debug_max_tokens';
+  static const String _prefKeyProvider = 'debug_provider';
+  static const String _prefKeyStreamMode = 'debug_stream_mode';
+  static const String _prefKeyEnableMcp = 'debug_enable_mcp';
 
   // 预设配置
   static const Map<String, Map<String, String>> _presets = {
@@ -137,8 +155,84 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   @override
   void initState() {
     super.initState();
-    _loadPreset('OpenAI GPT-4');
+    _loadSavedSettings();
     _loadMcpServers();
+    _setupTextFieldListeners();
+  }
+
+  /// 设置文本输入框监听器，实现自动保存
+  void _setupTextFieldListeners() {
+    // 添加延迟保存，避免频繁保存
+    Timer? saveTimer;
+
+    void scheduleSave() {
+      saveTimer?.cancel();
+      saveTimer = Timer(const Duration(seconds: 1), () {
+        _saveCurrentSettings();
+      });
+    }
+
+    _apiKeyController.addListener(scheduleSave);
+    _baseUrlController.addListener(scheduleSave);
+    _modelController.addListener(scheduleSave);
+    _messageController.addListener(scheduleSave);
+    _systemPromptController.addListener(scheduleSave);
+    _temperatureController.addListener(scheduleSave);
+    _topPController.addListener(scheduleSave);
+    _maxTokensController.addListener(scheduleSave);
+  }
+
+  /// 加载保存的设置
+  Future<void> _loadSavedSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      setState(() {
+        _apiKeyController.text = prefs.getString(_prefKeyApiKey) ?? '';
+        _baseUrlController.text = prefs.getString(_prefKeyBaseUrl) ?? '';
+        _modelController.text = prefs.getString(_prefKeyModel) ?? 'gpt-4';
+        _messageController.text = prefs.getString(_prefKeyMessage) ?? '';
+        _systemPromptController.text =
+            prefs.getString(_prefKeySystemPrompt) ?? '';
+        _temperatureController.text =
+            prefs.getString(_prefKeyTemperature) ?? '0.7';
+        _topPController.text = prefs.getString(_prefKeyTopP) ?? '0.9';
+        _maxTokensController.text =
+            prefs.getString(_prefKeyMaxTokens) ?? '1000';
+        _selectedProvider = prefs.getString(_prefKeyProvider) ?? 'openai';
+        _isStreamMode = prefs.getBool(_prefKeyStreamMode) ?? false;
+        _enableMcpTools = prefs.getBool(_prefKeyEnableMcp) ?? false;
+      });
+
+      // 如果没有保存的设置，加载默认预设
+      if (_apiKeyController.text.isEmpty && _modelController.text == 'gpt-4') {
+        _loadPreset('OpenAI GPT-4');
+      }
+    } catch (e) {
+      // 如果加载失败，使用默认设置
+      _loadPreset('OpenAI GPT-4');
+    }
+  }
+
+  /// 保存当前设置
+  Future<void> _saveCurrentSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setString(_prefKeyApiKey, _apiKeyController.text);
+      await prefs.setString(_prefKeyBaseUrl, _baseUrlController.text);
+      await prefs.setString(_prefKeyModel, _modelController.text);
+      await prefs.setString(_prefKeyMessage, _messageController.text);
+      await prefs.setString(_prefKeySystemPrompt, _systemPromptController.text);
+      await prefs.setString(_prefKeyTemperature, _temperatureController.text);
+      await prefs.setString(_prefKeyTopP, _topPController.text);
+      await prefs.setString(_prefKeyMaxTokens, _maxTokensController.text);
+      await prefs.setString(_prefKeyProvider, _selectedProvider);
+      await prefs.setBool(_prefKeyStreamMode, _isStreamMode);
+      await prefs.setBool(_prefKeyEnableMcp, _enableMcpTools);
+    } catch (e) {
+      // 保存失败不影响主要功能
+    }
   }
 
   /// 加载可用的MCP服务器
@@ -170,6 +264,12 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   @override
   void dispose() {
+    // 取消当前请求
+    if (_currentRequestCompleter != null &&
+        !_currentRequestCompleter!.isCompleted) {
+      _currentRequestCompleter!.completeError('页面已销毁');
+    }
+
     _apiKeyController.dispose();
     _baseUrlController.dispose();
     _modelController.dispose();
@@ -190,6 +290,9 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       _modelController.text = preset['model'] ?? '';
       _baseUrlController.text = preset['baseUrl'] ?? '';
     });
+
+    // 自动保存设置
+    _saveCurrentSettings();
   }
 
   String _formatRequestBody() {
@@ -209,6 +312,25 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       if (_maxTokensController.text.isNotEmpty)
         'max_tokens': int.tryParse(_maxTokensController.text),
       if (_isStreamMode) 'stream': true,
+      // 添加工具信息（如果启用了MCP工具）
+      if (_enableMcpTools && _selectedMcpServerIds.isNotEmpty)
+        'tools': _selectedMcpServerIds.map((serverId) {
+          final server =
+              _availableMcpServers.firstWhere((s) => s.id == serverId);
+          return {
+            'type': 'function',
+            'function': {
+              'name':
+                  'mcp_tool_${server.name.toLowerCase().replaceAll(' ', '_')}',
+              'description': '来自 ${server.name} 服务器的MCP工具',
+              'parameters': {
+                'type': 'object',
+                'properties': {},
+                'required': [],
+              },
+            },
+          };
+        }).toList(),
     };
 
     const encoder = JsonEncoder.withIndent('  ');
@@ -226,6 +348,12 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       _showError('请输入API密钥');
       return;
     }
+
+    // 保存当前设置
+    await _saveCurrentSettings();
+
+    // 创建新的请求 Completer
+    _currentRequestCompleter = Completer<void>();
 
     setState(() {
       _isLoading = true;
@@ -260,7 +388,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         _updateDebugInfo('🔧 MCP工具: 已启用\n');
         _updateDebugInfo('选择的服务器: ${_selectedMcpServerIds.length} 个\n');
         _updateMcpDebugInfo('🔧 MCP工具调试开始...\n');
-        _updateMcpDebugInfo('启用状态: $_enableMcpTools\n');
+        _updateMcpDebugInfo('助手工具启用状态: $_enableMcpTools\n');
         _updateMcpDebugInfo('选择的服务器ID: ${_selectedMcpServerIds.join(", ")}\n');
         for (final serverId in _selectedMcpServerIds) {
           final server =
@@ -268,13 +396,20 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           _updateMcpDebugInfo(
               '服务器: ${server.name} (${server.type.displayName})\n');
         }
+        _updateMcpDebugInfo('💡 提示: 工具将被添加到请求体的 tools 字段中\n');
         _updateMcpDebugInfo('\n');
       } else {
         _updateDebugInfo('🔧 MCP工具: 未启用\n');
+        _updateMcpDebugInfo('⚠️ 工具未启用，请求体中不会包含 tools 字段\n');
       }
       _updateDebugInfo('\n');
 
       await _sendMessageWithAiDartService(message);
+
+      // 请求完成，标记 Completer
+      if (!_currentRequestCompleter!.isCompleted) {
+        _currentRequestCompleter!.complete();
+      }
     } catch (e) {
       _updateDebugInfo('❌ 错误: $e\n');
       _showError('请求失败: $e');
@@ -288,10 +423,71 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           },
         });
       });
+
+      // 请求失败，标记 Completer
+      if (!_currentRequestCompleter!.isCompleted) {
+        _currentRequestCompleter!.completeError(e);
+      }
     } finally {
       setState(() {
         _isLoading = false;
       });
+      _currentRequestCompleter = null;
+    }
+  }
+
+  /// 取消当前请求
+  void _cancelRequest() {
+    if (_currentRequestCompleter != null &&
+        !_currentRequestCompleter!.isCompleted) {
+      _currentRequestCompleter!.completeError('用户取消请求');
+      _updateDebugInfo('⚠️ 用户取消了请求\n');
+      setState(() {
+        _isLoading = false;
+      });
+      _currentRequestCompleter = null;
+    }
+  }
+
+  /// 清空所有响应和调试信息
+  void _clearAllResponses() {
+    setState(() {
+      _response = '';
+      _thinkingContent = '';
+      _debugInfo = '';
+      _requestBody = '';
+      _responseBody = '';
+      _streamChunks.clear();
+      _thinkingChunks.clear();
+      _mcpDebugInfo = '';
+    });
+  }
+
+  /// 显示清空确认对话框
+  Future<void> _showClearConfirmDialog() async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清空响应'),
+        content: const Text('确定要清空所有响应和调试信息吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldClear == true && mounted) {
+      _clearAllResponses();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已清空所有响应')),
+      );
     }
   }
 
@@ -320,6 +516,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         maxTokens: int.tryParse(_maxTokensController.text) ?? 1000,
         topP: double.tryParse(_topPController.text) ?? 0.9,
         enableReasoning: false,
+        enableTools: _enableMcpTools, // 关键修复：根据MCP工具开关设置enableTools
         mcpServerIds: _enableMcpTools ? _selectedMcpServerIds : [],
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -497,6 +694,14 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       appBar: AppBar(
         title: const Text('AI聊天API调试 (llm_dart)'),
         actions: [
+          // 取消请求按钮（仅在请求进行中显示）
+          if (_isLoading)
+            IconButton(
+              icon: const Icon(Icons.stop),
+              onPressed: _cancelRequest,
+              tooltip: '取消请求',
+              color: Theme.of(context).colorScheme.error,
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadMcpServers,
@@ -504,18 +709,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.clear_all),
-            onPressed: () {
-              setState(() {
-                _response = '';
-                _thinkingContent = '';
-                _debugInfo = '';
-                _requestBody = '';
-                _responseBody = '';
-                _streamChunks.clear();
-                _thinkingChunks.clear();
-              });
-            },
-            tooltip: '清空结果',
+            onPressed: _showClearConfirmDialog,
+            tooltip: '清空所有响应',
           ),
         ],
       ),
@@ -611,6 +806,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                   setState(() {
                     _selectedProvider = value;
                   });
+                  _saveCurrentSettings();
                 }
               },
             ),
@@ -759,6 +955,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                         _selectedMcpServerIds.clear();
                       }
                     });
+                    _saveCurrentSettings();
                   },
                 ),
               ],
@@ -930,22 +1127,40 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     setState(() {
                       _isStreamMode = value;
                     });
+                    _saveCurrentSettings();
                   },
                 ),
                 const SizedBox(width: 8),
                 const Text('流式模式'),
                 const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _sendMessage,
-                  icon: _isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send),
-                  label: Text(_isLoading ? '发送中...' : '发送消息'),
-                ),
+                if (_isLoading) ...[
+                  ElevatedButton.icon(
+                    onPressed: _cancelRequest,
+                    icon: const Icon(Icons.stop),
+                    label: const Text('取消请求'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).colorScheme.errorContainer,
+                      foregroundColor:
+                          Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: null,
+                    icon: const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    label: const Text('发送中...'),
+                  ),
+                ] else
+                  ElevatedButton.icon(
+                    onPressed: _sendMessage,
+                    icon: const Icon(Icons.send),
+                    label: const Text('发送消息'),
+                  ),
               ],
             ),
           ],

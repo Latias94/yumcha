@@ -71,6 +71,9 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
   bool _streamOutput = true;
   bool _injectTimestamp = false; // 注入消息时间
 
+  // 功能开关
+  bool _enableTools = false;
+
   // MCP配置
   List<String> _selectedMcpServerIds = [];
 
@@ -171,6 +174,9 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
     }
     _streamOutput = assistant?.streamOutput ?? true;
     _injectTimestamp = false; // 新参数，默认false
+
+    // 功能开关
+    _enableTools = assistant?.enableTools ?? false;
 
     // MCP配置
     _selectedMcpServerIds = List.from(assistant?.mcpServerIds ?? []);
@@ -275,7 +281,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
         stopSequences: widget.assistant?.stopSequences ?? [],
         enableCodeExecution: false,
         enableImageGeneration: false,
-        enableTools: false,
+        enableTools: _enableTools,
         enableReasoning: false,
         enableVision: false,
         enableEmbedding: false,
@@ -790,11 +796,29 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'MCP 工具',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+              // 工具启用开关
+              Row(
+                children: [
+                  Text(
+                    'MCP 工具',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  const Spacer(),
+                  Switch(
+                    value: _enableTools,
+                    onChanged: (value) {
+                      setState(() {
+                        _enableTools = value;
+                        if (!value) {
+                          // 禁用工具时清空选择的服务器
+                          _selectedMcpServerIds.clear();
+                        }
+                      });
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Container(
@@ -839,21 +863,43 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'MCP 工具',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+            // 工具启用开关
+            Row(
+              children: [
+                Text(
+                  'MCP 工具',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+                const Spacer(),
+                Switch(
+                  value: _enableTools,
+                  onChanged: (value) {
+                    setState(() {
+                      _enableTools = value;
+                      if (!value) {
+                        // 禁用工具时清空选择的服务器
+                        _selectedMcpServerIds.clear();
+                      }
+                    });
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
-              '选择此助手可以使用的 MCP 服务器。MCP 服务器提供外部工具和功能扩展。',
+              _enableTools
+                  ? '选择此助手可以使用的 MCP 服务器。MCP 服务器提供外部工具和功能扩展。'
+                  : '启用工具功能后，助手可以调用 MCP 服务器提供的外部工具。',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
             const SizedBox(height: 16),
-            ...mcpServers.servers.map((server) => _buildMcpServerItem(server)),
+            if (_enableTools)
+              ...mcpServers.servers
+                  .map((server) => _buildMcpServerItem(server)),
           ],
         );
       },
