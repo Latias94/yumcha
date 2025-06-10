@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/Latias94/yumcha/blob/main/README.md
+    about: Check the documentation for usage instructions and examples
+  - name: 💬 Discussions
+    url: https://github.com/Latias94/yumcha/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🔗 Related Project - llm_dart
+    url: https://github.com/Latias94/llm_dart
+    about: Issues related to the llm_dart library should be reported in its repository
