@@ -377,17 +377,20 @@ class _ChatInputState extends ConsumerState<ChatInput>
               fontStyle: widget.isLoading ? FontStyle.italic : FontStyle.normal,
             ),
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 14,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: DesignConstants.spaceXL,
+              vertical: DesignConstants.spaceM + 2,
             ),
             // 添加前缀图标来指示状态
             prefixIcon: widget.isLoading
                 ? Padding(
-                    padding: const EdgeInsets.only(left: 12, right: 8),
+                    padding: EdgeInsets.only(
+                      left: DesignConstants.spaceM,
+                      right: DesignConstants.spaceS,
+                    ),
                     child: SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: DesignConstants.iconSizeS,
+                      height: DesignConstants.iconSizeS,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(
@@ -498,20 +501,23 @@ class _ChatInputState extends ConsumerState<ChatInput>
         color: _isWebSearchEnabled
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(DesignConstants.radiusLValue),
+        borderRadius: DesignConstants.radiusL,
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(DesignConstants.radiusLValue),
+        borderRadius: DesignConstants.radiusL,
         child: InkWell(
-          borderRadius: BorderRadius.circular(DesignConstants.radiusLValue),
+          borderRadius: DesignConstants.radiusL,
           onTap: () {
             setState(() {
               _isWebSearchEnabled = !_isWebSearchEnabled;
             });
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignConstants.spaceXS + 2,
+              vertical: DesignConstants.spaceXS / 2,
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -528,7 +534,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
                         ),
                 ),
                 if (_isWebSearchEnabled) ...[
-                  const SizedBox(width: 6),
+                  SizedBox(width: DesignConstants.spaceXS + 2),
                   Flexible(
                     child: AnimatedOpacity(
                       duration: const Duration(milliseconds: 200),

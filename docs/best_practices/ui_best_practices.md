@@ -59,6 +59,11 @@ Container(
 - `spaceXXL` (24px) - 页面边距
 - `spaceXXXL` (32px) - 大区块间距
 
+#### 边框宽度规范
+- `borderWidthThin` (1.0px) - 标准边框
+- `borderWidthMedium` (1.5px) - 强调边框
+- `borderWidthThick` (2.0px) - 重点边框
+
 #### 阴影层次
 - `shadowNone` - 无阴影
 - `shadowXS` - 极轻微阴影，用于悬停状态
@@ -87,6 +92,65 @@ Container(
 Container(
   color: Colors.blue[100],
   child: Text('Content', style: TextStyle(color: Colors.blue[900])),
+)
+```
+
+### 设计系统常量使用
+
+#### 基础常量使用示例
+
+```dart
+// ✅ 推荐做法 - 使用设计系统常量
+Container(
+  padding: DesignConstants.paddingM,
+  margin: DesignConstants.marginL,
+  decoration: BoxDecoration(
+    borderRadius: DesignConstants.radiusM,
+    border: Border.all(
+      color: theme.colorScheme.outline,
+      width: DesignConstants.borderWidthThin,
+    ),
+    boxShadow: DesignConstants.shadowS(theme),
+  ),
+)
+
+// ❌ 避免做法 - 硬编码数值
+Container(
+  padding: EdgeInsets.all(12),
+  margin: EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: Colors.grey, width: 1),
+    boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black12)],
+  ),
+)
+```
+
+#### 边框宽度使用示例
+
+```dart
+// ✅ 推荐做法 - 使用边框宽度常量
+Container(
+  decoration: BoxDecoration(
+    border: Border.all(
+      color: isSelected
+          ? theme.colorScheme.primary
+          : theme.colorScheme.outline,
+      width: isSelected
+          ? DesignConstants.borderWidthMedium  // 1.5px 强调边框
+          : DesignConstants.borderWidthThin,   // 1.0px 标准边框
+    ),
+  ),
+)
+
+// 重点边框示例
+Container(
+  decoration: BoxDecoration(
+    border: Border.all(
+      color: theme.colorScheme.error,
+      width: DesignConstants.borderWidthThick, // 2.0px 重点边框
+    ),
+  ),
 )
 ```
 
@@ -591,9 +655,132 @@ class TabletChatOptimizations {
 
 ### 自适应间距和尺寸
 
+#### AdaptiveSpacing 工具类
+
+项目中新增的 `AdaptiveSpacing` 工具类提供了统一的自适应间距计算方法：
+
 ```dart
-// ✅ 推荐做法 - 自适应尺寸计算
+// ✅ 推荐做法 - 使用 AdaptiveSpacing 工具类
 class AdaptiveSpacing {
+  AdaptiveSpacing._();
+
+  /// 获取消息内边距
+  static EdgeInsets getMessagePadding(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,
+        vertical: DesignConstants.spaceS,
+      );
+    } else if (DesignConstants.isTablet(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceXL,
+        vertical: DesignConstants.spaceM,
+      );
+    } else {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceXXL,
+        vertical: DesignConstants.spaceL,
+      );
+    }
+  }
+
+  /// 获取消息字体大小
+  static double getMessageFontSize(BuildContext context) {
+    return DesignConstants.getResponsiveFontSize(context);
+  }
+
+  /// 获取卡片内边距
+  static EdgeInsets getCardPadding(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return DesignConstants.paddingL;
+    } else if (DesignConstants.isTablet(context)) {
+      return DesignConstants.paddingXL;
+    } else {
+      return DesignConstants.paddingXXL;
+    }
+  }
+
+  /// 获取按钮最小尺寸
+  static double getMinTouchTarget(BuildContext context) {
+    return DesignConstants.isMobile(context)
+        ? DesignConstants.buttonHeightL
+        : DesignConstants.buttonHeightM;
+  }
+}
+```
+
+#### 响应式设计方法
+
+新增的响应式设计方法提供了更精细的控制：
+
+```dart
+// ✅ 推荐做法 - 使用响应式方法
+class ResponsiveDesignMethods {
+
+  /// 响应式字体大小
+  static double getResponsiveFontSize(BuildContext context, {
+    double mobile = 14.0,
+    double tablet = 15.0,
+    double desktop = 16.0,
+  }) {
+    if (DesignConstants.isMobile(context)) return mobile;
+    if (DesignConstants.isTablet(context)) return tablet;
+    return desktop;
+  }
+
+  /// 响应式行高
+  static double getResponsiveLineHeight(BuildContext context, {
+    double mobile = 1.4,
+    double tablet = 1.45,
+    double desktop = 1.5,
+  }) {
+    if (DesignConstants.isMobile(context)) return mobile;
+    if (DesignConstants.isTablet(context)) return tablet;
+    return desktop;
+  }
+
+  /// 响应式最大宽度（用于消息气泡等）
+  static double getResponsiveMaxWidth(BuildContext context, {
+    double mobile = 0.85,
+    double tablet = 0.75,
+    double desktop = 0.7,
+  }) {
+    if (DesignConstants.isMobile(context)) return mobile;
+    if (DesignConstants.isTablet(context)) return tablet;
+    return desktop;
+  }
+}
+```
+
+#### 实际使用示例
+
+```dart
+// ✅ 推荐做法 - 在组件中使用自适应工具
+class ChatMessageView extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      // 使用自适应间距
+      margin: AdaptiveSpacing.getMessagePadding(context),
+      padding: AdaptiveSpacing.getCardPadding(context),
+      child: Text(
+        message.content,
+        style: TextStyle(
+          // 使用响应式字体大小
+          fontSize: DesignConstants.getResponsiveFontSize(context),
+          height: DesignConstants.getResponsiveLineHeight(context),
+        ),
+      ),
+    );
+  }
+}
+```
+
+#### 传统自适应尺寸计算（已废弃）
+
+```dart
+// ❌ 避免 - 手动计算自适应尺寸
+class OldAdaptiveSpacing {
   static EdgeInsets getMessagePadding(BuildContext context) {
     if (DesignConstants.isMobile(context)) {
       return EdgeInsets.symmetric(
@@ -713,6 +900,9 @@ class PlatformAdaptiveButton extends StatelessWidget {
 ### 基础设计规范
 
 - [ ] 是否使用了 `DesignConstants` 中的常量而非硬编码值
+- [ ] 是否使用了 `AdaptiveSpacing` 工具类进行自适应间距计算
+- [ ] 是否使用了响应式设计方法（`getResponsiveFontSize` 等）
+- [ ] 边框宽度是否使用了标准常量（`borderWidthThin/Medium/Thick`）
 - [ ] 是否遵循了 Material 3 的颜色系统
 - [ ] 是否为交互元素提供了适当的反馈
 - [ ] 是否使用了语义化的命名
@@ -741,11 +931,39 @@ class PlatformAdaptiveButton extends StatelessWidget {
 - [ ] 是否支持屏幕阅读器
 - [ ] 键盘导航是否完整
 
+## 🆕 最新更新 (2024)
+
+### 新增工具类和方法
+
+#### AdaptiveSpacing 工具类
+- `getMessagePadding(context)` - 自适应消息间距
+- `getCardPadding(context)` - 自适应卡片内边距
+- `getMessageFontSize(context)` - 自适应消息字体大小
+- `getMinTouchTarget(context)` - 自适应最小触摸目标
+
+#### 响应式设计方法
+- `getResponsiveFontSize(context)` - 响应式字体大小
+- `getResponsiveLineHeight(context)` - 响应式行高
+- `getResponsiveMaxWidth(context)` - 响应式最大宽度
+
+#### 新增设计常量
+- `borderWidthThin` (1.0px) - 标准边框宽度
+- `borderWidthMedium` (1.5px) - 强调边框宽度
+- `borderWidthThick` (2.0px) - 重点边框宽度
+
+### 使用建议
+
+1. **优先使用 AdaptiveSpacing 工具类**进行间距计算
+2. **使用响应式方法**替代手动设备判断
+3. **统一使用边框宽度常量**确保视觉一致性
+4. **遵循设计系统规范**避免硬编码数值
+
 ## 📚 参考资源
 
 - [Material Design 3 Guidelines](https://m3.material.io/)
 - [Flutter Material 3 Documentation](https://docs.flutter.dev/ui/design/material)
 - [Accessibility Guidelines](https://docs.flutter.dev/ui/accessibility-and-internationalization/accessibility)
+- [UI 最佳实践修复报告](../ui_best_practices_fixes.md)
 
 ---
 

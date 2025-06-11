@@ -37,6 +37,7 @@ import 'theme_settings_screen.dart';
 import '../../../../app/theme/theme_provider.dart';
 import '../../../debug/presentation/screens/thinking_process_demo.dart';
 import '../../../chat/presentation/screens/chat_display_settings_screen.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -69,7 +70,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildDynamicColorItem(themeSettings, themeNotifier),
               _buildChatDisplaySettingsItem(),
 
-              const SizedBox(height: 24),
+              SizedBox(height: DesignConstants.spaceXXL),
 
               // 模型与服务
               _buildSectionHeader("模型与服务"),
@@ -79,7 +80,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildSearchServiceItem(),
               _buildMCPItem(),
 
-              const SizedBox(height: 24),
+              SizedBox(height: DesignConstants.spaceXXL),
 
               // 关于
               _buildSectionHeader("关于"),
@@ -87,7 +88,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildChatStorageItem(),
               _buildShareItem(),
 
-              const SizedBox(height: 24),
+              SizedBox(height: DesignConstants.spaceXXL),
 
               // 开发者选项
               _buildSectionHeader("开发者选项"),
@@ -95,7 +96,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _buildAiDebugItem(),
               _buildThinkingProcessDemoItem(),
 
-              const SizedBox(height: 32),
+              SizedBox(height: DesignConstants.spaceXXXL),
             ]),
           ),
         ],
@@ -105,7 +106,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: EdgeInsets.fromLTRB(
+        DesignConstants.spaceL,
+        DesignConstants.spaceS,
+        DesignConstants.spaceL,
+        DesignConstants.spaceS,
+      ),
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -243,7 +249,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ThemeNotifier themeNotifier,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,
+        vertical: DesignConstants.spaceS,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -253,7 +262,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: DesignConstants.spaceM),
           _buildThemeToggleButtons(themeSettings, themeNotifier),
         ],
       ),
@@ -294,8 +303,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
         await themeNotifier.setThemeScheme(newScheme);
       },
-      borderRadius: BorderRadius.circular(8),
-      constraints: const BoxConstraints(minHeight: 48, minWidth: 80),
+      borderRadius: DesignConstants.radiusS,
+      constraints: BoxConstraints(
+        minHeight: DesignConstants.buttonHeightL,
+        minWidth: 80,
+      ),
       children: <Widget>[
         _buildThemeButton('深邃\n海洋', AppThemeScheme.ocean, themeNotifier, style),
         _buildThemeButton(
@@ -324,14 +336,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     return Padding(
-      padding: const EdgeInsets.all(6),
+      padding: EdgeInsets.all(DesignConstants.spaceXS + 2),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // 颜色预览圆圈
           Container(
-            width: 20,
-            height: 20,
+            width: DesignConstants.iconSizeM,
+            height: DesignConstants.iconSizeM,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -341,11 +353,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               border: Border.all(
                 color: colorScheme.outline.withValues(alpha: 0.3),
-                width: 1,
+                width: DesignConstants.borderWidthThin,
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: DesignConstants.spaceXS),
           Text(label, textAlign: TextAlign.center, style: style),
         ],
       ),

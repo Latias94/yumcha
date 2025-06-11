@@ -6,6 +6,7 @@ import '../../../domain/entities/message.dart';
 import '../../../domain/entities/chat_bubble_style.dart';
 import '../../providers/chat_style_provider.dart';
 import 'thinking_process_widget.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 聊天消息显示组件
 class ChatMessageView extends ConsumerStatefulWidget {
@@ -58,15 +59,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
       widget.message.content,
     );
 
-    final isDesktop = MediaQuery.of(context).size.width > 768;
-    final horizontalPadding = isDesktop ? 24.0 : 16.0;
-    final verticalPadding = isDesktop ? 12.0 : 8.0;
-
     return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: verticalPadding,
-      ),
+      margin: AdaptiveSpacing.getMessagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -74,14 +68,17 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignConstants.spaceS,
+                  vertical: DesignConstants.spaceXS / 2,
+                ),
                 decoration: BoxDecoration(
                   color: widget.message.isFromUser
                       ? theme.colorScheme.primaryContainer
                           .withValues(alpha: 0.3)
                       : theme.colorScheme.secondaryContainer
                           .withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: DesignConstants.radiusM,
                 ),
                 child: Text(
                   widget.message.isFromUser ? "用户" : "AI助手",
@@ -94,7 +91,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: DesignConstants.spaceS),
               Text(
                 _formatTimestamp(widget.message.timestamp),
                 style: TextStyle(
@@ -105,7 +102,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: DesignConstants.spaceM),
 
           // 思考过程（仅AI消息且包含思考过程时显示）
           if (!widget.message.isFromUser &&
@@ -115,29 +112,23 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
               duration: widget.message.thinkingDuration ??
                   widget.message.totalDuration,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: DesignConstants.spaceM),
           ],
 
           // 消息内容容器 - 智能主题适配
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(isDesktop ? 20.0 : 16.0),
+            padding: AdaptiveSpacing.getCardPadding(context),
             decoration: BoxDecoration(
               // 根据主题智能选择背景色
               color: _getListStyleBackgroundColor(theme),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: DesignConstants.radiusM,
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
+                width: DesignConstants.borderWidthThin,
               ),
               // 添加轻微阴影增强层次感
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withValues(alpha: 0.02),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
+              boxShadow: DesignConstants.shadowXS(theme),
             ),
             child: _buildMarkdownContent(
               context,
@@ -146,7 +137,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
               content: thinkingResult.actualContent,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignConstants.spaceS),
           _buildActionButtons(context),
         ],
       ),
@@ -160,27 +151,28 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
       widget.message.content,
     );
 
-    final isDesktop = MediaQuery.of(context).size.width > 768;
-    final horizontalPadding = isDesktop ? 32.0 : 20.0;
-    final verticalPadding = isDesktop ? 16.0 : 12.0;
+    final isDesktop = DesignConstants.isDesktop(context);
 
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: verticalPadding,
+        horizontal:
+            isDesktop ? DesignConstants.spaceXXXL : DesignConstants.spaceXL,
+        vertical: isDesktop ? DesignConstants.spaceL : DesignConstants.spaceM,
       ),
       child: Card(
         elevation: isDesktop ? 2 : 1,
         shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: DesignConstants.radiusL,
           side: BorderSide(
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            width: 1,
+            width: DesignConstants.borderWidthThin,
           ),
         ),
         child: Padding(
-          padding: EdgeInsets.all(isDesktop ? 24.0 : 20.0),
+          padding: isDesktop
+              ? DesignConstants.paddingXXL
+              : DesignConstants.paddingXL,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -189,13 +181,17 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                 children: [
                   // 角色头像
                   Container(
-                    width: isDesktop ? 40 : 36,
-                    height: isDesktop ? 40 : 36,
+                    width: isDesktop
+                        ? DesignConstants.iconSizeXXL
+                        : DesignConstants.iconSizeXL,
+                    height: isDesktop
+                        ? DesignConstants.iconSizeXXL
+                        : DesignConstants.iconSizeXL,
                     decoration: BoxDecoration(
                       color: widget.message.isFromUser
                           ? theme.colorScheme.primaryContainer
                           : theme.colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: DesignConstants.radiusXL,
                     ),
                     child: Icon(
                       widget.message.isFromUser
@@ -204,10 +200,12 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                       color: widget.message.isFromUser
                           ? theme.colorScheme.onPrimaryContainer
                           : theme.colorScheme.onSecondaryContainer,
-                      size: isDesktop ? 20 : 18,
+                      size: isDesktop
+                          ? DesignConstants.iconSizeM
+                          : DesignConstants.iconSizeS + 2,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: DesignConstants.spaceM),
 
                   // 角色名称和时间
                   Expanded(
@@ -218,7 +216,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                           widget.message.isFromUser ? "用户" : "AI助手",
                           style: TextStyle(
                             color: theme.colorScheme.onSurface,
-                            fontSize: isDesktop ? 16 : 15,
+                            fontSize: DesignConstants.getResponsiveFontSize(
+                                context,
+                                mobile: 15,
+                                desktop: 16),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -227,7 +228,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                           style: TextStyle(
                             color: theme.colorScheme.onSurfaceVariant
                                 .withValues(alpha: 0.7),
-                            fontSize: isDesktop ? 13 : 12,
+                            fontSize: DesignConstants.getResponsiveFontSize(
+                                context,
+                                mobile: 12,
+                                desktop: 13),
                           ),
                         ),
                       ],
@@ -239,7 +243,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                 ],
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
 
               // 思考过程（仅AI消息且包含思考过程时显示）
               if (!widget.message.isFromUser &&
@@ -249,7 +253,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                   duration: widget.message.thinkingDuration ??
                       widget.message.totalDuration,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignConstants.spaceL),
               ],
 
               // 消息内容
@@ -273,12 +277,15 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
       widget.message.content,
     );
 
-    final isDesktop = MediaQuery.of(context).size.width > 768;
-    final maxWidth = isDesktop ? 0.7 : 0.85;
-    final horizontalPadding = isDesktop ? 24.0 : 16.0;
+    final isDesktop = DesignConstants.isDesktop(context);
+    final maxWidth = DesignConstants.getResponsiveMaxWidth(context);
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal:
+            isDesktop ? DesignConstants.spaceXXL : DesignConstants.spaceL,
+        vertical: DesignConstants.spaceXS + 2,
+      ),
       child: Column(
         crossAxisAlignment: widget.message.isFromUser
             ? CrossAxisAlignment.end
@@ -297,13 +304,13 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                     widget.message.totalDuration,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
           ],
 
           // 时间戳（在气泡上方）
           if (isDesktop) ...[
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
               child: Text(
                 _formatTimestamp(widget.message.timestamp),
                 style: TextStyle(
@@ -324,7 +331,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
           ),
 
           // 操作按钮显示在气泡下方
-          const SizedBox(height: 6),
+          SizedBox(height: DesignConstants.spaceXS + 2),
           _buildActionButtons(context),
         ],
       ),
@@ -377,7 +384,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: EdgeInsets.symmetric(horizontal: DesignConstants.spaceXS),
       child: Row(
         mainAxisAlignment: widget.message.isFromUser
             ? MainAxisAlignment.end
@@ -385,14 +392,17 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignConstants.spaceXS,
+              vertical: DesignConstants.spaceXS / 2,
+            ),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest
                   .withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: DesignConstants.radiusXL,
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
+                width: DesignConstants.borderWidthThin,
               ),
             ),
             child: Row(
@@ -405,9 +415,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
                     button,
                     if (!isLast)
                       Container(
-                        width: 1,
-                        height: 16,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: DesignConstants.borderWidthThin,
+                        height: DesignConstants.spaceL,
+                        margin: EdgeInsets.symmetric(
+                            horizontal: DesignConstants.spaceXS),
                         color: theme.colorScheme.outlineVariant
                             .withValues(alpha: 0.3),
                       ),
@@ -429,15 +440,21 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
     bool isSuccess = false,
   }) {
     final theme = Theme.of(context);
-    final isDesktop = MediaQuery.of(context).size.width > 768;
+    final isDesktop = DesignConstants.isDesktop(context);
 
     return SizedBox(
-      width: isDesktop ? 32 : 28,
-      height: isDesktop ? 32 : 28,
+      width: isDesktop
+          ? DesignConstants.buttonHeightS
+          : DesignConstants.buttonHeightS - 4,
+      height: isDesktop
+          ? DesignConstants.buttonHeightS
+          : DesignConstants.buttonHeightS - 4,
       child: IconButton(
         icon: Icon(
           icon,
-          size: isDesktop ? 16 : 14,
+          size: isDesktop
+              ? DesignConstants.iconSizeS
+              : DesignConstants.iconSizeS - 2,
           color: isSuccess
               ? theme.colorScheme.primary
               : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -452,7 +469,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
           hoverColor: theme.colorScheme.primary.withValues(alpha: 0.1),
           splashFactory: InkRipple.splashFactory,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: DesignConstants.radiusL,
           ),
         ),
       ),
@@ -485,7 +502,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
     double maxWidth = 0.8,
   }) {
     final isFromUser = widget.message.isFromUser;
-    final isDesktop = MediaQuery.of(context).size.width > 768;
+    final isDesktop = DesignConstants.isDesktop(context);
 
     // 改进的颜色方案
     final bubbleColor = isFromUser
@@ -501,28 +518,23 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
       ),
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? 20 : 16,
-          vertical: isDesktop ? 16 : 12,
+          horizontal:
+              isDesktop ? DesignConstants.spaceXL : DesignConstants.spaceL,
+          vertical: isDesktop ? DesignConstants.spaceL : DesignConstants.spaceM,
         ),
         decoration: BoxDecoration(
           color: bubbleColor,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
+            topLeft: DesignConstants.radiusXL.topLeft,
+            topRight: DesignConstants.radiusXL.topRight,
             bottomLeft: isFromUser
-                ? const Radius.circular(20)
-                : const Radius.circular(6),
+                ? DesignConstants.radiusXL.bottomLeft
+                : DesignConstants.radiusXS.bottomLeft,
             bottomRight: isFromUser
-                ? const Radius.circular(6)
-                : const Radius.circular(20),
+                ? DesignConstants.radiusXS.bottomRight
+                : DesignConstants.radiusXL.bottomRight,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          boxShadow: DesignConstants.shadowXS(theme),
         ),
         child: _buildMarkdownContent(
           context,
@@ -543,7 +555,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
   }) {
     // 使用传入的内容或默认的消息内容
     final messageContent = content ?? widget.message.content;
-    final isDesktop = MediaQuery.of(context).size.width > 768;
+    final isDesktop = DesignConstants.isDesktop(context);
 
     // 检查消息内容是否包含markdown语法
     final hasMarkdown = _hasMarkdownSyntax(messageContent);
@@ -554,8 +566,9 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
         messageContent,
         style: TextStyle(
           color: textColor,
-          fontSize: isDesktop ? 16 : 15,
-          height: 1.5,
+          fontSize: DesignConstants.getResponsiveFontSize(context,
+              mobile: 15, desktop: 16),
+          height: DesignConstants.getResponsiveLineHeight(context),
           letterSpacing: 0.1,
         ),
       );
@@ -568,39 +581,47 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
           PConfig(
             textStyle: TextStyle(
               color: textColor,
-              fontSize: isDesktop ? 16 : 15,
-              height: 1.5,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 15, desktop: 16),
+              height: DesignConstants.getResponsiveLineHeight(context),
               letterSpacing: 0.1,
             ),
           ),
           H1Config(
             style: TextStyle(
               color: textColor,
-              fontSize: isDesktop ? 24 : 22,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 22, desktop: 24),
               fontWeight: FontWeight.bold,
-              height: 1.3,
+              height: DesignConstants.getResponsiveLineHeight(context,
+                  mobile: 1.3, desktop: 1.3),
             ),
           ),
           H2Config(
             style: TextStyle(
               color: textColor,
-              fontSize: isDesktop ? 20 : 18,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 18, desktop: 20),
               fontWeight: FontWeight.bold,
-              height: 1.3,
+              height: DesignConstants.getResponsiveLineHeight(context,
+                  mobile: 1.3, desktop: 1.3),
             ),
           ),
           H3Config(
             style: TextStyle(
               color: textColor,
-              fontSize: isDesktop ? 18 : 16,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 16, desktop: 18),
               fontWeight: FontWeight.w600,
-              height: 1.3,
+              height: DesignConstants.getResponsiveLineHeight(context,
+                  mobile: 1.3, desktop: 1.3),
             ),
           ),
           CodeConfig(
             style: TextStyle(
               color: textColor,
-              fontSize: isDesktop ? 14 : 13,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 13, desktop: 14),
               fontFamily: 'monospace',
               backgroundColor: theme.colorScheme.surfaceContainerHighest
                   .withValues(alpha: 0.3),
@@ -610,17 +631,20 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest
                   .withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: DesignConstants.radiusS,
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
               ),
             ),
-            padding: EdgeInsets.all(isDesktop ? 16 : 12),
+            padding:
+                isDesktop ? DesignConstants.paddingL : DesignConstants.paddingM,
             textStyle: TextStyle(
               color: textColor,
-              fontSize: isDesktop ? 14 : 13,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 13, desktop: 14),
               fontFamily: 'monospace',
-              height: 1.4,
+              height: DesignConstants.getResponsiveLineHeight(context,
+                  mobile: 1.4, desktop: 1.4),
             ),
           ),
         ],
@@ -633,8 +657,9 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
         messageContent,
         style: TextStyle(
           color: textColor,
-          fontSize: isDesktop ? 16 : 15,
-          height: 1.5,
+          fontSize: DesignConstants.getResponsiveFontSize(context,
+              mobile: 15, desktop: 16),
+          height: DesignConstants.getResponsiveLineHeight(context),
           letterSpacing: 0.1,
         ),
       );

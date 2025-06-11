@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../features/chat/presentation/providers/chat_search_providers.dart';
 import '../../../features/chat/data/repositories/conversation_repository.dart';
+import '../design_system/design_constants.dart';
 
 // 消息搜索结果项
 class MessageSearchResultItem extends StatelessWidget {
@@ -18,12 +19,15 @@ class MessageSearchResultItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,
+        vertical: DesignConstants.spaceXS,
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignConstants.radiusM,
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: DesignConstants.paddingL,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -34,9 +38,9 @@ class MessageSearchResultItem extends StatelessWidget {
                     child: Text(
                       result.conversationTitle,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -44,12 +48,12 @@ class MessageSearchResultItem extends StatelessWidget {
                   Text(
                     _formatTime(result.message.timestamp),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
 
               // 消息内容（高亮关键词）
               RichText(
@@ -65,22 +69,22 @@ class MessageSearchResultItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
 
               // 作者信息
               Row(
                 children: [
                   Icon(
                     result.message.isFromUser ? Icons.person : Icons.smart_toy,
-                    size: 16,
+                    size: DesignConstants.iconSizeS,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: DesignConstants.spaceXS),
                   Text(
                     result.message.isFromUser ? '用户' : result.message.author,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
@@ -165,12 +169,15 @@ class ConversationSearchResultItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,
+        vertical: DesignConstants.spaceXS,
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignConstants.radiusM,
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: DesignConstants.paddingL,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -178,8 +185,8 @@ class ConversationSearchResultItem extends StatelessWidget {
               RichText(
                 text: TextSpan(
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                   children: _highlightSearchQuery(
                     result.title,
                     searchQuery,
@@ -190,54 +197,56 @@ class ConversationSearchResultItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
 
               // 助手信息和消息数量
               Row(
                 children: [
                   Icon(
                     Icons.smart_toy,
-                    size: 16,
+                    size: DesignConstants.iconSizeS,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: DesignConstants.spaceXS),
                   Text(
                     result.assistantName,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: DesignConstants.spaceS,
+                      vertical: DesignConstants.spaceXS / 2,
                     ),
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
                       ).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: DesignConstants.radiusM,
                     ),
                     child: Text(
                       '${result.messageCount} 条消息',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontSize: 10,
-                      ),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontSize: 10,
+                          ),
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 4),
+              SizedBox(height: DesignConstants.spaceXS),
 
               // 最后消息时间
               Text(
                 '最后活动: ${_formatTime(result.lastMessageAt)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
             ],
           ),

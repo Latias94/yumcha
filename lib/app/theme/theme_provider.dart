@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'theme_color_schemes.dart';
+import '../../shared/presentation/design_system/design_constants.dart';
 
 // 主题模式枚举
 enum AppColorMode { system, light, dark }
@@ -334,14 +335,14 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
           useM2StyleDividerInM3: true,
           // 卡片样式
           cardElevation: 1,
-          cardRadius: 12,
+          cardRadius: DesignConstants.radiusM.topLeft.x,
           // 按钮样式
-          elevatedButtonRadius: 24,
-          filledButtonRadius: 24,
-          outlinedButtonRadius: 24,
-          textButtonRadius: 24,
+          elevatedButtonRadius: DesignConstants.radiusXXL.topLeft.x,
+          filledButtonRadius: DesignConstants.radiusXXL.topLeft.x,
+          outlinedButtonRadius: DesignConstants.radiusXXL.topLeft.x,
+          textButtonRadius: DesignConstants.radiusXXL.topLeft.x,
           // 输入框样式
-          inputDecoratorRadius: 12,
+          inputDecoratorRadius: DesignConstants.radiusM.topLeft.x,
           inputDecoratorBorderType: FlexInputBorderType.outline,
           // 导航样式
           navigationBarSelectedLabelSchemeColor: SchemeColor.primary,
@@ -377,14 +378,14 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
           useM2StyleDividerInM3: true,
           // 卡片样式
           cardElevation: 1,
-          cardRadius: 12,
+          cardRadius: DesignConstants.radiusM.topLeft.x,
           // 按钮样式
-          elevatedButtonRadius: 24,
-          filledButtonRadius: 24,
-          outlinedButtonRadius: 24,
-          textButtonRadius: 24,
+          elevatedButtonRadius: DesignConstants.radiusXXL.topLeft.x,
+          filledButtonRadius: DesignConstants.radiusXXL.topLeft.x,
+          outlinedButtonRadius: DesignConstants.radiusXXL.topLeft.x,
+          textButtonRadius: DesignConstants.radiusXXL.topLeft.x,
           // 输入框样式
-          inputDecoratorRadius: 12,
+          inputDecoratorRadius: DesignConstants.radiusM.topLeft.x,
           inputDecoratorBorderType: FlexInputBorderType.outline,
           // 导航样式
           navigationBarSelectedLabelSchemeColor: SchemeColor.primary,
@@ -487,55 +488,55 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       cardTheme: CardThemeData(
         elevation: 1,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: DesignConstants.radiusM,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: DesignConstants.radiusXXL,
           ),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: DesignConstants.radiusXXL,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: DesignConstants.radiusXXL,
           ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: DesignConstants.radiusXXL,
           ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: DesignConstants.radiusM,
         ),
       ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: DesignConstants.radiusS,
         ),
       ),
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: DesignConstants.radiusL,
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: DesignConstants.radiusS,
         ),
       ),
     );

@@ -1,5 +1,5 @@
 /// 🎨 设计系统常量
-/// 
+///
 /// 统一管理应用的设计规范，包括圆角、间距、阴影等视觉元素。
 /// 确保整个应用的视觉一致性和设计规范的统一性。
 
@@ -57,71 +57,71 @@ class DesignConstants {
 
   /// 🌊 阴影层次规范
   static List<BoxShadow> shadowNone = [];
-  
+
   static List<BoxShadow> shadowXS(ThemeData theme) => [
-    BoxShadow(
-      color: theme.colorScheme.shadow.withValues(alpha: 0.02),
-      blurRadius: 1,
-      offset: const Offset(0, 0.5),
-    ),
-  ];
+        BoxShadow(
+          color: theme.colorScheme.shadow.withValues(alpha: 0.02),
+          blurRadius: 1,
+          offset: const Offset(0, 0.5),
+        ),
+      ];
 
   static List<BoxShadow> shadowS(ThemeData theme) => [
-    BoxShadow(
-      color: theme.colorScheme.shadow.withValues(alpha: 0.04),
-      blurRadius: 2,
-      offset: const Offset(0, 1),
-    ),
-  ];
+        BoxShadow(
+          color: theme.colorScheme.shadow.withValues(alpha: 0.04),
+          blurRadius: 2,
+          offset: const Offset(0, 1),
+        ),
+      ];
 
   static List<BoxShadow> shadowM(ThemeData theme) => [
-    BoxShadow(
-      color: theme.colorScheme.shadow.withValues(alpha: 0.06),
-      blurRadius: 4,
-      offset: const Offset(0, 2),
-    ),
-  ];
+        BoxShadow(
+          color: theme.colorScheme.shadow.withValues(alpha: 0.06),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ];
 
   static List<BoxShadow> shadowL(ThemeData theme) => [
-    BoxShadow(
-      color: theme.colorScheme.shadow.withValues(alpha: 0.08),
-      blurRadius: 8,
-      offset: const Offset(0, 4),
-    ),
-  ];
+        BoxShadow(
+          color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 4),
+        ),
+      ];
 
   static List<BoxShadow> shadowXL(ThemeData theme) => [
-    BoxShadow(
-      color: theme.colorScheme.shadow.withValues(alpha: 0.1),
-      blurRadius: 16,
-      offset: const Offset(0, 8),
-    ),
-  ];
+        BoxShadow(
+          color: theme.colorScheme.shadow.withValues(alpha: 0.1),
+          blurRadius: 16,
+          offset: const Offset(0, 8),
+        ),
+      ];
 
   /// 🎨 特殊阴影效果
   static List<BoxShadow> shadowFocus(ThemeData theme) => [
-    BoxShadow(
-      color: theme.colorScheme.primary.withValues(alpha: 0.08),
-      blurRadius: 6,
-      offset: const Offset(0, 1),
-    ),
-  ];
+        BoxShadow(
+          color: theme.colorScheme.primary.withValues(alpha: 0.08),
+          blurRadius: 6,
+          offset: const Offset(0, 1),
+        ),
+      ];
 
   static List<BoxShadow> shadowButton(ThemeData theme) => [
-    BoxShadow(
-      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-      blurRadius: 8,
-      offset: const Offset(0, 2),
-    ),
-  ];
+        BoxShadow(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ];
 
   static List<BoxShadow> shadowGlow(ThemeData theme, Color color) => [
-    BoxShadow(
-      color: color.withValues(alpha: 0.2),
-      blurRadius: 20,
-      offset: const Offset(0, 8),
-    ),
-  ];
+        BoxShadow(
+          color: color.withValues(alpha: 0.2),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+        ),
+      ];
 
   /// 📐 尺寸规范
   static const double iconSizeS = 16;
@@ -176,57 +176,148 @@ class DesignConstants {
 
   /// 🎨 边框规范
   static BorderSide borderThin(ThemeData theme) => BorderSide(
-    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-    width: 1,
-  );
+        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+        width: 1,
+      );
 
   static BorderSide borderMedium(ThemeData theme) => BorderSide(
-    color: theme.colorScheme.outline.withValues(alpha: 0.4),
-    width: 1.5,
-  );
+        color: theme.colorScheme.outline.withValues(alpha: 0.4),
+        width: 1.5,
+      );
 
   static BorderSide borderThick(ThemeData theme) => BorderSide(
-    color: theme.colorScheme.outline,
-    width: 2,
-  );
+        color: theme.colorScheme.outline,
+        width: 2,
+      );
 
   static BorderSide borderFocus(ThemeData theme) => BorderSide(
-    color: theme.colorScheme.primary.withValues(alpha: 0.4),
-    width: 1,
-  );
+        color: theme.colorScheme.primary.withValues(alpha: 0.4),
+        width: 1,
+      );
+
+  /// 📏 边框宽度常量
+  static const double borderWidthThin = 1.0;
+  static const double borderWidthMedium = 1.5;
+  static const double borderWidthThick = 2.0;
+
+  /// 📱 响应式字体大小
+  static double getResponsiveFontSize(
+    BuildContext context, {
+    double mobile = 14.0,
+    double tablet = 15.0,
+    double desktop = 16.0,
+  }) {
+    if (isMobile(context)) return mobile;
+    if (isTablet(context)) return tablet;
+    return desktop;
+  }
+
+  /// 📱 响应式行高
+  static double getResponsiveLineHeight(
+    BuildContext context, {
+    double mobile = 1.4,
+    double tablet = 1.45,
+    double desktop = 1.5,
+  }) {
+    if (isMobile(context)) return mobile;
+    if (isTablet(context)) return tablet;
+    return desktop;
+  }
+
+  /// 📱 响应式最大宽度（用于消息气泡等）
+  static double getResponsiveMaxWidth(
+    BuildContext context, {
+    double mobile = 0.85,
+    double tablet = 0.75,
+    double desktop = 0.7,
+  }) {
+    if (isMobile(context)) return mobile;
+    if (isTablet(context)) return tablet;
+    return desktop;
+  }
+}
+
+/// 🎨 自适应间距工具类
+///
+/// 根据最佳实践文档实现的自适应间距计算类
+class AdaptiveSpacing {
+  AdaptiveSpacing._();
+
+  /// 获取消息内边距
+  static EdgeInsets getMessagePadding(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,
+        vertical: DesignConstants.spaceS,
+      );
+    } else if (DesignConstants.isTablet(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceXL,
+        vertical: DesignConstants.spaceM,
+      );
+    } else {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceXXL,
+        vertical: DesignConstants.spaceL,
+      );
+    }
+  }
+
+  /// 获取消息字体大小
+  static double getMessageFontSize(BuildContext context) {
+    return DesignConstants.getResponsiveFontSize(context);
+  }
+
+  /// 获取卡片内边距
+  static EdgeInsets getCardPadding(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return DesignConstants.paddingL;
+    } else if (DesignConstants.isTablet(context)) {
+      return DesignConstants.paddingXL;
+    } else {
+      return DesignConstants.paddingXXL;
+    }
+  }
+
+  /// 获取按钮最小尺寸
+  static double getMinTouchTarget(BuildContext context) {
+    return DesignConstants.isMobile(context)
+        ? DesignConstants.buttonHeightL
+        : DesignConstants.buttonHeightM;
+  }
 }
 
 /// 🎨 设计系统扩展方法
 extension DesignSystemExtensions on ThemeData {
   /// 获取统一的卡片装饰
   BoxDecoration get cardDecoration => BoxDecoration(
-    color: colorScheme.surface,
-    borderRadius: DesignConstants.radiusM,
-    border: Border.all(
-      color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-      width: 1,
-    ),
-    boxShadow: DesignConstants.shadowS(this),
-  );
+        color: colorScheme.surface,
+        borderRadius: DesignConstants.radiusM,
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+          width: 1,
+        ),
+        boxShadow: DesignConstants.shadowS(this),
+      );
 
   /// 获取统一的输入框装饰
   BoxDecoration get inputDecoration => BoxDecoration(
-    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-    borderRadius: DesignConstants.radiusXXL,
-    border: Border.all(
-      color: colorScheme.outline.withValues(alpha: 0.2),
-      width: 1,
-    ),
-  );
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        borderRadius: DesignConstants.radiusXXL,
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      );
 
   /// 获取聚焦状态的输入框装饰
   BoxDecoration get inputFocusDecoration => BoxDecoration(
-    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-    borderRadius: DesignConstants.radiusXXL,
-    border: Border.all(
-      color: colorScheme.primary.withValues(alpha: 0.4),
-      width: 1,
-    ),
-    boxShadow: DesignConstants.shadowFocus(this),
-  );
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        borderRadius: DesignConstants.radiusXXL,
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.4),
+          width: 1,
+        ),
+        boxShadow: DesignConstants.shadowFocus(this),
+      );
 }

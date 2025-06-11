@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../ai_management/data/repositories/favorite_model_repository.dart';
 import '../../../../ai_management/domain/entities/ai_assistant.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 模型能力枚举
 enum ModelCapability {
@@ -51,14 +52,19 @@ class ModelTile extends StatelessWidget {
     final capabilities = _getAssistantCapabilities(assistant);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      margin: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceS,
+        vertical: DesignConstants.spaceXS / 2,
+      ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignConstants.radiusM,
         border: Border.all(
           color: isSelected
               ? theme.colorScheme.primary
               : theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: isSelected ? 2 : 1,
+          width: isSelected
+              ? DesignConstants.borderWidthMedium
+              : DesignConstants.borderWidthThin,
         ),
         color: isSelected
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
@@ -66,23 +72,23 @@ class ModelTile extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignConstants.radiusM,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: DesignConstants.radiusM,
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: DesignConstants.paddingL,
             child: Row(
               children: [
                 // 选中状态指示器
                 if (isSelected)
                   Container(
-                    width: 4,
-                    height: 40,
-                    margin: const EdgeInsets.only(right: 12),
+                    width: DesignConstants.spaceXS,
+                    height: DesignConstants.iconSizeXXL,
+                    margin: EdgeInsets.only(right: DesignConstants.spaceM),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: DesignConstants.radiusXS,
                     ),
                   ),
 
@@ -100,7 +106,7 @@ class ModelTile extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                SizedBox(width: DesignConstants.spaceM),
 
                 // 模型信息
                 Expanded(
@@ -116,7 +122,7 @@ class ModelTile extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 6),
+                      SizedBox(height: DesignConstants.spaceXS + 2),
 
                       // 模型能力
                       _buildCapabilities(context, capabilities),
@@ -164,23 +170,23 @@ class ModelTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Wrap(
-      spacing: 6,
-      runSpacing: 4,
+      spacing: DesignConstants.spaceXS + 2,
+      runSpacing: DesignConstants.spaceXS,
       children: capabilities.map((capability) {
         // 所有能力都用图标显示
         return Tooltip(
           message: capability.label,
           child: Container(
-            padding: const EdgeInsets.all(3),
+            padding: EdgeInsets.all(DesignConstants.spaceXS - 1),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest.withValues(
                 alpha: 0.8,
               ),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: DesignConstants.radiusXS + BorderRadius.circular(2),
             ),
             child: Icon(
               capability.icon,
-              size: 12,
+              size: DesignConstants.iconSizeS - 4,
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
             ),
           ),
