@@ -547,10 +547,10 @@ packages:
     dependency: "direct main"
     description:
       name: llm_dart
-      sha256: "55dda90305cf076f8c7aceb0fb81c0fd1d2ac30f49a1c5e9ff7cac15764dbb29"
+      sha256: "6904928273424e37dda087ba5674af50ce5bcd24863b4d4baa8fee231a23397a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.2"
+    version: "0.4.0"
   logger:
     dependency: "direct main"
     description:

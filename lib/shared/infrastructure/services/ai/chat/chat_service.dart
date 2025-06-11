@@ -188,8 +188,10 @@ class ChatService extends AiServiceBase {
           ? await _getMcpTools(assistant.mcpServerIds)
           : <Tool>[];
 
-      // 发送请求
-      final response = await chatProvider.chatWithTools(messages, tools);
+      // 发送请求 - 使用新的API
+      final response = tools.isNotEmpty
+          ? await chatProvider.chatWithTools(messages, tools)
+          : await chatProvider.chat(messages);
 
       final duration = context.elapsed;
 
@@ -258,14 +260,18 @@ class ChatService extends AiServiceBase {
       // 创建流式提供商实例
       final chatProvider = await adapter.createProvider(enableStreaming: true);
 
-      // 新API中所有ChatCapability都支持流式聊天
-      // 不需要额外的类型检查
-
       // 构建消息列表
       final messages = _buildMessageList(adapter, chatHistory, userMessage);
 
-      // 发送流式请求
-      final stream = chatProvider.chatStream(messages);
+      // 获取MCP工具（如果助手启用了工具功能）
+      final tools = assistant.enableTools
+          ? await _getMcpTools(assistant.mcpServerIds)
+          : <Tool>[];
+
+      // 发送流式请求 - 支持工具调用
+      final stream = tools.isNotEmpty
+          ? chatProvider.chatStream(messages, tools: tools)
+          : chatProvider.chatStream(messages);
 
       String? finalThinking;
       List<ToolCall>? allToolCalls;
@@ -355,7 +361,7 @@ class ChatService extends AiServiceBase {
 
       // 发送测试消息
       final testMessages = [ChatMessage.user('Hello')];
-      final response = await chatProvider.chatWithTools(testMessages, null);
+      final response = await chatProvider.chat(testMessages);
 
       logger.info('提供商测试成功', {
         'provider': provider.name,
@@ -457,19 +463,25 @@ class ChatService extends AiServiceBase {
     // 否则根据提供商类型返回常见的模型名
     switch (provider.type.name.toLowerCase()) {
       case 'openai':
-        return 'gpt-3.5-turbo';
+        return 'gpt-4o-mini';
       case 'anthropic':
-        return 'claude-3-5-sonnet-20241022';
+        return 'claude-3-5-haiku-20241022';
       case 'google':
         return 'gemini-1.5-flash';
       case 'deepseek':
-        return 'deepseek-chat';
+        return 'deepseek-chat'; // 或 deepseek-reasoner 用于推理
       case 'ollama':
-        return 'llama3.1';
+        return 'llama3.2';
       case 'xai':
         return 'grok-2-latest';
       case 'groq':
-        return 'llama3-8b-8192';
+        return 'llama-3.1-8b-instant';
+      case 'mistral':
+        return 'mistral-large-latest';
+      case 'cohere':
+        return 'command-r-plus';
+      case 'perplexity':
+        return 'llama-3.1-sonar-small-128k-online';
       default:
         return 'default-model';
     }

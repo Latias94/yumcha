@@ -13,6 +13,8 @@ import 'chat/chat_service.dart';
 import 'capabilities/model_service.dart';
 import 'capabilities/embedding_service.dart';
 import 'capabilities/speech_service.dart';
+import 'capabilities/enhanced_tool_service.dart';
+import 'capabilities/multimodal_service.dart';
 import '../logger_service.dart';
 
 /// AI服务管理器 - 统一管理所有AI相关服务
@@ -115,6 +117,26 @@ class AiServiceManager {
   /// - 音频格式转换
   SpeechService get speechService => _getService<SpeechService>('speech');
 
+  /// 获取增强工具服务
+  ///
+  /// 提供高级工具调用功能，支持：
+  /// - 工具链执行
+  /// - 工具结果处理
+  /// - 错误恢复机制
+  /// - 性能监控
+  EnhancedToolService get enhancedToolService =>
+      _getService<EnhancedToolService>('enhanced_tool');
+
+  /// 获取多模态服务
+  ///
+  /// 提供多模态AI功能，支持：
+  /// - 图像理解和分析
+  /// - 语音转文字 (STT)
+  /// - 文字转语音 (TTS)
+  /// - 图像生成
+  MultimodalService get multimodalService =>
+      _getService<MultimodalService>('multimodal');
+
   /// 获取MCP服务
   ///
   /// 提供MCP (Model Context Protocol) 功能，支持：
@@ -160,6 +182,8 @@ class AiServiceManager {
       _registerService('model', ModelService());
       _registerService('embedding', EmbeddingService());
       _registerService('speech', SpeechService());
+      _registerService('enhanced_tool', EnhancedToolService());
+      _registerService('multimodal', MultimodalService());
 
       // 初始化所有服务 - 确保每个服务都正确启动
       for (final service in _services.values) {

@@ -333,22 +333,12 @@ abstract class AiProviderAdapter {
   /// 检测提供商支持的能力
   ///
   /// 通过分析ChatCapability实例和模型配置来检测支持的AI能力。
-  /// 检测逻辑分为两个层次：
+  /// 使用新的ProviderCapabilities接口进行能力检测。
   ///
-  /// ### 1. 接口检测（动态检测）
-  /// 通过检查ChatCapability实现的接口来判断能力：
-  /// - `ChatCapability`: 基础聊天和流式聊天（所有provider都支持）
-  /// - `ModelListingCapability`: 支持模型列表获取
-  /// - `EmbeddingCapability`: 支持向量嵌入
-  /// - `SpeechToTextCapability`: 支持语音转文字
-  /// - `TextToSpeechCapability`: 支持文字转语音
-  ///
-  /// ### 2. 配置推断（静态检测）
-  /// 根据模型配置中的能力信息进行推断：
-  /// - `ModelCapability.reasoning` → `AiCapability.reasoning`
-  /// - `ModelCapability.vision` → `AiCapability.vision`
-  /// - `ModelCapability.tools` → `AiCapability.toolCalling`
-  /// - `ModelCapability.embedding` → `AiCapability.embedding`
+  /// ### 检测逻辑
+  /// 1. **基础能力**：所有ChatCapability都支持聊天和流式
+  /// 2. **提供商能力**：通过ProviderCapabilities接口检测
+  /// 3. **模型配置**：根据模型配置推断特定能力
   ///
   /// @param chatProvider 已创建的ChatCapability实例
   /// @returns 检测到的能力集合
@@ -367,28 +357,29 @@ abstract class AiProviderAdapter {
 
     // 基础聊天能力 - 所有ChatCapability都支持
     capabilities.add(AiCapability.chat);
-
-    // 检测流式能力 - 新API中所有ChatCapability都支持流式
     capabilities.add(AiCapability.streaming);
 
-    // 检测其他能力 - 通过接口类型判断
-    if (chatProvider is ModelListingCapability) {
-      capabilities.add(AiCapability.models);
-    }
+    // 使用新的ProviderCapabilities接口检测能力
+    if (chatProvider is ProviderCapabilities) {
+      final providerCapabilities = chatProvider as ProviderCapabilities;
 
-    // 检测嵌入能力 - 通过接口类型判断
-    if (chatProvider is EmbeddingCapability) {
-      capabilities.add(AiCapability.embedding);
-    }
+      // 映射LLMCapability到AiCapability
+      final capabilityMap = {
+        LLMCapability.toolCalling: AiCapability.toolCalling,
+        LLMCapability.vision: AiCapability.vision,
+        LLMCapability.reasoning: AiCapability.reasoning,
+        LLMCapability.embedding: AiCapability.embedding,
+        LLMCapability.speechToText: AiCapability.speechToText,
+        LLMCapability.textToSpeech: AiCapability.textToSpeech,
+        LLMCapability.imageGeneration: AiCapability.imageGeneration,
+        LLMCapability.modelListing: AiCapability.models,
+      };
 
-    // 检测语音转文字能力 - 通过接口类型判断
-    if (chatProvider is SpeechToTextCapability) {
-      capabilities.add(AiCapability.speechToText);
-    }
-
-    // 检测文字转语音能力 - 通过接口类型判断
-    if (chatProvider is TextToSpeechCapability) {
-      capabilities.add(AiCapability.textToSpeech);
+      for (final entry in capabilityMap.entries) {
+        if (providerCapabilities.supports(entry.key)) {
+          capabilities.add(entry.value);
+        }
+      }
     }
 
     // 根据模型配置推断其他高级能力
@@ -527,14 +518,13 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
     try {
       final providerId = _mapProviderType(provider.type.name);
 
+      // 使用新的统一API构建器
       final builder = ai()
           .provider(providerId)
           .model(modelName)
           .temperature(assistant.temperature)
           .topP(assistant.topP)
-          .maxTokens(assistant.maxTokens)
-          .systemPrompt(assistant.systemPrompt)
-          .stream(enableStreaming);
+          .maxTokens(assistant.maxTokens);
 
       // 设置API密钥
       if (provider.apiKey.isNotEmpty) {
@@ -546,10 +536,33 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
         builder.baseUrl(provider.baseUrl!);
       }
 
-      // 设置推理参数（针对支持的模型）
-      if (assistant.enableReasoning && _supportsReasoning()) {
-        builder.extension('reasoningEffort', 'medium');
+      // 设置自定义头部和扩展参数
+      if (assistant.customHeaders.isNotEmpty) {
+        for (final entry in assistant.customHeaders.entries) {
+          builder.extension(entry.key, entry.value);
+        }
       }
+
+      // 设置推理参数（如果助手启用了推理功能）
+      if (assistant.enableReasoning) {
+        builder.extension('reasoning', true);
+      }
+
+      // 设置停止序列
+      if (assistant.stopSequences.isNotEmpty) {
+        builder.extension('stopSequences', assistant.stopSequences);
+      }
+
+      // 设置频率和存在惩罚
+      if (assistant.frequencyPenalty != 0.0) {
+        builder.extension('frequencyPenalty', assistant.frequencyPenalty);
+      }
+      if (assistant.presencePenalty != 0.0) {
+        builder.extension('presencePenalty', assistant.presencePenalty);
+      }
+
+      // 设置超时
+      builder.timeout(const Duration(minutes: 5));
 
       return await builder.build();
     } catch (e) {
@@ -583,22 +596,20 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
         return 'groq';
       case 'elevenlabs':
         return 'elevenlabs';
+      case 'mistral':
+        return 'mistral';
+      case 'cohere':
+        return 'cohere';
+      case 'perplexity':
+        return 'perplexity';
+      case 'together':
+        return 'together';
+      case 'fireworks':
+        return 'fireworks';
+      case 'vertex':
+        return 'vertex';
       default:
         throw ArgumentError('不支持的提供商类型: $type');
     }
-  }
-
-  /// 检查是否支持推理功能
-  /// 现在基于模型能力而不是提供商类型来判断
-  bool _supportsReasoning() {
-    // 检查当前模型是否支持推理功能
-    final model = provider.models.where((m) => m.name == modelName).firstOrNull;
-
-    if (model != null) {
-      return model.capabilities.contains(ModelCapability.reasoning);
-    }
-
-    // 如果找不到模型配置，默认不支持推理
-    return false;
   }
 }
