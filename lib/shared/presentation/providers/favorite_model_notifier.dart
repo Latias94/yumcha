@@ -34,13 +34,15 @@ class FavoriteModelNotifier
   }
 
   final Ref _ref;
-  late final FavoriteModelRepository _repository;
   final LoggerService _logger = LoggerService();
+
+  /// 获取Repository实例
+  FavoriteModelRepository get _repository =>
+      _ref.read(favoriteModelRepositoryProvider);
 
   /// 初始化并加载收藏模型列表
   Future<void> _loadFavoriteModels() async {
     try {
-      _repository = _ref.read(favoriteModelRepositoryProvider);
       final favoriteModels = await _repository.getAllFavoriteModels();
       state = AsyncValue.data(favoriteModels);
     } catch (error, stackTrace) {

@@ -407,6 +407,15 @@ class _ChatViewState extends ConsumerState<ChatView>
     final modelName =
         chatConfig.selectedModel?.name ?? widget.selectedModelName;
 
+    // 调试：检查当前消息列表
+    print('ChatView: 当前消息数量: ${_messages.length}');
+    for (int i = 0; i < _messages.length; i++) {
+      final msg = _messages[i];
+      print(
+          'ChatView: 消息[$i] ${msg.isFromUser ? "用户" : "AI"}: "${msg.content}" (长度: ${msg.content.length})');
+      print('ChatView: 消息[$i] 字节: ${msg.content.codeUnits}');
+    }
+
     // 使用新的智能聊天Provider
     final params = SmartChatParams(
       chatHistory: _messages,
@@ -418,6 +427,12 @@ class _ChatViewState extends ConsumerState<ChatView>
 
     try {
       final response = await ref.read(smartChatProvider(params).future);
+
+      // 调试：检查非流式响应内容
+      print(
+          'ChatView: 非流式响应内容: "${response.content}" (长度: ${response.content.length})');
+      print('ChatView: 响应内容字节: ${response.content.codeUnits}');
+      print('ChatView: 响应是否成功: ${response.isSuccess}');
 
       if (response.isSuccess) {
         final aiMessage = Message(

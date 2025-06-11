@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/app_setting.dart';
 import '../../domain/entities/mcp_server_config.dart';
 import '../../../../shared/data/database/repositories/setting_repository.dart';
-import '../../../../shared/infrastructure/services/database_service.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
+import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 /// 设置状态
 class SettingsState {
@@ -49,17 +49,19 @@ class SettingsState {
 
 /// 设置管理 Notifier
 class SettingsNotifier extends StateNotifier<SettingsState> {
-  SettingsNotifier() : super(const SettingsState(isLoading: true)) {
+  SettingsNotifier(this._ref) : super(const SettingsState(isLoading: true)) {
     _initialize();
   }
 
-  late final SettingRepository _repository;
+  final Ref _ref;
   final LoggerService _logger = LoggerService();
+
+  /// 获取Repository实例
+  SettingRepository get _repository => _ref.read(settingRepositoryProvider);
 
   /// 初始化
   Future<void> _initialize() async {
     try {
-      _repository = SettingRepository(DatabaseService.instance.database);
       await _loadAllSettings();
     } catch (error) {
       _logger.error('设置初始化失败', {'error': error.toString()});
@@ -379,7 +381,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 /// 设置管理 Provider
 final settingsNotifierProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>(
-  (ref) => SettingsNotifier(),
+  (ref) => SettingsNotifier(ref),
 );
 
 /// 获取特定设置值的 Provider

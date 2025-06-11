@@ -230,6 +230,24 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
   /// 更新对话
   void updateConversation(ConversationUiState conversation) {
     state = state.copyWith(currentConversation: conversation);
+
+    // 异步保存到数据库
+    _saveConversationToDatabase(conversation);
+  }
+
+  /// 保存对话到数据库
+  Future<void> _saveConversationToDatabase(
+      ConversationUiState conversation) async {
+    try {
+      final repository = _ref.read(conversationRepositoryProvider);
+      await repository.saveConversation(conversation);
+      _logger.info('对话保存成功', {'conversationId': conversation.id});
+    } catch (e) {
+      _logger.error('对话保存失败', {
+        'conversationId': conversation.id,
+        'error': e.toString(),
+      });
+    }
   }
 
   /// 获取默认助手

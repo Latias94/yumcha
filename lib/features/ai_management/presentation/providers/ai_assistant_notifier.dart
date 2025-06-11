@@ -31,12 +31,13 @@ class AiAssistantNotifier extends StateNotifier<AsyncValue<List<AiAssistant>>> {
   }
 
   final Ref _ref;
-  late final AssistantRepository _repository;
+
+  /// 获取Repository实例
+  AssistantRepository get _repository => _ref.read(assistantRepositoryProvider);
 
   /// 初始化并加载助手列表
   Future<void> _loadAssistants() async {
     try {
-      _repository = _ref.read(assistantRepositoryProvider);
       final assistants = await _repository.getAllAssistants();
       state = AsyncValue.data(assistants);
     } catch (error, stackTrace) {

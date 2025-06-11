@@ -67,6 +67,20 @@ class ConversationCoordinator {
     if (conversation.messages.isNotEmpty) {
       _checkAndGenerateTitle(conversation);
     }
+
+    // 通知对话列表刷新
+    _notifyConversationListRefresh();
+  }
+
+  /// 通知对话列表刷新
+  void _notifyConversationListRefresh() {
+    try {
+      // 这里可以添加对话列表刷新的逻辑
+      // 由于架构限制，暂时通过日志记录
+      _logger.debug('协调器：通知对话列表刷新');
+    } catch (e) {
+      _logger.error('通知对话列表刷新失败', {'error': e.toString()});
+    }
   }
 
   /// 当AI消息添加后调用

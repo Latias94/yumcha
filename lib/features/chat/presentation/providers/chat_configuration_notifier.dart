@@ -6,8 +6,8 @@ import '../../domain/entities/chat_configuration.dart';
 import '../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../ai_management/data/repositories/assistant_repository.dart';
 import '../../../ai_management/data/repositories/provider_repository.dart';
-import '../../../../shared/infrastructure/services/database_service.dart';
 import '../../../settings/presentation/providers/settings_notifier.dart';
+import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 /// 聊天配置状态数据模型 - 包含助手、提供商、模型的选择状态
 class ChatConfigurationState {
@@ -77,23 +77,20 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
   }
 
   final Ref _ref;
-  late final PreferenceService _preferenceService;
-  late final AssistantRepository _assistantRepository;
-  late final ProviderRepository _providerRepository;
+
+  /// 获取服务实例
+  PreferenceService get _preferenceService =>
+      _ref.read(preferenceServiceProvider);
+  AssistantRepository get _assistantRepository =>
+      _ref.read(assistantRepositoryProvider);
+  ProviderRepository get _providerRepository =>
+      _ref.read(providerRepositoryProvider);
 
   /// 初始化
   Future<void> _initialize() async {
     state = state.copyWith(isLoading: true);
 
     try {
-      _preferenceService = PreferenceService();
-      _assistantRepository = AssistantRepository(
-        DatabaseService.instance.database,
-      );
-      _providerRepository = ProviderRepository(
-        DatabaseService.instance.database,
-      );
-
       await _loadLastConfiguration();
     } catch (e) {
       state = state.copyWith(error: '初始化失败: $e', isLoading: false);

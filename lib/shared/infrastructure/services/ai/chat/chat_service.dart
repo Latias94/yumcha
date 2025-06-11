@@ -211,6 +211,14 @@ class ChatService extends AiServiceBase {
       // 更新统计信息
       _updateStats(provider.id, true, duration);
 
+      // 调试：检查非流式响应内容
+      final responseText = finalResponse.text ?? '';
+      logger.debug('ChatService: 非流式响应内容', {
+        'content': responseText,
+        'contentLength': responseText.length,
+        'contentBytes': responseText.codeUnits,
+      });
+
       logger.info('聊天请求完成', {
         'requestId': requestId,
         'duration': '${duration.inMilliseconds}ms',
@@ -220,7 +228,7 @@ class ChatService extends AiServiceBase {
       });
 
       return AiResponse.success(
-        content: finalResponse.text ?? '',
+        content: responseText,
         thinking: finalResponse.thinking,
         usage: finalResponse.usage,
         duration: duration,
@@ -293,6 +301,12 @@ class ChatService extends AiServiceBase {
       await for (final event in stream) {
         switch (event) {
           case TextDeltaEvent(delta: final delta):
+            // 调试：检查从llm_dart接收到的内容
+            logger.debug('ChatService: 接收到TextDeltaEvent', {
+              'delta': delta,
+              'deltaLength': delta.length,
+              'deltaBytes': delta.codeUnits,
+            });
             yield AiStreamEvent.contentDelta(delta);
             break;
           case ThinkingDeltaEvent(delta: final delta):

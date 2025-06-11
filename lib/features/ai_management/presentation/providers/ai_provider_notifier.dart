@@ -37,12 +37,13 @@ class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
   }
 
   final Ref _ref;
-  late final ProviderRepository _repository;
+
+  /// 获取Repository实例
+  ProviderRepository get _repository => _ref.read(providerRepositoryProvider);
 
   /// 初始化并加载提供商列表
   Future<void> _loadProviders() async {
     try {
-      _repository = _ref.read(providerRepositoryProvider);
       final providers = await _repository.getAllProviders();
       state = AsyncValue.data(providers);
     } catch (error, stackTrace) {

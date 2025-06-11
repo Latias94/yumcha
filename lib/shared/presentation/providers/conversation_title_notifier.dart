@@ -1,16 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/chat/domain/entities/message.dart';
-import '../../../features/chat/domain/entities/conversation_ui_state.dart';
 import '../../infrastructure/services/logger_service.dart';
 import 'dependency_providers.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
 import '../../infrastructure/services/ai/providers/ai_service_provider.dart';
+import 'conversation_state_notifier.dart';
 
 /// 对话标题管理器 - 专门负责对话标题的生成和管理
-/// 
+///
 /// 从ConversationNotifier中提取出来，专注于标题相关的业务逻辑：
 /// - 🏷️ 自动标题生成
-/// - 🔄 手动标题重生成  
+/// - 🔄 手动标题重生成
 /// - ✅ 标题生成条件检查
 /// - 🎯 标题生成策略管理
 class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
@@ -18,7 +18,7 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
 
   final Ref _ref;
   final LoggerService _logger = LoggerService();
-  
+
   // 标题生成相关
   final Set<String> _titleGenerationInProgress = {};
   static const String _defaultTitle = "新对话";
@@ -112,10 +112,10 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
       if (generatedTitle != null && generatedTitle.isNotEmpty) {
         // 更新标题状态
         state = {...state, conversationId: generatedTitle};
-        
+
         // 保存到数据库
         await _saveTitle(conversationId, generatedTitle);
-        
+
         _logger.info('标题生成成功', {
           'conversationId': conversationId,
           'title': generatedTitle,
@@ -139,7 +139,8 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
     if (messages.isEmpty) return null;
 
     // 从聊天配置获取默认配置
-    final defaultConfig = _ref.read(chatConfigurationProvider).defaultConfiguration;
+    final defaultConfig =
+        _ref.read(chatConfigurationProvider).defaultConfiguration;
     final providerId = defaultConfig.providerId;
     final modelName = defaultConfig.modelName;
 
@@ -180,12 +181,10 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
   /// 构建标题生成提示
   String _buildTitleGenerationPrompt(List<Message> messages) {
     final recentMessages = messages.take(6).toList();
-    final conversationSummary = recentMessages
-        .map((msg) {
-          final author = msg.isFromUser ? '用户' : 'AI';
-          return '$author: ${msg.content}';
-        })
-        .join('\n');
+    final conversationSummary = recentMessages.map((msg) {
+      final author = msg.isFromUser ? '用户' : 'AI';
+      return '$author: ${msg.content}';
+    }).join('\n');
 
     return '''请为以下对话生成一个简洁的标题（不超过20个字符）：
 
@@ -222,8 +221,26 @@ $conversationSummary
   Future<void> _saveTitle(String conversationId, String title) async {
     try {
       final repository = _ref.read(conversationRepositoryProvider);
-      // 这里需要实现保存标题的逻辑
-      // await repository.updateConversationTitle(conversationId, title);
+
+      // 获取当前对话
+      final conversation = await repository.getConversation(conversationId);
+      if (conversation != null) {
+        // 更新标题
+        final updatedConversation = conversation.copyWith(channelName: title);
+        await repository.saveConversation(updatedConversation);
+
+        // 通知对话状态更新
+        final stateNotifier =
+            _ref.read(conversationStateNotifierProvider.notifier);
+        stateNotifier.updateConversation(updatedConversation);
+
+        _logger.info('标题保存成功', {
+          'conversationId': conversationId,
+          'title': title,
+        });
+      } else {
+        _logger.warning('对话不存在，无法保存标题', {'conversationId': conversationId});
+      }
     } catch (e) {
       _logger.error('保存标题失败', {
         'conversationId': conversationId,
@@ -245,13 +262,14 @@ $conversationSummary
 }
 
 /// 对话标题管理Provider
-final conversationTitleNotifierProvider = 
+final conversationTitleNotifierProvider =
     StateNotifierProvider<ConversationTitleNotifier, Map<String, String>>(
   (ref) => ConversationTitleNotifier(ref),
 );
 
 /// 获取特定对话标题的Provider
-final conversationTitleProvider = Provider.family<String?, String>((ref, conversationId) {
+final conversationTitleProvider =
+    Provider.family<String?, String>((ref, conversationId) {
   final titles = ref.watch(conversationTitleNotifierProvider);
   return titles[conversationId];
 });

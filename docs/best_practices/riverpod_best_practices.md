@@ -85,13 +85,36 @@ final repository = ConversationRepository(DatabaseService.instance.database);
 
 **编码注意事项**：
 ```dart
-// ✅ 正确：构造函数接受Ref参数
+// ✅ 正确：使用 getter 方法获取依赖（推荐）
 class MyNotifier extends StateNotifier<MyState> {
   MyNotifier(this._ref) : super(initialState);
   final Ref _ref;
-  
+
+  /// 获取Repository实例 - 避免late final重复初始化问题
+  MyRepository get _repository => _ref.read(myRepositoryProvider);
+
   void someMethod() {
-    final repository = _ref.read(myRepositoryProvider);
+    final data = await _repository.getData(); // 安全使用
+  }
+}
+
+// ✅ 可接受：在构造函数中初始化late final（但不推荐）
+class MyNotifier extends StateNotifier<MyState> {
+  MyNotifier(this._ref) : super(initialState) {
+    _repository = _ref.read(myRepositoryProvider); // 只在构造函数中初始化
+  }
+  final Ref _ref;
+  late final MyRepository _repository;
+}
+
+// ❌ 错误：在方法中初始化late final字段
+class MyNotifier extends StateNotifier<MyState> {
+  MyNotifier(this._ref) : super(initialState);
+  final Ref _ref;
+  late final MyRepository _repository;
+
+  void _initialize() {
+    _repository = _ref.read(myRepositoryProvider); // 危险！可能重复初始化
   }
 }
 
@@ -313,12 +336,14 @@ class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
   final Ref _ref;
   final LoggerService _logger = LoggerService();
 
+  /// 获取Repository实例 - 使用getter避免late final重复初始化问题
+  ProviderRepository get _repository => _ref.read(providerRepositoryProvider);
+
   /// 加载AI提供商列表
   Future<void> _loadProviders() async {
     try {
       state = const AsyncValue.loading();
-      final repository = _ref.read(providerRepositoryProvider);
-      final providers = await repository.getAllProviders();
+      final providers = await _repository.getAllProviders();
       state = AsyncValue.data(providers);
 
       _logger.info('AI提供商加载成功', {'count': providers.length});
@@ -336,8 +361,7 @@ class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
   /// 更新提供商状态
   Future<void> updateProviderStatus(String providerId, bool isEnabled) async {
     try {
-      final repository = _ref.read(providerRepositoryProvider);
-      await repository.updateProviderStatus(providerId, isEnabled);
+      await _repository.updateProviderStatus(providerId, isEnabled);
       await refresh(); // 刷新列表
 
       _logger.info('提供商状态更新成功', {
@@ -471,7 +495,76 @@ Future<void> saveConfiguration() async {
 
 ## ⚠️ 常见问题和解决方案
 
-### 1. **Provider循环依赖**
+### 1. **late final 重复初始化问题** ⚠️ **重要**
+
+这是 StateNotifier 中最常见的错误，会导致 `LateInitializationError: Field 'repository@xxxxx' has already been initialized.`
+
+```dart
+// ❌ 错误：late final 字段重复初始化
+class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
+  AiProviderNotifier(this._ref) : super(const AsyncValue.loading()) {
+    _loadProviders();
+  }
+
+  final Ref _ref;
+  late final ProviderRepository _repository; // 问题所在！
+
+  Future<void> _loadProviders() async {
+    _repository = _ref.read(providerRepositoryProvider); // 第一次初始化
+    // ...
+  }
+
+  Future<void> refresh() async {
+    await _loadProviders(); // 再次调用会导致重复初始化错误！
+  }
+}
+
+// ✅ 解决方案1：使用 getter 方法（推荐）
+class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
+  AiProviderNotifier(this._ref) : super(const AsyncValue.loading()) {
+    _loadProviders();
+  }
+
+  final Ref _ref;
+
+  /// 获取Repository实例 - 每次都从Provider获取新实例
+  ProviderRepository get _repository => _ref.read(providerRepositoryProvider);
+
+  Future<void> _loadProviders() async {
+    final providers = await _repository.getAllProviders(); // 安全使用
+    // ...
+  }
+
+  Future<void> refresh() async {
+    await _loadProviders(); // 不会有重复初始化问题
+  }
+}
+
+// ✅ 解决方案2：只在构造函数中初始化（不推荐）
+class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
+  AiProviderNotifier(this._ref) : super(const AsyncValue.loading()) {
+    _repository = _ref.read(providerRepositoryProvider); // 只在这里初始化
+    _loadProviders();
+  }
+
+  final Ref _ref;
+  late final ProviderRepository _repository;
+
+  Future<void> _loadProviders() async {
+    final providers = await _repository.getAllProviders(); // 直接使用
+    // ...
+  }
+}
+```
+
+**为什么推荐使用 getter 方法？**
+1. **避免重复初始化**：每次都从 Provider 获取实例，不会有重复初始化问题
+2. **符合 Riverpod 最佳实践**：使用依赖注入而不是缓存实例
+3. **更好的可测试性**：便于在测试时 Mock 依赖
+4. **更好的解耦**：减少组件间的直接依赖
+5. **动态配置支持**：当配置变化时能获取到最新的实例
+
+### 2. **Provider循环依赖**
 
 ```dart
 // ❌ 问题：循环依赖
@@ -793,12 +886,14 @@ void main() {
 
 - [ ] Provider有清晰的命名和文档注释
 - [ ] StateNotifier构造函数接受Ref参数
+- [ ] **避免 late final 重复初始化问题**：使用 getter 方法获取依赖
 - [ ] 使用依赖注入而不是直接访问单例
 - [ ] 临时Provider使用autoDispose修饰符
 - [ ] 异步操作有完整的错误处理
 - [ ] 状态更新有适当的日志记录
 - [ ] 避免循环依赖
 - [ ] 使用select优化性能
+- [ ] **依赖获取方式**：优先使用 `get _repository => _ref.read(provider)` 而不是 `late final`
 
 ### ✅ Repository实现检查清单
 
@@ -829,5 +924,16 @@ void main() {
 - **🧪 高可测试性** - 依赖注入，Mock友好
 - **🛡️ 强健壮性** - 错误处理，异常恢复
 - **📈 可扩展性** - 模块化设计，易于扩展
+- **⚡ 运行稳定性** - 避免 late final 重复初始化等常见错误
+
+### 🔑 关键要点
+
+1. **依赖注入模式**：始终使用 `get _repository => _ref.read(provider)` 而不是 `late final` 字段
+2. **错误预防**：避免在方法中初始化 `late final` 字段，这会导致重复初始化错误
+3. **架构演进**：从单一巨大的 Notifier 拆分为多个专门的 Provider，提高可维护性
+4. **性能优化**：合理使用 autoDispose、select 和缓存策略
+5. **测试友好**：依赖注入使得 Mock 和单元测试更容易
 
 记住：**好的架构是演进出来的，而不是一开始就完美的**。持续重构和优化是保持代码质量的关键！ 🚀
+
+> **重要提醒**：如果遇到 `LateInitializationError: Field 'repository@xxxxx' has already been initialized.` 错误，请检查是否在 StateNotifier 的方法中初始化了 `late final` 字段。解决方案是使用 getter 方法代替 `late final` 字段。
