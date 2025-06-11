@@ -9,6 +9,7 @@ import '../../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../providers/chat_configuration_notifier.dart';
 import 'model_selector.dart';
 import 'attachment_panel.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 聊天输入组件 - 重构版
 class ChatInput extends ConsumerStatefulWidget {
@@ -234,6 +235,16 @@ class _ChatInputState extends ConsumerState<ChatInput>
     return _textController.text.trim().isNotEmpty && !widget.isLoading;
   }
 
+  String _getInputHintText(bool isEditing) {
+    if (widget.isLoading) {
+      return 'AI正在思考中...';
+    } else if (isEditing) {
+      return '编辑消息...';
+    } else {
+      return '输入消息...';
+    }
+  }
+
   void _showModelSelector() async {
     final chatConfig = ref.read(chatConfigurationProvider);
 
@@ -305,20 +316,24 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildEditingIndicator(BuildContext context, ThemeData theme) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: DesignConstants.responsiveHorizontalPadding(context).copyWith(
+        top: DesignConstants.spaceS,
+        bottom: 0,
+      ),
+      padding: DesignConstants.paddingM,
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: DesignConstants.radiusS,
+        boxShadow: DesignConstants.shadowS(theme),
       ),
       child: Row(
         children: [
           Icon(
             Icons.edit,
-            size: 16,
+            size: DesignConstants.iconSizeS,
             color: theme.colorScheme.onPrimaryContainer,
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: DesignConstants.spaceS),
           Expanded(
             child: Text(
               '正在编辑消息',
@@ -333,37 +348,15 @@ class _ChatInputState extends ConsumerState<ChatInput>
   }
 
   Widget _buildInputField(ThemeData theme, bool isEditing) {
-    final isDesktop = MediaQuery.of(context).size.width > 768;
-
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        isDesktop ? 20 : 16,
-        8,
-        isDesktop ? 20 : 16,
-        0,
+      padding: DesignConstants.responsiveHorizontalPadding(context).copyWith(
+        top: DesignConstants.spaceS,
+        bottom: 0,
       ),
       child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.7,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: _focusNode.hasFocus
-                ? theme.colorScheme.primary.withValues(alpha: 0.4)
-                : theme.colorScheme.outline.withValues(alpha: 0.2),
-            width: 1,
-          ),
-          boxShadow: _focusNode.hasFocus
-              ? [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
-        ),
+        decoration: _focusNode.hasFocus
+            ? theme.inputFocusDecoration
+            : theme.inputDecoration,
         child: TextField(
           controller: _textController,
           focusNode: _focusNode,
@@ -375,20 +368,41 @@ class _ChatInputState extends ConsumerState<ChatInput>
           },
           onSubmitted: _canSend() ? (_) => _handleSend() : null,
           decoration: InputDecoration(
-            hintText: widget.isLoading
-                ? 'AI正在思考中...'
-                : (isEditing ? '编辑消息...' : '输入消息...'),
+            hintText: _getInputHintText(isEditing),
             hintStyle: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              color: widget.isLoading
+                  ? theme.colorScheme.primary.withValues(alpha: 0.7)
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               fontSize: 15,
+              fontStyle: widget.isLoading ? FontStyle.italic : FontStyle.normal,
             ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 14,
             ),
+            // 添加前缀图标来指示状态
+            prefixIcon: widget.isLoading
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 12, right: 8),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          theme.colorScheme.primary.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 36,
+              minHeight: 16,
+            ),
           ),
-          maxLines: isDesktop ? 5 : 4,
+          maxLines: DesignConstants.isDesktop(context) ? 5 : 4,
           minLines: 1,
           textCapitalization: TextCapitalization.sentences,
           style: const TextStyle(
@@ -402,23 +416,26 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildActionButtons(ThemeData theme, bool isEditing) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceS,
+        vertical: DesignConstants.spaceXS,
+      ),
       child: Row(
         children: [
           // 添加按钮（仅在非编辑模式显示）
           if (!isEditing) ...[
             _buildAttachmentButton(theme),
-            const SizedBox(width: 8),
+            SizedBox(width: DesignConstants.spaceS),
             _buildModelSelectorButton(theme),
-            const SizedBox(width: 8),
+            SizedBox(width: DesignConstants.spaceS),
             _buildWebSearchButton(theme),
-            const SizedBox(width: 8),
+            SizedBox(width: DesignConstants.spaceS),
           ],
 
           // 编辑模式下的取消按钮
           if (isEditing && widget.onCancelEdit != null) ...[
             _buildCancelEditButton(theme),
-            const SizedBox(width: 8),
+            SizedBox(width: DesignConstants.spaceS),
           ],
 
           const Spacer(),
@@ -436,12 +453,12 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildAttachmentButton(ThemeData theme) {
     return SizedBox(
-      width: 40,
-      height: 40,
+      width: DesignConstants.buttonHeightM,
+      height: DesignConstants.buttonHeightM,
       child: IconButton(
         icon: Icon(
           _showAttachmentPanel ? Icons.close : Icons.add,
-          size: 20,
+          size: DesignConstants.iconSizeM,
           color: _showAttachmentPanel
               ? theme.colorScheme.primary.withValues(alpha: 0.8)
               : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -454,12 +471,12 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildModelSelectorButton(ThemeData theme) {
     return SizedBox(
-      width: 40,
-      height: 40,
+      width: DesignConstants.buttonHeightM,
+      height: DesignConstants.buttonHeightM,
       child: IconButton(
         icon: Icon(
           Icons.auto_awesome,
-          size: 20,
+          size: DesignConstants.iconSizeM,
           color: theme.colorScheme.primary.withValues(alpha: 0.8),
         ),
         onPressed: _showModelSelector,
@@ -470,24 +487,24 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildWebSearchButton(ThemeData theme) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+      duration: DesignConstants.animationNormal,
       curve: Curves.easeInOut,
-      height: 32,
+      height: DesignConstants.buttonHeightS,
       constraints: BoxConstraints(
-        minWidth: 40,
-        maxWidth: _isWebSearchEnabled ? 130 : 40,
+        minWidth: DesignConstants.buttonHeightM,
+        maxWidth: _isWebSearchEnabled ? 130 : DesignConstants.buttonHeightM,
       ),
       decoration: BoxDecoration(
         color: _isWebSearchEnabled
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.8)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DesignConstants.radiusLValue),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DesignConstants.radiusLValue),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DesignConstants.radiusLValue),
           onTap: () {
             setState(() {
               _isWebSearchEnabled = !_isWebSearchEnabled;
@@ -501,7 +518,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
               children: [
                 Icon(
                   Icons.travel_explore,
-                  size: 18,
+                  size: DesignConstants.iconSizeM,
                   color: _isWebSearchEnabled
                       ? theme.colorScheme.onPrimaryContainer.withValues(
                           alpha: 0.8,
@@ -539,8 +556,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildCancelEditButton(ThemeData theme) {
     return Container(
-      width: 40,
-      height: 40,
+      width: DesignConstants.buttonHeightM,
+      height: DesignConstants.buttonHeightM,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
         shape: BoxShape.circle,
@@ -548,11 +565,12 @@ class _ChatInputState extends ConsumerState<ChatInput>
           color: theme.colorScheme.outline.withValues(alpha: 0.1),
           width: 1,
         ),
+        boxShadow: DesignConstants.shadowS(theme),
       ),
       child: IconButton(
         icon: Icon(
           Icons.close,
-          size: 18,
+          size: DesignConstants.iconSizeM,
           color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
         ),
         onPressed: widget.onCancelEdit,
@@ -563,8 +581,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildStopButton(ThemeData theme) {
     return Container(
-      width: 40,
-      height: 40,
+      width: DesignConstants.buttonHeightM,
+      height: DesignConstants.buttonHeightM,
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer.withValues(alpha: 0.8),
         shape: BoxShape.circle,
@@ -572,12 +590,13 @@ class _ChatInputState extends ConsumerState<ChatInput>
           color: theme.colorScheme.error.withValues(alpha: 0.3),
           width: 1,
         ),
+        boxShadow: DesignConstants.shadowS(theme),
       ),
       child: IconButton(
         onPressed: widget.onCancelMessage,
         icon: Icon(
           Icons.stop,
-          size: 18,
+          size: DesignConstants.iconSizeM,
           color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.8),
         ),
         tooltip: '停止生成',
@@ -587,8 +606,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildSendButton(ThemeData theme, bool isEditing) {
     return Container(
-      width: 40,
-      height: 40,
+      width: DesignConstants.buttonHeightM,
+      height: DesignConstants.buttonHeightM,
       decoration: BoxDecoration(
         color: _canSend()
             ? theme.colorScheme.primary.withValues(alpha: 0.9)
@@ -601,19 +620,13 @@ class _ChatInputState extends ConsumerState<ChatInput>
           width: 1,
         ),
         boxShadow: _canSend()
-            ? [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
+            ? DesignConstants.shadowButton(theme)
+            : DesignConstants.shadowNone,
       ),
       child: IconButton(
         icon: Icon(
           isEditing ? Icons.check : Icons.arrow_upward,
-          size: 18,
+          size: DesignConstants.iconSizeM,
           color: _canSend()
               ? theme.colorScheme.onPrimary.withValues(alpha: 0.9)
               : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
@@ -626,7 +639,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildAttachmentPanelContainer() {
     return AnimatedSize(
-      duration: const Duration(milliseconds: 250),
+      duration: DesignConstants.animationNormal,
       curve: Curves.easeOutCubic,
       child: _showAttachmentPanel
           ? AttachmentPanel(

@@ -139,6 +139,8 @@ class _ChatViewState extends ConsumerState<ChatView>
                           : null,
                       onSelectSuggestion: _onSelectSuggestion,
                       initialMessageId: widget.initialMessageId,
+                      isLoading: _isLoading,
+                      isStreaming: _pendingStreamResponse != null,
                     ),
                   ),
 

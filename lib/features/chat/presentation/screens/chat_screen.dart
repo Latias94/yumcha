@@ -264,13 +264,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(assistant?.name ?? '聊天'),
+          // 主标题 - 应用名称
+          Text(
+            'YumCha',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
+            ),
+          ),
+          // 副标题 - 当前助手信息
           if (assistant != null) ...[
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                // 助手emoji图标
+                Text(
+                  assistant.avatar,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(width: 6),
+                // 助手名称
+                Flexible(
+                  child: Text(
+                    assistant.name,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 模型信息指示器
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer
+                        .withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _conversationState.selectedProviderId,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 2),
             Text(
-              '${_conversationState.selectedProviderId} - ${_conversationState.selectedModelId}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              '选择助手开始聊天',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                fontStyle: FontStyle.italic,
               ),
             ),
           ],
@@ -370,7 +424,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         return Text(assistant?.name ?? '未知');
                       },
                       loading: () => const Text('加载中...'),
-                      error: (_1, _2) => const Text('加载失败'),
+                      error: (error, stack) => const Text('加载失败'),
                     ),
                     const SizedBox(height: 4),
                     Text(
