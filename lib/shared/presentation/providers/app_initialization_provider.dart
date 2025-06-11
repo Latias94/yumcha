@@ -1,0 +1,263 @@
+/// 🚀 应用初始化Provider
+///
+/// 遵循Riverpod最佳实践的应用初始化管理系统。
+/// 负责协调所有服务的初始化，确保依赖关系正确。
+///
+/// ## 🎯 设计原则
+/// - **依赖注入**: 通过Provider注入所有依赖
+/// - **分层初始化**: 按依赖关系分层初始化服务
+/// - **错误处理**: 完整的错误处理和恢复机制
+/// - **状态跟踪**: 详细的初始化状态跟踪
+/// - **性能优化**: 避免重复初始化和内存泄漏
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../infrastructure/services/logger_service.dart';
+import '../../infrastructure/services/data_initialization_service.dart';
+import '../../infrastructure/services/ai/ai_service_manager.dart';
+import '../../../app/config/splash_config.dart';
+
+/// 应用初始化状态
+class AppInitializationState {
+  const AppInitializationState({
+    this.isDataInitialized = false,
+    this.isAiServicesInitialized = false,
+    this.isMcpInitialized = false,
+    this.error,
+    this.currentStep = '',
+    this.startTime,
+    this.canNavigateAway = false,
+  });
+
+  /// 数据初始化是否完成
+  final bool isDataInitialized;
+
+  /// AI服务是否初始化完成
+  final bool isAiServicesInitialized;
+
+  /// MCP服务是否初始化完成
+  final bool isMcpInitialized;
+
+  /// 初始化错误
+  final String? error;
+
+  /// 当前初始化步骤
+  final String currentStep;
+
+  /// 启动页面开始显示的时间
+  final DateTime? startTime;
+
+  /// 是否可以导航离开启动页面
+  final bool canNavigateAway;
+
+  /// 是否所有服务都已初始化
+  bool get isFullyInitialized =>
+      isDataInitialized && isAiServicesInitialized && isMcpInitialized;
+
+  /// 是否正在初始化
+  bool get isInitializing => !isFullyInitialized && error == null;
+
+  /// 是否有错误
+  bool get hasError => error != null;
+
+  /// 是否可以进入主应用（初始化完成且满足最小显示时间）
+  bool get canEnterMainApp => isFullyInitialized && canNavigateAway;
+
+  AppInitializationState copyWith({
+    bool? isDataInitialized,
+    bool? isAiServicesInitialized,
+    bool? isMcpInitialized,
+    String? error,
+    String? currentStep,
+    DateTime? startTime,
+    bool? canNavigateAway,
+  }) {
+    return AppInitializationState(
+      isDataInitialized: isDataInitialized ?? this.isDataInitialized,
+      isAiServicesInitialized:
+          isAiServicesInitialized ?? this.isAiServicesInitialized,
+      isMcpInitialized: isMcpInitialized ?? this.isMcpInitialized,
+      error: error,
+      currentStep: currentStep ?? this.currentStep,
+      startTime: startTime ?? this.startTime,
+      canNavigateAway: canNavigateAway ?? this.canNavigateAway,
+    );
+  }
+}
+
+/// 应用初始化管理器
+///
+/// 负责协调所有服务的初始化过程，遵循依赖关系顺序。
+/// 支持最小显示时间控制，确保良好的用户体验。
+class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
+  AppInitializationNotifier(this._ref)
+      : super(AppInitializationState(
+          startTime: DateTime.now(),
+        )) {
+    _initialize();
+  }
+
+  final Ref _ref;
+  final LoggerService _logger = LoggerService();
+
+  /// 开始初始化过程
+  Future<void> _initialize() async {
+    try {
+      _logger.info('🚀 开始应用初始化流程');
+
+      // 步骤1: 初始化默认数据
+      await _initializeData();
+
+      // 步骤2: 初始化AI服务
+      await _initializeAiServices();
+
+      // 步骤3: 初始化MCP服务
+      await _initializeMcpServices();
+
+      _logger.info('✅ 应用初始化完成');
+
+      // 检查最小显示时间
+      await _checkMinDisplayTime();
+    } catch (e, stackTrace) {
+      _logger.error('❌ 应用初始化失败', {
+        'error': e.toString(),
+        'stackTrace': stackTrace.toString(),
+      });
+
+      state = state.copyWith(
+        error: '初始化失败: $e',
+        currentStep: '初始化失败',
+      );
+    }
+  }
+
+  /// 检查并等待最小显示时间
+  Future<void> _checkMinDisplayTime() async {
+    if (!SplashConfig.enableMinDisplayTime) {
+      // 如果禁用了最小显示时间，立即允许导航
+      state = state.copyWith(canNavigateAway: true);
+      return;
+    }
+
+    final startTime = state.startTime;
+    if (startTime == null) {
+      // 如果没有开始时间，立即允许导航
+      state = state.copyWith(canNavigateAway: true);
+      return;
+    }
+
+    final elapsed = DateTime.now().difference(startTime);
+    final remaining = SplashConfig.minDisplayDuration - elapsed;
+
+    if (remaining.isNegative || remaining == Duration.zero) {
+      // 已经满足最小显示时间，立即允许导航
+      state = state.copyWith(canNavigateAway: true);
+      _logger.info('✅ 已满足最小显示时间，允许导航');
+    } else {
+      // 还需要等待一段时间
+      state = state.copyWith(
+        currentStep: '准备就绪，即将进入应用...',
+      );
+
+      _logger.info('⏱️ 等待最小显示时间: ${remaining.inMilliseconds}ms');
+
+      // 等待剩余时间
+      await Future.delayed(remaining);
+
+      // 允许导航
+      state = state.copyWith(canNavigateAway: true);
+      _logger.info('✅ 最小显示时间已满足，允许导航');
+    }
+  }
+
+  /// 初始化默认数据
+  Future<void> _initializeData() async {
+    state = state.copyWith(currentStep: '正在初始化数据...');
+
+    try {
+      // 通过Provider获取初始化结果
+      await _ref.read(initializeDefaultDataProvider.future);
+
+      state = state.copyWith(
+        isDataInitialized: true,
+        currentStep: '数据初始化完成',
+      );
+
+      _logger.info('✅ 数据初始化完成');
+    } catch (e) {
+      _logger.error('❌ 数据初始化失败', {'error': e.toString()});
+      rethrow;
+    }
+  }
+
+  /// 初始化AI服务
+  Future<void> _initializeAiServices() async {
+    state = state.copyWith(currentStep: '正在初始化AI服务...');
+
+    try {
+      // 通过Provider获取AI服务管理器并初始化
+      await _ref.read(initializeAiServicesProvider.future);
+
+      state = state.copyWith(
+        isAiServicesInitialized: true,
+        currentStep: 'AI服务初始化完成',
+      );
+
+      _logger.info('✅ AI服务初始化完成');
+    } catch (e) {
+      _logger.error('❌ AI服务初始化失败', {'error': e.toString()});
+      rethrow;
+    }
+  }
+
+  /// 初始化MCP服务
+  Future<void> _initializeMcpServices() async {
+    state = state.copyWith(currentStep: '正在初始化MCP服务...');
+
+    try {
+      // MCP服务初始化（目前是占位符）
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      state = state.copyWith(
+        isMcpInitialized: true,
+        currentStep: 'MCP服务初始化完成',
+      );
+
+      _logger.info('✅ MCP服务初始化完成');
+    } catch (e) {
+      _logger.error('❌ MCP服务初始化失败', {'error': e.toString()});
+      rethrow;
+    }
+  }
+
+  /// 重试初始化
+  Future<void> retry() async {
+    state = const AppInitializationState();
+    await _initialize();
+  }
+}
+
+/// 应用初始化Provider
+///
+/// 提供应用初始化状态管理，遵循Riverpod最佳实践。
+///
+/// ## 特性
+/// - ⚡ **异步初始化**: 不阻塞UI线程
+/// - 🔄 **状态跟踪**: 详细的初始化状态
+/// - 🛡️ **错误处理**: 完整的错误处理和重试机制
+/// - 📊 **依赖管理**: 正确的Provider依赖关系
+///
+/// ## 使用方式
+/// ```dart
+/// final initState = ref.watch(appInitializationProvider);
+/// if (initState.isFullyInitialized) {
+///   // 显示主界面
+/// } else if (initState.hasError) {
+///   // 显示错误界面
+/// } else {
+///   // 显示加载界面
+/// }
+/// ```
+final appInitializationProvider =
+    StateNotifierProvider<AppInitializationNotifier, AppInitializationState>(
+  (ref) => AppInitializationNotifier(ref),
+);

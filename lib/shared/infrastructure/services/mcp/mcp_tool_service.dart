@@ -1,7 +1,7 @@
 import 'dart:async';
 import '../../../../features/settings/domain/entities/mcp_server_config.dart';
 import '../logger_service.dart';
-import 'mcp_client_service.dart';
+import 'mcp_service_manager.dart';
 
 /// MCP 工具服务
 ///
@@ -20,17 +20,17 @@ import 'mcp_client_service.dart';
 /// - 支持工具的启用/禁用控制
 class McpToolService {
   final LoggerService _logger = LoggerService();
-  
+
   // 工具缓存
   final Map<String, List<McpTool>> _serverTools = {};
   final Map<String, DateTime> _toolCacheTime = {};
-  
+
   // 调用统计
   final Map<String, int> _toolCallCounts = {};
   final Map<String, Duration> _toolCallDurations = {};
-  
+
   bool _isInitialized = false;
-  
+
   // 缓存有效期（5分钟）
   static const Duration _cacheValidDuration = Duration(minutes: 5);
 
@@ -50,13 +50,14 @@ class McpToolService {
   ///
   /// @param assistantMcpServerIds 助手配置的MCP服务器ID列表，如果为null则返回所有工具
   /// @returns 可用的工具列表
-  Future<List<McpTool>> getAvailableTools([List<String>? assistantMcpServerIds]) async {
+  Future<List<McpTool>> getAvailableTools(
+      [List<String>? assistantMcpServerIds]) async {
     if (!_isInitialized) {
       throw StateError('MCP工具服务未初始化');
     }
 
     final allTools = <McpTool>[];
-    
+
     // 如果指定了助手的MCP服务器ID列表，只返回这些服务器的工具
     if (assistantMcpServerIds != null) {
       for (final serverId in assistantMcpServerIds) {
@@ -99,7 +100,7 @@ class McpToolService {
     }
 
     final startTime = DateTime.now();
-    
+
     _logger.info('调用MCP工具', {
       'toolName': toolName,
       'arguments': arguments,
@@ -112,9 +113,10 @@ class McpToolService {
         throw StateError('未找到工具: $toolName');
       }
 
-      // 通过客户端服务调用工具
-      final clientService = McpClientService();
-      final result = await clientService.callTool(serverId, toolName, arguments);
+      // 通过MCP服务管理器调用工具
+      final mcpManager = McpServiceManager();
+      final result = await mcpManager.clientService
+          .callTool(serverId, toolName, arguments);
 
       // 记录调用统计
       final duration = DateTime.now().difference(startTime);
@@ -140,11 +142,11 @@ class McpToolService {
   /// @param serverId 服务器ID
   Future<void> refreshServerTools(String serverId) async {
     _logger.info('刷新服务器工具列表', {'serverId': serverId});
-    
+
     // 清除缓存
     _serverTools.remove(serverId);
     _toolCacheTime.remove(serverId);
-    
+
     // 重新获取工具列表
     await _getServerTools(serverId);
   }
@@ -158,7 +160,7 @@ class McpToolService {
       'serverId': serverId,
       'toolCount': tools.length,
     });
-    
+
     _serverTools[serverId] = tools;
     _toolCacheTime[serverId] = DateTime.now();
   }
@@ -186,9 +188,7 @@ class McpToolService {
     return {
       'initialized': _isInitialized,
       'cachedServerCount': _serverTools.length,
-      'totalToolCount': _serverTools.values
-          .expand((tools) => tools)
-          .length,
+      'totalToolCount': _serverTools.values.expand((tools) => tools).length,
       'enabledToolCount': _serverTools.values
           .expand((tools) => tools)
           .where((tool) => tool.isEnabled)
@@ -205,13 +205,13 @@ class McpToolService {
   /// 清理服务资源
   Future<void> dispose() async {
     _logger.info('清理MCP工具服务资源');
-    
+
     _serverTools.clear();
     _toolCacheTime.clear();
     _toolCallCounts.clear();
     _toolCallDurations.clear();
     _isInitialized = false;
-    
+
     _logger.info('MCP工具服务资源清理完成');
   }
 
@@ -220,8 +220,8 @@ class McpToolService {
     // 检查缓存是否有效
     final cacheTime = _toolCacheTime[serverId];
     final now = DateTime.now();
-    
-    if (cacheTime != null && 
+
+    if (cacheTime != null &&
         now.difference(cacheTime) < _cacheValidDuration &&
         _serverTools.containsKey(serverId)) {
       return _serverTools[serverId]!;
@@ -229,30 +229,20 @@ class McpToolService {
 
     // 缓存无效，重新获取
     try {
-      final clientService = McpClientService();
-      final tools = await clientService.callTool(serverId, 'list_tools', {});
-      
-      // 解析工具列表
-      final toolList = <McpTool>[];
-      if (tools['tools'] is List) {
-        for (final toolData in tools['tools']) {
-          if (toolData is Map<String, dynamic>) {
-            toolList.add(McpTool.fromJson(toolData));
-          }
-        }
-      }
-      
+      final mcpManager = McpServiceManager();
+      final toolList = await mcpManager.clientService.getServerTools(serverId);
+
       // 更新缓存
       _serverTools[serverId] = toolList;
       _toolCacheTime[serverId] = now;
-      
+
       return toolList;
     } catch (e) {
       _logger.warning('获取服务器工具列表失败', {
         'serverId': serverId,
         'error': e.toString(),
       });
-      
+
       // 返回缓存的工具列表（如果有）
       return _serverTools[serverId] ?? [];
     }
@@ -273,11 +263,12 @@ class McpToolService {
   void _recordToolCall(String toolName, Duration duration) {
     // 更新调用次数
     _toolCallCounts[toolName] = (_toolCallCounts[toolName] ?? 0) + 1;
-    
+
     // 更新平均耗时
     final currentDuration = _toolCallDurations[toolName] ?? Duration.zero;
     final callCount = _toolCallCounts[toolName]!;
-    final totalMs = currentDuration.inMilliseconds * (callCount - 1) + duration.inMilliseconds;
+    final totalMs = currentDuration.inMilliseconds * (callCount - 1) +
+        duration.inMilliseconds;
     _toolCallDurations[toolName] = Duration(milliseconds: totalMs ~/ callCount);
   }
 }

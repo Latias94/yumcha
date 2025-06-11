@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
     as models;
@@ -188,10 +189,22 @@ class ChatService extends AiServiceBase {
           ? await _getMcpTools(assistant.mcpServerIds)
           : <Tool>[];
 
-      // 发送请求 - 使用新的API
-      final response = tools.isNotEmpty
-          ? await chatProvider.chatWithTools(messages, tools)
-          : await chatProvider.chat(messages);
+      // 发送请求并处理工具调用
+      var conversation = List<ChatMessage>.from(messages);
+      var finalResponse = tools.isNotEmpty
+          ? await chatProvider.chatWithTools(conversation, tools)
+          : await chatProvider.chat(conversation);
+
+      // 处理工具调用（如果有）
+      if (finalResponse.toolCalls != null &&
+          finalResponse.toolCalls!.isNotEmpty) {
+        finalResponse = await _handleToolCalls(
+          chatProvider,
+          conversation,
+          finalResponse,
+          assistant.mcpServerIds,
+        );
+      }
 
       final duration = context.elapsed;
 
@@ -201,16 +214,17 @@ class ChatService extends AiServiceBase {
       logger.info('聊天请求完成', {
         'requestId': requestId,
         'duration': '${duration.inMilliseconds}ms',
-        'hasThinking': response.thinking != null,
-        'usage': response.usage?.totalTokens,
+        'hasThinking': finalResponse.thinking != null,
+        'usage': finalResponse.usage?.totalTokens,
+        'hadToolCalls': finalResponse.toolCalls?.isNotEmpty == true,
       });
 
       return AiResponse.success(
-        content: response.text ?? '',
-        thinking: response.thinking,
-        usage: response.usage,
+        content: finalResponse.text ?? '',
+        thinking: finalResponse.thinking,
+        usage: finalResponse.usage,
         duration: duration,
-        toolCalls: response.toolCalls,
+        toolCalls: finalResponse.toolCalls,
       );
     } catch (e) {
       final duration = context.elapsed;
@@ -537,11 +551,7 @@ class ChatService extends AiServiceBase {
         return Tool.function(
           name: mcpTool.name,
           description: mcpTool.description ?? '无描述',
-          parameters: ParametersSchema(
-            schemaType: 'object',
-            properties: {},
-            required: [],
-          ),
+          parameters: _convertMcpSchemaToParametersSchema(mcpTool.inputSchema),
         );
       }).toList();
 
@@ -559,5 +569,122 @@ class ChatService extends AiServiceBase {
       });
       return [];
     }
+  }
+
+  /// 处理工具调用
+  Future<ChatResponse> _handleToolCalls(
+    ChatCapability chatProvider,
+    List<ChatMessage> conversation,
+    ChatResponse response,
+    List<String> mcpServerIds,
+  ) async {
+    // 添加AI的工具调用消息
+    conversation.add(ChatMessage.toolUse(
+      toolCalls: response.toolCalls!,
+      content: response.text ?? '',
+    ));
+
+    // 执行所有工具调用
+    for (final toolCall in response.toolCalls!) {
+      try {
+        final result = await _executeToolCall(toolCall, mcpServerIds);
+
+        // 添加工具结果到对话
+        conversation.add(ChatMessage.toolResult(
+          results: [toolCall],
+          content: result,
+        ));
+
+        logger.info('工具调用成功', {
+          'toolName': toolCall.function.name,
+          'resultLength': result.length,
+        });
+      } catch (e) {
+        // 工具调用失败，添加错误信息
+        final errorMessage = '工具调用失败: $e';
+        conversation.add(ChatMessage.toolResult(
+          results: [toolCall],
+          content: errorMessage,
+        ));
+
+        logger.error('工具调用失败', {
+          'toolName': toolCall.function.name,
+          'error': e.toString(),
+        });
+      }
+    }
+
+    // 获取最终响应
+    return await chatProvider.chat(conversation);
+  }
+
+  /// 执行单个工具调用
+  Future<String> _executeToolCall(
+      ToolCall toolCall, List<String> mcpServerIds) async {
+    try {
+      // 解析工具参数
+      final arguments =
+          jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
+
+      // 通过MCP服务管理器调用工具
+      final mcpManager = McpServiceManager();
+      final result =
+          await mcpManager.callTool(toolCall.function.name, arguments);
+
+      // 处理结果
+      if (result['error'] != null) {
+        return '错误: ${result['error']}';
+      }
+
+      if (result['text'] != null) {
+        return result['text'] as String;
+      }
+
+      // 如果有其他类型的内容，转换为字符串
+      return result.toString();
+    } catch (e) {
+      logger.error('执行工具调用时出错', {
+        'toolName': toolCall.function.name,
+        'error': e.toString(),
+      });
+      rethrow;
+    }
+  }
+
+  /// 将MCP输入模式转换为llm_dart参数模式
+  ParametersSchema _convertMcpSchemaToParametersSchema(
+      Map<String, dynamic>? inputSchema) {
+    if (inputSchema == null) {
+      return ParametersSchema(
+        schemaType: 'object',
+        properties: {},
+        required: [],
+      );
+    }
+
+    // 提取属性定义
+    final properties = <String, ParameterProperty>{};
+    final mcpProperties =
+        inputSchema['properties'] as Map<String, dynamic>? ?? {};
+
+    for (final entry in mcpProperties.entries) {
+      final propName = entry.key;
+      final propDef = entry.value as Map<String, dynamic>;
+
+      properties[propName] = ParameterProperty(
+        propertyType: propDef['type'] as String? ?? 'string',
+        description: propDef['description'] as String? ?? '',
+        enumList: (propDef['enum'] as List?)?.cast<String>(),
+      );
+    }
+
+    // 提取必需参数
+    final required = (inputSchema['required'] as List?)?.cast<String>() ?? [];
+
+    return ParametersSchema(
+      schemaType: inputSchema['type'] as String? ?? 'object',
+      properties: properties,
+      required: required,
+    );
   }
 }

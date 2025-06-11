@@ -1,65 +1,71 @@
-import 'package:chinese_font_library/chinese_font_library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'app/navigation/app_router.dart';
-import 'shared/infrastructure/services/ai/ai_service_manager.dart';
-import 'shared/infrastructure/services/notification_service.dart';
+import 'app/yumcha_app.dart';
 import 'shared/infrastructure/services/logger_service.dart';
-import 'shared/infrastructure/services/database_service.dart';
 import 'shared/infrastructure/services/preference_service.dart';
-import 'app/theme/theme_provider.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // 确保绑定已初始化
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化数据库服务 (通过访问 getter 隐式初始化)
-  DatabaseService.instance.database;
-
-  // 初始化偏好设置服务
-  await PreferenceService().init();
-
-  // 初始化服务
-  LoggerService().initialize();
-
-  // 初始化 MCP 服务
-  await _initializeMcp();
-
-  runApp(ProviderScope(child: const YumchaApp()));
-}
-
-/// 初始化 MCP 服务
-Future<void> _initializeMcp() async {
   try {
-    // 这里暂时使用默认设置，实际应用中会从设置中读取
-    // 由于在 main 函数中无法直接使用 Riverpod，我们先跳过 MCP 初始化
-    // MCP 将在应用启动后通过设置页面进行配置和初始化
-    LoggerService().info('MCP 服务将在应用启动后进行配置');
+    // 只初始化最基础的服务
+    await _initializeBasicServices();
+
+    // 启动应用，其他服务通过 Riverpod Provider 初始化
+    runApp(const ProviderScope(child: YumchaApp()));
   } catch (e) {
-    LoggerService().error('MCP 初始化失败', {'error': e.toString()});
+    // 如果基础服务初始化失败，显示错误页面
+    runApp(_buildErrorApp(e.toString()));
   }
 }
 
-class YumchaApp extends ConsumerWidget {
-  const YumchaApp({super.key});
+/// 初始化最基础的服务
+///
+/// 只初始化在 Riverpod 之外必须初始化的服务：
+/// - 日志服务（用于记录初始化过程）
+/// - 偏好设置服务（某些Provider可能需要）
+Future<void> _initializeBasicServices() async {
+  // 1. 初始化日志服务
+  LoggerService().initialize();
+  LoggerService().info('🚀 开始应用启动');
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.read(initializeAiServicesProvider);
+  // 2. 初始化偏好设置服务
+  LoggerService().info('⚙️ 初始化偏好设置服务');
+  await PreferenceService().init();
+  LoggerService().info('✅ 偏好设置服务初始化完成');
 
-    final themeSettings = ref.watch(themeProvider);
-    final themeNotifier = ref.read(themeProvider.notifier);
+  LoggerService().info('🎉 基础服务初始化完成');
+}
 
-    return MaterialApp(
-      title: 'Yumcha',
-      theme:
-          themeNotifier.getLightTheme().useSystemChineseFont(Brightness.light),
-      darkTheme:
-          themeNotifier.getDarkTheme().useSystemChineseFont(Brightness.dark),
-      themeMode: themeSettings.themeMode,
-      scaffoldMessengerKey: NotificationService.scaffoldMessengerKey,
-      initialRoute: AppRouter.home,
-      onGenerateRoute: AppRouter.generateRoute,
-      debugShowCheckedModeBanner: false,
-    );
-  }
+/// 构建启动错误应用
+Widget _buildErrorApp(String error) {
+  return MaterialApp(
+    title: 'Yumcha - 启动错误',
+    home: Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text('应用启动失败', style: TextStyle(fontSize: 18)),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                '错误: $error',
+                style: const TextStyle(fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => main(), // 重新启动
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

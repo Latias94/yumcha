@@ -146,4 +146,10 @@ class PreferenceService {
     await _prefs!.remove('last_used_provider_id');
     await _prefs!.remove('last_used_model_name');
   }
+
+  /// 清除助手相关设置
+  Future<void> clearAssistantPreferences() async {
+    await _ensureInitialized();
+    await _prefs!.remove('last_used_assistant_id');
+  }
 }

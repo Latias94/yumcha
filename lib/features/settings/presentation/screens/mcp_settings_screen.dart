@@ -330,13 +330,19 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
 
   Future<void> _toggleMcp(bool enabled) async {
     final mcpNotifier = ref.read(mcpServiceProvider.notifier);
-    await mcpNotifier.setEnabled(enabled);
 
-    if (enabled) {
-      await mcpNotifier.initializeServers(_serversConfig.enabledServers);
+    try {
+      // 更新MCP服务状态（会自动保存到设置）
+      await mcpNotifier.setEnabled(enabled);
+
+      if (enabled) {
+        await mcpNotifier.initializeServers(_serversConfig.enabledServers);
+      }
+
+      NotificationService().showSuccess(enabled ? 'MCP 服务已启用' : 'MCP 服务已禁用');
+    } catch (e) {
+      NotificationService().showError('MCP 设置失败: $e');
     }
-
-    NotificationService().showSuccess(enabled ? 'MCP 服务已启用' : 'MCP 服务已禁用');
   }
 
   void _openMcpDebug() {

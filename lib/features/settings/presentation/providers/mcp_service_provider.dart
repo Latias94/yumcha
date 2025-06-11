@@ -53,19 +53,32 @@ class McpServiceState {
 
 /// MCP 服务状态管理器
 class McpServiceNotifier extends StateNotifier<McpServiceState> {
-  McpServiceNotifier(this._settingsNotifier) : super(const McpServiceState()) {
+  McpServiceNotifier(this._settingsNotifier, this._ref)
+      : super(const McpServiceState()) {
     _init();
   }
 
   final SettingsNotifier _settingsNotifier;
+  final Ref _ref;
   final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase();
   final LoggerService _logger = LoggerService();
   Timer? _statusUpdateTimer;
 
   /// 初始化
   void _init() {
-    // 延迟加载初始状态，确保设置已经加载完成
-    Future.microtask(() => _loadInitialState());
+    // 监听设置变化并响应式地更新MCP状态
+    _ref.listen<SettingsState>(settingsNotifierProvider, (previous, next) {
+      if (previous?.isLoading == true && next.isLoading == false) {
+        // 设置加载完成，初始化MCP状态
+        _loadInitialState();
+      }
+    });
+
+    // 如果设置已经加载完成，立即初始化
+    final settingsState = _ref.read(settingsNotifierProvider);
+    if (!settingsState.isLoading) {
+      Future.microtask(() => _loadInitialState());
+    }
 
     // 启动定时器，定期更新服务器状态
     _statusUpdateTimer = Timer.periodic(
@@ -312,7 +325,7 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
 final mcpServiceProvider =
     StateNotifierProvider<McpServiceNotifier, McpServiceState>((ref) {
   final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
-  return McpServiceNotifier(settingsNotifier);
+  return McpServiceNotifier(settingsNotifier, ref);
 });
 
 /// 获取特定服务器状态的 Provider

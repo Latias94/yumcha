@@ -165,6 +165,23 @@ class McpClientService {
     return await connection.callTool(toolName, arguments);
   }
 
+  /// 获取服务器工具列表
+  ///
+  /// @param serverId 服务器ID
+  /// @returns 工具列表
+  Future<List<McpTool>> getServerTools(String serverId) async {
+    final connection = _connections[serverId];
+    if (connection == null) {
+      throw StateError('服务器未连接: $serverId');
+    }
+
+    if (getServerStatus(serverId) != McpServerStatus.connected) {
+      throw StateError('服务器未处于连接状态: $serverId');
+    }
+
+    return await connection.listTools();
+  }
+
   /// 获取服务统计信息
   Map<String, dynamic> getStats() {
     return {

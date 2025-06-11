@@ -61,7 +61,7 @@ class ChatConfigurationState {
 
   /// 获取默认配置信息（用于新建对话等场景）
   ({String? providerId, String? modelName, String? assistantId})
-  get defaultConfiguration {
+      get defaultConfiguration {
     return (
       providerId: selectedProvider?.id,
       modelName: selectedModel?.name,
@@ -104,8 +104,8 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
   Future<void> _loadLastConfiguration() async {
     try {
       // 1. 加载上次使用的助手
-      final lastUsedAssistantId = await _preferenceService
-          .getLastUsedAssistantId();
+      final lastUsedAssistantId =
+          await _preferenceService.getLastUsedAssistantId();
       AiAssistant? assistant;
 
       if (lastUsedAssistantId != null) {
@@ -140,19 +140,22 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
 
       // 如果没有找到，尝试从设置获取默认模型
       if (provider == null || model == null) {
-        final defaultChatModel = _ref
-            .read(settingsNotifierProvider.notifier)
-            .getDefaultChatModel();
+        final settingsState = _ref.read(settingsNotifierProvider);
+        if (!settingsState.isLoading) {
+          final defaultChatModel = _ref
+              .read(settingsNotifierProvider.notifier)
+              .getDefaultChatModel();
 
-        if (defaultChatModel?.providerId != null &&
-            defaultChatModel?.modelName != null) {
-          provider = await _providerRepository.getProvider(
-            defaultChatModel!.providerId!,
-          );
-          if (provider != null) {
-            model = provider.models
-                .where((m) => m.name == defaultChatModel.modelName!)
-                .firstOrNull;
+          if (defaultChatModel?.providerId != null &&
+              defaultChatModel?.modelName != null) {
+            provider = await _providerRepository.getProvider(
+              defaultChatModel!.providerId!,
+            );
+            if (provider != null) {
+              model = provider.models
+                  .where((m) => m.name == defaultChatModel.modelName!)
+                  .firstOrNull;
+            }
           }
         }
       }
@@ -212,5 +215,5 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
 /// 聊天配置状态提供者
 final chatConfigurationProvider =
     StateNotifierProvider<ChatConfigurationNotifier, ChatConfigurationState>(
-      (ref) => ChatConfigurationNotifier(ref),
-    );
+  (ref) => ChatConfigurationNotifier(ref),
+);

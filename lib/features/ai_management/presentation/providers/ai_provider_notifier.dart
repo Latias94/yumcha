@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ai_provider.dart';
-import '../../../../shared/infrastructure/services/database_service.dart';
 import '../../data/repositories/provider_repository.dart';
+import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 /// AI 提供商状态管理器
 ///
@@ -32,16 +32,17 @@ import '../../data/repositories/provider_repository.dart';
 /// - 模型选择界面的提供商列表
 /// - 聊天功能的提供商配置获取
 class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
-  AiProviderNotifier() : super(const AsyncValue.loading()) {
+  AiProviderNotifier(this._ref) : super(const AsyncValue.loading()) {
     _loadProviders();
   }
 
+  final Ref _ref;
   late final ProviderRepository _repository;
 
   /// 初始化并加载提供商列表
   Future<void> _loadProviders() async {
     try {
-      _repository = ProviderRepository(DatabaseService.instance.database);
+      _repository = _ref.read(providerRepositoryProvider);
       final providers = await _repository.getAllProviders();
       state = AsyncValue.data(providers);
     } catch (error, stackTrace) {
@@ -108,8 +109,8 @@ class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
 /// AI提供商列表的Provider
 final aiProviderNotifierProvider =
     StateNotifierProvider<AiProviderNotifier, AsyncValue<List<AiProvider>>>(
-      (ref) => AiProviderNotifier(),
-    );
+  (ref) => AiProviderNotifier(ref),
+);
 
 /// 获取特定提供商的Provider
 final aiProviderProvider = Provider.family<AiProvider?, String>((

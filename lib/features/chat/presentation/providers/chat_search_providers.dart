@@ -1,18 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/conversation_repository.dart';
-import '../../../ai_management/data/repositories/assistant_repository.dart';
-import '../../../../shared/infrastructure/services/database_service.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
-
-// Repository Providers
-final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
-  return ConversationRepository(DatabaseService.instance.database);
-});
-
-final assistantRepositoryProvider = Provider<AssistantRepository>((ref) {
-  return AssistantRepository(DatabaseService.instance.database);
-});
+import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 // 搜索查询状态
 final searchQueryProvider = StateProvider<String>((ref) => '');
@@ -26,8 +16,8 @@ final searchTypeProvider = StateProvider<SearchType>((ref) => SearchType.all);
 // 搜索结果Provider
 final searchResultsProvider =
     AsyncNotifierProvider<SearchResultsNotifier, SearchResults>(() {
-      return SearchResultsNotifier();
-    });
+  return SearchResultsNotifier();
+});
 
 // 搜索结果数据模型
 class SearchResults {
@@ -262,8 +252,7 @@ class SearchResultsNotifier extends AsyncNotifier<SearchResults> {
     }
 
     // 判断是否还有更多数据
-    final hasMore =
-        (searchType == SearchType.all && totalCount >= _pageSize) ||
+    final hasMore = (searchType == SearchType.all && totalCount >= _pageSize) ||
         (searchType != SearchType.all && totalCount >= _pageSize);
 
     return SearchResults(

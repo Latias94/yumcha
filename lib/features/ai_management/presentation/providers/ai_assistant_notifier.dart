@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ai_assistant.dart';
-import '../../../../shared/infrastructure/services/database_service.dart';
 import '../../data/repositories/assistant_repository.dart';
+import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 /// AI 助手状态管理器
 ///
@@ -26,16 +26,17 @@ import '../../data/repositories/assistant_repository.dart';
 /// - 聊天界面的助手选择
 /// - 助手配置的实时更新
 class AiAssistantNotifier extends StateNotifier<AsyncValue<List<AiAssistant>>> {
-  AiAssistantNotifier() : super(const AsyncValue.loading()) {
+  AiAssistantNotifier(this._ref) : super(const AsyncValue.loading()) {
     _loadAssistants();
   }
 
+  final Ref _ref;
   late final AssistantRepository _repository;
 
   /// 初始化并加载助手列表
   Future<void> _loadAssistants() async {
     try {
-      _repository = AssistantRepository(DatabaseService.instance.database);
+      _repository = _ref.read(assistantRepositoryProvider);
       final assistants = await _repository.getAllAssistants();
       state = AsyncValue.data(assistants);
     } catch (error, stackTrace) {
@@ -100,8 +101,8 @@ class AiAssistantNotifier extends StateNotifier<AsyncValue<List<AiAssistant>>> {
 /// AI助手列表的Provider
 final aiAssistantNotifierProvider =
     StateNotifierProvider<AiAssistantNotifier, AsyncValue<List<AiAssistant>>>(
-      (ref) => AiAssistantNotifier(),
-    );
+  (ref) => AiAssistantNotifier(ref),
+);
 
 /// 获取特定助手的Provider
 final aiAssistantProvider = Provider.family<AiAssistant?, String>((

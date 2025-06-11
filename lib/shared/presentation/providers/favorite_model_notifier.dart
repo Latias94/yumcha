@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/ai_management/data/repositories/favorite_model_repository.dart';
-import '../../infrastructure/services/database_service.dart';
 import '../../infrastructure/services/logger_service.dart';
+import 'dependency_providers.dart';
 
 /// 收藏模型状态管理器
 ///
@@ -29,17 +29,18 @@ import '../../infrastructure/services/logger_service.dart';
 /// - 收藏模型的统计和展示
 class FavoriteModelNotifier
     extends StateNotifier<AsyncValue<List<FavoriteModel>>> {
-  FavoriteModelNotifier() : super(const AsyncValue.loading()) {
+  FavoriteModelNotifier(this._ref) : super(const AsyncValue.loading()) {
     _loadFavoriteModels();
   }
 
+  final Ref _ref;
   late final FavoriteModelRepository _repository;
   final LoggerService _logger = LoggerService();
 
   /// 初始化并加载收藏模型列表
   Future<void> _loadFavoriteModels() async {
     try {
-      _repository = FavoriteModelRepository(DatabaseService.instance.database);
+      _repository = _ref.read(favoriteModelRepositoryProvider);
       final favoriteModels = await _repository.getAllFavoriteModels();
       state = AsyncValue.data(favoriteModels);
     } catch (error, stackTrace) {
@@ -174,8 +175,6 @@ class FavoriteModelNotifier
 }
 
 /// 收藏模型Provider
-final favoriteModelNotifierProvider =
-    StateNotifierProvider<
-      FavoriteModelNotifier,
-      AsyncValue<List<FavoriteModel>>
-    >((ref) => FavoriteModelNotifier());
+final favoriteModelNotifierProvider = StateNotifierProvider<
+    FavoriteModelNotifier,
+    AsyncValue<List<FavoriteModel>>>((ref) => FavoriteModelNotifier(ref));

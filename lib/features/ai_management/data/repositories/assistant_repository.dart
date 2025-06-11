@@ -44,14 +44,6 @@ class AssistantRepository {
     return allAssistants.where((a) => a.isEnabled).toList();
   }
 
-  // 根据提供商分组获取助手 - 已移除，因为助手不再关联特定提供商
-  @Deprecated('助手不再关联特定提供商，请使用 getAllAssistants() 方法')
-  Future<Map<String, List<AiAssistant>>>
-      getAssistantsByProviderGrouped() async {
-    // 返回空的分组，因为助手不再关联提供商
-    return {};
-  }
-
   // 切换助手启用状态
   Future<bool> toggleAssistantEnabled(String id) async {
     final assistant = await getAssistant(id);
