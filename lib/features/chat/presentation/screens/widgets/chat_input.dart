@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/message.dart';
+import '../../../domain/entities/chat_message_content.dart';
 import '../../../../ai_management/data/repositories/assistant_repository.dart';
 import '../../../../../shared/infrastructure/services/database_service.dart';
 import '../../../../../shared/infrastructure/services/notification_service.dart';
@@ -9,7 +10,11 @@ import '../../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../providers/chat_configuration_notifier.dart';
 import 'model_selector.dart';
 import 'attachment_panel.dart';
+import 'attachment_manager.dart';
+import 'attachment_chips.dart';
+import 'attachment_preview_dialog.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
+import '../../../../../shared/infrastructure/services/image_service.dart';
 
 /// 聊天输入组件 - 重构版
 class ChatInput extends ConsumerStatefulWidget {
@@ -31,8 +36,8 @@ class ChatInput extends ConsumerStatefulWidget {
   /// 是否自动聚焦
   final bool autofocus;
 
-  /// 发送消息回调
-  final void Function(String message)? onSendMessage;
+  /// 发送消息回调（支持多种消息类型）
+  final void Function(ChatMessageRequest request)? onSendMessage;
 
   /// 取消消息回调
   final VoidCallback? onCancelMessage;
@@ -59,6 +64,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
   final FocusNode _focusNode = FocusNode();
 
   bool _showAttachmentPanel = false;
+  AttachmentManagerState _attachmentState = const AttachmentManagerState();
   bool _isComposing = false;
   bool _isWebSearchEnabled = false;
 
@@ -219,20 +225,99 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   void _handleSend() {
     final text = _textController.text.trim();
-    if (text.isNotEmpty && widget.onSendMessage != null) {
-      widget.onSendMessage!(text);
+    final hasText = text.isNotEmpty;
+    final hasAttachments = _attachmentState.hasAttachments;
+
+    if ((hasText || hasAttachments) && widget.onSendMessage != null) {
+      ChatMessageRequest request;
+
+      if (hasAttachments && hasText) {
+        // 混合消息：文本 + 附件
+        final attachmentContents = _attachmentState.attachments.map((item) {
+          if (item.isImage) {
+            return ImageContent(
+              data: item.data,
+              mimeType: item.mimeType,
+              fileName: item.fileName,
+            );
+          } else {
+            return FileContent(
+              data: item.data,
+              fileName: item.fileName,
+              mimeType: item.mimeType ?? 'application/octet-stream',
+            );
+          }
+        }).toList();
+
+        request = ChatMessageRequest.mixed(
+          text: text,
+          attachments: attachmentContents,
+          strategy: MessageProcessingStrategy.multimodal,
+        );
+      } else if (hasAttachments) {
+        // 仅附件
+        if (_attachmentState.attachments.length == 1) {
+          final item = _attachmentState.attachments.first;
+          if (item.isImage) {
+            request = ChatMessageRequest.image(
+              item.data,
+              mimeType: item.mimeType,
+              fileName: item.fileName,
+              strategy: MessageProcessingStrategy.multimodal,
+            );
+          } else {
+            request = ChatMessageRequest.file(
+              item.data,
+              fileName: item.fileName,
+              mimeType: item.mimeType ?? 'application/octet-stream',
+              strategy: MessageProcessingStrategy.cloudUpload,
+            );
+          }
+        } else {
+          // 多个附件
+          final attachmentContents = _attachmentState.attachments.map((item) {
+            if (item.isImage) {
+              return ImageContent(
+                data: item.data,
+                mimeType: item.mimeType,
+                fileName: item.fileName,
+              );
+            } else {
+              return FileContent(
+                data: item.data,
+                fileName: item.fileName,
+                mimeType: item.mimeType ?? 'application/octet-stream',
+              );
+            }
+          }).toList();
+
+          request = ChatMessageRequest.mixed(
+            attachments: attachmentContents,
+            strategy: MessageProcessingStrategy.multimodal,
+          );
+        }
+      } else {
+        // 仅文本
+        request = ChatMessageRequest.text(text);
+      }
+
+      widget.onSendMessage!(request);
+
       if (widget.initialMessage == null) {
-        // 只有在非编辑模式下才清空输入框
+        // 只有在非编辑模式下才清空输入框和附件
         _textController.clear();
         setState(() {
           _isComposing = false;
+          _attachmentState = _attachmentState.clear();
         });
       }
     }
   }
 
   bool _canSend() {
-    return _textController.text.trim().isNotEmpty && !widget.isLoading;
+    final hasText = _textController.text.trim().isNotEmpty;
+    final hasAttachments = _attachmentState.hasAttachments;
+    return (hasText || hasAttachments) && !widget.isLoading;
   }
 
   String _getInputHintText(bool isEditing) {
@@ -272,18 +357,84 @@ class _ChatInputState extends ConsumerState<ChatInput>
     });
   }
 
-  void _handleCameraPressed() {
+  void _handleCameraPressed() async {
     setState(() {
       _showAttachmentPanel = false;
     });
-    // TODO: 实现拍照功能
+
+    try {
+      final result = await ImageService.pickFromCamera(
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (result != null && mounted) {
+        _handleImageSelected(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationService().showError('拍照失败: $e');
+      }
+    }
   }
 
-  void _handlePhotoPressed() {
+  void _handlePhotoPressed() async {
     setState(() {
       _showAttachmentPanel = false;
     });
-    // TODO: 实现照片选择功能
+
+    try {
+      final result = await ImageService.pickFromGallery(
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (result != null && mounted) {
+        _handleImageSelected(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationService().showError('选择照片失败: $e');
+      }
+    }
+  }
+
+  /// 处理选择的图片
+  void _handleImageSelected(ImageResult imageResult) {
+    // 添加到附件管理器
+    final attachmentItem = AttachmentItem.fromImageResult(imageResult);
+    setState(() {
+      _attachmentState = _attachmentState.addAttachment(attachmentItem);
+    });
+
+    NotificationService().showSuccess('图片已添加到附件列表');
+  }
+
+  /// 移除附件
+  void _handleRemoveAttachment(String attachmentId) {
+    setState(() {
+      _attachmentState = _attachmentState.removeAttachment(attachmentId);
+    });
+  }
+
+  /// 切换附件面板展开状态
+  void _handleToggleAttachmentExpanded() {
+    setState(() {
+      _attachmentState = _attachmentState.toggleExpanded();
+    });
+  }
+
+  /// 预览附件
+  void _handlePreviewAttachment(AttachmentItem attachment) {
+    showDialog(
+      context: context,
+      builder: (context) => AttachmentPreviewDialog(
+        attachment: attachment,
+        onRemove: () => _handleRemoveAttachment(attachment.id),
+      ),
+    );
   }
 
   @override
@@ -299,6 +450,15 @@ class _ChatInputState extends ConsumerState<ChatInput>
           children: [
             // 编辑指示器
             if (isEditing) _buildEditingIndicator(context, theme),
+
+            // 附件标签（仅在非编辑模式且有附件时显示）
+            if (!isEditing && _attachmentState.hasAttachments)
+              AttachmentChips(
+                state: _attachmentState,
+                onToggleExpanded: _handleToggleAttachmentExpanded,
+                onRemoveAttachment: _handleRemoveAttachment,
+                onPreviewAttachment: _handlePreviewAttachment,
+              ),
 
             // 输入框区域
             _buildInputField(theme, isEditing),
@@ -653,6 +813,191 @@ class _ChatInputState extends ConsumerState<ChatInput>
               onPhotoPressed: _handlePhotoPressed,
             )
           : const SizedBox.shrink(),
+    );
+  }
+}
+
+/// 图片预览对话框
+class _ImagePreviewDialog extends StatefulWidget {
+  const _ImagePreviewDialog({
+    required this.imageResult,
+    required this.onSend,
+  });
+
+  final ImageResult imageResult;
+  final void Function(String prompt) onSend;
+
+  @override
+  State<_ImagePreviewDialog> createState() => _ImagePreviewDialogState();
+}
+
+class _ImagePreviewDialogState extends State<_ImagePreviewDialog> {
+  final TextEditingController _promptController = TextEditingController();
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final screenSize = MediaQuery.of(context).size;
+
+    return Dialog(
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth:
+              DesignConstants.isDesktop(context) ? 500 : screenSize.width * 0.9,
+          maxHeight: screenSize.height * 0.8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 标题栏
+            Container(
+              padding: DesignConstants.paddingM,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.image,
+                    color: theme.colorScheme.primary,
+                  ),
+                  SizedBox(width: DesignConstants.spaceS),
+                  Expanded(
+                    child: Text(
+                      '图片预览',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+
+            // 图片预览
+            Flexible(
+              child: Container(
+                padding: DesignConstants.paddingM,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 图片
+                    Container(
+                      constraints: BoxConstraints(
+                        maxHeight: screenSize.height * 0.4,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: DesignConstants.radiusM,
+                        border: Border.all(
+                          color:
+                              theme.colorScheme.outline.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: DesignConstants.radiusM,
+                        child: Image.memory(
+                          widget.imageResult.bytes,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: DesignConstants.spaceM),
+
+                    // 图片信息
+                    Container(
+                      padding: DesignConstants.paddingS,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: DesignConstants.radiusS,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: DesignConstants.iconSizeS,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          SizedBox(width: DesignConstants.spaceXS),
+                          Expanded(
+                            child: Text(
+                              '${widget.imageResult.name} • ${widget.imageResult.formattedSize}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: DesignConstants.spaceM),
+
+                    // 提示词输入
+                    TextField(
+                      controller: _promptController,
+                      decoration: InputDecoration(
+                        hintText: '描述你想让AI分析的内容（可选）',
+                        border: OutlineInputBorder(
+                          borderRadius: DesignConstants.radiusM,
+                        ),
+                        contentPadding: DesignConstants.paddingM,
+                      ),
+                      maxLines: 3,
+                      minLines: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 操作按钮
+            Container(
+              padding: DesignConstants.paddingM,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.3),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(12),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                  SizedBox(width: DesignConstants.spaceS),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onSend(_promptController.text.trim());
+                      },
+                      child: const Text('发送'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

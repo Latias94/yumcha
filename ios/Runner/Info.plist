@@ -45,5 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- 相机和照片库权限 -->
+	<key>NSCameraUsageDescription</key>
+	<string>此应用需要访问相机来拍照并发送给AI助手进行分析</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>此应用需要访问照片库来选择图片并发送给AI助手进行分析</string>
 </dict>
 </plist>

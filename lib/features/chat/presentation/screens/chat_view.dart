@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../domain/entities/message.dart';
+import '../../domain/entities/chat_message_content.dart';
+import '../../domain/services/message_processor.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
 import '../providers/chat_configuration_notifier.dart';
@@ -10,6 +12,7 @@ import 'chat_view_model_provider.dart';
 import 'stream_response.dart';
 import 'widgets/chat_history_view.dart';
 import 'widgets/chat_input.dart';
+import '../../infrastructure/services/chat_error_handler.dart';
 
 /// 主要的聊天视图组件
 class ChatView extends ConsumerStatefulWidget {
@@ -148,7 +151,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                   ChatInput(
                     initialMessage: _editingMessage,
                     autofocus: widget.suggestions.isEmpty,
-                    onSendMessage: _onSendMessage,
+                    onSendMessage: _onSendMessageRequest,
                     onCancelMessage: _pendingStreamResponse?.cancel,
                     onCancelEdit:
                         _editingMessage != null ? _onCancelEdit : null,
@@ -192,6 +195,45 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   void _onSelectSuggestion(String suggestion) {
     _onSendMessage(suggestion);
+  }
+
+  /// 处理新的消息请求（支持多模态）
+  Future<void> _onSendMessageRequest(ChatMessageRequest request) async {
+    // 创建消息处理器管理器
+    final processorManager = MessageProcessorManager();
+
+    try {
+      // 处理消息请求
+      final result = await processorManager.processRequest(request);
+
+      if (result.success) {
+        // 根据内容类型显示不同的提示
+        String contentInfo = '';
+        if (request.content is ImageContent) {
+          final imageContent = request.content as ImageContent;
+          contentInfo = ' [包含图片: ${imageContent.fileName ?? "image"}]';
+        } else if (request.content is FileContent) {
+          final fileContent = request.content as FileContent;
+          contentInfo = ' [包含文件: ${fileContent.fileName}]';
+        } else if (request.content is MixedContent) {
+          final mixedContent = request.content as MixedContent;
+          contentInfo = ' [包含 ${mixedContent.attachmentCount} 个附件]';
+        }
+
+        // 使用处理后的文本内容发送消息
+        await _onSendMessage(result.processedText + contentInfo);
+
+        // 显示处理结果信息
+        if (result.attachments != null && result.attachments!.isNotEmpty) {
+          NotificationService()
+              .showInfo('已处理 ${result.attachments!.length} 个附件');
+        }
+      } else {
+        NotificationService().showError(result.error ?? '消息处理失败');
+      }
+    } catch (e) {
+      NotificationService().showError('消息处理异常: $e');
+    }
   }
 
   Future<void> _onSendMessage(String content) async {
@@ -355,15 +397,14 @@ class _ChatViewState extends ConsumerState<ChatView>
         onDone: (error) {
           // 如果有错误，先处理错误消息
           if (error != null) {
-            NotificationService().showError('请求失败: $error');
+            final errorHandler = ChatErrorHandler();
 
-            // 如果有流式消息，添加错误标记
+            // 如果有流式消息，将其标记为错误状态
             if (_streamingMessage != null) {
-              final errorMessage = Message(
-                content: '[错误] $error',
-                timestamp: _streamingMessage!.timestamp,
-                isFromUser: false,
-                author: _streamingMessage!.author,
+              final errorMessage = errorHandler.handleStreamError(
+                error: error,
+                streamingMessage: _streamingMessage!,
+                partialContent: _streamingMessage!.content,
               );
 
               final index = _messages.indexOf(_streamingMessage!);
@@ -407,15 +448,6 @@ class _ChatViewState extends ConsumerState<ChatView>
     final modelName =
         chatConfig.selectedModel?.name ?? widget.selectedModelName;
 
-    // 调试：检查当前消息列表
-    print('ChatView: 当前消息数量: ${_messages.length}');
-    for (int i = 0; i < _messages.length; i++) {
-      final msg = _messages[i];
-      print(
-          'ChatView: 消息[$i] ${msg.isFromUser ? "用户" : "AI"}: "${msg.content}" (长度: ${msg.content.length})');
-      print('ChatView: 消息[$i] 字节: ${msg.content.codeUnits}');
-    }
-
     // 使用新的智能聊天Provider
     final params = SmartChatParams(
       chatHistory: _messages,
@@ -427,12 +459,6 @@ class _ChatViewState extends ConsumerState<ChatView>
 
     try {
       final response = await ref.read(smartChatProvider(params).future);
-
-      // 调试：检查非流式响应内容
-      print(
-          'ChatView: 非流式响应内容: "${response.content}" (长度: ${response.content.length})');
-      print('ChatView: 响应内容字节: ${response.content.codeUnits}');
-      print('ChatView: 响应是否成功: ${response.isSuccess}');
 
       if (response.isSuccess) {
         final aiMessage = Message(
@@ -541,22 +567,27 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   void _handleError(Object error) {
-    NotificationService().showError('请求失败: $error');
+    final errorHandler = ChatErrorHandler();
 
-    // 如果有流式消息，添加错误标记
+    // 如果有流式消息，将其标记为错误状态（不保存到数据库）
     if (_streamingMessage != null) {
-      final errorMessage = Message(
-        content: '[错误] $error',
-        timestamp: _streamingMessage!.timestamp,
-        isFromUser: false,
-        author: _streamingMessage!.author,
+      final errorMessage = errorHandler.handleStreamError(
+        error: error,
+        streamingMessage: _streamingMessage!,
+        partialContent: _streamingMessage!.content,
       );
 
       final index = _messages.indexOf(_streamingMessage!);
       if (index != -1) {
-        _messages[index] = errorMessage;
+        setState(() {
+          _messages[index] = errorMessage;
+        });
+        // 注意：错误消息不会被保存到数据库，因为 shouldPersist = false
         _notifyMessagesChanged();
       }
+    } else {
+      // 如果没有流式消息，只显示通知
+      NotificationService().showError('请求失败: $error');
     }
   }
 

@@ -2226,6 +2226,19 @@ class $MessagesTable extends Messages
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
       defaultValue: const Constant(true));
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('normal'));
+  static const VerificationMeta _errorInfoMeta =
+      const VerificationMeta('errorInfo');
+  @override
+  late final GeneratedColumn<String> errorInfo = GeneratedColumn<String>(
+      'error_info', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _metadataMeta =
       const VerificationMeta('metadata');
   @override
@@ -2247,6 +2260,8 @@ class $MessagesTable extends Messages
         parentMessageId,
         version,
         isActive,
+        status,
+        errorInfo,
         metadata
       ];
   @override
@@ -2332,6 +2347,14 @@ class $MessagesTable extends Messages
       context.handle(_isActiveMeta,
           isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
     }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('error_info')) {
+      context.handle(_errorInfoMeta,
+          errorInfo.isAcceptableOrUnknown(data['error_info']!, _errorInfoMeta));
+    }
     if (data.containsKey('metadata')) {
       context.handle(_metadataMeta,
           metadata.isAcceptableOrUnknown(data['metadata']!, _metadataMeta));
@@ -2371,6 +2394,10 @@ class $MessagesTable extends Messages
           .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
       isActive: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      errorInfo: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}error_info']),
       metadata: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}metadata']),
     );
@@ -2396,6 +2423,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
   final String? parentMessageId;
   final int version;
   final bool isActive;
+  final String status;
+  final String? errorInfo;
   final String? metadata;
   const MessageData(
       {required this.id,
@@ -2411,6 +2440,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       this.parentMessageId,
       required this.version,
       required this.isActive,
+      required this.status,
+      this.errorInfo,
       this.metadata});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2434,6 +2465,10 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     }
     map['version'] = Variable<int>(version);
     map['is_active'] = Variable<bool>(isActive);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || errorInfo != null) {
+      map['error_info'] = Variable<String>(errorInfo);
+    }
     if (!nullToAbsent || metadata != null) {
       map['metadata'] = Variable<String>(metadata);
     }
@@ -2461,6 +2496,10 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           : Value(parentMessageId),
       version: Value(version),
       isActive: Value(isActive),
+      status: Value(status),
+      errorInfo: errorInfo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorInfo),
       metadata: metadata == null && nullToAbsent
           ? const Value.absent()
           : Value(metadata),
@@ -2484,6 +2523,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       parentMessageId: serializer.fromJson<String?>(json['parentMessageId']),
       version: serializer.fromJson<int>(json['version']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      status: serializer.fromJson<String>(json['status']),
+      errorInfo: serializer.fromJson<String?>(json['errorInfo']),
       metadata: serializer.fromJson<String?>(json['metadata']),
     );
   }
@@ -2504,6 +2545,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       'parentMessageId': serializer.toJson<String?>(parentMessageId),
       'version': serializer.toJson<int>(version),
       'isActive': serializer.toJson<bool>(isActive),
+      'status': serializer.toJson<String>(status),
+      'errorInfo': serializer.toJson<String?>(errorInfo),
       'metadata': serializer.toJson<String?>(metadata),
     };
   }
@@ -2522,6 +2565,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           Value<String?> parentMessageId = const Value.absent(),
           int? version,
           bool? isActive,
+          String? status,
+          Value<String?> errorInfo = const Value.absent(),
           Value<String?> metadata = const Value.absent()}) =>
       MessageData(
         id: id ?? this.id,
@@ -2539,6 +2584,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
             : this.parentMessageId,
         version: version ?? this.version,
         isActive: isActive ?? this.isActive,
+        status: status ?? this.status,
+        errorInfo: errorInfo.present ? errorInfo.value : this.errorInfo,
         metadata: metadata.present ? metadata.value : this.metadata,
       );
   MessageData copyWithCompanion(MessagesCompanion data) {
@@ -2561,6 +2608,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           : this.parentMessageId,
       version: data.version.present ? data.version.value : this.version,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      status: data.status.present ? data.status.value : this.status,
+      errorInfo: data.errorInfo.present ? data.errorInfo.value : this.errorInfo,
       metadata: data.metadata.present ? data.metadata.value : this.metadata,
     );
   }
@@ -2581,6 +2630,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           ..write('parentMessageId: $parentMessageId, ')
           ..write('version: $version, ')
           ..write('isActive: $isActive, ')
+          ..write('status: $status, ')
+          ..write('errorInfo: $errorInfo, ')
           ..write('metadata: $metadata')
           ..write(')'))
         .toString();
@@ -2601,6 +2652,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       parentMessageId,
       version,
       isActive,
+      status,
+      errorInfo,
       metadata);
   @override
   bool operator ==(Object other) =>
@@ -2619,6 +2672,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           other.parentMessageId == this.parentMessageId &&
           other.version == this.version &&
           other.isActive == this.isActive &&
+          other.status == this.status &&
+          other.errorInfo == this.errorInfo &&
           other.metadata == this.metadata);
 }
 
@@ -2636,6 +2691,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
   final Value<String?> parentMessageId;
   final Value<int> version;
   final Value<bool> isActive;
+  final Value<String> status;
+  final Value<String?> errorInfo;
   final Value<String?> metadata;
   final Value<int> rowid;
   const MessagesCompanion({
@@ -2652,6 +2709,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     this.parentMessageId = const Value.absent(),
     this.version = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorInfo = const Value.absent(),
     this.metadata = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2669,6 +2728,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     this.parentMessageId = const Value.absent(),
     this.version = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorInfo = const Value.absent(),
     this.metadata = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -2693,6 +2754,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     Expression<String>? parentMessageId,
     Expression<int>? version,
     Expression<bool>? isActive,
+    Expression<String>? status,
+    Expression<String>? errorInfo,
     Expression<String>? metadata,
     Expression<int>? rowid,
   }) {
@@ -2710,6 +2773,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       if (parentMessageId != null) 'parent_message_id': parentMessageId,
       if (version != null) 'version': version,
       if (isActive != null) 'is_active': isActive,
+      if (status != null) 'status': status,
+      if (errorInfo != null) 'error_info': errorInfo,
       if (metadata != null) 'metadata': metadata,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2729,6 +2794,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       Value<String?>? parentMessageId,
       Value<int>? version,
       Value<bool>? isActive,
+      Value<String>? status,
+      Value<String?>? errorInfo,
       Value<String?>? metadata,
       Value<int>? rowid}) {
     return MessagesCompanion(
@@ -2745,6 +2812,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       parentMessageId: parentMessageId ?? this.parentMessageId,
       version: version ?? this.version,
       isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
+      errorInfo: errorInfo ?? this.errorInfo,
       metadata: metadata ?? this.metadata,
       rowid: rowid ?? this.rowid,
     );
@@ -2792,6 +2861,12 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (errorInfo.present) {
+      map['error_info'] = Variable<String>(errorInfo.value);
+    }
     if (metadata.present) {
       map['metadata'] = Variable<String>(metadata.value);
     }
@@ -2817,6 +2892,8 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
           ..write('parentMessageId: $parentMessageId, ')
           ..write('version: $version, ')
           ..write('isActive: $isActive, ')
+          ..write('status: $status, ')
+          ..write('errorInfo: $errorInfo, ')
           ..write('metadata: $metadata, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4461,6 +4538,8 @@ typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
   Value<String?> parentMessageId,
   Value<int> version,
   Value<bool> isActive,
+  Value<String> status,
+  Value<String?> errorInfo,
   Value<String?> metadata,
   Value<int> rowid,
 });
@@ -4478,6 +4557,8 @@ typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
   Value<String?> parentMessageId,
   Value<int> version,
   Value<bool> isActive,
+  Value<String> status,
+  Value<String?> errorInfo,
   Value<String?> metadata,
   Value<int> rowid,
 });
@@ -4531,6 +4612,12 @@ class $$MessagesTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get errorInfo => $composableBuilder(
+      column: $table.errorInfo, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get metadata => $composableBuilder(
       column: $table.metadata, builder: (column) => ColumnFilters(column));
@@ -4586,6 +4673,12 @@ class $$MessagesTableOrderingComposer
   ColumnOrderings<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get errorInfo => $composableBuilder(
+      column: $table.errorInfo, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get metadata => $composableBuilder(
       column: $table.metadata, builder: (column) => ColumnOrderings(column));
 }
@@ -4638,6 +4731,12 @@ class $$MessagesTableAnnotationComposer
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
 
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get errorInfo =>
+      $composableBuilder(column: $table.errorInfo, builder: (column) => column);
+
   GeneratedColumn<String> get metadata =>
       $composableBuilder(column: $table.metadata, builder: (column) => column);
 }
@@ -4678,6 +4777,8 @@ class $$MessagesTableTableManager extends RootTableManager<
             Value<String?> parentMessageId = const Value.absent(),
             Value<int> version = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> errorInfo = const Value.absent(),
             Value<String?> metadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -4695,6 +4796,8 @@ class $$MessagesTableTableManager extends RootTableManager<
             parentMessageId: parentMessageId,
             version: version,
             isActive: isActive,
+            status: status,
+            errorInfo: errorInfo,
             metadata: metadata,
             rowid: rowid,
           ),
@@ -4712,6 +4815,8 @@ class $$MessagesTableTableManager extends RootTableManager<
             Value<String?> parentMessageId = const Value.absent(),
             Value<int> version = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> errorInfo = const Value.absent(),
             Value<String?> metadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -4729,6 +4834,8 @@ class $$MessagesTableTableManager extends RootTableManager<
             parentMessageId: parentMessageId,
             version: version,
             isActive: isActive,
+            status: status,
+            errorInfo: errorInfo,
             metadata: metadata,
             rowid: rowid,
           ),

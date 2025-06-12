@@ -43,6 +43,7 @@ class ChatHistoryView extends StatefulWidget {
 class _ChatHistoryViewState extends State<ChatHistoryView> {
   final ScrollController _scrollController = ScrollController();
   bool _hasScrolledToMessage = false;
+  int _previousMessageCount = 0;
 
   @override
   void dispose() {
@@ -77,14 +78,22 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
     final showSuggestions =
         viewModel.suggestions.isNotEmpty && messages.isEmpty;
 
-    // 处理消息定位
+    // 处理消息定位和自动滚动
     if (widget.initialMessageId != null &&
         !_hasScrolledToMessage &&
         displayMessages.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToMessage(widget.initialMessageId!, displayMessages);
       });
+    } else if (displayMessages.length > _previousMessageCount) {
+      // 有新消息时自动滚动到底部
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
     }
+
+    // 更新消息计数
+    _previousMessageCount = displayMessages.length;
 
     return Column(
       children: [
@@ -240,52 +249,6 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
               ),
               textAlign: TextAlign.center,
             ),
-
-            SizedBox(height: DesignConstants.spaceXXL),
-
-            // 功能提示卡片
-            Container(
-              padding: DesignConstants.paddingXL,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.5),
-                borderRadius: DesignConstants.radiusL,
-                border: Border.all(
-                  color:
-                      theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.lightbulb_outline,
-                        size: 20,
-                        color: theme.colorScheme.primary,
-                      ),
-                      SizedBox(width: DesignConstants.spaceS),
-                      Text(
-                        '小贴士',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: DesignConstants.spaceM),
-                  Text(
-                    '• 支持多种AI模型切换\n• 实时流式响应体验\n• 智能思考过程展示',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
@@ -313,6 +276,17 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
       setState(() {
         _hasScrolledToMessage = true;
       });
+    }
+  }
+
+  /// 滚动到底部（最新消息）
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 }

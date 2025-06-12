@@ -139,6 +139,11 @@ class Messages extends Table {
   BoolColumn get isActive =>
       boolean().withDefault(const Constant(true))(); // 是否为当前活跃版本
 
+  // 消息状态管理
+  TextColumn get status =>
+      text().withDefault(const Constant('normal'))(); // 消息状态
+  TextColumn get errorInfo => text().nullable()(); // 错误信息
+
   // AI响应元数据（JSON格式）
   TextColumn get metadata => text().nullable()(); // 存储AI响应的详细信息
 
@@ -355,7 +360,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<MessageData>> getMessagesByConversation(String conversationId) =>
       (select(messages)
             ..where((m) => m.conversationId.equals(conversationId))
-            ..orderBy([(m) => OrderingTerm.desc(m.timestamp)]))
+            ..orderBy([(m) => OrderingTerm.asc(m.timestamp)]))
           .get();
 
   Future<MessageData?> getMessage(String id) =>

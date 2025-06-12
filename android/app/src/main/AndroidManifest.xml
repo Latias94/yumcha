@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 相机和存储权限 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="28" />
+
+    <!-- 相机功能声明（可选，如果应用必须有相机才能运行） -->
+    <!-- <uses-feature android:name="android.hardware.camera" android:required="true" /> -->
+
     <application
         android:label="yumcha"
         android:name="${applicationName}"

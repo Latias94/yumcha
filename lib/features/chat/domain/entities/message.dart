@@ -1,6 +1,80 @@
 import 'package:flutter/foundation.dart';
 import 'message_metadata.dart';
 
+/// 消息状态枚举
+enum MessageStatus {
+  /// 正常消息（默认状态）
+  normal,
+
+  /// 发送中
+  sending,
+
+  /// 发送失败
+  failed,
+
+  /// 错误消息（显示错误信息，不持久化）
+  error,
+
+  /// 系统消息（如欢迎消息）
+  system,
+
+  /// 临时消息（如加载指示器，不持久化）
+  temporary,
+
+  /// 重新生成中
+  regenerating,
+}
+
+/// 消息状态扩展方法
+extension MessageStatusExtension on MessageStatus {
+  /// 是否应该持久化到数据库
+  bool get shouldPersist {
+    switch (this) {
+      case MessageStatus.normal:
+      case MessageStatus.system:
+        return true;
+      case MessageStatus.sending:
+      case MessageStatus.failed:
+      case MessageStatus.error:
+      case MessageStatus.temporary:
+      case MessageStatus.regenerating:
+        return false;
+    }
+  }
+
+  /// 是否是错误状态
+  bool get isError {
+    return this == MessageStatus.error || this == MessageStatus.failed;
+  }
+
+  /// 是否是临时状态
+  bool get isTemporary {
+    return this == MessageStatus.temporary ||
+        this == MessageStatus.sending ||
+        this == MessageStatus.regenerating;
+  }
+
+  /// 获取状态显示文本
+  String get displayText {
+    switch (this) {
+      case MessageStatus.normal:
+        return '';
+      case MessageStatus.sending:
+        return '发送中...';
+      case MessageStatus.failed:
+        return '发送失败';
+      case MessageStatus.error:
+        return '错误';
+      case MessageStatus.system:
+        return '系统消息';
+      case MessageStatus.temporary:
+        return '临时消息';
+      case MessageStatus.regenerating:
+        return '重新生成中...';
+    }
+  }
+}
+
 /// 聊天消息数据模型
 ///
 /// 表示聊天对话中的单条消息，包含消息内容、作者、时间戳等信息。
@@ -13,17 +87,22 @@ import 'message_metadata.dart';
 /// - 🖼️ **多媒体支持**: 支持图像 URL 和头像 URL
 /// - 🔄 **不可变性**: 使用 @immutable 确保数据不可变
 /// - 💾 **数据库兼容**: 支持数据库 ID 的可选字段
+/// - 📊 **状态管理**: 支持消息状态和错误处理
+/// - 🔒 **持久化控制**: 支持临时消息和持久化消息
 ///
 /// 业务逻辑：
 /// - 用户发送的消息 isFromUser 为 true
 /// - AI 回复的消息 isFromUser 为 false
 /// - 新创建的消息可能没有数据库 ID（id 为 null）
 /// - 保存到数据库后会分配唯一的 ID
+/// - 错误消息不会被持久化到数据库
+/// - 临时消息（如加载状态）不会被保存
 ///
 /// 使用场景：
 /// - 聊天界面的消息显示
 /// - 消息历史的存储和加载
 /// - AI 服务的上下文传递
+/// - 错误状态展示
 @immutable
 class Message {
   /// 数据库 ID（可选，新创建的消息可能还没有 ID）
@@ -62,6 +141,12 @@ class Message {
   /// 是否为当前活跃版本
   final bool isActive;
 
+  /// 消息状态
+  final MessageStatus status;
+
+  /// 错误信息（仅当状态为error或failed时有值）
+  final String? errorInfo;
+
   const Message({
     this.id,
     required this.author,
@@ -75,6 +160,8 @@ class Message {
     this.parentMessageId,
     this.version = 1,
     this.isActive = true,
+    this.status = MessageStatus.normal,
+    this.errorInfo,
   });
 
   Message copyWith({
@@ -90,6 +177,8 @@ class Message {
     String? parentMessageId,
     int? version,
     bool? isActive,
+    MessageStatus? status,
+    String? errorInfo,
   }) {
     return Message(
       id: id ?? this.id,
@@ -104,8 +193,66 @@ class Message {
       parentMessageId: parentMessageId ?? this.parentMessageId,
       version: version ?? this.version,
       isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
+      errorInfo: errorInfo ?? this.errorInfo,
     );
   }
+
+  /// 创建错误消息
+  factory Message.error({
+    required String author,
+    required String errorMessage,
+    String? originalContent,
+    DateTime? timestamp,
+    String? errorInfo,
+  }) {
+    return Message(
+      author: author,
+      content: originalContent ?? '',
+      timestamp: timestamp ?? DateTime.now(),
+      isFromUser: false,
+      status: MessageStatus.error,
+      errorInfo: errorInfo ?? errorMessage,
+    );
+  }
+
+  /// 创建临时消息（如加载指示器）
+  factory Message.temporary({
+    required String author,
+    required String content,
+    DateTime? timestamp,
+  }) {
+    return Message(
+      author: author,
+      content: content,
+      timestamp: timestamp ?? DateTime.now(),
+      isFromUser: false,
+      status: MessageStatus.temporary,
+    );
+  }
+
+  /// 创建系统消息
+  factory Message.system({
+    required String content,
+    DateTime? timestamp,
+  }) {
+    return Message(
+      author: 'System',
+      content: content,
+      timestamp: timestamp ?? DateTime.now(),
+      isFromUser: false,
+      status: MessageStatus.system,
+    );
+  }
+
+  /// 是否应该持久化到数据库
+  bool get shouldPersist => status.shouldPersist;
+
+  /// 是否是错误状态
+  bool get isError => status.isError;
+
+  /// 是否是临时状态
+  bool get isTemporary => status.isTemporary;
 
   /// 获取思考过程耗时
   Duration? get thinkingDuration {

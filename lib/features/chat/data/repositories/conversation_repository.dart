@@ -162,8 +162,13 @@ class ConversationRepository {
 
         await _database.insertConversation(companion);
 
-        // 保存所有消息（跳过空内容的AI消息）
+        // 保存所有消息（跳过不应持久化的消息）
         for (final message in conversation.messages) {
+          // 跳过不应持久化的消息（错误、临时、发送中等状态）
+          if (!message.shouldPersist) {
+            continue;
+          }
+
           // 跳过空内容的AI消息（流式传输的占位符）
           if (!message.isFromUser && message.content.trim().isEmpty) {
             continue;
@@ -177,6 +182,8 @@ class ConversationRepository {
             imageUrl: message.imageUrl,
             avatarUrl: message.avatarUrl,
             duration: message.duration,
+            status: message.status,
+            errorInfo: message.errorInfo,
           );
         }
         _logger.info('创建新对话: ${conversation.id}');
@@ -225,8 +232,13 @@ class ConversationRepository {
           }
         }
 
-        // 只保存新增的消息
+        // 只保存新增的消息（且应该持久化的消息）
         for (final message in newMessages) {
+          // 跳过不应持久化的消息
+          if (!message.shouldPersist) {
+            continue;
+          }
+
           await _addMessageDirect(
             conversationId: conversation.id,
             content: message.content,
@@ -236,6 +248,8 @@ class ConversationRepository {
             avatarUrl: message.avatarUrl,
             timestamp: message.timestamp,
             duration: message.duration,
+            status: message.status,
+            errorInfo: message.errorInfo,
           );
         }
 
@@ -263,6 +277,8 @@ class ConversationRepository {
     String? avatarUrl,
     DateTime? timestamp,
     Duration? duration,
+    MessageStatus status = MessageStatus.normal,
+    String? errorInfo,
   }) async {
     final id = _uuid.v4();
     final now = timestamp ?? DateTime.now();
@@ -278,6 +294,8 @@ class ConversationRepository {
       timestamp: Value(now),
       createdAt: Value(DateTime.now()),
       updatedAt: Value(DateTime.now()),
+      status: Value(status.name),
+      errorInfo: Value(errorInfo),
       // 暂时不设置元数据，保持向后兼容
     );
 
@@ -307,6 +325,8 @@ class ConversationRepository {
     String? imageUrl,
     String? avatarUrl,
     Duration? duration,
+    MessageStatus status = MessageStatus.normal,
+    String? errorInfo,
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
@@ -322,6 +342,8 @@ class ConversationRepository {
       timestamp: Value(now),
       createdAt: Value(now),
       updatedAt: Value(now),
+      status: Value(status.name),
+      errorInfo: Value(errorInfo),
       // 暂时不设置元数据，保持向后兼容
     );
 
@@ -455,6 +477,31 @@ class ConversationRepository {
       }
     }
 
+    // 解析消息状态
+    MessageStatus status = MessageStatus.normal;
+    try {
+      // 尝试从数据库字段解析状态，如果字段不存在则使用默认值
+      final statusString = data.toJson()['status'] as String?;
+      if (statusString != null) {
+        status = MessageStatus.values.firstWhere(
+          (s) => s.name == statusString,
+          orElse: () => MessageStatus.normal,
+        );
+      }
+    } catch (e) {
+      // 向后兼容：如果解析失败，使用默认状态
+      _logger.debug('解析消息状态失败，使用默认状态: $e');
+    }
+
+    // 获取错误信息
+    String? errorInfo;
+    try {
+      errorInfo = data.toJson()['errorInfo'] as String?;
+    } catch (e) {
+      // 向后兼容：如果字段不存在，忽略
+      _logger.debug('获取错误信息失败: $e');
+    }
+
     return Message(
       id: data.id,
       author: data.author,
@@ -467,6 +514,8 @@ class ConversationRepository {
       parentMessageId: data.parentMessageId,
       version: data.version,
       isActive: data.isActive,
+      status: status,
+      errorInfo: errorInfo,
       // 向后兼容：如果没有元数据但有总耗时，使用总耗时
       duration: metadata?.totalDurationMs != null
           ? Duration(milliseconds: metadata!.totalDurationMs!)

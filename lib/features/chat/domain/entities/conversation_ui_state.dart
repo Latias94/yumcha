@@ -76,9 +76,9 @@ class ConversationUiState {
   }
 
   /// 添加新消息到对话中
-  /// 新消息会被添加到消息列表的开头
+  /// 新消息会被添加到消息列表的末尾（按时间顺序）
   ConversationUiState addMessage(Message message) {
-    return copyWith(messages: [message, ...messages]);
+    return copyWith(messages: [...messages, message]);
   }
 
   /// 清空对话中的所有消息
