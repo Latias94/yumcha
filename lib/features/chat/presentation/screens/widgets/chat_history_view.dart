@@ -4,6 +4,7 @@ import '../../../domain/entities/message.dart';
 import 'chat_message_view.dart';
 import 'chat_suggestions_view.dart';
 import 'ai_thinking_indicator.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 聊天历史显示组件
 class ChatHistoryView extends StatefulWidget {
@@ -85,83 +86,93 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
       });
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 16, left: 8, right: 8),
-      child: Column(
-        children: [
-          // 消息列表
-          Expanded(
-            child: displayMessages.isEmpty && !showSuggestions
-                ? _buildEmptyState(context)
-                : ListView.builder(
-                    controller: _scrollController,
-                    reverse: false, // 正常顺序显示，新消息在下面
-                    itemCount: displayMessages.length +
-                        (showSuggestions ? 1 : 0) +
-                        (widget.isLoading ? 1 : 0), // 为AI思考指示器添加额外项
-                    itemBuilder: (context, index) {
-                      // 如果是AI思考指示器
-                      if (widget.isLoading &&
-                          index ==
-                              displayMessages.length +
-                                  (showSuggestions ? 1 : 0)) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: AiThinkingIndicator(
-                            isStreaming: widget.isStreaming,
-                            message:
-                                widget.isStreaming ? '正在接收回复...' : 'AI正在思考中...',
-                          ),
-                        );
-                      }
+    return Column(
+      children: [
+        // 顶部间距
+        SizedBox(height: DesignConstants.spaceL),
 
-                      // 如果是建议区域
-                      if (showSuggestions && index == displayMessages.length) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: ChatSuggestionsView(
-                            suggestions: viewModel.suggestions,
-                            onSelectSuggestion: widget.onSelectSuggestion,
-                          ),
-                        );
-                      }
-
-                      final message = displayMessages[index];
-                      final isWelcomeMessage =
-                          viewModel.welcomeMessage != null &&
-                              messages.isEmpty &&
-                              index == 0;
-
-                      // 判断是否可以编辑（只有最后一条用户消息可以编辑）
-                      final canEdit = !isWelcomeMessage &&
-                          message.isFromUser &&
-                          widget.onEditMessage != null &&
-                          index == displayMessages.length - 1;
-
-                      // 判断是否可以重新生成（只有最后一条AI消息可以重新生成）
-                      final canRegenerate = !isWelcomeMessage &&
-                          !message.isFromUser &&
-                          widget.onRegenerateMessage != null &&
-                          index == displayMessages.length - 1;
-
+        // 消息列表 - 滚动条贴边，内容通过padding保持间距
+        Expanded(
+          child: displayMessages.isEmpty && !showSuggestions
+              ? _buildEmptyState(context)
+              : ListView.builder(
+                  controller: _scrollController,
+                  reverse: false, // 正常顺序显示，新消息在下面
+                  padding: EdgeInsets.zero, // 移除ListView默认padding
+                  itemCount: displayMessages.length +
+                      (showSuggestions ? 1 : 0) +
+                      (widget.isLoading ? 1 : 0), // 为AI思考指示器添加额外项
+                  itemBuilder: (context, index) {
+                    // 如果是AI思考指示器
+                    if (widget.isLoading &&
+                        index ==
+                            displayMessages.length +
+                                (showSuggestions ? 1 : 0)) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: ChatMessageView(
-                          message: message,
-                          isWelcomeMessage: isWelcomeMessage,
-                          onEdit: canEdit
-                              ? () => widget.onEditMessage?.call(message)
-                              : null,
-                          onRegenerate: canRegenerate
-                              ? () => widget.onRegenerateMessage?.call(message)
-                              : null,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignConstants.spaceS,
+                          vertical: DesignConstants.spaceS,
+                        ),
+                        child: AiThinkingIndicator(
+                          isStreaming: widget.isStreaming,
+                          message:
+                              widget.isStreaming ? '正在接收回复...' : 'AI正在思考中...',
                         ),
                       );
-                    },
-                  ),
-          ),
-        ],
-      ),
+                    }
+
+                    // 如果是建议区域
+                    if (showSuggestions && index == displayMessages.length) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignConstants.spaceS,
+                          vertical: DesignConstants.spaceS,
+                        ),
+                        child: ChatSuggestionsView(
+                          suggestions: viewModel.suggestions,
+                          onSelectSuggestion: widget.onSelectSuggestion,
+                        ),
+                      );
+                    }
+
+                    final message = displayMessages[index];
+                    final isWelcomeMessage = viewModel.welcomeMessage != null &&
+                        messages.isEmpty &&
+                        index == 0;
+
+                    // 判断是否可以编辑（只有最后一条用户消息可以编辑）
+                    final canEdit = !isWelcomeMessage &&
+                        message.isFromUser &&
+                        widget.onEditMessage != null &&
+                        index == displayMessages.length - 1;
+
+                    // 判断是否可以重新生成（只有最后一条AI消息可以重新生成）
+                    final canRegenerate = !isWelcomeMessage &&
+                        !message.isFromUser &&
+                        widget.onRegenerateMessage != null &&
+                        index == displayMessages.length - 1;
+
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        left: DesignConstants.spaceS,
+                        right: DesignConstants.spaceS,
+                        bottom: DesignConstants.spaceS,
+                      ),
+                      child: ChatMessageView(
+                        message: message,
+                        isWelcomeMessage: isWelcomeMessage,
+                        onEdit: canEdit
+                            ? () => widget.onEditMessage?.call(message)
+                            : null,
+                        onRegenerate: canRegenerate
+                            ? () => widget.onRegenerateMessage?.call(message)
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 
@@ -170,7 +181,10 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: DesignConstants.spaceXXL,
+          vertical: DesignConstants.spaceXXL,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -203,7 +217,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: DesignConstants.spaceXXL),
 
             // 主标题
             Text(
@@ -214,7 +228,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
               ),
             ),
 
-            const SizedBox(height: 12),
+            SizedBox(height: DesignConstants.spaceM),
 
             // 副标题
             Text(
@@ -227,15 +241,15 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 32),
+            SizedBox(height: DesignConstants.spaceXXL),
 
             // 功能提示卡片
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: DesignConstants.paddingXL,
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest
                     .withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: DesignConstants.radiusL,
                 border: Border.all(
                   color:
                       theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -251,7 +265,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
                         size: 20,
                         color: theme.colorScheme.primary,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: DesignConstants.spaceS),
                       Text(
                         '小贴士',
                         style: theme.textTheme.titleSmall?.copyWith(
@@ -261,7 +275,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: DesignConstants.spaceM),
                   Text(
                     '• 支持多种AI模型切换\n• 实时流式响应体验\n• 智能思考过程展示',
                     style: theme.textTheme.bodySmall?.copyWith(

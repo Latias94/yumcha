@@ -29,6 +29,7 @@
 // - 直观的视觉反馈和导航
 
 import 'package:flutter/material.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../../../ai_management/presentation/screens/providers_screen.dart';
 import '../../../ai_management/presentation/screens/assistants_screen.dart';
 
@@ -49,22 +50,22 @@ class ConfigScreen extends StatelessWidget {
           ),
           SliverList(
             delegate: SliverChildListDelegate([
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
 
               // 主要配置卡片
               _buildMainConfigCards(context),
 
-              const SizedBox(height: 24),
+              SizedBox(height: DesignConstants.spaceXXL),
 
               // 快速操作部分
               _buildQuickActions(context),
 
-              const SizedBox(height: 24),
+              SizedBox(height: DesignConstants.spaceXXL),
 
               // 使用说明
               _buildUsageGuide(context),
 
-              const SizedBox(height: 32),
+              SizedBox(height: DesignConstants.spaceXXXL),
             ]),
           ),
         ],
@@ -74,7 +75,7 @@ class ConfigScreen extends StatelessWidget {
 
   Widget _buildMainConfigCards(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: DesignConstants.responsiveHorizontalPadding(context),
       child: Column(
         children: [
           // 提供商管理
@@ -90,35 +91,39 @@ class ConfigScreen extends StatelessWidget {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: DesignConstants.paddingL,
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: DesignConstants.paddingM,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: DesignConstants.radiusM,
                       ),
                       child: Icon(
                         Icons.cloud_outlined,
                         color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        size: 24,
+                        size: DesignConstants.iconSizeM,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: DesignConstants.spaceL),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '提供商管理',
-                            style: Theme.of(context).textTheme.titleMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: DesignConstants.spaceXS),
                           Text(
                             '管理AI服务提供商，配置API密钥和模型',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(
                                     context,
@@ -139,7 +144,7 @@ class ConfigScreen extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: DesignConstants.spaceM),
 
           // 助手管理
           Card(
@@ -154,37 +159,41 @@ class ConfigScreen extends StatelessWidget {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: DesignConstants.paddingL,
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: DesignConstants.paddingM,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: DesignConstants.radiusM,
                       ),
                       child: Icon(
                         Icons.smart_toy_outlined,
                         color: Theme.of(
                           context,
                         ).colorScheme.onSecondaryContainer,
-                        size: 24,
+                        size: DesignConstants.iconSizeM,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: DesignConstants.spaceL),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '助手管理',
-                            style: Theme.of(context).textTheme.titleMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: DesignConstants.spaceXS),
                           Text(
                             '创建和管理AI助手，配置角色和参数',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(
                                     context,
@@ -211,7 +220,7 @@ class ConfigScreen extends StatelessWidget {
 
   Widget _buildQuickActions(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: DesignConstants.responsiveHorizontalPadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -221,9 +230,7 @@ class ConfigScreen extends StatelessWidget {
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
-
-          const SizedBox(height: 16),
-
+          SizedBox(height: DesignConstants.spaceL),
           Row(
             children: [
               Expanded(
@@ -239,29 +246,31 @@ class ConfigScreen extends StatelessWidget {
                       );
                     },
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: DesignConstants.paddingL,
                       child: Column(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: DesignConstants.paddingM,
                             decoration: BoxDecoration(
                               color: Theme.of(
                                 context,
                               ).colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: DesignConstants.radiusM,
                             ),
                             child: Icon(
                               Icons.add,
                               color: Theme.of(
                                 context,
                               ).colorScheme.onPrimaryContainer,
-                              size: 24,
+                              size: DesignConstants.iconSizeM,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: DesignConstants.spaceM),
                           Text(
                             '添加提供商',
-                            style: Theme.of(context).textTheme.titleSmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
                             textAlign: TextAlign.center,
                           ),
@@ -271,9 +280,7 @@ class ConfigScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
-              const SizedBox(width: 12),
-
+              SizedBox(width: DesignConstants.spaceM),
               Expanded(
                 child: Card(
                   clipBehavior: Clip.antiAlias,
@@ -287,29 +294,31 @@ class ConfigScreen extends StatelessWidget {
                       );
                     },
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: DesignConstants.paddingL,
                       child: Column(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: DesignConstants.paddingM,
                             decoration: BoxDecoration(
                               color: Theme.of(
                                 context,
                               ).colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: DesignConstants.radiusM,
                             ),
                             child: Icon(
                               Icons.add,
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSecondaryContainer,
-                              size: 24,
+                              size: DesignConstants.iconSizeM,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: DesignConstants.spaceM),
                           Text(
                             '创建助手',
-                            style: Theme.of(context).textTheme.titleSmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
                             textAlign: TextAlign.center,
                           ),
@@ -328,12 +337,12 @@ class ConfigScreen extends StatelessWidget {
 
   Widget _buildUsageGuide(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: DesignConstants.responsiveHorizontalPadding(context),
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: DesignConstants.paddingL,
           decoration: BoxDecoration(
             color: Theme.of(
               context,
@@ -347,21 +356,20 @@ class ConfigScreen extends StatelessWidget {
                   Icon(
                     Icons.info_outline,
                     color: Theme.of(context).colorScheme.onTertiaryContainer,
-                    size: 20,
+                    size: DesignConstants.iconSizeS,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: DesignConstants.spaceS),
                   Text(
                     '使用说明',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onTertiaryContainer,
-                    ),
+                          fontWeight: FontWeight.w600,
+                          color:
+                              Theme.of(context).colorScheme.onTertiaryContainer,
+                        ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 12),
-
+              SizedBox(height: DesignConstants.spaceM),
               ...const [
                 '1. 首先添加AI服务提供商，配置API密钥',
                 '2. 然后创建助手，选择提供商和模型',
@@ -369,12 +377,13 @@ class ConfigScreen extends StatelessWidget {
                 '4. 在聊天中选择助手开始对话',
               ].map(
                 (step) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+                  padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
                   child: Text(
                     step,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onTertiaryContainer,
-                    ),
+                          color:
+                              Theme.of(context).colorScheme.onTertiaryContainer,
+                        ),
                   ),
                 ),
               ),

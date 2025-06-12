@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/theme_provider.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../widgets/enhanced_theme_selector.dart';
 
 /// 主题设置屏幕
@@ -28,17 +29,17 @@ class ThemeSettingsScreen extends ConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: DesignConstants.paddingL,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 主题预览卡片
                   _buildThemePreviewCard(context),
-                  const SizedBox(height: 24),
+                  SizedBox(height: DesignConstants.spaceXXL),
 
                   // 增强的主题选择器
                   const EnhancedThemeSelector(),
-                  const SizedBox(height: 32),
+                  SizedBox(height: DesignConstants.spaceXXXL),
                 ],
               ),
             ),
@@ -53,14 +54,14 @@ class ThemeSettingsScreen extends ConsumerWidget {
       elevation: 2,
       color: Theme.of(context).colorScheme.primaryContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Row(
           children: [
             Icon(
               Icons.palette,
               color: Theme.of(context).colorScheme.onPrimaryContainer,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: DesignConstants.spaceM),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,7 +74,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                         ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: DesignConstants.spaceXS),
                   Text(
                     '应用正在使用系统壁纸颜色，主题方案和对比度设置已被禁用',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -94,7 +95,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
     return Card(
       elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: DesignConstants.paddingXL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -104,7 +105,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
                   Icons.palette,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: DesignConstants.spaceM),
                 Text(
                   '主题预览',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -113,11 +114,11 @@ class ThemeSettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
 
             // 颜色样本展示
             _buildColorSamples(context),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
 
             // 组件预览
             _buildComponentPreview(context),
@@ -139,27 +140,27 @@ class ThemeSettingsScreen extends ConsumerWidget {
                 fontWeight: FontWeight.w500,
               ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: DesignConstants.spaceM),
 
         // 主要颜色
         Row(
           children: [
             _buildColorSample(context, '主色', colorScheme.primary),
-            const SizedBox(width: 12),
+            SizedBox(width: DesignConstants.spaceM),
             _buildColorSample(context, '次色', colorScheme.secondary),
-            const SizedBox(width: 12),
+            SizedBox(width: DesignConstants.spaceM),
             _buildColorSample(context, '第三色', colorScheme.tertiary),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: DesignConstants.spaceS),
 
         // 表面颜色
         Row(
           children: [
             _buildColorSample(context, '表面', colorScheme.surface),
-            const SizedBox(width: 12),
+            SizedBox(width: DesignConstants.spaceM),
             _buildColorSample(context, '背景', colorScheme.surface),
-            const SizedBox(width: 12),
+            SizedBox(width: DesignConstants.spaceM),
             _buildColorSample(context, '轮廓', colorScheme.outline),
           ],
         ),
@@ -175,7 +176,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
             height: 40,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: DesignConstants.radiusS,
               border: Border.all(
                 color: Theme.of(context)
                     .colorScheme
@@ -184,7 +185,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: DesignConstants.spaceXS),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall,
@@ -205,7 +206,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
                 fontWeight: FontWeight.w500,
               ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: DesignConstants.spaceM),
 
         // 按钮预览
         Row(
@@ -216,7 +217,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
                 child: const Text('填充按钮'),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: DesignConstants.spaceS),
             Expanded(
               child: OutlinedButton(
                 onPressed: () {},
@@ -225,7 +226,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: DesignConstants.spaceM),
 
         // 卡片和芯片预览
         Row(
@@ -233,7 +234,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
             Expanded(
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: DesignConstants.paddingM,
                   child: Text(
                     '示例卡片',
                     style: Theme.of(context).textTheme.bodyMedium,
@@ -242,12 +243,12 @@ class ThemeSettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: DesignConstants.spaceS),
             Chip(
               label: const Text('芯片'),
               avatar: Icon(
                 Icons.star,
-                size: 16,
+                size: DesignConstants.iconSizeS,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),

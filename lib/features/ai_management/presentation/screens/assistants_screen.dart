@@ -27,6 +27,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ai_assistant.dart';
 import '../../domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../providers/ai_assistant_notifier.dart';
 import '../providers/ai_provider_notifier.dart';
 import 'assistant_edit_screen.dart';
@@ -130,26 +131,31 @@ class AssistantsScreen extends ConsumerWidget {
               if (assistants.isEmpty) {
                 return SliverToBoxAdapter(
                   child: SizedBox(
-                    height: 400,
+                    height: DesignConstants.getResponsiveMaxWidth(context,
+                        mobile: 350.0, tablet: 400.0, desktop: 450.0),
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.smart_toy,
-                              size: 64,
+                              size: DesignConstants.iconSizeXXL * 1.6, // 64px
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurfaceVariant),
-                          const SizedBox(height: 16),
+                          SizedBox(height: DesignConstants.spaceL),
                           Text(
                             '暂无助手',
                             style: TextStyle(
-                                fontSize: 18,
+                                fontSize: DesignConstants.getResponsiveFontSize(
+                                    context,
+                                    mobile: 17.0,
+                                    tablet: 18.0,
+                                    desktop: 18.0),
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: DesignConstants.spaceS),
                           Text(
                             '点击右上角的 + 按钮添加助手',
                             style: TextStyle(
@@ -169,17 +175,17 @@ class AssistantsScreen extends ConsumerWidget {
                   return Card(
                     elevation: 1,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: DesignConstants.radiusM,
                     ),
                     color: Theme.of(
                       context,
                     ).colorScheme.surfaceContainerHighest,
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 16,
+                    margin: EdgeInsets.symmetric(
+                      vertical: DesignConstants.spaceS,
+                      horizontal: DesignConstants.spaceL,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: DesignConstants.paddingL,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -188,27 +194,22 @@ class AssistantsScreen extends ConsumerWidget {
                             children: [
                               // Assistant Avatar
                               Container(
-                                padding: const EdgeInsets.all(
-                                  8,
-                                ), // Optional padding for the avatar container
-                                // decoration: BoxDecoration( // Optional background for avatar if not using CircleAvatar
-                                //   color: Theme.of(context).colorScheme.primaryContainer,
-                                //   shape: BoxShape.circle,
-                                // ),
+                                padding: DesignConstants.paddingS,
                                 child: Text(
                                   assistant.avatar,
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                  ), // Increased font size
+                                  style: TextStyle(
+                                    fontSize:
+                                        DesignConstants.iconSizeXL, // 32px
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: DesignConstants.spaceM),
                               // Assistant Name
                               Expanded(
                                 child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: 4.0,
-                                  ), // Adjust top padding for alignment
+                                  padding: EdgeInsets.only(
+                                    top: DesignConstants.spaceXS,
+                                  ),
                                   child: Text(
                                     assistant.name,
                                     style: Theme.of(
@@ -228,9 +229,9 @@ class AssistantsScreen extends ConsumerWidget {
                           // System Prompt (Optional)
                           if (assistant.systemPrompt.isNotEmpty)
                             Padding(
-                              padding: const EdgeInsets.only(
-                                top: 8.0,
-                                bottom: 8.0,
+                              padding: EdgeInsets.only(
+                                top: DesignConstants.spaceS,
+                                bottom: DesignConstants.spaceS,
                               ),
                               child: Text(
                                 assistant.systemPrompt,
@@ -247,9 +248,9 @@ class AssistantsScreen extends ConsumerWidget {
                               ),
                             ),
                           if (assistant.systemPrompt.isEmpty)
-                            const SizedBox(
-                              height: 8,
-                            ), // Add space if prompt is empty before buttons
+                            SizedBox(
+                              height: DesignConstants.spaceS,
+                            ),
                           // Action Buttons
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
@@ -281,7 +282,7 @@ class AssistantsScreen extends ConsumerWidget {
                                   });
                                 },
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: DesignConstants.spaceS),
                               TextButton.icon(
                                 icon: Icon(
                                   Icons.delete_outline,
@@ -310,22 +311,24 @@ class AssistantsScreen extends ConsumerWidget {
             },
             loading: () => SliverToBoxAdapter(
               child: SizedBox(
-                height: 400,
+                height: DesignConstants.getResponsiveMaxWidth(context,
+                    mobile: 350.0, tablet: 400.0, desktop: 450.0),
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
             error: (error, stack) => SliverToBoxAdapter(
               child: SizedBox(
-                height: 400,
+                height: DesignConstants.getResponsiveMaxWidth(context,
+                    mobile: 350.0, tablet: 400.0, desktop: 450.0),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.error,
                           color: Theme.of(context).colorScheme.error),
-                      SizedBox(height: 16),
+                      SizedBox(height: DesignConstants.spaceL),
                       Text('加载失败: $error'),
-                      SizedBox(height: 8),
+                      SizedBox(height: DesignConstants.spaceS),
                       ElevatedButton(
                         onPressed: () =>
                             ref.refresh(aiAssistantNotifierProvider),

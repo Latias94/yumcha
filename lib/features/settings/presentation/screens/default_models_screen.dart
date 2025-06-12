@@ -40,6 +40,7 @@ import '../../../ai_management/presentation/providers/ai_provider_notifier.dart'
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../chat/presentation/screens/widgets/model_selector.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 
 class DefaultModelsScreen extends ConsumerStatefulWidget {
   const DefaultModelsScreen({super.key});
@@ -80,20 +81,21 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
                       size: 64,
                       color: Theme.of(context).colorScheme.error,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: DesignConstants.spaceL),
                     Text(
                       '加载设置失败',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: DesignConstants.spaceS),
                     Text(
                       settingsState.error!,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: DesignConstants.spaceL),
                     FilledButton(
                       onPressed: () {
                         ref.read(settingsNotifierProvider.notifier).refresh();
@@ -120,17 +122,19 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
                         size: 64,
                         color: Theme.of(context).colorScheme.error,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: DesignConstants.spaceL),
                       Text(
                         '加载提供商失败',
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: DesignConstants.spaceS),
                       Text(
                         error.toString(),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -158,17 +162,17 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
                 size: 64,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
               Text(
                 '没有可用的提供商',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
               Text(
                 '请先在设置中配置并启用AI提供商',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -179,14 +183,14 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
 
     return SliverList(
       delegate: SliverChildListDelegate([
-        const SizedBox(height: 16),
+        SizedBox(height: DesignConstants.spaceL),
 
         // 说明文本
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: DesignConstants.spaceL),
           child: Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: DesignConstants.paddingL,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -196,22 +200,22 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
                         Icons.info_outline,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: DesignConstants.spaceS),
                       Text(
                         '默认模型设置',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: DesignConstants.spaceS),
                   Text(
                     '为不同功能设置默认使用的AI模型。如果未设置，系统将提示您选择模型。',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
@@ -219,7 +223,7 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
           ),
         ),
 
-        const SizedBox(height: 24),
+        SizedBox(height: DesignConstants.spaceXXL),
 
         // 聊天默认模型
         _buildModelConfigItem(
@@ -301,7 +305,7 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
           },
         ),
 
-        const SizedBox(height: 32),
+        SizedBox(height: DesignConstants.spaceXXL),
       ]),
     );
   }
@@ -316,17 +320,19 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
     required VoidCallback onClear,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(
+          horizontal: DesignConstants.spaceL,
+          vertical: DesignConstants.spaceXS),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: DesignConstants.paddingL,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Icon(icon),
-                  const SizedBox(width: 12),
+                  SizedBox(width: DesignConstants.spaceM),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,21 +343,21 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
                         ),
                         Text(
                           subtitle,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                         ),
                         if (currentConfig?.isConfigured == true) ...[
-                          const SizedBox(height: 8),
+                          SizedBox(height: DesignConstants.spaceS),
                           _buildCurrentConfigInfo(currentConfig!, providers),
                         ],
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: DesignConstants.spaceS),
                   if (currentConfig?.isConfigured == true)
                     TextButton(onPressed: onClear, child: const Text('清除'))
                   else
@@ -369,12 +375,10 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
     DefaultModelConfig config,
     List<AiProvider> providers,
   ) {
-    final provider = providers
-        .where((p) => p.id == config.providerId)
-        .firstOrNull;
-    final model = provider?.models
-        .where((m) => m.name == config.modelName)
-        .firstOrNull;
+    final provider =
+        providers.where((p) => p.id == config.providerId).firstOrNull;
+    final model =
+        provider?.models.where((m) => m.name == config.modelName).firstOrNull;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,15 +386,15 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
         Text(
           provider?.name ?? '未知提供商',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.primary,
+              ),
         ),
         Text(
           model?.displayName ?? config.modelName ?? '未知模型',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         ),
       ],
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fuzzy/fuzzy.dart';
+import '../design_system/design_constants.dart';
 import '../../../features/ai_management/domain/entities/ai_model.dart';
 
 class ModelSelectionDialog extends StatefulWidget {
@@ -100,7 +101,7 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
       child: Container(
         width: MediaQuery.of(context).size.width * 0.8,
         height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -108,7 +109,7 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
             Row(
               children: [
                 const Icon(Icons.model_training),
-                const SizedBox(width: 8),
+                SizedBox(width: DesignConstants.spaceS),
                 Text('选择模型', style: Theme.of(context).textTheme.headlineSmall),
                 const Spacer(),
                 IconButton(
@@ -117,7 +118,7 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
 
             // 搜索框
             TextField(
@@ -142,7 +143,8 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                 fillColor: Theme.of(
                   context,
                 ).colorScheme.surfaceContainerHighest,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                contentPadding:
+                    EdgeInsets.symmetric(vertical: DesignConstants.spaceM),
               ),
               onChanged: (value) {
                 setState(() {
@@ -150,7 +152,7 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                 });
               },
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
 
             // 统计信息
             Text(
@@ -159,7 +161,7 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
 
             // 模型列表
             Expanded(
@@ -184,7 +186,8 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                         );
 
                         return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
+                          margin:
+                              EdgeInsets.only(bottom: DesignConstants.spaceS),
                           child: CheckboxListTile(
                             value: isSelected,
                             onChanged: (_) => _toggleModel(model),
@@ -193,16 +196,17 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                                 Expanded(child: Text(model.name)),
                                 if (isFromCurrent)
                                   Container(
-                                    margin: const EdgeInsets.only(left: 8),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
+                                    margin: EdgeInsets.only(
+                                        left: DesignConstants.spaceS),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: DesignConstants.spaceS,
+                                      vertical: DesignConstants.spaceXS / 2,
                                     ),
                                     decoration: BoxDecoration(
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: DesignConstants.radiusM,
                                     ),
                                     child: Text(
                                       '已添加',
@@ -223,7 +227,7 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                     ),
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
 
             // 操作按钮
             SizedBox(

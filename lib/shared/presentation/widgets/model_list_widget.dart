@@ -4,6 +4,7 @@ import '../../../features/ai_management/domain/entities/ai_model.dart';
 import '../../../features/ai_management/domain/entities/ai_provider.dart';
 import '../../infrastructure/services/ai/providers/ai_service_provider.dart';
 import '../../infrastructure/services/notification_service.dart';
+import '../design_system/design_constants.dart';
 import 'model_edit_dialog.dart';
 import 'model_selection_dialog.dart';
 
@@ -163,10 +164,10 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
               TextButton.icon(
                 onPressed: _isLoading ? null : _fetchModelsFromProvider,
                 icon: _isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? SizedBox(
+                        width: DesignConstants.iconSizeS,
+                        height: DesignConstants.iconSizeS,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.cloud_download),
                 label: const Text('获取模型'),
@@ -178,12 +179,12 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: DesignConstants.spaceS),
 
         // 模型列表
         if (_models.isEmpty)
           Container(
-            padding: const EdgeInsets.all(32),
+            padding: DesignConstants.paddingXXL,
             child: Center(
               child: Text(
                 '暂无模型\n点击"添加"按钮或"获取模型"来添加模型',
@@ -201,7 +202,7 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
             itemBuilder: (context, index) {
               final model = _models[index];
               return Card(
-                margin: const EdgeInsets.only(bottom: 8),
+                margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
                 child: ListTile(
                   title: Text(model.effectiveDisplayName),
                   subtitle: Column(

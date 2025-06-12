@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import '../../../features/ai_management/domain/entities/ai_provider.dart';
+import '../design_system/design_constants.dart';
 
 /// AI提供商列表Widget
 /// 演示如何使用Riverpod管理状态
@@ -20,9 +21,9 @@ class ProviderListWidget extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
             Text('加载失败: $error'),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
             ElevatedButton(
               onPressed: () => ref.refresh(aiProviderNotifierProvider),
               child: const Text('重试'),
@@ -44,9 +45,9 @@ class ProviderListWidget extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.smart_toy,
-                size: 64,
+                size: DesignConstants.iconSizeXXL * 1.6,
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
             const Text('暂无AI提供商'),
             Text('请添加一个AI提供商开始使用',
                 style: TextStyle(
@@ -76,7 +77,8 @@ class ProviderListWidget extends ConsumerWidget {
     AiProvider provider,
   ) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.symmetric(
+          horizontal: DesignConstants.spaceL, vertical: DesignConstants.spaceS),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: provider.isEnabled

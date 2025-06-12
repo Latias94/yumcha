@@ -38,7 +38,7 @@ class DisplaySettingsScreen extends ConsumerWidget {
   Future<void> _saveStyle(WidgetRef ref, ChatBubbleStyle style) async {
     try {
       await ref.read(chatStyleProvider.notifier).updateStyle(style);
-      NotificationService().showSuccess('已切换到${style.displayName}样式');
+      // NotificationService().showSuccess('已切换到${style.displayName}样式');
     } catch (e) {
       NotificationService().showError('保存设置失败');
     }

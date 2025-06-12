@@ -27,6 +27,7 @@
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../../domain/entities/ai_assistant.dart';
 import '../../domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
@@ -214,12 +215,12 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                   Navigator.pop(context);
                 },
                 child: Container(
-                  margin: const EdgeInsets.all(2),
+                  margin: EdgeInsets.all(DesignConstants.spaceXS / 2),
                   decoration: BoxDecoration(
                     color: _selectedAvatar == emoji
                         ? Theme.of(context).colorScheme.primaryContainer
                         : null,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: DesignConstants.radiusS,
                   ),
                   child: Center(
                     child: Text(emoji, style: const TextStyle(fontSize: 24)),
@@ -325,10 +326,10 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
           TextButton(
             onPressed: _isLoading ? null : _saveAssistant,
             child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                ? SizedBox(
+                    width: DesignConstants.iconSizeS,
+                    height: DesignConstants.iconSizeS,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('保存'),
           ),
@@ -340,10 +341,10 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
           children: [
             // Tab栏
             Container(
-              margin: const EdgeInsets.all(16),
+              margin: DesignConstants.paddingL,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: DesignConstants.radiusM,
               ),
               child: TabBar(
                 controller: _tabController,
@@ -351,7 +352,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                 indicatorSize: TabBarIndicatorSize.tab,
                 indicator: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: DesignConstants.radiusM,
                 ),
                 labelColor: Theme.of(context).colorScheme.onPrimary,
                 unselectedLabelColor: Theme.of(
@@ -379,13 +380,13 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
 
   Widget _buildBasicSettingsTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: DesignConstants.paddingL,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 助手名称和头像
           Padding(
-            padding: const EdgeInsets.only(bottom: 24.0), // 控制与下一组的间距
+            padding: EdgeInsets.only(bottom: DesignConstants.spaceXXL),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -396,19 +397,19 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                         color: Theme.of(context).colorScheme.primary,
                       ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignConstants.spaceL),
                 Row(
                   children: [
                     // 头像选择器
                     InkWell(
                       onTap: _showEmojiPicker,
-                      borderRadius: BorderRadius.circular(8), // 保持原有交互和样式
+                      borderRadius: DesignConstants.radiusS,
                       child: Container(
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: DesignConstants.radiusS,
                         ),
                         child: Center(
                           child: Text(
@@ -418,7 +419,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16), // 调整头像和输入框之间的间距
+                    SizedBox(width: DesignConstants.spaceL),
                     // 名称输入框
                     Expanded(
                       child: TextFormField(
@@ -453,7 +454,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                       color: Theme.of(context).colorScheme.primary,
                     ),
               ),
-              const SizedBox(height: 16), // 调整标题和第一个参数组的间距
+              SizedBox(height: DesignConstants.spaceL),
               // 温度设置
               _buildParameterItem(
                 context: context,
@@ -481,15 +482,15 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: DesignConstants.spaceM),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: DesignConstants.spaceS,
+                        vertical: DesignConstants.spaceXS,
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: DesignConstants.radiusS,
                       ),
                       child: Text(
                         _temperature.toStringAsFixed(1),
@@ -501,7 +502,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: DesignConstants.spaceS),
                     Chip(
                       label: Text(
                         _getTemperatureLabel(_temperature),
@@ -514,8 +515,8 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.secondaryContainer,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: DesignConstants.spaceS,
                         vertical: 0,
                       ),
                     ),
@@ -523,7 +524,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                 ),
               ),
 
-              const SizedBox(height: 24), // 参数组之间的间距
+              SizedBox(height: DesignConstants.spaceXXL),
               // Top P设置
               _buildParameterItem(
                 context: context,
@@ -547,15 +548,15 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: DesignConstants.spaceM),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: DesignConstants.spaceS,
+                        vertical: DesignConstants.spaceXS,
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: DesignConstants.radiusS,
                       ),
                       child: Text(
                         _topP.toStringAsFixed(2),
@@ -571,7 +572,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                 ),
               ),
 
-              const SizedBox(height: 24), // 参数组之间的间距
+              SizedBox(height: DesignConstants.spaceXXL),
               // 上下文消息数量
               _buildParameterItem(
                 context: context,
@@ -598,16 +599,16 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: DesignConstants.spaceM),
                     Container(
                       width: 60, // 设置固定宽度
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: DesignConstants.spaceS,
+                        vertical: DesignConstants.spaceXS,
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: DesignConstants.radiusS,
                       ),
                       child: Center(
                         child: Text(
@@ -626,12 +627,12 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 32), // 增加间距以分隔不同的配置组
+              SizedBox(height: DesignConstants.spaceXXXL),
 
               // MCP 配置
               _buildMcpConfigSection(),
 
-              const SizedBox(height: 24), // 参数组之间的间距
+              SizedBox(height: DesignConstants.spaceXXL),
               // 流式输出
               SwitchListTile(
                 title: Text(
@@ -645,11 +646,10 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                     _streamOutput = value;
                   });
                 },
-                contentPadding:
-                    EdgeInsets.zero, // 移除 SwitchListTile 的默认 padding
+                contentPadding: EdgeInsets.zero,
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
 
               // 注入消息时间
               SwitchListTile(
@@ -666,8 +666,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                     _injectTimestamp = value;
                   });
                 },
-                contentPadding:
-                    EdgeInsets.zero, // 移除 SwitchListTile 的默认 padding
+                contentPadding: EdgeInsets.zero,
               ),
             ],
           ),
@@ -691,7 +690,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
           title,
           style: Theme.of(context).textTheme.titleMedium, // M3 推荐使用 titleMedium
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: DesignConstants.spaceXS),
         Text(
           description,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -699,7 +698,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
               ),
         ),
         if (additionalInfo != null) ...[
-          const SizedBox(height: 4),
+          SizedBox(height: DesignConstants.spaceXS),
           Text(
             additionalInfo,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -707,7 +706,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                 ),
           ),
         ],
-        const SizedBox(height: 8),
+        SizedBox(height: DesignConstants.spaceS),
         control,
       ],
     );
@@ -715,7 +714,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
 
   Widget _buildPromptTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: DesignConstants.paddingL,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -730,7 +729,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                       color: Theme.of(context).colorScheme.primary,
                     ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
               TextFormField(
                 controller: _systemPromptController,
                 maxLines: 10,
@@ -740,13 +739,13 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                   alignLabelWithHint: true, // 改善多行输入框标签对齐
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: DesignConstants.paddingM,
                 decoration: BoxDecoration(
                   // 使用 surfaceContainerHighest 或类似颜色作为背景，而不是半透明的tertiaryContainer
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12), // 统一圆角
+                  borderRadius: DesignConstants.radiusM,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -763,7 +762,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                                 .onSurfaceVariant, // 使用 onSurfaceVariant 强调
                           ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: DesignConstants.spaceS),
                     Text(
                       '日期: {cur_date}, 时间: {cur_time}, 日期和时间: {cur_datetime}, 模型ID: {model_id}, 模型名称: {model_name}, 语言环境: {locale}, 时区: {timezone}, 系统版本: {system_version}, 设备信息: {device_info}, 电池电量: {battery_level}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -820,12 +819,12 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: DesignConstants.paddingL,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: DesignConstants.radiusM,
                 ),
                 child: Column(
                   children: [
@@ -834,7 +833,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                       size: 48,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: DesignConstants.spaceM),
                     Text(
                       mcpState.isEnabled ? '暂无可用的 MCP 服务器' : 'MCP 服务未启用',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -842,7 +841,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                                 Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: DesignConstants.spaceS),
                     Text(
                       mcpState.isEnabled
                           ? '请先在设置中添加 MCP 服务器配置'
@@ -887,7 +886,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             Text(
               _enableTools
                   ? '选择此助手可以使用的 MCP 服务器。MCP 服务器提供外部工具和功能扩展。'
@@ -896,7 +895,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignConstants.spaceL),
             if (_enableTools)
               ...mcpServers.servers
                   .map((server) => _buildMcpServerItem(server)),
@@ -911,7 +910,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
     final isSelected = _selectedMcpServerIds.contains(server.id);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
       child: CheckboxListTile(
         value: isSelected,
         onChanged: server.isEnabled
@@ -948,7 +947,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                           .withValues(alpha: 0.6),
                 ),
               ),
-            const SizedBox(height: 4),
+            SizedBox(height: DesignConstants.spaceXS),
             Row(
               children: [
                 Chip(
@@ -959,7 +958,7 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: DesignConstants.spaceS),
                 if (!server.isEnabled)
                   Chip(
                     label: const Text(
@@ -978,9 +977,10 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
             ),
           ],
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        contentPadding:
+            EdgeInsets.symmetric(horizontal: DesignConstants.spaceS),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: DesignConstants.radiusS,
           side: BorderSide(
             color: isSelected
                 ? Theme.of(context).colorScheme.primary

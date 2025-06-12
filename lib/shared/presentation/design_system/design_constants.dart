@@ -5,6 +5,13 @@
 
 import 'package:flutter/material.dart';
 
+/// 设备类型枚举
+enum DeviceType {
+  mobile,
+  tablet,
+  desktop,
+}
+
 /// 设计系统常量类
 class DesignConstants {
   // 私有构造函数，防止实例化
@@ -199,6 +206,64 @@ class DesignConstants {
   static const double borderWidthThin = 1.0;
   static const double borderWidthMedium = 1.5;
   static const double borderWidthThick = 2.0;
+
+  // ==================== 动画曲线系统 ====================
+
+  /// 🎭 动画曲线
+  static const Curve curveStandard = Curves.easeInOut;
+  static const Curve curveEmphasized = Curves.easeOutBack;
+  static const Curve curveDecelerated = Curves.easeOut;
+  static const Curve curveAccelerated = Curves.easeIn;
+  static const Curve curveBounce = Curves.bounceOut;
+
+  // ==================== 设备类型增强 ====================
+
+  /// 📱 设备类型判断
+  static DeviceType getDeviceType(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= breakpointDesktop) return DeviceType.desktop;
+    if (width >= breakpointTablet) return DeviceType.tablet;
+    return DeviceType.mobile;
+  }
+
+  /// � 响应式容器最大宽度
+  static double getMaxContentWidth(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= breakpointLargeDesktop) return 1200;
+    if (width >= breakpointDesktop) return 960;
+    if (width >= breakpointTablet) return 720;
+    return double.infinity;
+  }
+
+  // ==================== 语义化间距方法 ====================
+
+  /// 📋 语义化间距
+  static double get listItemSpacing => spaceM;
+  static double get sectionSpacing => spaceXXL;
+  static double get cardSpacing => spaceL;
+  static double get buttonSpacing => spaceM;
+  static double get inputSpacing => spaceS;
+  static double get dialogSpacing => spaceXXL;
+
+  /// 🎯 组件特定间距
+  static EdgeInsets get chatMessagePadding => EdgeInsets.symmetric(
+        horizontal: spaceM,
+        vertical: spaceS,
+      );
+
+  static EdgeInsets get dialogPadding => EdgeInsets.all(spaceXXL);
+
+  static EdgeInsets get cardContentPadding => EdgeInsets.all(spaceL);
+
+  static EdgeInsets get listItemPadding => EdgeInsets.symmetric(
+        horizontal: spaceL,
+        vertical: spaceM,
+      );
+
+  static EdgeInsets get buttonPadding => EdgeInsets.symmetric(
+        horizontal: spaceXL,
+        vertical: spaceM,
+      );
 
   /// 📱 响应式字体大小
   static double getResponsiveFontSize(

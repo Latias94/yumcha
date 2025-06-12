@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import '../design_system/design_constants.dart';
 import '../../../features/chat/domain/entities/conversation_ui_state.dart';
 import '../providers/providers.dart';
 import '../../../features/chat/data/repositories/conversation_repository.dart';
@@ -371,7 +372,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   Widget _buildSearchHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: EdgeInsets.fromLTRB(
+        DesignConstants.spaceL,
+        DesignConstants.spaceL,
+        DesignConstants.spaceL,
+        DesignConstants.spaceS,
+      ),
       child: Column(
         children: [
           // 顶部空间，避免与状态栏重叠
@@ -413,7 +419,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   fillColor: Theme.of(
                     context,
                   ).colorScheme.surfaceContainerHighest,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: DesignConstants.spaceM),
                 ),
                 onChanged: _onSearchChanged,
               );
@@ -460,13 +467,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         right: 0,
                         child: Center(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: DesignConstants.spaceL,
+                              vertical: DesignConstants.spaceS,
                             ),
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: DesignConstants.radiusXL,
                               boxShadow: [
                                 BoxShadow(
                                   color: Theme.of(context)
@@ -482,8 +489,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 SizedBox(
-                                  width: 16,
-                                  height: 16,
+                                  width: DesignConstants.iconSizeS,
+                                  height: DesignConstants.iconSizeS,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -491,7 +498,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: DesignConstants.spaceS),
                                 Text(
                                   '搜索中...',
                                   style: Theme.of(context)
@@ -558,9 +565,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             children: [
               Icon(Icons.error_outline,
                   size: 48, color: Theme.of(context).colorScheme.error),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
               const Text('加载失败'),
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
               ElevatedButton(
                 onPressed: () => _pagingController.refresh(),
                 child: const Text('重试'),
@@ -570,9 +577,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         ),
         firstPageProgressIndicatorBuilder: (context) =>
             const Center(child: CircularProgressIndicator()),
-        newPageProgressIndicatorBuilder: (context) => const Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
+        newPageProgressIndicatorBuilder: (context) => Padding(
+          padding: DesignConstants.paddingL,
+          child: const Center(child: CircularProgressIndicator()),
         ),
         noItemsFoundIndicatorBuilder: (context) =>
             ValueListenableBuilder<String>(
@@ -588,7 +595,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     size: 48,
                     color: Theme.of(context).colorScheme.outline,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignConstants.spaceL),
                   Text(
                     isEmpty ? "暂无聊天记录" : "未找到包含 \"$searchQuery\" 的对话",
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -596,7 +603,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         ),
                   ),
                   if (isEmpty) ...[
-                    const SizedBox(height: 8),
+                    SizedBox(height: DesignConstants.spaceS),
                     Consumer(
                       builder: (context, ref, _) {
                         final selectedAssistant = ref.watch(
@@ -614,7 +621,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                       },
                     ),
                   ] else ...[
-                    const SizedBox(height: 8),
+                    SizedBox(height: DesignConstants.spaceS),
                     Text(
                       "尝试使用不同的关键词",
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -630,7 +637,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           },
         ),
       ),
-      separatorBuilder: (context, index) => const SizedBox(height: 4),
+      separatorBuilder: (context, index) =>
+          SizedBox(height: DesignConstants.spaceXS),
     );
   }
 
@@ -682,7 +690,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         // 如果是组内第一个项目，显示组标题
         if (isFirstInGroup)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: EdgeInsets.fromLTRB(
+              DesignConstants.spaceL,
+              DesignConstants.spaceL,
+              DesignConstants.spaceL,
+              DesignConstants.spaceS,
+            ),
             child: Text(
               groupKey,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -699,11 +712,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   Widget _buildChatHistoryItem(ConversationUiState conversation) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      margin: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceS,
+        vertical: 1,
+      ),
       child: Material(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: DesignConstants.radiusS,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: DesignConstants.radiusS,
           onTap: () {
             // 打开特定的聊天记录
             _logger.debug(
@@ -713,7 +729,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           },
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignConstants.spaceL,
+              vertical: DesignConstants.spaceS,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -729,16 +748,17 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                 // 消息数量指示器
                 if (conversation.messages.isNotEmpty)
                   Container(
-                    margin: const EdgeInsets.only(left: 8),
-                    padding: const EdgeInsets.symmetric(
+                    margin: EdgeInsets.only(left: DesignConstants.spaceS),
+                    padding: EdgeInsets.symmetric(
                       horizontal: 6,
-                      vertical: 2,
+                      vertical: DesignConstants.spaceXS / 2,
                     ),
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
                       ).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: DesignConstants.radiusS +
+                          const BorderRadius.all(Radius.circular(2)),
                     ),
                     child: Text(
                       conversation.messages.length.toString(),
@@ -762,8 +782,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                       value: 'regenerate_title',
                       child: Row(
                         children: [
-                          Icon(Icons.auto_awesome, size: 20),
-                          SizedBox(width: 12),
+                          Icon(Icons.auto_awesome,
+                              size: DesignConstants.iconSizeM),
+                          SizedBox(width: DesignConstants.spaceM),
                           Text('重新生成标题'),
                         ],
                       ),
@@ -774,8 +795,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         children: [
                           Icon(Icons.delete,
                               color: Theme.of(context).colorScheme.error,
-                              size: 20),
-                          const SizedBox(width: 12),
+                              size: DesignConstants.iconSizeM),
+                          SizedBox(width: DesignConstants.spaceM),
                           const Text('删除对话'),
                         ],
                       ),
@@ -807,12 +828,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
         return assistantsAsync.when(
           data: (assistants) => Container(
-            margin: const EdgeInsets.all(16),
+            margin: DesignConstants.paddingL,
             child: Material(
               color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: DesignConstants.radiusL,
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: DesignConstants.radiusL,
                 onTap: () {
                   setState(() {
                     _isAssistantDropdownExpanded =
@@ -820,8 +841,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   });
                 },
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(16),
+                  duration: DesignConstants.animationNormal,
+                  padding: DesignConstants.paddingL,
                   child: Column(
                     children: [
                       // 当前选中的助手
@@ -831,7 +852,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             selectedAssistant?.avatar ?? '🤖',
                             style: const TextStyle(fontSize: 20),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: DesignConstants.spaceM),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -869,9 +890,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
                       // 展开的助手列表
                       if (_isAssistantDropdownExpanded) ...[
-                        const SizedBox(height: 12),
+                        SizedBox(height: DesignConstants.spaceM),
                         const Divider(height: 1),
-                        const SizedBox(height: 8),
+                        SizedBox(height: DesignConstants.spaceS),
 
                         // 助手列表
                         ConstrainedBox(
@@ -881,7 +902,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                           ),
                           child: assistants.isEmpty
                               ? Padding(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: DesignConstants.paddingL,
                                   child: Text(
                                     _assistantSearchQuery.isNotEmpty
                                         ? '未找到匹配的助手'
@@ -906,7 +927,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                     }
 
                                     return InkWell(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: DesignConstants.radiusS,
                                       onTap: () {
                                         setState(() {
                                           _selectedAssistant = assistant.id;
@@ -918,9 +939,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                         _refreshConversations();
                                       },
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                          horizontal: 8,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: DesignConstants.spaceS,
+                                          horizontal: DesignConstants.spaceS,
                                         ),
                                         child: Row(
                                           children: [
@@ -930,7 +951,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                                 fontSize: 18,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
+                                            SizedBox(
+                                                width: DesignConstants.spaceM),
                                             Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
@@ -975,18 +997,18 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             ),
           ),
           loading: () => Container(
-            margin: const EdgeInsets.all(16),
+            margin: DesignConstants.paddingL,
             child: const Center(child: CircularProgressIndicator()),
           ),
           error: (error, stack) => Container(
-            margin: const EdgeInsets.all(16),
+            margin: DesignConstants.paddingL,
             child: Center(
               child: Column(
                 children: [
                   Icon(Icons.error, color: Theme.of(context).colorScheme.error),
-                  const SizedBox(height: 8),
+                  SizedBox(height: DesignConstants.spaceS),
                   Text('加载助手失败: $error'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: DesignConstants.spaceS),
                   ElevatedButton(
                     onPressed: () => ref.refresh(aiAssistantNotifierProvider),
                     child: const Text('重试'),
@@ -1002,7 +1024,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   Widget _buildBottomButtons() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignConstants.paddingL,
       child: Column(
         children: [
           // 聊天历史和设置按钮
@@ -1011,13 +1033,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
               // 聊天历史搜索按钮
               Expanded(
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: DesignConstants.radiusM,
                   onTap: () {
                     // 打开全面搜索页面
                     _openChatSearchScreen();
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding:
+                        EdgeInsets.symmetric(vertical: DesignConstants.spaceM),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1028,7 +1051,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             context,
                           ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: DesignConstants.spaceS),
                         Text(
                           "聊天历史",
                           style:
@@ -1045,17 +1068,18 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                 ),
               ),
 
-              const SizedBox(width: 12),
+              SizedBox(width: DesignConstants.spaceM),
 
               // 设置按钮
               Expanded(
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: DesignConstants.radiusM,
                   onTap: () {
                     _showSettingsDialog();
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding:
+                        EdgeInsets.symmetric(vertical: DesignConstants.spaceM),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1066,7 +1090,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                             context,
                           ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: DesignConstants.spaceS),
                         Text(
                           "设置",
                           style:

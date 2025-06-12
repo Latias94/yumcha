@@ -12,6 +12,7 @@
 
 import 'package:flutter/material.dart';
 import '../providers/app_initialization_provider.dart';
+import '../design_system/design_constants.dart';
 
 class EnhancedSplashScreen extends StatefulWidget {
   const EnhancedSplashScreen({
@@ -30,7 +31,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
   late AnimationController _logoController;
   late AnimationController _progressController;
   late AnimationController _particleController;
-  
+
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<double> _progressValue;
@@ -45,19 +46,21 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
   void _initializeAnimations() {
     // Logo动画控制器
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration:
+          DesignConstants.animationVerySlow * 3.33, // 2000ms = 600ms * 3.33
       vsync: this,
     );
 
     // 进度动画控制器
     _progressController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration:
+          DesignConstants.animationVerySlow * 1.67, // 1000ms = 600ms * 1.67
       vsync: this,
     );
 
     // 粒子动画控制器
     _particleController = AnimationController(
-      duration: const Duration(seconds: 3),
+      duration: DesignConstants.animationVerySlow * 5, // 3000ms = 600ms * 5
       vsync: this,
     );
 
@@ -67,7 +70,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _logoController,
-      curve: Curves.elasticOut,
+      curve: DesignConstants.curveBounce, // 使用设计系统的弹跳曲线
     ));
 
     // Logo透明度动画
@@ -76,7 +79,8 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _logoController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+      curve: Interval(0.0, 0.6,
+          curve: DesignConstants.curveAccelerated), // 使用设计系统的加速曲线
     ));
 
     // 进度值动画
@@ -85,14 +89,14 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _progressController,
-      curve: Curves.easeInOut,
+      curve: DesignConstants.curveStandard, // 使用设计系统的标准曲线
     ));
   }
 
   void _startAnimations() {
     _logoController.forward();
     _particleController.repeat();
-    
+
     // 根据初始化状态更新进度
     _updateProgress();
   }
@@ -102,7 +106,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
     if (widget.initState.isDataInitialized) progress += 0.33;
     if (widget.initState.isAiServicesInitialized) progress += 0.33;
     if (widget.initState.isMcpInitialized) progress += 0.34;
-    
+
     _progressController.animateTo(progress);
   }
 
@@ -141,7 +145,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
           children: [
             // 背景粒子效果
             _buildParticleBackground(),
-            
+
             // 主要内容
             Center(
               child: Column(
@@ -149,18 +153,21 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
                 children: [
                   // Logo区域
                   _buildAnimatedLogo(),
-                  const SizedBox(height: 60),
-                  
+                  SizedBox(
+                      height: DesignConstants.spaceXXXL * 2), // 60px -> 64px
+
                   // 进度区域
                   _buildProgressSection(),
-                  const SizedBox(height: 40),
-                  
+                  SizedBox(
+                      height: DesignConstants.spaceXXXL +
+                          DesignConstants.spaceS), // 40px -> 40px
+
                   // 状态详情
                   _buildStatusDetails(),
                 ],
               ),
             ),
-            
+
             // 底部信息
             _buildBottomInfo(),
           ],
@@ -190,26 +197,31 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
           child: Opacity(
             opacity: _logoOpacity.value,
             child: Container(
-              width: 120,
-              height: 120,
+              width: DesignConstants.iconSizeXXL * 3, // 120px -> 120px
+              height: DesignConstants.iconSizeXXL * 3, // 120px -> 120px
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(30),
+                color: Colors.blue.withValues(
+                    alpha: DesignConstants.opacityMedium * 0.17), // 0.1
+                borderRadius: BorderRadius.circular(
+                    DesignConstants.radiusXXLValue + 6), // 30px
                 border: Border.all(
-                  color: Colors.blue.withValues(alpha: 0.3),
-                  width: 2,
+                  color: Colors.blue.withValues(
+                      alpha: DesignConstants.opacityMedium * 0.5), // 0.3
+                  width: DesignConstants.borderWidthThick,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.blue.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    spreadRadius: 5,
+                    color: Colors.blue.withValues(
+                        alpha: DesignConstants.opacityMedium * 0.33), // 0.2
+                    blurRadius: DesignConstants.spaceL +
+                        DesignConstants.spaceXS, // 20px
+                    spreadRadius: DesignConstants.spaceXS + 1, // 5px
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.chat_bubble_outline,
-                size: 60,
+                size: DesignConstants.iconSizeXXL * 1.5, // 60px
                 color: Colors.blue,
               ),
             ),
@@ -223,26 +235,28 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
     return Column(
       children: [
         // 应用名称
-        const Text(
+        Text(
           'Yumcha',
           style: TextStyle(
-            fontSize: 42,
+            fontSize: DesignConstants.getResponsiveFontSize(context,
+                mobile: 38.0, tablet: 40.0, desktop: 42.0), // 响应式字体大小
             fontWeight: FontWeight.bold,
             color: Colors.white,
             letterSpacing: 3.0,
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
+        SizedBox(height: DesignConstants.spaceS),
+        Text(
           'AI 聊天助手',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: DesignConstants.getResponsiveFontSize(context), // 响应式字体大小
             color: Colors.grey,
             letterSpacing: 1.5,
           ),
         ),
-        const SizedBox(height: 40),
-        
+        SizedBox(
+            height: DesignConstants.spaceXXXL + DesignConstants.spaceS), // 40px
+
         // 进度条
         AnimatedBuilder(
           animation: _progressValue,
@@ -250,11 +264,14 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             return Column(
               children: [
                 Container(
-                  width: 200,
-                  height: 4,
+                  width: DesignConstants.getResponsiveMaxWidth(context,
+                      mobile: 180.0, tablet: 200.0, desktop: 220.0), // 响应式宽度
+                  height: DesignConstants.spaceXS,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
+                    color: Colors.grey.withValues(
+                        alpha: DesignConstants.opacityMedium * 0.33), // 0.2
+                    borderRadius:
+                        BorderRadius.circular(DesignConstants.spaceXS / 2),
                   ),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
@@ -264,16 +281,18 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
                         gradient: const LinearGradient(
                           colors: [Colors.blue, Colors.cyan],
                         ),
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius:
+                            BorderRadius.circular(DesignConstants.spaceXS / 2),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignConstants.spaceL),
                 Text(
                   '${(_progressValue.value * 100).toInt()}%',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: DesignConstants.getResponsiveFontSize(context,
+                        mobile: 13.0, tablet: 14.0, desktop: 14.0),
                     color: Colors.white70,
                     fontWeight: FontWeight.w500,
                   ),
@@ -282,16 +301,16 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             );
           },
         ),
-        const SizedBox(height: 20),
-        
+        SizedBox(height: DesignConstants.spaceXL),
+
         // 当前步骤
         AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
+          duration: DesignConstants.animationNormal,
           child: Text(
             widget.initState.currentStep,
             key: ValueKey(widget.initState.currentStep),
-            style: const TextStyle(
-              fontSize: 16,
+            style: TextStyle(
+              fontSize: DesignConstants.getResponsiveFontSize(context),
               color: Colors.white70,
               fontWeight: FontWeight.w500,
             ),
@@ -312,7 +331,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
     return Column(
       children: statuses.map((status) {
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: EdgeInsets.symmetric(vertical: DesignConstants.spaceXS),
           child: _buildStatusItem(status.$1, status.$2),
         );
       }).toList(),
@@ -321,37 +340,44 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
 
   Widget _buildStatusItem(String title, bool isCompleted) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      duration: DesignConstants.animationSlow,
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceXL,
+        vertical: DesignConstants.spaceM - 2, // 10px
+      ),
       decoration: BoxDecoration(
-        color: isCompleted 
-            ? Colors.green.withValues(alpha: 0.1)
+        color: isCompleted
+            ? Colors.green
+                .withValues(alpha: DesignConstants.opacityMedium * 0.17) // 0.1
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: DesignConstants.radiusXL,
         border: Border.all(
-          color: isCompleted 
-              ? Colors.green.withValues(alpha: 0.3)
-              : Colors.grey.withValues(alpha: 0.2),
-          width: 1,
+          color: isCompleted
+              ? Colors.green
+                  .withValues(alpha: DesignConstants.opacityMedium * 0.5) // 0.3
+              : Colors.grey.withValues(
+                  alpha: DesignConstants.opacityMedium * 0.33), // 0.2
+          width: DesignConstants.borderWidthThin,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
+            duration: DesignConstants.animationNormal,
             child: Icon(
               isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
               key: ValueKey(isCompleted),
               color: isCompleted ? Colors.green : Colors.grey,
-              size: 16,
+              size: DesignConstants.iconSizeS,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: DesignConstants.spaceM),
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 13.0, tablet: 14.0, desktop: 14.0),
               color: isCompleted ? Colors.green : Colors.white70,
               fontWeight: isCompleted ? FontWeight.w500 : FontWeight.normal,
             ),
@@ -362,8 +388,8 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
   }
 
   Widget _buildBottomInfo() {
-    return const Positioned(
-      bottom: 40,
+    return Positioned(
+      bottom: DesignConstants.spaceXXXL + DesignConstants.spaceS, // 40px
       left: 0,
       right: 0,
       child: Column(
@@ -371,15 +397,17 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
           Text(
             'Version 1.0.0',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 11.0, tablet: 12.0, desktop: 12.0),
               color: Colors.grey,
             ),
           ),
-          SizedBox(height: 4),
+          SizedBox(height: DesignConstants.spaceXS),
           Text(
             'Powered by Flutter & Riverpod',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 9.0, tablet: 10.0, desktop: 10.0),
               color: Colors.grey,
             ),
           ),
@@ -398,15 +426,24 @@ class ParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.blue.withValues(alpha: 0.1)
+      ..color = Colors.blue
+          .withValues(alpha: DesignConstants.opacityMedium * 0.17) // 0.1
       ..style = PaintingStyle.fill;
 
     // 绘制简单的粒子效果
-    for (int i = 0; i < 20; i++) {
-      final x = (size.width * (i / 20) + animationValue * 50) % size.width;
-      final y = (size.height * ((i * 0.7) % 1) + animationValue * 30) % size.height;
+    const particleCount = 20;
+    const baseSpeed = 50.0;
+    const verticalSpeed = 30.0;
+
+    for (int i = 0; i < particleCount; i++) {
+      final x =
+          (size.width * (i / particleCount) + animationValue * baseSpeed) %
+              size.width;
+      final y =
+          (size.height * ((i * 0.7) % 1) + animationValue * verticalSpeed) %
+              size.height;
       final radius = 1.0 + (i % 3);
-      
+
       canvas.drawCircle(Offset(x, y), radius, paint);
     }
   }

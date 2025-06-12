@@ -155,8 +155,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
 
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal:
-            isDesktop ? DesignConstants.spaceXXXL : DesignConstants.spaceXL,
+        horizontal: 0, // 移除水平margin，由父组件ChatHistoryView控制
         vertical: isDesktop ? DesignConstants.spaceL : DesignConstants.spaceM,
       ),
       child: Card(
@@ -282,8 +281,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
 
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal:
-            isDesktop ? DesignConstants.spaceXXL : DesignConstants.spaceL,
+        horizontal: 0, // 移除水平padding，由父组件ChatHistoryView控制
         vertical: DesignConstants.spaceXS + 2,
       ),
       child: Column(

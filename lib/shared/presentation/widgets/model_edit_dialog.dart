@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../design_system/design_constants.dart';
 import '../../../features/ai_management/domain/entities/ai_model.dart';
 import '../../infrastructure/services/notification_service.dart';
 
@@ -85,7 +86,7 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
 
               // 显示名称
               TextField(
@@ -96,17 +97,17 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
 
               // 支持的功能
               const Text(
                 '支持的功能',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: DesignConstants.spaceS,
+                runSpacing: DesignConstants.spaceS,
                 children: ModelCapability.values.map((capability) {
                   final isSelected = _selectedCapabilities.contains(capability);
                   return FilterChip(
@@ -124,7 +125,7 @@ class _ModelEditDialogState extends State<ModelEditDialog> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignConstants.spaceL),
 
               // 启用状态
               SwitchListTile(

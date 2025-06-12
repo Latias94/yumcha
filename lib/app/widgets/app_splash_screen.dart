@@ -1,7 +1,7 @@
 /// 🚀 应用启动页面
 ///
 /// 美观的启动页面，显示应用初始化进度。
-/// 
+///
 /// ## 特性
 /// - 🎨 渐变背景和动画效果
 /// - 📊 实时初始化进度显示
@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 import '../../shared/presentation/providers/app_initialization_provider.dart';
+import '../../shared/presentation/design_system/design_constants.dart';
 
 /// 应用启动页面组件
 class AppSplashScreen extends StatelessWidget {
@@ -41,19 +42,19 @@ class AppSplashScreen extends StatelessWidget {
             children: [
               // 应用Logo区域
               _buildLogoSection(),
-              const SizedBox(height: 60),
-              
+              SizedBox(height: DesignConstants.spaceXXXL * 2),
+
               // 加载进度区域
               _buildLoadingSection(),
-              const SizedBox(height: 40),
-              
+              SizedBox(height: DesignConstants.spaceXXL),
+
               // 初始化状态详情
               _buildInitializationDetails(),
-              
+
               // 底部版本信息
               const Spacer(),
               _buildVersionInfo(),
-              const SizedBox(height: 32),
+              SizedBox(height: DesignConstants.spaceXXL),
             ],
           ),
         ),
@@ -67,7 +68,8 @@ class AppSplashScreen extends StatelessWidget {
       children: [
         // Logo动画容器
         TweenAnimationBuilder<double>(
-          duration: const Duration(seconds: 2),
+          duration:
+              DesignConstants.animationVerySlow * 3.33, // 2秒 = 600ms * 3.33
           tween: Tween(begin: 0.0, end: 1.0),
           builder: (context, value, child) {
             return Transform.scale(
@@ -75,19 +77,22 @@ class AppSplashScreen extends StatelessWidget {
               child: Opacity(
                 opacity: value,
                 child: Container(
-                  width: 100,
-                  height: 100,
+                  width: DesignConstants.iconSizeXXL * 2.5, // 100px
+                  height: DesignConstants.iconSizeXXL * 2.5, // 100px
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.blue.withValues(
+                        alpha: DesignConstants.opacityMedium * 0.17), // 0.1
+                    borderRadius: DesignConstants.radiusXL,
                     border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.3),
-                      width: 2,
+                      color: Colors.blue.withValues(
+                          alpha: DesignConstants.opacityMedium * 0.5), // 0.3
+                      width: DesignConstants.borderWidthThick,
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.chat_bubble_outline,
-                    size: 50,
+                    size: DesignConstants.iconSizeXXL +
+                        DesignConstants.iconSizeM, // 50px
                     color: Colors.blue,
                   ),
                 ),
@@ -95,19 +100,21 @@ class AppSplashScreen extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 24),
-        
+        SizedBox(height: DesignConstants.spaceXXL),
+
         // 应用名称
         TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 1500),
+          duration:
+              DesignConstants.animationVerySlow * 2.5, // 1500ms = 600ms * 2.5
           tween: Tween(begin: 0.0, end: 1.0),
           builder: (context, value, child) {
             return Opacity(
               opacity: value,
-              child: const Text(
+              child: Text(
                 'Yumcha',
                 style: TextStyle(
-                  fontSize: 36,
+                  fontSize: DesignConstants.getResponsiveFontSize(context,
+                      mobile: 32.0, tablet: 36.0, desktop: 40.0),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                   letterSpacing: 2.0,
@@ -116,19 +123,20 @@ class AppSplashScreen extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 8),
-        
+        SizedBox(height: DesignConstants.spaceS),
+
         // 副标题
         TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 2000),
+          duration:
+              DesignConstants.animationVerySlow * 3.33, // 2000ms = 600ms * 3.33
           tween: Tween(begin: 0.0, end: 1.0),
           builder: (context, value, child) {
             return Opacity(
               opacity: value,
-              child: const Text(
+              child: Text(
                 'AI 聊天助手',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: DesignConstants.getResponsiveFontSize(context),
                   color: Colors.grey,
                   letterSpacing: 1.0,
                 ),
@@ -146,26 +154,28 @@ class AppSplashScreen extends StatelessWidget {
       children: [
         // 自定义进度指示器
         SizedBox(
-          width: 40,
-          height: 40,
+          width: DesignConstants.iconSizeXXL,
+          height: DesignConstants.iconSizeXXL,
           child: CircularProgressIndicator(
-            strokeWidth: 3,
+            strokeWidth: DesignConstants.borderWidthMedium + 1, // 3px
             valueColor: AlwaysStoppedAnimation<Color>(
-              Colors.blue.withValues(alpha: 0.8),
+              Colors.blue.withValues(alpha: DesignConstants.opacityHigh),
             ),
-            backgroundColor: Colors.grey.withValues(alpha: 0.2),
+            backgroundColor: Colors.grey
+                .withValues(alpha: DesignConstants.opacityMedium * 0.33), // 0.2
           ),
         ),
-        const SizedBox(height: 20),
-        
+        SizedBox(height: DesignConstants.spaceXL),
+
         // 当前步骤
         AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
+          duration: DesignConstants.animationNormal +
+              const Duration(milliseconds: 50), // 300ms
           child: Text(
             initState.currentStep,
             key: ValueKey(initState.currentStep),
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 16, // 保持固定字体大小
               color: Colors.white70,
               fontWeight: FontWeight.w500,
             ),
@@ -179,13 +189,13 @@ class AppSplashScreen extends StatelessWidget {
   /// 构建初始化详情
   Widget _buildInitializationDetails() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: EdgeInsets.symmetric(horizontal: DesignConstants.spaceXXL * 2),
       child: Column(
         children: [
           _buildStatusItem('数据初始化', initState.isDataInitialized),
-          const SizedBox(height: 12),
+          SizedBox(height: DesignConstants.spaceM),
           _buildStatusItem('AI服务初始化', initState.isAiServicesInitialized),
-          const SizedBox(height: 12),
+          SizedBox(height: DesignConstants.spaceM),
           _buildStatusItem('MCP服务初始化', initState.isMcpInitialized),
         ],
       ),
@@ -195,18 +205,24 @@ class AppSplashScreen extends StatelessWidget {
   /// 构建状态项
   Widget _buildStatusItem(String title, bool isCompleted) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      duration: DesignConstants.animationNormal +
+          const Duration(milliseconds: 50), // 300ms
+      padding: EdgeInsets.symmetric(
+          horizontal: DesignConstants.spaceL, vertical: DesignConstants.spaceS),
       decoration: BoxDecoration(
-        color: isCompleted 
-            ? Colors.green.withValues(alpha: 0.1)
-            : Colors.grey.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
+        color: isCompleted
+            ? Colors.green
+                .withValues(alpha: DesignConstants.opacityMedium * 0.17) // 0.1
+            : Colors.grey.withValues(
+                alpha: DesignConstants.opacityMedium * 0.08), // 0.05
+        borderRadius: DesignConstants.radiusS,
         border: Border.all(
-          color: isCompleted 
-              ? Colors.green.withValues(alpha: 0.3)
-              : Colors.grey.withValues(alpha: 0.2),
-          width: 1,
+          color: isCompleted
+              ? Colors.green
+                  .withValues(alpha: DesignConstants.opacityMedium * 0.5) // 0.3
+              : Colors.grey.withValues(
+                  alpha: DesignConstants.opacityMedium * 0.33), // 0.2
+          width: DesignConstants.borderWidthThin,
         ),
       ),
       child: Row(
@@ -215,18 +231,19 @@ class AppSplashScreen extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14, // 保持固定字体大小
               color: isCompleted ? Colors.green : Colors.white70,
               fontWeight: isCompleted ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
+            duration: DesignConstants.animationFast +
+                const Duration(milliseconds: 50), // 200ms
             child: Icon(
               isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
               key: ValueKey(isCompleted),
               color: isCompleted ? Colors.green : Colors.grey,
-              size: 18,
+              size: DesignConstants.iconSizeS + 2, // 18px
             ),
           ),
         ],
@@ -245,7 +262,7 @@ class AppSplashScreen extends StatelessWidget {
             color: Colors.grey,
           ),
         ),
-        SizedBox(height: 4),
+        SizedBox(height: DesignConstants.spaceXS),
         Text(
           'Powered by Flutter & Riverpod',
           style: TextStyle(

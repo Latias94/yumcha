@@ -40,6 +40,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/infrastructure/services/ai/providers/ai_service_provider.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 
 import '../../../ai_management/domain/entities/ai_provider.dart' as models;
 import '../../../ai_management/domain/entities/ai_assistant.dart';
@@ -719,22 +720,22 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           // 配置面板
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: DesignConstants.paddingL,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildPresetSection(),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignConstants.spaceL),
                   _buildProviderSection(),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignConstants.spaceL),
                   _buildApiConfigSection(),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignConstants.spaceL),
                   _buildParametersSection(),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignConstants.spaceL),
                   _buildMcpSection(),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignConstants.spaceL),
                   _buildMessageSection(),
-                  const SizedBox(height: 16),
+                  SizedBox(height: DesignConstants.spaceL),
                   _buildActionSection(),
                 ],
               ),
@@ -753,7 +754,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget _buildPresetSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -761,10 +762,10 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               '快速配置',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             Wrap(
-              spacing: 8,
-              runSpacing: 4,
+              spacing: DesignConstants.spaceS,
+              runSpacing: DesignConstants.spaceXS,
               children: _presets.keys.map((preset) {
                 return ChoiceChip(
                   label: Text(preset, style: const TextStyle(fontSize: 12)),
@@ -782,7 +783,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget _buildProviderSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -790,7 +791,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               'AI提供商',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             DropdownButtonFormField<String>(
               value: _selectedProvider,
               items: const [
@@ -819,7 +820,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget _buildApiConfigSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -827,7 +828,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               'API配置',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             TextFormField(
               controller: _apiKeyController,
               decoration: const InputDecoration(
@@ -837,7 +838,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               ),
               obscureText: true,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             TextFormField(
               controller: _baseUrlController,
               decoration: const InputDecoration(
@@ -847,7 +848,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 helperText: '留空使用默认端点',
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             TextFormField(
               controller: _modelController,
               decoration: const InputDecoration(
@@ -865,7 +866,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget _buildParametersSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -873,7 +874,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               '参数设置',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             Row(
               children: [
                 Expanded(
@@ -887,7 +888,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     keyboardType: TextInputType.number,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: DesignConstants.spaceS),
                 Expanded(
                   child: TextFormField(
                     controller: _topPController,
@@ -899,7 +900,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     keyboardType: TextInputType.number,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: DesignConstants.spaceS),
                 Expanded(
                   child: TextFormField(
                     controller: _maxTokensController,
@@ -913,7 +914,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             TextFormField(
               controller: _systemPromptController,
               decoration: const InputDecoration(
@@ -932,15 +933,16 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget _buildMcpSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(Icons.extension,
-                    size: 20, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
+                    size: DesignConstants.iconSizeS,
+                    color: Theme.of(context).colorScheme.primary),
+                SizedBox(width: DesignConstants.spaceS),
                 const Text(
                   'MCP工具测试',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -961,19 +963,19 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               ],
             ),
             if (_enableMcpTools) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: DesignConstants.spaceM),
               const Text(
                 '选择MCP服务器:',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
               if (_availableMcpServers.isEmpty)
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: DesignConstants.paddingM,
                   decoration: BoxDecoration(
                     color:
                         Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: DesignConstants.radiusS,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -983,12 +985,12 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                         style: TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w500),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: DesignConstants.spaceS),
                       const Text(
                         '请先在设置页面配置MCP服务器，然后返回此页面进行测试。',
                         style: TextStyle(fontSize: 12),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: DesignConstants.spaceS),
                       TextButton.icon(
                         onPressed: () {
                           Navigator.push(
@@ -998,12 +1000,14 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.settings, size: 16),
+                        icon: Icon(Icons.settings,
+                            size: DesignConstants.iconSizeS),
                         label: const Text('前往MCP设置',
                             style: TextStyle(fontSize: 12)),
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: DesignConstants.spaceS,
+                              vertical: DesignConstants.spaceXS),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
@@ -1013,8 +1017,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 )
               else
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
+                  spacing: DesignConstants.spaceS,
+                  runSpacing: DesignConstants.spaceXS,
                   children: _availableMcpServers
                       .where((server) => server.isEnabled)
                       .map((server) {
@@ -1030,10 +1034,10 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                         children: [
                           Icon(
                             _getServerStatusIcon(serverStatus),
-                            size: 12,
+                            size: DesignConstants.iconSizeS,
                             color: _getServerStatusColor(serverStatus, context),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: DesignConstants.spaceXS),
                           Text(
                             '${server.name} (${server.type.displayName})',
                             style: const TextStyle(fontSize: 12),
@@ -1053,15 +1057,15 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     );
                   }).toList(),
                 ),
-              const SizedBox(height: 8),
+              SizedBox(height: DesignConstants.spaceS),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: DesignConstants.paddingS,
                 decoration: BoxDecoration(
                   color: Theme.of(context)
                       .colorScheme
                       .primaryContainer
                       .withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: DesignConstants.radiusXS,
                 ),
                 child: Text(
                   '💡 启用MCP工具后，AI可以调用选中服务器提供的工具。\n'
@@ -1082,7 +1086,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget _buildMessageSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1090,7 +1094,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               '消息内容',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             TextFormField(
               controller: _messageController,
               decoration: InputDecoration(
@@ -1114,7 +1118,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   Widget _buildActionSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignConstants.paddingL,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1130,7 +1134,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     _saveCurrentSettings();
                   },
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: DesignConstants.spaceS),
                 const Text('流式模式'),
                 const Spacer(),
                 if (_isLoading) ...[
@@ -1145,13 +1149,13 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                           Theme.of(context).colorScheme.onErrorContainer,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: DesignConstants.spaceS),
                   ElevatedButton.icon(
                     onPressed: null,
-                    icon: const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    icon: SizedBox(
+                      width: DesignConstants.iconSizeS,
+                      height: DesignConstants.iconSizeS,
+                      child: const CircularProgressIndicator(strokeWidth: 2),
                     ),
                     label: const Text('发送中...'),
                   ),
@@ -1186,7 +1190,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 });
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding:
+                    EdgeInsets.symmetric(horizontal: DesignConstants.spaceL),
                 child: Row(
                   children: [
                     Icon(
@@ -1195,7 +1200,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                           : Icons.keyboard_arrow_up,
                       color: Theme.of(context).primaryColor,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: DesignConstants.spaceS),
                     Text(
                       '请求响应面板',
                       style: TextStyle(
@@ -1207,15 +1212,15 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     const Spacer(),
                     if (_response.isNotEmpty || _debugInfo.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignConstants.spaceS,
+                          vertical: DesignConstants.spaceXS,
                         ),
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
                           ).primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: DesignConstants.radiusM,
                         ),
                         child: Text(
                           '有数据',
@@ -1225,7 +1230,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                           ),
                         ),
                       ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: DesignConstants.spaceS),
                     Text(
                       _isResponsePanelExpanded ? '收起' : '展开',
                       style: TextStyle(
@@ -1288,7 +1293,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   Widget _buildResponseTab() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignConstants.paddingL,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1307,15 +1312,15 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignConstants.spaceS),
           Expanded(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: DesignConstants.paddingM,
               decoration: BoxDecoration(
                 border:
                     Border.all(color: Theme.of(context).colorScheme.outline),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: DesignConstants.radiusS,
               ),
               child: SingleChildScrollView(
                 child: Text(
@@ -1332,15 +1337,16 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   Widget _buildThinkingTab() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignConstants.paddingL,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Icon(Icons.psychology,
-                  size: 20, color: Theme.of(context).colorScheme.tertiary),
-              const SizedBox(width: 8),
+                  size: DesignConstants.iconSizeS,
+                  color: Theme.of(context).colorScheme.tertiary),
+              SizedBox(width: DesignConstants.spaceS),
               const Text(
                 '思考过程',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -1348,16 +1354,16 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               const Spacer(),
               if (_thinkingContent.isNotEmpty) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: DesignConstants.spaceS,
+                    vertical: DesignConstants.spaceXS,
                   ),
                   decoration: BoxDecoration(
                     color: Theme.of(context)
                         .colorScheme
                         .tertiaryContainer
                         .withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: DesignConstants.radiusM,
                   ),
                   child: Text(
                     '${_thinkingContent.length} 字符',
@@ -1367,7 +1373,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                             Theme.of(context).colorScheme.onTertiaryContainer),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: DesignConstants.spaceS),
                 IconButton(
                   icon: const Icon(Icons.copy),
                   onPressed: () => _copyToClipboard(_thinkingContent),
@@ -1376,16 +1382,16 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               ],
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignConstants.spaceS),
           if (_thinkingContent.isEmpty)
             Expanded(
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: DesignConstants.paddingM,
                 decoration: BoxDecoration(
                   border:
                       Border.all(color: Theme.of(context).colorScheme.outline),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: DesignConstants.radiusS,
                   color: Theme.of(context)
                       .colorScheme
                       .tertiaryContainer
@@ -1396,10 +1402,10 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.psychology,
-                          size: 48,
+                          size: DesignConstants.iconSizeXXL,
                           color:
                               Theme.of(context).colorScheme.onSurfaceVariant),
-                      const SizedBox(height: 16),
+                      SizedBox(height: DesignConstants.spaceL),
                       Text(
                         '暂无思考内容',
                         style: TextStyle(
@@ -1407,7 +1413,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                                 Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 16),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: DesignConstants.spaceS),
                       Text(
                         '推理模型（如 o1、DeepSeek R1）会在此显示思考过程',
                         style: TextStyle(
@@ -1425,11 +1431,11 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
             Expanded(
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: DesignConstants.paddingM,
                 decoration: BoxDecoration(
                   border:
                       Border.all(color: Theme.of(context).colorScheme.outline),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: DesignConstants.radiusS,
                   color: Theme.of(context)
                       .colorScheme
                       .tertiaryContainer
@@ -1454,7 +1460,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   Widget _buildRequestTab() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignConstants.paddingL,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1473,15 +1479,15 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignConstants.spaceS),
           Expanded(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: DesignConstants.paddingM,
               decoration: BoxDecoration(
                 border:
                     Border.all(color: Theme.of(context).colorScheme.outline),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: DesignConstants.radiusS,
                 color: Theme.of(context)
                     .colorScheme
                     .primaryContainer
@@ -1598,15 +1604,16 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   Widget _buildMcpDebugTab() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignConstants.paddingL,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Icon(Icons.extension,
-                  size: 20, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 8),
+                  size: DesignConstants.iconSizeS,
+                  color: Theme.of(context).colorScheme.primary),
+              SizedBox(width: DesignConstants.spaceS),
               const Text(
                 'MCP调试信息',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -1620,16 +1627,16 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignConstants.spaceS),
           if (_selectedMcpServerIds.isNotEmpty) ...[
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: DesignConstants.paddingS,
               decoration: BoxDecoration(
                 color: Theme.of(context)
                     .colorScheme
                     .primaryContainer
                     .withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: DesignConstants.radiusXS,
               ),
               child: Text(
                 '已选择的MCP服务器: ${_selectedMcpServerIds.length} 个\n'
@@ -1637,16 +1644,16 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 style: const TextStyle(fontSize: 12),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
           ],
           Expanded(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: DesignConstants.paddingM,
               decoration: BoxDecoration(
                 border:
                     Border.all(color: Theme.of(context).colorScheme.outline),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: DesignConstants.radiusS,
                 color: Theme.of(context)
                     .colorScheme
                     .primaryContainer

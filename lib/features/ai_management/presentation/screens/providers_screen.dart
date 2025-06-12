@@ -30,6 +30,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../providers/ai_provider_notifier.dart';
 import 'provider_edit_screen.dart';
 
@@ -160,12 +161,12 @@ class ProvidersScreen extends ConsumerWidget {
                         children: [
                           Icon(
                             Icons.cloud_off_outlined,
-                            size: 64,
+                            size: DesignConstants.iconSizeXXL * 1.6,
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: DesignConstants.spaceL),
                           Text(
                             '暂无提供商',
                             style: Theme.of(context)
@@ -177,7 +178,7 @@ class ProvidersScreen extends ConsumerWidget {
                                   ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: DesignConstants.spaceS),
                           Text(
                             '点击右上角的 + 按钮添加一个',
                             style: Theme.of(context)
@@ -203,12 +204,12 @@ class ProvidersScreen extends ConsumerWidget {
                   return Card(
                     elevation: 1,
                     color: colorScheme.surfaceContainerHighest,
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 16,
+                    margin: EdgeInsets.symmetric(
+                      vertical: DesignConstants.spaceS,
+                      horizontal: DesignConstants.spaceL,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: DesignConstants.paddingL,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -216,10 +217,10 @@ class ProvidersScreen extends ConsumerWidget {
                             children: [
                               Icon(
                                 _getProviderIcon(provider.type),
-                                size: 32,
+                                size: DesignConstants.iconSizeXL,
                                 color: colorScheme.primary,
                               ),
-                              const SizedBox(width: 16),
+                              SizedBox(width: DesignConstants.spaceL),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +259,7 @@ class ProvidersScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: DesignConstants.spaceS),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -279,7 +280,7 @@ class ProvidersScreen extends ConsumerWidget {
                                   }
                                 },
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: DesignConstants.spaceS),
                               TextButton.icon(
                                 icon: Icon(
                                   Icons.delete_outline,
@@ -316,9 +317,9 @@ class ProvidersScreen extends ConsumerWidget {
                     children: [
                       Icon(Icons.error,
                           color: Theme.of(context).colorScheme.error),
-                      SizedBox(height: 16),
+                      SizedBox(height: DesignConstants.spaceL),
                       Text('加载失败: $error'),
-                      SizedBox(height: 8),
+                      SizedBox(height: DesignConstants.spaceS),
                       ElevatedButton(
                         onPressed: () =>
                             ref.refresh(aiProviderNotifierProvider),

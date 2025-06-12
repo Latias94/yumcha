@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// AI思考状态指示器
 /// 用于显示AI正在处理请求时的视觉反馈
@@ -32,13 +33,13 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
 
     // 脉冲动画控制器
     _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: DesignConstants.animationVerySlow * 2.5, // 1500ms = 600ms * 2.5
       vsync: this,
     );
 
     // 点点动画控制器
     _dotsController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: DesignConstants.animationVerySlow * 2, // 1200ms = 600ms * 2
       vsync: this,
     );
 
@@ -47,7 +48,7 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _pulseController,
-      curve: Curves.easeInOut,
+      curve: DesignConstants.curveStandard,
     ));
 
     _dotsAnimation = Tween<double>(
@@ -55,7 +56,7 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _dotsController,
-      curve: Curves.easeInOut,
+      curve: DesignConstants.curveStandard,
     ));
 
     // 启动动画
@@ -77,8 +78,9 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
 
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 32.0 : 20.0,
-        vertical: 12.0,
+        horizontal:
+            isDesktop ? DesignConstants.spaceXXL : DesignConstants.spaceXL,
+        vertical: DesignConstants.spaceM,
       ),
       child: Row(
         children: [
@@ -89,22 +91,26 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
               return Transform.scale(
                 scale: _pulseAnimation.value,
                 child: Container(
-                  width: 32,
-                  height: 32,
+                  width: DesignConstants.iconSizeXL,
+                  height: DesignConstants.iconSizeXL,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
+                    color: theme.colorScheme.primaryContainer
+                        .withValues(alpha: DesignConstants.opacityHigh),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                        blurRadius: 8 * _pulseAnimation.value,
-                        spreadRadius: 2 * _pulseAnimation.value,
+                        color: theme.colorScheme.primary.withValues(
+                            alpha: DesignConstants.opacityMedium * 0.5), // 0.3
+                        blurRadius:
+                            DesignConstants.spaceS * _pulseAnimation.value,
+                        spreadRadius:
+                            DesignConstants.spaceXS / 2 * _pulseAnimation.value,
                       ),
                     ],
                   ),
                   child: Icon(
                     widget.isStreaming ? Icons.auto_awesome : Icons.psychology,
-                    size: 18,
+                    size: DesignConstants.iconSizeS + 2, // 18px
                     color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
@@ -112,7 +118,7 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
             },
           ),
 
-          const SizedBox(width: 12),
+          SizedBox(width: DesignConstants.spaceM),
 
           // 思考消息和动态点点
           Expanded(
@@ -125,7 +131,7 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
                     fontStyle: FontStyle.italic,
                   ),
                 ),
-                const SizedBox(width: 4),
+                SizedBox(width: DesignConstants.spaceXS),
                 // 动态点点效果
                 AnimatedBuilder(
                   animation: _dotsAnimation,
@@ -135,19 +141,21 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
                       children: List.generate(3, (index) {
                         final delay = index * 0.3;
                         final progress = (_dotsAnimation.value + delay) % 1.0;
-                        final opacity = progress < 0.5 
-                            ? progress * 2 
+                        final opacity = progress < 0.5
+                            ? progress * 2
                             : (1.0 - progress) * 2;
-                        
+
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 1),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: DesignConstants.spaceXS / 4), // 1px
                           child: Opacity(
                             opacity: opacity.clamp(0.3, 1.0),
                             child: Text(
                               '•',
                               style: TextStyle(
                                 color: theme.colorScheme.primary,
-                                fontSize: 16,
+                                fontSize: DesignConstants.getResponsiveFontSize(
+                                    context),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -163,7 +171,7 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
 
           // 流式响应特有的波形指示器
           if (widget.isStreaming) ...[
-            const SizedBox(width: 8),
+            SizedBox(width: DesignConstants.spaceS),
             _buildWaveIndicator(theme),
           ],
         ],
@@ -180,17 +188,24 @@ class _AiThinkingIndicatorState extends State<AiThinkingIndicator>
           children: List.generate(4, (index) {
             final delay = index * 0.2;
             final progress = (_dotsAnimation.value + delay) % 1.0;
-            final height = 4 + (12 * (0.5 + 0.5 * (progress < 0.5 
-                ? progress * 2 
-                : (1.0 - progress) * 2)));
-            
+            final height = DesignConstants.spaceXS +
+                (DesignConstants.spaceM *
+                    (0.5 +
+                        0.5 *
+                            (progress < 0.5
+                                ? progress * 2
+                                : (1.0 - progress) * 2)));
+
             return Container(
-              width: 2,
+              width: DesignConstants.spaceXS / 2, // 2px
               height: height,
-              margin: const EdgeInsets.symmetric(horizontal: 1),
+              margin: EdgeInsets.symmetric(
+                  horizontal: DesignConstants.spaceXS / 4), // 1px
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(1),
+                color: theme.colorScheme.primary.withValues(
+                    alpha: DesignConstants.opacityMedium + 0.1), // 0.7
+                borderRadius:
+                    BorderRadius.circular(DesignConstants.spaceXS / 4), // 1px
               ),
             );
           }),

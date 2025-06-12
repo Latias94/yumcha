@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../../../../app/theme/theme_provider.dart';
 import '../../../../app/theme/theme_color_schemes.dart';
 
@@ -23,15 +24,15 @@ class EnhancedThemeSelector extends ConsumerWidget {
       children: [
         // 主题方案选择
         _buildThemeSchemeSection(context, themeSettings, themeNotifier),
-        const SizedBox(height: 24),
+        SizedBox(height: DesignConstants.spaceXXL),
 
         // 对比度级别选择
         _buildContrastLevelSection(context, themeSettings, themeNotifier),
-        const SizedBox(height: 24),
+        SizedBox(height: DesignConstants.spaceXXL),
 
         // 颜色模式选择
         _buildColorModeSection(context, themeSettings, themeNotifier),
-        const SizedBox(height: 24),
+        SizedBox(height: DesignConstants.spaceXXL),
 
         // 动态颜色设置
         if (themeSettings.isDynamicColorAvailable)
@@ -54,14 +55,14 @@ class EnhancedThemeSelector extends ConsumerWidget {
                 fontWeight: FontWeight.w600,
               ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: DesignConstants.spaceM),
         Text(
           '选择您喜欢的颜色主题',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: DesignConstants.spaceL),
 
         // 主题方案网格 - 响应式布局
         LayoutBuilder(
@@ -144,11 +145,14 @@ class EnhancedThemeSelector extends ConsumerWidget {
       elevation: isSelected ? 8 : 2,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignConstants.radiusM,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: DesignConstants.spaceM,
+            vertical: DesignConstants.spaceS + 2,
+          ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: DesignConstants.radiusM,
             border: isSelected
                 ? Border.all(
                     color: Theme.of(context).colorScheme.primary,
@@ -160,8 +164,8 @@ class EnhancedThemeSelector extends ConsumerWidget {
             children: [
               // 颜色预览圆圈
               Container(
-                width: 20,
-                height: 20,
+                width: DesignConstants.iconSizeM,
+                height: DesignConstants.iconSizeM,
                 decoration: BoxDecoration(
                   color: primaryColor,
                   shape: BoxShape.circle,
@@ -174,7 +178,7 @@ class EnhancedThemeSelector extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: DesignConstants.spaceS + 2),
 
               // 主题信息
               Expanded(
@@ -225,14 +229,14 @@ class EnhancedThemeSelector extends ConsumerWidget {
                 fontWeight: FontWeight.w600,
               ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: DesignConstants.spaceM),
         Text(
           themeSettings.contrastLevelDescription,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: DesignConstants.spaceL),
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<AppContrastLevel>(
@@ -240,7 +244,7 @@ class EnhancedThemeSelector extends ConsumerWidget {
               return ButtonSegment<AppContrastLevel>(
                 value: level,
                 label: SizedBox(
-                  width: 60, // 固定宽度
+                  width: 60,
                   child: Text(
                     _getContrastLevelDisplayName(level),
                     textAlign: TextAlign.center,
@@ -274,14 +278,14 @@ class EnhancedThemeSelector extends ConsumerWidget {
                 fontWeight: FontWeight.w600,
               ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: DesignConstants.spaceM),
         Text(
           themeSettings.colorModeDisplayName,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: DesignConstants.spaceL),
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<AppColorMode>(
@@ -289,7 +293,7 @@ class EnhancedThemeSelector extends ConsumerWidget {
               return ButtonSegment<AppColorMode>(
                 value: mode,
                 label: SizedBox(
-                  width: 70, // 固定宽度
+                  width: 70,
                   child: Text(
                     _getColorModeDisplayName(mode),
                     textAlign: TextAlign.center,
