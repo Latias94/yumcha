@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../domain/entities/message.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
@@ -8,6 +9,8 @@ import '../../../../shared/infrastructure/services/ai/providers/ai_service_provi
 
 import '../../../ai_management/presentation/providers/ai_assistant_notifier.dart';
 import '../../../ai_management/presentation/providers/ai_provider_notifier.dart';
+import '../../../ai_management/domain/entities/ai_assistant.dart';
+import '../../../ai_management/domain/entities/ai_provider.dart';
 import '../../infrastructure/services/chat_error_handler.dart';
 
 /// 待处理的请求信息
@@ -134,8 +137,13 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
 
   final Ref _ref;
   final String _conversationId;
-  final LoggerService _logger = LoggerService();
-  final ChatErrorHandler _errorHandler = ChatErrorHandler();
+
+  /// UUID 生成器
+  static const _uuid = Uuid();
+
+  /// 获取服务实例 - 使用依赖注入避免直接实例化
+  LoggerService get _logger => _ref.read(loggerServiceProvider);
+  ChatErrorHandler get _errorHandler => _ref.read(chatErrorHandlerProvider);
 
   /// 多个流式订阅管理（messageId -> subscription）
   final Map<String, StreamSubscription> _streamSubscriptions = {};
@@ -156,11 +164,35 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
 
   /// 初始化消息列表
   void initializeMessages(List<Message> messages) {
+    // 检查消息列表是否真的发生了变化，避免不必要的状态更新
+    if (_messagesEqual(state.messages, messages)) {
+      _logger.debug('消息列表未发生变化，跳过初始化', {
+        'conversationId': _conversationId,
+        'messageCount': messages.length,
+      });
+      return;
+    }
+
     _logger.info('初始化消息列表', {
       'conversationId': _conversationId,
       'messageCount': messages.length,
+      'previousCount': state.messages.length,
     });
     state = state.copyWith(messages: messages);
+  }
+
+  /// 检查两个消息列表是否相等
+  bool _messagesEqual(List<Message> list1, List<Message> list2) {
+    if (list1.length != list2.length) return false;
+
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i].id != list2[i].id ||
+          list1[i].content != list2[i].content ||
+          list1[i].status != list2[i].status) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// 发送消息 - 主要入口方法
@@ -190,6 +222,7 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
 
     // 添加用户消息
     final userMessage = Message(
+      id: _uuid.v4(), // 生成临时ID
       content: content,
       timestamp: DateTime.now(),
       isFromUser: true,
@@ -226,12 +259,16 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
     final assistant = await _getAssistant(assistantId);
     final provider = await _getProvider(providerId);
 
-    if (assistant == null || provider == null) {
-      throw Exception('助手或提供商不存在');
+    if (assistant == null) {
+      throw Exception('助手不存在或加载失败 (ID: $assistantId)。请检查助手配置或稍后重试。');
+    }
+    if (provider == null) {
+      throw Exception('提供商不存在或加载失败 (ID: $providerId)。请检查提供商配置或稍后重试。');
     }
 
-    // 创建AI消息占位符
+    // 创建AI消息占位符，生成临时ID用于流式消息管理
     final aiMessage = Message(
+      id: _uuid.v4(), // 生成临时ID
       content: '',
       timestamp: DateTime.now(),
       isFromUser: false,
@@ -322,8 +359,11 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
       final assistant = await _getAssistant(assistantId);
       final provider = await _getProvider(providerId);
 
-      if (assistant == null || provider == null) {
-        throw Exception('助手或提供商不存在');
+      if (assistant == null) {
+        throw Exception('助手不存在或加载失败 (ID: $assistantId)。请检查助手配置或稍后重试。');
+      }
+      if (provider == null) {
+        throw Exception('提供商不存在或加载失败 (ID: $providerId)。请检查提供商配置或稍后重试。');
       }
 
       _logger.info('开始非流式消息处理', {
@@ -341,6 +381,7 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
 
       if (response.isSuccess) {
         final aiMessage = Message(
+          id: _uuid.v4(), // 生成临时ID
           content: response.content,
           timestamp: DateTime.now(),
           isFromUser: false,
@@ -415,7 +456,7 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
     });
 
     // 持久化完成的消息
-    _persistMessage(completedMessage);
+    unawaited(_persistMessage(completedMessage));
   }
 
   /// 处理流式错误
@@ -477,22 +518,32 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
     state = state.copyWith(messages: updatedMessages);
   }
 
-  /// 更新消息
+  /// 更新消息（高效版本）
   void _updateMessage(Message oldMessage, Message newMessage) {
-    final updatedMessages = state.messages.map((m) {
-      return m.id == oldMessage.id ? newMessage : m;
-    }).toList();
+    // 检查消息是否真的发生了变化
+    if (oldMessage.content == newMessage.content &&
+        oldMessage.status == newMessage.status) {
+      return; // 没有实质变化，跳过更新
+    }
 
+    // 找到消息索引并直接更新
+    final messageIndex =
+        state.messages.indexWhere((m) => m.id == oldMessage.id);
+    if (messageIndex == -1) return;
+
+    final updatedMessages = List<Message>.from(state.messages);
+    updatedMessages[messageIndex] = newMessage;
     state = state.copyWith(messages: updatedMessages);
   }
 
-  /// 持久化消息
+  /// 持久化消息（简化版本 - 直接使用临时ID）
   Future<void> _persistMessage(Message message) async {
     if (!message.shouldPersist) return;
 
     try {
       final repository = _ref.read(conversationRepositoryProvider);
       await repository.addMessage(
+        id: message.id, // 直接传入临时ID作为数据库ID
         conversationId: _conversationId,
         content: message.content,
         author: message.author,
@@ -503,37 +554,134 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
         status: message.status,
         errorInfo: message.errorInfo,
       );
+
+      _logger.debug('消息持久化成功', {
+        'messageId': message.id,
+        'content': message.content.length > 50
+            ? '${message.content.substring(0, 50)}...'
+            : message.content,
+      });
     } catch (e) {
       _logger.error('消息持久化失败', {'error': e.toString()});
     }
   }
 
   /// 获取助手信息
-  Future<dynamic> _getAssistant(String assistantId) async {
-    final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
-    return assistantsAsync.whenOrNull(
-      data: (assistants) {
-        try {
-          return assistants.firstWhere((a) => a.id == assistantId);
-        } catch (e) {
-          return null;
-        }
-      },
-    );
+  Future<AiAssistant?> _getAssistant(String assistantId) async {
+    const maxWaitTime = Duration(seconds: 10);
+    const checkInterval = Duration(milliseconds: 100);
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
+
+      // 检查是否有错误
+      final hasError = assistantsAsync.whenOrNull(
+            error: (error, stack) => true,
+          ) ??
+          false;
+
+      if (hasError) {
+        _logger.error('助手数据加载失败', {
+          'assistantId': assistantId,
+          'error': assistantsAsync.error.toString(),
+        });
+        return null;
+      }
+
+      // 尝试获取助手数据
+      final assistant = assistantsAsync.whenOrNull(
+        data: (assistants) {
+          try {
+            return assistants.firstWhere((a) => a.id == assistantId);
+          } catch (e) {
+            return null;
+          }
+        },
+      );
+
+      if (assistant != null) {
+        _logger.debug('助手获取成功', {
+          'assistantId': assistantId,
+          'assistantName': assistant.name,
+        });
+        return assistant;
+      }
+
+      // 如果还在加载中，等待一段时间后重试
+      if (assistantsAsync is AsyncLoading) {
+        await Future.delayed(checkInterval);
+        continue;
+      }
+
+      // 如果数据已加载但找不到助手，直接返回null
+      break;
+    }
+
+    _logger.warning('助手获取超时或未找到', {
+      'assistantId': assistantId,
+      'waitTime': DateTime.now().difference(startTime).inMilliseconds,
+    });
+    return null;
   }
 
   /// 获取提供商信息
-  Future<dynamic> _getProvider(String providerId) async {
-    final providersAsync = _ref.read(aiProviderNotifierProvider);
-    return providersAsync.whenOrNull(
-      data: (providers) {
-        try {
-          return providers.firstWhere((p) => p.id == providerId);
-        } catch (e) {
-          return null;
-        }
-      },
-    );
+  Future<AiProvider?> _getProvider(String providerId) async {
+    const maxWaitTime = Duration(seconds: 10);
+    const checkInterval = Duration(milliseconds: 100);
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      final providersAsync = _ref.read(aiProviderNotifierProvider);
+
+      // 检查是否有错误
+      final hasError = providersAsync.whenOrNull(
+            error: (error, stack) => true,
+          ) ??
+          false;
+
+      if (hasError) {
+        _logger.error('提供商数据加载失败', {
+          'providerId': providerId,
+          'error': providersAsync.error.toString(),
+        });
+        return null;
+      }
+
+      // 尝试获取提供商数据
+      final provider = providersAsync.whenOrNull(
+        data: (providers) {
+          try {
+            return providers.firstWhere((p) => p.id == providerId);
+          } catch (e) {
+            return null;
+          }
+        },
+      );
+
+      if (provider != null) {
+        _logger.debug('提供商获取成功', {
+          'providerId': providerId,
+          'providerName': provider.name,
+        });
+        return provider;
+      }
+
+      // 如果还在加载中，等待一段时间后重试
+      if (providersAsync is AsyncLoading) {
+        await Future.delayed(checkInterval);
+        continue;
+      }
+
+      // 如果数据已加载但找不到提供商，直接返回null
+      break;
+    }
+
+    _logger.warning('提供商获取超时或未找到', {
+      'providerId': providerId,
+      'waitTime': DateTime.now().difference(startTime).inMilliseconds,
+    });
+    return null;
   }
 
   /// 清除错误

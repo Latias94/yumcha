@@ -75,17 +75,16 @@ class _ChatViewState extends ConsumerState<ChatView>
   Message? _editingMessage;
   Message? _originalAssistantMessage;
 
+  // 跟踪是否已经初始化过消息
+  bool _hasInitialized = false;
+
   @override
   void initState() {
     super.initState();
 
     // 初始化消息列表
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.messages.isNotEmpty) {
-        ref
-            .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-            .initializeMessages(widget.messages);
-      }
+      _initializeMessagesIfNeeded();
     });
   }
 
@@ -93,8 +92,24 @@ class _ChatViewState extends ConsumerState<ChatView>
   void didUpdateWidget(ChatView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // 如果消息列表发生变化，更新状态
-    if (widget.messages != oldWidget.messages) {
+    // 如果对话ID发生变化，重置初始化状态
+    if (widget.conversationId != oldWidget.conversationId) {
+      _hasInitialized = false;
+    }
+
+    // 如果消息列表发生变化且不是同一个对话，延迟更新状态
+    if (widget.messages != oldWidget.messages &&
+        widget.conversationId == oldWidget.conversationId) {
+      Future(() {
+        _initializeMessagesIfNeeded();
+      });
+    }
+  }
+
+  /// 仅在需要时初始化消息
+  void _initializeMessagesIfNeeded() {
+    if (!_hasInitialized && widget.messages.isNotEmpty && mounted) {
+      _hasInitialized = true; // 先设置标志，避免竞态条件
       ref
           .read(chatMessageNotifierProvider(widget.conversationId).notifier)
           .initializeMessages(widget.messages);
@@ -117,80 +132,81 @@ class _ChatViewState extends ConsumerState<ChatView>
     final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
     final providersAsync = ref.watch(aiProviderNotifierProvider);
 
-    return assistantsAsync.when(
-      data: (assistants) {
-        return providersAsync.when(
-          data: (providers) {
-            return Column(
-              children: [
-                // 错误提示横幅
-                if (chatState.error != null)
-                  _buildErrorBanner(chatState.error!),
+    // 使用 SizedBox.expand 确保在 Scaffold.body 中正确布局
+    return SizedBox.expand(
+      child: assistantsAsync.when(
+        data: (assistants) {
+          return providersAsync.when(
+            data: (providers) {
+              return _buildChatContent(chatState);
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => _buildErrorState('加载提供商失败: $error'),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => _buildErrorState('加载助手失败: $error'),
+      ),
+    );
+  }
 
-                // 聊天历史
-                Expanded(
-                  child: ChatHistoryView(
-                    conversationId: widget.conversationId,
-                    onEditMessage:
-                        !chatState.hasStreamingMessage ? _onEditMessage : null,
-                    onRegenerateMessage: !chatState.hasStreamingMessage
-                        ? _onRegenerateMessage
-                        : null,
-                    onSelectSuggestion: _onSelectSuggestion,
-                    initialMessageId: widget.initialMessageId,
-                    isLoading: chatState.isLoading,
-                    isStreaming: chatState.hasStreamingMessage,
-                    welcomeMessage: widget.welcomeMessage,
-                    suggestions: widget.suggestions,
-                  ),
-                ),
+  /// 构建聊天内容
+  Widget _buildChatContent(ChatMessageState chatState) {
+    return Column(
+      children: [
+        // 错误提示横幅
+        if (chatState.error != null) _buildErrorBanner(chatState.error!),
 
-                // 聊天输入
-                ChatInput(
-                  initialMessage: _editingMessage,
-                  autofocus: widget.suggestions.isEmpty,
-                  onSendMessage: _onSendMessageRequest,
-                  onCancelMessage: chatState.hasStreamingMessage
-                      ? () => ref
-                          .read(
-                              chatMessageNotifierProvider(widget.conversationId)
-                                  .notifier)
-                          .cancelStreaming()
-                      : null,
-                  onCancelEdit: _editingMessage != null ? _onCancelEdit : null,
-                  isLoading: chatState.isLoading,
-                  onAssistantChanged: (assistant) {
-                    // 临时修复：助手不再关联提供商和模型
-                    // TODO: 实现新的助手选择逻辑
-                  },
-                  initialAssistantId: widget.assistantId,
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error, color: Theme.of(context).colorScheme.error),
-                const SizedBox(height: 16),
-                Text('加载提供商失败: $error'),
-              ],
-            ),
+        // 聊天历史
+        Expanded(
+          child: ChatHistoryView(
+            conversationId: widget.conversationId,
+            onEditMessage:
+                !chatState.hasStreamingMessage ? _onEditMessage : null,
+            onRegenerateMessage:
+                !chatState.hasStreamingMessage ? _onRegenerateMessage : null,
+            onSelectSuggestion: _onSelectSuggestion,
+            initialMessageId: widget.initialMessageId,
+            isLoading: chatState.isLoading,
+            isStreaming: chatState.hasStreamingMessage,
+            welcomeMessage: widget.welcomeMessage,
+            suggestions: widget.suggestions,
           ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 16),
-            Text('加载助手失败: $error'),
-          ],
         ),
+
+        // 聊天输入
+        ChatInput(
+          initialMessage: _editingMessage,
+          autofocus: widget.suggestions.isEmpty,
+          onSendMessage: _onSendMessageRequest,
+          onCancelMessage: chatState.hasStreamingMessage
+              ? () => ref
+                  .read(chatMessageNotifierProvider(widget.conversationId)
+                      .notifier)
+                  .cancelStreaming()
+              : null,
+          onCancelEdit: _editingMessage != null ? _onCancelEdit : null,
+          isLoading: chatState.isLoading,
+          onAssistantChanged: (assistant) {
+            // 临时修复：助手不再关联提供商和模型
+            // TODO: 实现新的助手选择逻辑
+          },
+          initialAssistantId: widget.assistantId,
+        ),
+      ],
+    );
+  }
+
+  /// 构建错误状态
+  Widget _buildErrorState(String errorMessage) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error, color: Theme.of(context).colorScheme.error),
+          const SizedBox(height: 16),
+          Text(errorMessage),
+        ],
       ),
     );
   }

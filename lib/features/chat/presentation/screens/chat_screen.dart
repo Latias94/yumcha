@@ -191,13 +191,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
           });
 
-          // 通知上级组件配置已更新
-          widget.onConversationUpdated?.call(_conversationState);
-          widget.onAssistantConfigChanged?.call(
-            selectedAssistant.id,
-            selectedProvider.id,
-            selectedModelId,
-          );
+          // 延迟通知上级组件配置已更新，避免在widget构建期间修改Provider状态
+          Future(() {
+            widget.onConversationUpdated?.call(_conversationState);
+            widget.onAssistantConfigChanged?.call(
+              selectedAssistant!.id,
+              selectedProvider!.id,
+              selectedModelId!,
+            );
+          });
         }
       });
     });

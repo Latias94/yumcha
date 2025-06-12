@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../infrastructure/services/database_service.dart';
 import '../../infrastructure/services/preference_service.dart';
+import '../../infrastructure/services/logger_service.dart';
 import '../../data/database/database.dart';
 import '../../../features/ai_management/data/repositories/provider_repository.dart';
 import '../../../features/ai_management/data/repositories/assistant_repository.dart';
 import '../../../features/ai_management/data/repositories/favorite_model_repository.dart';
 import '../../../features/chat/data/repositories/conversation_repository.dart';
+import '../../../features/chat/infrastructure/services/chat_error_handler.dart';
 import '../../data/database/repositories/setting_repository.dart';
 
 /// 🗄️ 依赖注入Providers
@@ -33,6 +35,21 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 /// 支持模型偏好、助手偏好、界面偏好等设置的存储和读取。
 final preferenceServiceProvider = Provider<PreferenceService>((ref) {
   return PreferenceService();
+});
+
+/// 日志服务Provider - 单例模式
+///
+/// 提供应用的日志服务实例，用于统一的日志记录和调试。
+/// 支持不同级别的日志输出和格式化。
+final loggerServiceProvider = Provider<LoggerService>((ref) {
+  return LoggerService();
+});
+
+/// 聊天错误处理器Provider - 单例模式
+///
+/// 提供聊天功能的错误处理服务，用于统一处理聊天相关的错误。
+final chatErrorHandlerProvider = Provider<ChatErrorHandler>((ref) {
+  return ChatErrorHandler();
 });
 
 /// AI提供商Repository Provider

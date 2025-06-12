@@ -318,6 +318,7 @@ class ConversationRepository {
 
   // 添加消息
   Future<String> addMessage({
+    String? id, // 可选的ID参数，如果不提供则自动生成
     required String conversationId,
     required String content,
     required String author,
@@ -328,11 +329,11 @@ class ConversationRepository {
     MessageStatus status = MessageStatus.normal,
     String? errorInfo,
   }) async {
-    final id = _uuid.v4();
+    final messageId = id ?? _uuid.v4(); // 使用传入的ID或生成新ID
     final now = DateTime.now();
 
     final companion = MessagesCompanion(
-      id: Value(id),
+      id: Value(messageId),
       conversationId: Value(conversationId),
       content: Value(content),
       author: Value(author),
@@ -355,7 +356,7 @@ class ConversationRepository {
       ConversationsCompanion(lastMessageAt: Value(now), updatedAt: Value(now)),
     );
 
-    return id;
+    return messageId;
   }
 
   // 删除消息

@@ -207,12 +207,9 @@ Container(
       : theme.inputDecoration,
 )
 
-// ✅ 加载状态指示
-if (widget.isLoading)
-  AiThinkingIndicator(
-    isStreaming: widget.isStreaming,
-    message: widget.isStreaming ? '正在接收回复...' : 'AI正在思考中...',
-  )
+// ✅ 流式状态指示 - 在消息气泡内显示
+if (message.status == MessageStatus.streaming)
+  _buildStreamingIndicator(context, theme)
 ```
 
 ### 3. 可访问性原则
@@ -368,9 +365,9 @@ lib/
 
 ```dart
 // ✅ 推荐做法 - 清晰的命名
-class AiThinkingIndicator extends StatefulWidget
 class ChatMessageView extends ConsumerStatefulWidget
 class ModelSelectorButton extends StatelessWidget
+class ChatHistoryView extends ConsumerStatefulWidget
 
 // 私有方法命名
 Widget _buildInputField(ThemeData theme, bool isEditing)
@@ -457,11 +454,16 @@ AppBar(
 ### AI 状态指示
 
 ```dart
-// ✅ 推荐做法 - 区分流式和非流式状态
-if (isLoading)
-  AiThinkingIndicator(
-    isStreaming: isStreaming,
-    message: isStreaming ? '正在接收回复...' : 'AI正在思考中...',
+// ✅ 推荐做法 - 在消息气泡内显示流式状态
+if (message.status == MessageStatus.streaming)
+  Container(
+    child: Row(
+      children: [
+        CircularProgressIndicator(strokeWidth: 2),
+        SizedBox(width: 8),
+        Text('正在接收回复...', style: TextStyle(fontStyle: FontStyle.italic)),
+      ],
+    ),
   )
 ```
 
