@@ -27,9 +27,9 @@ class AttachmentChips extends StatelessWidget {
     final isDesktop = DesignConstants.isDesktop(context);
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: DesignConstants.spaceM,
-        vertical: DesignConstants.spaceS,
+      padding: DesignConstants.responsiveHorizontalPadding(context).copyWith(
+        top: DesignConstants.spaceS,
+        bottom: DesignConstants.spaceS,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

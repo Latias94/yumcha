@@ -579,9 +579,9 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildActionButtons(ThemeData theme, bool isEditing) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: DesignConstants.spaceS,
-        vertical: DesignConstants.spaceXS,
+      padding: DesignConstants.responsiveHorizontalPadding(context).copyWith(
+        top: DesignConstants.spaceXS,
+        bottom: DesignConstants.spaceXS,
       ),
       child: Row(
         children: [

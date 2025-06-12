@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 附件面板组件
 class AttachmentPanel extends StatelessWidget {
@@ -14,11 +15,14 @@ class AttachmentPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-      padding: const EdgeInsets.all(16),
+      margin: DesignConstants.responsiveHorizontalPadding(context).copyWith(
+        top: 0,
+        bottom: DesignConstants.spaceS,
+      ),
+      padding: DesignConstants.paddingL,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignConstants.radiusM,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -29,7 +33,7 @@ class AttachmentPanel extends StatelessWidget {
             label: "拍照",
             onTap: onCameraPressed,
           ),
-          const SizedBox(width: 20),
+          SizedBox(width: DesignConstants.spaceXL),
           _buildAttachmentButton(
             context: context,
             icon: Icons.photo_library,
@@ -47,18 +51,21 @@ class AttachmentPanel extends StatelessWidget {
     required String label,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: DesignConstants.radiusM,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: EdgeInsets.symmetric(
+          vertical: DesignConstants.spaceM,
+          horizontal: DesignConstants.spaceL,
+        ),
         decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(12),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
+          borderRadius: DesignConstants.radiusM,
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -67,19 +74,15 @@ class AttachmentPanel extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 28,
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.6),
+              size: DesignConstants.iconSizeXL,
+              color: theme.colorScheme.primary.withValues(alpha: 0.6),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignConstants.spaceS),
             Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
             ),
           ],
         ),
