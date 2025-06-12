@@ -297,9 +297,8 @@ class ModelConfigUtils {
     }
 
     // 添加能力描述
-    final abilities = modelConfig.abilities
-        .map((a) => a.displayName)
-        .join(', ');
+    final abilities =
+        modelConfig.abilities.map((a) => a.displayName).join(', ');
     if (abilities.isNotEmpty) {
       info['abilities'] = abilities;
     }

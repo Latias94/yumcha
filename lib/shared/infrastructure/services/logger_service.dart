@@ -404,9 +404,8 @@ class LoggerService {
       '❌ AI请求失败',
       error: {
         'assistantId': assistantId,
-        'duration': duration != null
-            ? '${duration.inMilliseconds}ms'
-            : 'unknown',
+        'duration':
+            duration != null ? '${duration.inMilliseconds}ms' : 'unknown',
         'error': error,
       },
     );

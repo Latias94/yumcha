@@ -2,43 +2,43 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 /// AI消息元数据
-/// 
+///
 /// 存储AI响应的详细信息，包括耗时、token使用、模型信息等
 @immutable
 class MessageMetadata {
   /// 总响应耗时（毫秒）
   final int? totalDurationMs;
-  
+
   /// 思考过程耗时（毫秒）
   final int? thinkingDurationMs;
-  
+
   /// 内容生成耗时（毫秒）
   final int? contentDurationMs;
-  
+
   /// Token使用信息
   final TokenUsage? tokenUsage;
-  
+
   /// 使用的AI模型
   final String? modelName;
-  
+
   /// 使用的AI提供商
   final String? providerId;
-  
+
   /// 请求ID（用于调试）
   final String? requestId;
-  
+
   /// 是否包含思考过程
   final bool hasThinking;
-  
+
   /// 是否使用了工具调用
   final bool hasToolCalls;
-  
+
   /// 工具调用信息
   final List<ToolCallInfo>? toolCalls;
-  
+
   /// 推理强度（如果支持）
   final String? reasoningEffort;
-  
+
   /// 其他自定义属性
   final Map<String, dynamic>? customProperties;
 
@@ -63,7 +63,7 @@ class MessageMetadata {
       totalDurationMs: json['totalDurationMs'] as int?,
       thinkingDurationMs: json['thinkingDurationMs'] as int?,
       contentDurationMs: json['contentDurationMs'] as int?,
-      tokenUsage: json['tokenUsage'] != null 
+      tokenUsage: json['tokenUsage'] != null
           ? TokenUsage.fromJson(json['tokenUsage'] as Map<String, dynamic>)
           : null,
       modelName: json['modelName'] as String?,
@@ -101,7 +101,8 @@ class MessageMetadata {
 
   /// 从JSON字符串创建
   factory MessageMetadata.fromJsonString(String jsonString) {
-    return MessageMetadata.fromJson(json.decode(jsonString) as Map<String, dynamic>);
+    return MessageMetadata.fromJson(
+        json.decode(jsonString) as Map<String, dynamic>);
   }
 
   /// 转换为JSON字符串
@@ -235,7 +236,8 @@ class TokenUsage {
 
   @override
   int get hashCode {
-    return Object.hash(promptTokens, completionTokens, totalTokens, reasoningTokens);
+    return Object.hash(
+        promptTokens, completionTokens, totalTokens, reasoningTokens);
   }
 }
 

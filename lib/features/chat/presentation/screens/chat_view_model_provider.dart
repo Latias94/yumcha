@@ -15,16 +15,16 @@ class ChatViewModelProvider extends InheritedWidget {
 
   /// 从context中获取ChatViewModel
   static ChatViewModel of(BuildContext context) {
-    final provider = context
-        .dependOnInheritedWidgetOfExactType<ChatViewModelProvider>();
+    final provider =
+        context.dependOnInheritedWidgetOfExactType<ChatViewModelProvider>();
     assert(provider != null, 'No ChatViewModelProvider found in context');
     return provider!.viewModel;
   }
 
   /// 从context中获取ChatViewModel，如果不存在则返回null
   static ChatViewModel? maybeOf(BuildContext context) {
-    final provider = context
-        .dependOnInheritedWidgetOfExactType<ChatViewModelProvider>();
+    final provider =
+        context.dependOnInheritedWidgetOfExactType<ChatViewModelProvider>();
     return provider?.viewModel;
   }
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
-import '../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../features/ai_management/domain/entities/ai_provider.dart'
+    as models;
 import '../../../features/ai_management/domain/entities/ai_model.dart';
 import 'database.dart';
 

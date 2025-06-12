@@ -125,8 +125,7 @@ class AiModel {
       id: json['id'] as String,
       name: json['name'] as String,
       displayName: json['displayName'] as String? ?? '',
-      capabilities:
-          (json['capabilities'] as List<dynamic>?)
+      capabilities: (json['capabilities'] as List<dynamic>?)
               ?.map(
                 (c) => ModelCapability.values.firstWhere(
                   (cap) => cap.id == c,

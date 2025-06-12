@@ -237,7 +237,7 @@ class AiServiceStats {
     this.totalDuration = Duration.zero,
     DateTime? lastRequestTime,
   }) : lastRequestTime =
-           lastRequestTime ?? DateTime.fromMicrosecondsSinceEpoch(0);
+            lastRequestTime ?? DateTime.fromMicrosecondsSinceEpoch(0);
 
   double get successRate {
     if (totalRequests == 0) return 0.0;

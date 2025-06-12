@@ -63,10 +63,10 @@ class EnhancedToolService extends AiServiceBase {
     if (_isInitialized) return;
 
     logger.info('初始化增强工具调用服务');
-    
+
     // 注册内置工具
     _registerBuiltinTools();
-    
+
     _isInitialized = true;
     logger.info('增强工具调用服务初始化完成');
   }
@@ -113,7 +113,7 @@ class EnhancedToolService extends AiServiceBase {
 
       while (roundCount < maxRounds) {
         roundCount++;
-        
+
         logger.debug('工具链第 $roundCount 轮', {'requestId': requestId});
 
         final response = await chatProvider.chatWithTools(conversation, tools);
@@ -144,7 +144,7 @@ class EnhancedToolService extends AiServiceBase {
         // 执行所有工具调用
         for (final toolCall in response.toolCalls!) {
           final result = await _executeToolCall(toolCall);
-          
+
           // 添加工具结果
           conversation.add(ChatMessage.toolResult(
             results: [toolCall],
@@ -155,7 +155,7 @@ class EnhancedToolService extends AiServiceBase {
 
       // 达到最大轮数，获取最终响应
       final finalResponse = await chatProvider.chat(conversation);
-      
+
       logger.warning('工具链达到最大轮数', {
         'requestId': requestId,
         'maxRounds': maxRounds,
@@ -168,7 +168,6 @@ class EnhancedToolService extends AiServiceBase {
         duration: Duration.zero,
         toolCalls: [],
       );
-
     } catch (e) {
       logger.error('工具链执行失败', {
         'requestId': requestId,
@@ -198,7 +197,8 @@ class EnhancedToolService extends AiServiceBase {
       // 检查是否是内置工具
       if (_builtinTools.containsKey(functionName)) {
         final toolFunction = _builtinTools[functionName]!;
-        final arguments = jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
+        final arguments =
+            jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
         result = await toolFunction(arguments);
       } else {
         // 未知工具
@@ -215,7 +215,6 @@ class EnhancedToolService extends AiServiceBase {
       });
 
       return result;
-
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
       _updateToolStats(functionName, false, duration);
@@ -242,14 +241,14 @@ class EnhancedToolService extends AiServiceBase {
   /// 计算器工具
   Future<String> _calculateTool(Map<String, dynamic> args) async {
     final expression = args['expression'] as String;
-    
+
     // 简单的数学表达式计算（生产环境应使用专业的数学解析器）
     try {
       // 这里只是示例，实际应该使用安全的数学表达式解析器
       if (expression.contains('15 * 8 + 42')) {
         return (15 * 8 + 42).toString();
       }
-      
+
       return 'Calculation result for: $expression';
     } catch (e) {
       return 'Calculation error: $e';
@@ -275,16 +274,19 @@ class EnhancedToolService extends AiServiceBase {
   Future<String> _formatTextTool(Map<String, dynamic> args) async {
     final text = args['text'] as String;
     final format = args['format'] as String? ?? 'uppercase';
-    
+
     switch (format.toLowerCase()) {
       case 'uppercase':
         return text.toUpperCase();
       case 'lowercase':
         return text.toLowerCase();
       case 'title':
-        return text.split(' ').map((word) => 
-          word.isEmpty ? word : word[0].toUpperCase() + word.substring(1).toLowerCase()
-        ).join(' ');
+        return text
+            .split(' ')
+            .map((word) => word.isEmpty
+                ? word
+                : word[0].toUpperCase() + word.substring(1).toLowerCase())
+            .join(' ');
       default:
         return text;
     }
@@ -301,11 +303,14 @@ class EnhancedToolService extends AiServiceBase {
   /// 更新工具统计
   void _updateToolStats(String toolName, bool success, Duration duration) {
     final currentStats = _toolStats[toolName] ?? ToolExecutionStats();
-    
+
     _toolStats[toolName] = ToolExecutionStats(
       totalCalls: currentStats.totalCalls + 1,
-      successfulCalls: success ? currentStats.successfulCalls + 1 : currentStats.successfulCalls,
-      failedCalls: success ? currentStats.failedCalls : currentStats.failedCalls + 1,
+      successfulCalls: success
+          ? currentStats.successfulCalls + 1
+          : currentStats.successfulCalls,
+      failedCalls:
+          success ? currentStats.failedCalls : currentStats.failedCalls + 1,
       totalDuration: currentStats.totalDuration + duration,
       lastCallTime: DateTime.now(),
     );
@@ -340,7 +345,7 @@ class ToolExecutionStats {
   });
 
   double get successRate => totalCalls > 0 ? successfulCalls / totalCalls : 0.0;
-  Duration get averageDuration => totalCalls > 0 
+  Duration get averageDuration => totalCalls > 0
       ? Duration(microseconds: totalDuration.inMicroseconds ~/ totalCalls)
       : Duration.zero;
 }

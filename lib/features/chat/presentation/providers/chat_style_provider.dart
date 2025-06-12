@@ -13,7 +13,7 @@
 // ```dart
 // // 在组件中监听样式变化
 // final chatStyle = ref.watch(chatStyleProvider);
-// 
+//
 // // 更新样式
 // ref.read(chatStyleProvider.notifier).updateStyle(ChatBubbleStyle.card);
 // ```
@@ -55,7 +55,8 @@ class ChatStyleState {
 
 /// 聊天样式状态管理器
 class ChatStyleNotifier extends StateNotifier<ChatStyleState> {
-  ChatStyleNotifier() : super(const ChatStyleState(style: ChatBubbleStyle.list)) {
+  ChatStyleNotifier()
+      : super(const ChatStyleState(style: ChatBubbleStyle.list)) {
     _loadStyle();
   }
 
@@ -66,15 +67,15 @@ class ChatStyleNotifier extends StateNotifier<ChatStyleState> {
   Future<void> _loadStyle() async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      
+
       final styleValue = await _preferenceService.getChatBubbleStyle();
       final style = ChatBubbleStyle.fromValue(styleValue);
-      
+
       state = state.copyWith(
         style: style,
         isLoading: false,
       );
-      
+
       _logger.debug('聊天样式加载成功', {'style': style.value});
     } catch (e) {
       _logger.error('聊天样式加载失败', {'error': e.toString()});
@@ -89,14 +90,14 @@ class ChatStyleNotifier extends StateNotifier<ChatStyleState> {
   Future<void> updateStyle(ChatBubbleStyle newStyle) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      
+
       await _preferenceService.saveChatBubbleStyle(newStyle.value);
-      
+
       state = state.copyWith(
         style: newStyle,
         isLoading: false,
       );
-      
+
       _logger.debug('聊天样式更新成功', {'style': newStyle.value});
     } catch (e) {
       _logger.error('聊天样式更新失败', {'error': e.toString()});
@@ -114,7 +115,8 @@ class ChatStyleNotifier extends StateNotifier<ChatStyleState> {
 }
 
 /// 聊天样式 Provider
-final chatStyleProvider = StateNotifierProvider<ChatStyleNotifier, ChatStyleState>((ref) {
+final chatStyleProvider =
+    StateNotifierProvider<ChatStyleNotifier, ChatStyleState>((ref) {
   return ChatStyleNotifier();
 });
 

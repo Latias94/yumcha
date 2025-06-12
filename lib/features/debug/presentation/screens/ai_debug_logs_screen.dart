@@ -114,8 +114,8 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                 Text(
                   '服务健康状态',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -144,12 +144,12 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                         ),
                         Text(
                           isHealthy ? '正常' : '异常',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: isHealthy
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).colorScheme.error,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: isHealthy
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.error,
+                                  ),
                         ),
                       ],
                     ),
@@ -185,8 +185,8 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                 Text(
                   '服务统计信息',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -217,7 +217,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                               ),
                               Text(
                                 statEntry.value.toString(),
-                                style: Theme.of(context).textTheme.bodySmall
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
                                     ?.copyWith(fontFamily: 'monospace'),
                               ),
                             ],
@@ -252,8 +254,8 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                 Text(
                   '缓存统计信息',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -273,7 +275,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                         ),
                         Text(
                           entry.value.toString(),
-                          style: Theme.of(context).textTheme.bodySmall
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
                               ?.copyWith(fontFamily: 'monospace'),
                         ),
                       ],

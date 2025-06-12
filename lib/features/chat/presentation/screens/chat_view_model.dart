@@ -103,15 +103,15 @@ class ChatViewModel {
 
   @override
   int get hashCode => Object.hash(
-    assistantId,
-    selectedProviderId,
-    selectedModelName,
-    messages,
-    currentAssistant,
-    currentProvider,
-    welcomeMessage,
-    suggestions,
-    enableAttachments,
-    enableVoiceNotes,
-  );
+        assistantId,
+        selectedProviderId,
+        selectedModelName,
+        messages,
+        currentAssistant,
+        currentProvider,
+        welcomeMessage,
+        suggestions,
+        enableAttachments,
+        enableVoiceNotes,
+      );
 }

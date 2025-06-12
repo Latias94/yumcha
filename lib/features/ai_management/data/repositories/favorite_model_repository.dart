@@ -45,21 +45,19 @@ class FavoriteModelRepository {
 
   // 获取所有收藏的模型
   Future<List<FavoriteModel>> getAllFavoriteModels() async {
-    final favoriteDataList = await _database
-        .select(_database.favoriteModels)
-        .get();
+    final favoriteDataList =
+        await _database.select(_database.favoriteModels).get();
     return favoriteDataList.map(_dataToModel).toList();
   }
 
   // 检查模型是否被收藏
   Future<bool> isModelFavorite(String providerId, String modelName) async {
-    final result =
-        await (_database.select(_database.favoriteModels)..where(
-              (f) =>
-                  f.providerId.equals(providerId) &
-                  f.modelName.equals(modelName),
-            ))
-            .getSingleOrNull();
+    final result = await (_database.select(_database.favoriteModels)
+          ..where(
+            (f) =>
+                f.providerId.equals(providerId) & f.modelName.equals(modelName),
+          ))
+        .getSingleOrNull();
     return result != null;
   }
 
@@ -85,10 +83,11 @@ class FavoriteModelRepository {
 
   // 移除收藏模型
   Future<int> removeFavoriteModel(String providerId, String modelName) async {
-    return await (_database.delete(_database.favoriteModels)..where(
-          (f) =>
-              f.providerId.equals(providerId) & f.modelName.equals(modelName),
-        ))
+    return await (_database.delete(_database.favoriteModels)
+          ..where(
+            (f) =>
+                f.providerId.equals(providerId) & f.modelName.equals(modelName),
+          ))
         .go();
   }
 
@@ -110,7 +109,8 @@ class FavoriteModelRepository {
   ) async {
     final favoriteDataList = await (_database.select(
       _database.favoriteModels,
-    )..where((f) => f.providerId.equals(providerId))).get();
+    )..where((f) => f.providerId.equals(providerId)))
+        .get();
     return favoriteDataList.map(_dataToModel).toList();
   }
 

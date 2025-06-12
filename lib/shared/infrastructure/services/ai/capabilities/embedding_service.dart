@@ -297,8 +297,8 @@ class Math {
   static double sqrt(double x) => x < 0
       ? double.nan
       : x == 0
-      ? 0
-      : _sqrt(x);
+          ? 0
+          : _sqrt(x);
 
   static double _sqrt(double x) {
     if (x == 0) return 0;

@@ -176,9 +176,10 @@ class ConfigureProviderUseCase {
     int limit = 5,
   }) {
     final models = getProviderModels(providerId, type: type);
-    final sortedModels =
-        models.where((model) => model.releasedAt != null).toList()
-          ..sort((a, b) => b.releasedAt!.compareTo(a.releasedAt!));
+    final sortedModels = models
+        .where((model) => model.releasedAt != null)
+        .toList()
+      ..sort((a, b) => b.releasedAt!.compareTo(a.releasedAt!));
 
     return sortedModels.take(limit).toList();
   }

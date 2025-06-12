@@ -254,8 +254,7 @@ class ProviderModelConfig {
       displayName: json['displayName'],
       description: json['description'],
       type: ModelType.values.firstWhere((t) => t.id == json['type']),
-      abilities:
-          (json['abilities'] as List<dynamic>?)
+      abilities: (json['abilities'] as List<dynamic>?)
               ?.map(
                 (a) => ModelAbility.values.firstWhere(
                   (ability) => ability.id == a,
@@ -319,8 +318,7 @@ class ProviderConfig {
       id: json['id'],
       description: json['description'],
       defaultBaseUrl: json['defaultBaseUrl'],
-      models:
-          (json['models'] as List<dynamic>?)
+      models: (json['models'] as List<dynamic>?)
               ?.map((m) => ProviderModelConfig.fromJson(m))
               .toList() ??
           [],

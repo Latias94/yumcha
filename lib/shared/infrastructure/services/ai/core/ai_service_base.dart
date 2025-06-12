@@ -448,11 +448,6 @@ abstract class AiProviderAdapter {
   /// ```
   List<ChatMessage> convertMessages(List<Message> messages) {
     return messages.map((msg) {
-      // 调试：检查历史消息内容
-      print(
-          'ConvertMessages: ${msg.isFromUser ? "用户" : "AI"}: "${msg.content}" (长度: ${msg.content.length})');
-      print('ConvertMessages: 内容字节: ${msg.content.codeUnits}');
-
       if (msg.isFromUser) {
         return ChatMessage.user(msg.content);
       } else {

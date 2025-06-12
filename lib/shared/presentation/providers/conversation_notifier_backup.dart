@@ -11,6 +11,6 @@
 
 // 重构后的新架构：
 // 1. ConversationStateNotifier - 对话状态管理
-// 2. ConversationTitleNotifier - 标题生成管理  
+// 2. ConversationTitleNotifier - 标题生成管理
 // 3. ConfigurationPersistenceNotifier - 配置持久化
 // 4. ConversationCoordinator - 协调器
