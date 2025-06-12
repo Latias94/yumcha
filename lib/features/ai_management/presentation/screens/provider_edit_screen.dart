@@ -80,9 +80,8 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
     _isEnabled = provider?.isEnabled ?? true;
 
     // 初始化模型列表
-    _models = provider?.models.isNotEmpty == true
-        ? List.from(provider!.models)
-        : [];
+    _models =
+        provider?.models.isNotEmpty == true ? List.from(provider!.models) : [];
   }
 
   @override
@@ -234,8 +233,8 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
               child: Text(
                 '基本信息',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
             ),
             Padding(
@@ -305,8 +304,8 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
               child: Text(
                 'API 配置',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
             ),
             Padding(
@@ -324,7 +323,6 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
                       helperText: '从AI提供商官网获取的API密钥，用于身份验证和计费',
                     ),
                     obscureText: true,
-
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return '请输入 API Key';
@@ -363,8 +361,8 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
               child: Text(
                 '模型配置',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
             ),
             Padding(
@@ -376,7 +374,8 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
                     _models = models;
                   });
                 },
-                provider: AiProvider(
+                // 使用 ValueListenableBuilder 来监听文本控制器的变化
+                providerBuilder: () => AiProvider(
                   id: widget.provider?.id ?? 'temp',
                   name: _nameController.text.trim(),
                   type: _selectedType,

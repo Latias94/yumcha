@@ -301,12 +301,11 @@ class ChatService extends AiServiceBase {
       await for (final event in stream) {
         switch (event) {
           case TextDeltaEvent(delta: final delta):
-            // 调试：检查从llm_dart接收到的内容
-            logger.debug('ChatService: 接收到TextDeltaEvent', {
-              'delta': delta,
-              'deltaLength': delta.length,
-              'deltaBytes': delta.codeUnits,
-            });
+            // logger.debug('ChatService: 接收到TextDeltaEvent', {
+            //   'delta': delta,
+            //   'deltaLength': delta.length,
+            //   'deltaBytes': delta.codeUnits,
+            // });
             yield AiStreamEvent.contentDelta(delta);
             break;
           case ThinkingDeltaEvent(delta: final delta):

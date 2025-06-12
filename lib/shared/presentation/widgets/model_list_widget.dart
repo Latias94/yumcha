@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/ai_management/domain/entities/ai_model.dart';
 import '../../../features/ai_management/domain/entities/ai_provider.dart';
-import '../../infrastructure/services/ai/providers/ai_service_provider.dart';
+import '../../infrastructure/services/ai/ai_service_manager.dart';
 import '../../infrastructure/services/notification_service.dart';
 import '../design_system/design_constants.dart';
 import 'model_edit_dialog.dart';
@@ -12,13 +12,15 @@ import 'model_selection_dialog.dart';
 class ModelListWidget extends ConsumerStatefulWidget {
   final List<AiModel> models;
   final Function(List<AiModel>) onModelsChanged;
-  final AiProvider? provider; // 用于获取模型列表
+  final AiProvider? provider; // 用于获取模型列表（静态）
+  final AiProvider Function()? providerBuilder; // 用于动态获取最新配置
 
   const ModelListWidget({
     super.key,
     required this.models,
     required this.onModelsChanged,
     this.provider,
+    this.providerBuilder,
   });
 
   @override
@@ -103,17 +105,29 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
   }
 
   Future<void> _fetchModelsFromProvider() async {
-    if (widget.provider == null) {
+    // 获取当前的 provider 配置（优先使用动态构建器）
+    final currentProvider = widget.providerBuilder?.call() ?? widget.provider;
+
+    if (currentProvider == null) {
       NotificationService().showWarning('请先填写提供商配置信息');
+      return;
+    }
+
+    // 验证必要的配置
+    if (currentProvider.apiKey.trim().isEmpty &&
+        currentProvider.type != ProviderType.ollama) {
+      NotificationService().showError('请先配置 API 密钥');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // 使用 AI Service Provider 获取模型列表
-      final models = await ref.read(
-        providerModelsProvider(widget.provider!.id).future,
+      // 直接使用 AI Service Manager 获取模型列表，使用当前表单中的最新配置
+      final aiServiceManager = ref.read(aiServiceManagerProvider);
+      final models = await aiServiceManager.getModelsFromProvider(
+        currentProvider,
+        useCache: false, // 不使用缓存，确保使用最新配置
       );
 
       if (mounted) {
@@ -122,7 +136,15 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
       }
     } catch (error) {
       if (mounted) {
-        NotificationService().showError('获取模型列表失败: ${error.toString()}');
+        // 显示友好的错误信息
+        String errorMessage = error.toString();
+        if (errorMessage.contains('❌')) {
+          // 如果是我们自定义的友好错误信息，直接显示
+          NotificationService().showError(errorMessage);
+        } else {
+          // 否则显示通用错误信息
+          NotificationService().showError('获取模型列表失败: $errorMessage');
+        }
       }
     } finally {
       if (mounted) {
@@ -160,7 +182,7 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Spacer(),
-            if (widget.provider != null)
+            if (widget.provider != null || widget.providerBuilder != null)
               TextButton.icon(
                 onPressed: _isLoading ? null : _fetchModelsFromProvider,
                 icon: _isLoading

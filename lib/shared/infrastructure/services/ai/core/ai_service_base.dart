@@ -523,6 +523,9 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
     try {
       final providerId = _mapProviderType(provider.type.name);
 
+      // 验证必要的配置
+      _validateProviderConfiguration(providerId);
+
       // 使用新的统一API构建器
       final builder = ai()
           .provider(providerId)
@@ -615,6 +618,72 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
         return 'vertex';
       default:
         throw ArgumentError('不支持的提供商类型: $type');
+    }
+  }
+
+  /// 验证提供商配置
+  void _validateProviderConfiguration(String providerId) {
+    // 检查是否需要API密钥的提供商
+    final requiresApiKey = _requiresApiKey(providerId);
+
+    if (requiresApiKey && provider.apiKey.isEmpty) {
+      throw ArgumentError(
+          'Invalid configuration for provider: $providerId - API密钥不能为空。'
+          '请在提供商设置中配置有效的API密钥。');
+    }
+
+    // 验证API密钥格式
+    if (provider.apiKey.isNotEmpty &&
+        !_isValidApiKeyFormat(providerId, provider.apiKey)) {
+      throw ArgumentError(
+          'Invalid configuration for provider: $providerId - API密钥格式不正确。'
+          '请检查API密钥格式是否符合 $providerId 的要求。');
+    }
+
+    // 验证基础URL格式
+    if (provider.baseUrl?.isNotEmpty == true &&
+        !_isValidUrl(provider.baseUrl!)) {
+      throw ArgumentError(
+          'Invalid configuration for provider: $providerId - 基础URL格式不正确。'
+          '请检查URL格式是否正确。');
+    }
+  }
+
+  /// 检查提供商是否需要API密钥
+  bool _requiresApiKey(String providerId) {
+    switch (providerId.toLowerCase()) {
+      case 'ollama':
+        return false; // Ollama通常不需要API密钥
+      default:
+        return true; // 其他提供商都需要API密钥
+    }
+  }
+
+  /// 验证API密钥格式
+  bool _isValidApiKeyFormat(String providerId, String apiKey) {
+    switch (providerId.toLowerCase()) {
+      case 'openai':
+        return apiKey.startsWith('sk-') && apiKey.length >= 20;
+      case 'anthropic':
+        return apiKey.startsWith('sk-ant-') && apiKey.length >= 20;
+      case 'google':
+        return apiKey.length >= 20;
+      case 'ollama':
+        return true; // Ollama不需要特定格式
+      default:
+        return apiKey.length >= 10; // 基本长度检查
+    }
+  }
+
+  /// 验证URL格式
+  bool _isValidUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.hasAuthority;
+    } catch (e) {
+      return false;
     }
   }
 }

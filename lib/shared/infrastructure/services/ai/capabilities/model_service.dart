@@ -127,10 +127,19 @@ class ModelService extends AiServiceBase {
 
       return filteredModels;
     } catch (e) {
+      // 提供更友好的错误信息
+      String friendlyError = _getFriendlyErrorMessage(e, provider);
+
       logger.error('获取模型列表失败', {
         'provider': provider.name,
         'error': e.toString(),
+        'friendlyError': friendlyError,
       });
+
+      // 配置错误，抛出友好的异常
+      if (e.toString().contains('Invalid configuration')) {
+        throw Exception(friendlyError);
+      }
 
       // 返回缓存的模型（如果有）
       if (_modelCache.containsKey(cacheKey)) {
@@ -319,5 +328,49 @@ class ModelService extends AiServiceBase {
     filtered.sort((a, b) => a.name.compareTo(b.name));
 
     return filtered;
+  }
+
+  /// 获取友好的错误信息
+  String _getFriendlyErrorMessage(dynamic error, models.AiProvider provider) {
+    final errorStr = error.toString();
+
+    if (errorStr.contains(
+        'Invalid configuration for provider: ${provider.type.name}')) {
+      if (errorStr.contains('API密钥不能为空')) {
+        return '❌ ${provider.name} 提供商配置错误：\n\n'
+            '🔑 API密钥未配置\n'
+            '请在 "设置 → AI提供商" 中为 ${provider.name} 配置有效的API密钥。\n\n'
+            '💡 提示：\n'
+            '• OpenAI API密钥格式：sk-xxxxxxxxxxxxxxxx\n'
+            '• 可在 https://platform.openai.com/api-keys 获取';
+      }
+
+      if (errorStr.contains('API密钥格式不正确')) {
+        return '❌ ${provider.name} 提供商配置错误：\n\n'
+            '🔑 API密钥格式不正确\n'
+            '请检查API密钥格式是否符合 ${provider.type.name} 的要求。\n\n'
+            '💡 正确格式：\n'
+            '• OpenAI: sk-xxxxxxxxxxxxxxxx\n'
+            '• Anthropic: sk-ant-xxxxxxxxxxxxxxxx';
+      }
+
+      if (errorStr.contains('基础URL格式不正确')) {
+        return '❌ ${provider.name} 提供商配置错误：\n\n'
+            '🌐 基础URL格式不正确\n'
+            '请检查URL格式是否正确（需要包含 http:// 或 https://）。';
+      }
+    }
+
+    if (errorStr.contains('timeout') || errorStr.contains('connection')) {
+      return '❌ 网络连接错误：\n\n'
+          '🌐 无法连接到 ${provider.name} 服务器\n'
+          '请检查网络连接或稍后重试。';
+    }
+
+    // 默认错误信息
+    return '❌ 获取模型列表失败：\n\n'
+        '提供商：${provider.name}\n'
+        '错误：$errorStr\n\n'
+        '请检查提供商配置或稍后重试。';
   }
 }
