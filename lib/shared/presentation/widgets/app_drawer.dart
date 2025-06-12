@@ -144,14 +144,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     try {
       List<ConversationUiState> results;
 
-      // 如果有搜索查询，使用搜索方法
+      // 如果有搜索查询，使用综合搜索方法
       if (_searchQuery.trim().isNotEmpty) {
         _logger.debug(
-          '执行搜索: query="$_searchQuery", assistantId=$_selectedAssistant',
+          '执行综合搜索: query="$_searchQuery", assistantId=$_selectedAssistant',
         );
-        results = await _conversationRepository.searchConversationsByTitle(
+        results = await _performComprehensiveSearch(
           _searchQuery,
-          assistantId: _selectedAssistant,
+          _selectedAssistant,
           limit: _pageSize,
           offset: pageKey,
         );
@@ -316,6 +316,85 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       _logger.debug('执行搜索: $_searchQuery');
       _refreshConversationsWithAnimation();
     });
+  }
+
+  // 执行综合搜索（搜索对话标题和消息内容）
+  Future<List<ConversationUiState>> _performComprehensiveSearch(
+    String query,
+    String assistantId, {
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) {
+      return [];
+    }
+
+    try {
+      // 1. 搜索对话标题
+      final conversationResults = await _conversationRepository
+          .searchConversationsByTitle(
+        trimmedQuery,
+        assistantId: assistantId,
+        limit: limit,
+        offset: offset,
+      );
+
+      // 2. 搜索消息内容
+      final messageResults = await _conversationRepository.searchMessages(
+        trimmedQuery,
+        assistantId: assistantId,
+        limit: limit,
+        offset: offset,
+      );
+
+      // 3. 合并结果，去重（优先显示标题匹配的对话）
+      final Map<String, ConversationUiState> uniqueConversations = {};
+
+      // 先添加标题匹配的对话
+      for (final conversation in conversationResults) {
+        uniqueConversations[conversation.id] = conversation;
+      }
+
+      // 再添加消息匹配的对话（如果不存在的话）
+      for (final messageResult in messageResults) {
+        final conversationId = messageResult.conversationId;
+        if (!uniqueConversations.containsKey(conversationId)) {
+          // 获取完整的对话信息
+          final conversation = await _conversationRepository
+              .getConversation(conversationId);
+          if (conversation != null) {
+            uniqueConversations[conversationId] = conversation;
+          }
+        }
+      }
+
+      // 4. 按最后消息时间排序
+      final sortedResults = uniqueConversations.values.toList();
+      sortedResults.sort((a, b) {
+        final aTime = a.messages.isNotEmpty
+            ? a.messages.last.timestamp
+            : DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.messages.isNotEmpty
+            ? b.messages.last.timestamp
+            : DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime); // 降序排列
+      });
+
+      _logger.debug(
+        '综合搜索完成: 标题匹配=${conversationResults.length}, 消息匹配=${messageResults.length}, 去重后=${sortedResults.length}',
+      );
+
+      return sortedResults;
+    } catch (e, stackTrace) {
+      _logger.error('综合搜索失败', {
+        'error': e.toString(),
+        'stackTrace': stackTrace.toString(),
+        'query': trimmedQuery,
+        'assistantId': assistantId,
+      });
+      return [];
+    }
   }
 
   // 获取日期分组标题
@@ -514,85 +593,84 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                 },
               ),
               // 搜索加载指示器
-              AnimatedSwitcher(
-                duration: DesignConstants.animationFast,
-                transitionBuilder: (child, animation) {
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, -0.5),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: animation,
-                      curve: DesignConstants.curveStandard,
-                    )),
-                    child: FadeTransition(opacity: animation, child: child),
-                  );
-                },
-                child: isSearching
-                    ? Positioned(
-                        key: const ValueKey('search_indicator'),
-                        top: DesignConstants.spaceS,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: DesignConstants.spaceL,
-                              vertical: DesignConstants.spaceS,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface,
-                              borderRadius: DesignConstants.radiusXL,
-                              boxShadow:
-                                  DesignConstants.shadowM(Theme.of(context)),
-                              border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outline
-                                    .withValues(alpha: 0.2),
-                                width: DesignConstants.borderWidthThin,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  width: DesignConstants.iconSizeS,
-                                  height: DesignConstants.iconSizeS,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth:
-                                        DesignConstants.borderWidthMedium,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: DesignConstants.spaceS),
-                                Text(
-                                  '搜索中...',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                        fontSize: DesignConstants
-                                            .getResponsiveFontSize(
-                                          context,
-                                          mobile: 12.0,
-                                          tablet: 13.0,
-                                          desktop: 14.0,
-                                        ),
-                                      ),
-                                ),
-                              ],
-                            ),
+              if (isSearching)
+                Positioned(
+                  top: DesignConstants.spaceS,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedSwitcher(
+                    duration: DesignConstants.animationFast,
+                    transitionBuilder: (child, animation) {
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, -0.5),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: DesignConstants.curveStandard,
+                        )),
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                    child: Center(
+                      key: const ValueKey('search_indicator'),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignConstants.spaceL,
+                          vertical: DesignConstants.spaceS,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: DesignConstants.radiusXL,
+                          boxShadow:
+                              DesignConstants.shadowM(Theme.of(context)),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outline
+                                .withValues(alpha: 0.2),
+                            width: DesignConstants.borderWidthThin,
                           ),
                         ),
-                      )
-                    : const SizedBox.shrink(key: ValueKey('empty_indicator')),
-              ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: DesignConstants.iconSizeS,
+                              height: DesignConstants.iconSizeS,
+                              child: CircularProgressIndicator(
+                                strokeWidth:
+                                    DesignConstants.borderWidthMedium,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: DesignConstants.spaceS),
+                            Text(
+                              '搜索中...',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface,
+                                    fontSize: DesignConstants
+                                        .getResponsiveFontSize(
+                                      context,
+                                      mobile: 12.0,
+                                      tablet: 13.0,
+                                      desktop: 14.0,
+                                    ),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           );
         },
@@ -1349,7 +1427,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   theme: theme,
                   deviceType: deviceType,
                 ),
-                SizedBox(height: DesignConstants.spaceS),
+                SizedBox(height: DesignConstants.spaceM),
                 _buildBottomButton(
                   icon: Icons.settings,
                   label: "设置",
@@ -1403,20 +1481,11 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       child: InkWell(
         borderRadius: DesignConstants.radiusM,
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: DesignConstants.animationFast,
-          curve: DesignConstants.curveStandard,
+        child: Container(
+          width: double.infinity,
           padding: EdgeInsets.symmetric(
-            vertical:
-                isDesktop ? DesignConstants.spaceL : DesignConstants.spaceM,
+            vertical: isDesktop ? DesignConstants.spaceL : DesignConstants.spaceM,
             horizontal: DesignConstants.spaceM,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: DesignConstants.radiusM,
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.2),
-              width: DesignConstants.borderWidthThin,
-            ),
           ),
           child: Row(
             mainAxisAlignment:
@@ -1424,16 +1493,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             children: [
               Icon(
                 icon,
-                size: deviceType == DeviceType.mobile
-                    ? DesignConstants.iconSizeM
-                    : DesignConstants.iconSizeL,
-                color: theme.colorScheme.onSurfaceVariant,
+                size: DesignConstants.iconSizeM,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
               ),
               SizedBox(width: DesignConstants.spaceS),
               Text(
                 label,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                   fontSize: DesignConstants.getResponsiveFontSize(
                     context,
                     mobile: 14.0,
