@@ -218,6 +218,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return Scaffold(
           appBar: widget.showAppBar ? _buildAppBar(context, assistant) : null,
           body: ChatView(
+            conversationId: _conversationState.id,
             assistantId: _conversationState.assistantId ?? '',
             selectedProviderId: _conversationState.selectedProviderId,
             selectedModelName: _conversationState.selectedModelId ?? '',

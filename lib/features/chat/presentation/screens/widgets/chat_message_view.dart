@@ -34,8 +34,55 @@ class ChatMessageView extends ConsumerStatefulWidget {
   ConsumerState<ChatMessageView> createState() => _ChatMessageViewState();
 }
 
-class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
+class _ChatMessageViewState extends ConsumerState<ChatMessageView>
+    with TickerProviderStateMixin {
   bool _isCopied = false;
+  late AnimationController _blinkController;
+  late Animation<double> _blinkAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 初始化闪烁动画控制器
+    _blinkController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _blinkAnimation = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _blinkController,
+      curve: Curves.easeInOut,
+    ));
+
+    // 如果是流式消息，启动闪烁动画
+    if (widget.message.status == MessageStatus.streaming) {
+      _blinkController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(ChatMessageView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // 监听消息状态变化
+    if (widget.message.status == MessageStatus.streaming &&
+        oldWidget.message.status != MessageStatus.streaming) {
+      _blinkController.repeat(reverse: true);
+    } else if (widget.message.status != MessageStatus.streaming &&
+        oldWidget.message.status == MessageStatus.streaming) {
+      _blinkController.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _blinkController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,11 +177,20 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
               // 添加轻微阴影增强层次感
               boxShadow: DesignConstants.shadowXS(theme),
             ),
-            child: _buildMarkdownContent(
-              context,
-              theme,
-              theme.colorScheme.onSurface,
-              content: thinkingResult.actualContent,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMarkdownContent(
+                  context,
+                  theme,
+                  theme.colorScheme.onSurface,
+                  content: thinkingResult.actualContent,
+                ),
+
+                // 流式状态指示器
+                if (widget.message.status == MessageStatus.streaming)
+                  _buildStreamingIndicator(context, theme),
+              ],
             ),
           ),
           SizedBox(height: DesignConstants.spaceS),
@@ -256,11 +312,20 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
               ],
 
               // 消息内容
-              _buildMarkdownContent(
-                context,
-                theme,
-                theme.colorScheme.onSurface,
-                content: thinkingResult.actualContent,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildMarkdownContent(
+                    context,
+                    theme,
+                    theme.colorScheme.onSurface,
+                    content: thinkingResult.actualContent,
+                  ),
+
+                  // 流式状态指示器
+                  if (widget.message.status == MessageStatus.streaming)
+                    _buildStreamingIndicator(context, theme),
+                ],
               ),
             ],
           ),
@@ -321,11 +386,27 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
           ],
 
           // 使用自定义的markdown支持气泡组件（显示处理后的实际内容）
-          _buildMarkdownBubble(
-            context,
-            theme,
-            content: thinkingResult.actualContent,
-            maxWidth: maxWidth,
+          Column(
+            crossAxisAlignment: widget.message.isFromUser
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              _buildMarkdownBubble(
+                context,
+                theme,
+                content: thinkingResult.actualContent,
+                maxWidth: maxWidth,
+              ),
+
+              // 流式状态指示器（在气泡内部）
+              if (widget.message.status == MessageStatus.streaming)
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                  ),
+                  child: _buildStreamingIndicator(context, theme),
+                ),
+            ],
           ),
 
           // 操作按钮显示在气泡下方
@@ -697,6 +778,64 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView> {
     } else {
       return '${timestamp.month}/${timestamp.day}';
     }
+  }
+
+  /// 构建流式状态指示器
+  Widget _buildStreamingIndicator(BuildContext context, ThemeData theme) {
+    return Padding(
+      padding: EdgeInsets.only(top: DesignConstants.spaceS),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 流式动画指示器
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                theme.colorScheme.primary.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          SizedBox(width: DesignConstants.spaceXS),
+
+          // 状态文本
+          Text(
+            widget.message.status.displayText,
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+
+          // 可选：添加闪烁的光标效果
+          SizedBox(width: DesignConstants.spaceXS / 2),
+          _buildBlinkingCursor(theme),
+        ],
+      ),
+    );
+  }
+
+  /// 构建闪烁光标效果
+  Widget _buildBlinkingCursor(ThemeData theme) {
+    return AnimatedBuilder(
+      animation: _blinkAnimation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _blinkAnimation.value,
+          child: Text(
+            '|',
+            style: TextStyle(
+              color: theme.colorScheme.primary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /// 获取列表样式的背景色 - 智能主题适配

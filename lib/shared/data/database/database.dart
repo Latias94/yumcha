@@ -179,7 +179,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -232,8 +232,24 @@ class AppDatabase extends _$AppDatabase {
       );
     }
 
+    // 版本3到版本4：修复消息表中status字段的null值
+    if (from < 4) {
+      // 更新所有status为null的记录，设置为默认值'normal'
+      await m.database.customStatement(
+        'UPDATE messages SET status = "normal" WHERE status IS NULL;',
+      );
+      // 更新所有version为null的记录，设置为默认值1
+      await m.database.customStatement(
+        'UPDATE messages SET version = 1 WHERE version IS NULL;',
+      );
+      // 更新所有is_active为null的记录，设置为默认值true
+      await m.database.customStatement(
+        'UPDATE messages SET is_active = 1 WHERE is_active IS NULL;',
+      );
+    }
+
     // 未来版本升级时在此处添加迁移逻辑
-    // if (from < 4) {
+    // if (from < 5) {
     //   await m.createTable(newTable);
     // }
   }

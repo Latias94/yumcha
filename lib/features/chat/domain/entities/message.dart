@@ -9,6 +9,9 @@ enum MessageStatus {
   /// 发送中
   sending,
 
+  /// 流式传输中
+  streaming,
+
   /// 发送失败
   failed,
 
@@ -34,6 +37,7 @@ extension MessageStatusExtension on MessageStatus {
       case MessageStatus.system:
         return true;
       case MessageStatus.sending:
+      case MessageStatus.streaming:
       case MessageStatus.failed:
       case MessageStatus.error:
       case MessageStatus.temporary:
@@ -51,6 +55,7 @@ extension MessageStatusExtension on MessageStatus {
   bool get isTemporary {
     return this == MessageStatus.temporary ||
         this == MessageStatus.sending ||
+        this == MessageStatus.streaming ||
         this == MessageStatus.regenerating;
   }
 
@@ -61,6 +66,8 @@ extension MessageStatusExtension on MessageStatus {
         return '';
       case MessageStatus.sending:
         return '发送中...';
+      case MessageStatus.streaming:
+        return '正在回复...';
       case MessageStatus.failed:
         return '发送失败';
       case MessageStatus.error:

@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
-import '../chat_view_model_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/message.dart';
+import '../../providers/chat_message_notifier.dart';
 import 'chat_message_view.dart';
 import 'chat_suggestions_view.dart';
 import 'ai_thinking_indicator.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
-/// 聊天历史显示组件
-class ChatHistoryView extends StatefulWidget {
+/// 聊天历史显示组件 - 重构为使用 Riverpod 状态管理
+class ChatHistoryView extends ConsumerStatefulWidget {
   const ChatHistoryView({
     super.key,
+    required this.conversationId,
     this.onEditMessage,
     this.onRegenerateMessage,
     required this.onSelectSuggestion,
     this.initialMessageId,
     this.isLoading = false,
     this.isStreaming = false,
+    this.welcomeMessage,
+    this.suggestions = const [],
   });
+
+  /// 对话ID
+  final String conversationId;
 
   /// 编辑消息回调
   final void Function(Message message)? onEditMessage;
@@ -36,11 +43,17 @@ class ChatHistoryView extends StatefulWidget {
   /// 是否为流式响应
   final bool isStreaming;
 
+  /// 欢迎消息
+  final String? welcomeMessage;
+
+  /// 建议列表
+  final List<String> suggestions;
+
   @override
-  State<ChatHistoryView> createState() => _ChatHistoryViewState();
+  ConsumerState<ChatHistoryView> createState() => _ChatHistoryViewState();
 }
 
-class _ChatHistoryViewState extends State<ChatHistoryView> {
+class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
   final ScrollController _scrollController = ScrollController();
   bool _hasScrolledToMessage = false;
   int _previousMessageCount = 0;
@@ -53,17 +66,19 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = ChatViewModelProvider.of(context);
-    final messages = viewModel.messages;
+    // 监听聊天消息状态
+    final chatState =
+        ref.watch(chatMessageNotifierProvider(widget.conversationId));
+    final messages = chatState.messages;
 
     // 准备显示的消息列表（包括欢迎消息）
     final displayMessages = <Message>[];
 
     // 添加欢迎消息（如果有）
-    if (viewModel.welcomeMessage != null && messages.isEmpty) {
+    if (widget.welcomeMessage != null && messages.isEmpty) {
       displayMessages.add(
         Message(
-          content: viewModel.welcomeMessage!,
+          content: widget.welcomeMessage!,
           timestamp: DateTime.now(),
           isFromUser: false,
           author: 'AI助手',
@@ -75,8 +90,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
     displayMessages.addAll(messages);
 
     // 检查是否显示建议
-    final showSuggestions =
-        viewModel.suggestions.isNotEmpty && messages.isEmpty;
+    final showSuggestions = widget.suggestions.isNotEmpty && messages.isEmpty;
 
     // 处理消息定位和自动滚动
     if (widget.initialMessageId != null &&
@@ -138,14 +152,14 @@ class _ChatHistoryViewState extends State<ChatHistoryView> {
                           vertical: DesignConstants.spaceS,
                         ),
                         child: ChatSuggestionsView(
-                          suggestions: viewModel.suggestions,
+                          suggestions: widget.suggestions,
                           onSelectSuggestion: widget.onSelectSuggestion,
                         ),
                       );
                     }
 
                     final message = displayMessages[index];
-                    final isWelcomeMessage = viewModel.welcomeMessage != null &&
+                    final isWelcomeMessage = widget.welcomeMessage != null &&
                         messages.isEmpty &&
                         index == 0;
 

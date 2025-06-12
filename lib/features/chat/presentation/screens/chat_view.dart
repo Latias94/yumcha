@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/chat_message_content.dart';
 import '../../domain/services/message_processor.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
-import '../providers/chat_configuration_notifier.dart';
-import 'chat_view_model.dart';
-import 'chat_view_model_provider.dart';
-import 'stream_response.dart';
+import '../providers/chat_message_notifier.dart';
 import 'widgets/chat_history_view.dart';
 import 'widgets/chat_input.dart';
-import '../../infrastructure/services/chat_error_handler.dart';
 
-/// 主要的聊天视图组件
+/// 重构后的聊天视图组件 - 使用纯 Riverpod 状态管理
+///
+/// 遵循 Riverpod 最佳实践：
+/// - 🎯 单一数据源：所有状态通过 ChatMessageNotifier 管理
+/// - 🔗 依赖注入：通过 Provider 获取依赖
+/// - 📝 清晰的职责分离：UI 只负责展示，状态管理交给 Notifier
+/// - ⚠️ 统一的错误处理：错误状态统一管理
 class ChatView extends ConsumerStatefulWidget {
   const ChatView({
     super.key,
+    required this.conversationId,
     required this.assistantId,
     required this.selectedProviderId,
     required this.selectedModelName,
@@ -29,6 +31,9 @@ class ChatView extends ConsumerStatefulWidget {
     this.initialMessageId,
   });
 
+  /// 对话ID - 用于状态管理
+  final String conversationId;
+
   /// 助手ID
   final String assistantId;
 
@@ -38,7 +43,7 @@ class ChatView extends ConsumerStatefulWidget {
   /// 选择的模型名称
   final String selectedModelName;
 
-  /// 消息列表
+  /// 初始消息列表
   final List<Message> messages;
 
   /// 欢迎消息
@@ -66,36 +71,39 @@ class _ChatViewState extends ConsumerState<ChatView>
   @override
   bool get wantKeepAlive => true;
 
-  late List<Message> _messages;
-
-  // 流式响应相关
-  StreamResponse? _pendingStreamResponse;
-  Message? _streamingMessage;
-
-  // 编辑相关
+  // 编辑相关状态
   Message? _editingMessage;
   Message? _originalAssistantMessage;
-
-  // 状态
-  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _messages = List.from(widget.messages);
+
+    // 初始化消息列表
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.messages.isNotEmpty) {
+        ref
+            .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+            .initializeMessages(widget.messages);
+      }
+    });
   }
 
   @override
   void didUpdateWidget(ChatView oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // 如果消息列表发生变化，更新状态
     if (widget.messages != oldWidget.messages) {
-      _messages = List.from(widget.messages);
+      ref
+          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+          .initializeMessages(widget.messages);
     }
   }
 
   @override
   void dispose() {
-    _pendingStreamResponse?.dispose();
+    // Riverpod 会自动清理 Provider 状态
     super.dispose();
   }
 
@@ -103,6 +111,9 @@ class _ChatViewState extends ConsumerState<ChatView>
   Widget build(BuildContext context) {
     super.build(context); // for AutomaticKeepAliveClientMixin
 
+    // 监听聊天消息状态
+    final chatState =
+        ref.watch(chatMessageNotifierProvider(widget.conversationId));
     final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
     final providersAsync = ref.watch(aiProviderNotifierProvider);
 
@@ -110,60 +121,51 @@ class _ChatViewState extends ConsumerState<ChatView>
       data: (assistants) {
         return providersAsync.when(
           data: (providers) {
-            final assistant =
-                assistants.where((a) => a.id == widget.assistantId).firstOrNull;
-            final provider = providers
-                .where((p) => p.id == widget.selectedProviderId)
-                .firstOrNull;
+            return Column(
+              children: [
+                // 错误提示横幅
+                if (chatState.error != null)
+                  _buildErrorBanner(chatState.error!),
 
-            final viewModel = ChatViewModel(
-              assistantId: widget.assistantId,
-              selectedProviderId: widget.selectedProviderId,
-              selectedModelName: widget.selectedModelName,
-              messages: _messages,
-              currentAssistant: assistant,
-              currentProvider: provider,
-              welcomeMessage: widget.welcomeMessage,
-              suggestions: widget.suggestions,
-            );
-
-            return ChatViewModelProvider(
-              viewModel: viewModel,
-              child: Column(
-                children: [
-                  // 聊天历史
-                  Expanded(
-                    child: ChatHistoryView(
-                      onEditMessage: _pendingStreamResponse == null
-                          ? _onEditMessage
-                          : null,
-                      onRegenerateMessage: _pendingStreamResponse == null
-                          ? _onRegenerateMessage
-                          : null,
-                      onSelectSuggestion: _onSelectSuggestion,
-                      initialMessageId: widget.initialMessageId,
-                      isLoading: _isLoading,
-                      isStreaming: _pendingStreamResponse != null,
-                    ),
+                // 聊天历史
+                Expanded(
+                  child: ChatHistoryView(
+                    conversationId: widget.conversationId,
+                    onEditMessage:
+                        !chatState.hasStreamingMessage ? _onEditMessage : null,
+                    onRegenerateMessage: !chatState.hasStreamingMessage
+                        ? _onRegenerateMessage
+                        : null,
+                    onSelectSuggestion: _onSelectSuggestion,
+                    initialMessageId: widget.initialMessageId,
+                    isLoading: chatState.isLoading,
+                    isStreaming: chatState.hasStreamingMessage,
+                    welcomeMessage: widget.welcomeMessage,
+                    suggestions: widget.suggestions,
                   ),
+                ),
 
-                  // 聊天输入
-                  ChatInput(
-                    initialMessage: _editingMessage,
-                    autofocus: widget.suggestions.isEmpty,
-                    onSendMessage: _onSendMessageRequest,
-                    onCancelMessage: _pendingStreamResponse?.cancel,
-                    onCancelEdit:
-                        _editingMessage != null ? _onCancelEdit : null,
-                    isLoading: _isLoading,
-                    onAssistantChanged: (assistant) {
-                      // 临时修复：助手不再关联提供商和模型
-                      // TODO: 实现新的助手选择逻辑
-                    },
-                    initialAssistantId: widget.assistantId,
-                  ),
-                ],
-              ),
+                // 聊天输入
+                ChatInput(
+                  initialMessage: _editingMessage,
+                  autofocus: widget.suggestions.isEmpty,
+                  onSendMessage: _onSendMessageRequest,
+                  onCancelMessage: chatState.hasStreamingMessage
+                      ? () => ref
+                          .read(
+                              chatMessageNotifierProvider(widget.conversationId)
+                                  .notifier)
+                          .cancelStreaming()
+                      : null,
+                  onCancelEdit: _editingMessage != null ? _onCancelEdit : null,
+                  isLoading: chatState.isLoading,
+                  onAssistantChanged: (assistant) {
+                    // 临时修复：助手不再关联提供商和模型
+                    // TODO: 实现新的助手选择逻辑
+                  },
+                  initialAssistantId: widget.assistantId,
+                ),
+              ],
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -189,6 +191,36 @@ class _ChatViewState extends ConsumerState<ChatView>
             Text('加载助手失败: $error'),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 构建错误横幅
+  Widget _buildErrorBanner(String error) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      color: Colors.red.shade100,
+      child: Row(
+        children: [
+          Icon(Icons.error, color: Colors.red.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              error,
+              style: TextStyle(color: Colors.red.shade700),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              ref
+                  .read(chatMessageNotifierProvider(widget.conversationId)
+                      .notifier)
+                  .clearError();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -242,70 +274,55 @@ class _ChatViewState extends ConsumerState<ChatView>
       return;
     }
 
-    // 使用 Riverpod 获取助手信息
+    // 获取助手信息以确定是否使用流式输出
     final assistantsAsync = ref.read(aiAssistantNotifierProvider);
-    AiAssistant? assistant;
+    bool isStreaming = true; // 默认使用流式输出
 
     assistantsAsync.whenData((assistants) {
-      assistant =
+      final assistant =
           assistants.where((a) => a.id == widget.assistantId).firstOrNull;
+      if (assistant != null) {
+        isStreaming = assistant.streamOutput;
+      }
     });
-
-    if (assistant == null) {
-      NotificationService().showError('找不到助手配置');
-      return;
-    }
 
     // 如果是编辑模式，处理编辑逻辑
     if (_editingMessage != null) {
-      _handleEditMessage(content, assistant!);
+      _handleEditMessage(content);
       return;
     }
 
-    // 添加用户消息
-    final userMessage = Message(
-      content: content,
-      timestamp: DateTime.now(),
-      isFromUser: true,
-      author: "你",
-    );
-
-    setState(() {
-      _messages.add(userMessage);
-      _isLoading = true;
-    });
-
-    // 立即保存用户消息到数据库
-    _notifyMessagesChanged();
-
     try {
-      if (assistant!.streamOutput) {
-        await _handleStreamMessage(userMessage, assistant!);
-        // 流式消息的 _isLoading 状态由 _handleStreamMessage 内部管理
-      } else {
-        await _handleNormalMessage(userMessage, assistant!);
-        // 非流式消息完成后重置加载状态
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      // 使用新的 ChatMessageNotifier 发送消息
+      await ref
+          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+          .sendMessage(
+            content: content,
+            assistantId: widget.assistantId,
+            providerId: widget.selectedProviderId,
+            modelName: widget.selectedModelName,
+            isStreaming: isStreaming,
+          );
+
+      // 通知消息变化（用于回调）
+      _notifyMessagesChanged();
     } catch (e) {
-      _handleError(e);
-      // 发生异常时重置加载状态
-      setState(() {
-        _isLoading = false;
-      });
+      NotificationService().showError('发送消息失败: $e');
     }
   }
 
-  void _handleEditMessage(String content, AiAssistant assistant) {
-    // 移除原来的用户消息和AI回复
-    if (_originalAssistantMessage != null) {
-      _messages.remove(_originalAssistantMessage!);
+  void _handleEditMessage(String content) {
+    // 删除正在编辑的消息和相关的AI回复
+    if (_editingMessage != null) {
+      ref
+          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+          .deleteMessage(_editingMessage!);
     }
-    final editingIndex = _messages.indexOf(_editingMessage!);
-    if (editingIndex != -1) {
-      _messages.removeAt(editingIndex);
+
+    if (_originalAssistantMessage != null) {
+      ref
+          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+          .deleteMessage(_originalAssistantMessage!);
     }
 
     setState(() {
@@ -317,180 +334,19 @@ class _ChatViewState extends ConsumerState<ChatView>
     _onSendMessage(content);
   }
 
-  Future<void> _handleStreamMessage(
-    Message userMessage,
-    AiAssistant assistant,
-  ) async {
-    // 创建占位AI消息
-    final aiMessage = Message(
-      content: '',
-      timestamp: DateTime.now(),
-      isFromUser: false,
-      author: assistant.name,
-    );
-
-    setState(() {
-      _messages.add(aiMessage);
-      _streamingMessage = aiMessage;
-      // 确保在流式响应期间保持加载状态
-      _isLoading = true;
-    });
-
-    // 注意：这里不调用 _notifyMessagesChanged()，避免保存空的AI消息到数据库
-
-    try {
-      // 获取当前的聊天配置
-      final chatConfig = ref.read(chatConfigurationProvider);
-      final providerId =
-          chatConfig.selectedProvider?.id ?? widget.selectedProviderId;
-      final modelName =
-          chatConfig.selectedModel?.name ?? widget.selectedModelName;
-
-      // 使用新的智能流式聊天Provider
-      final params = SmartChatParams(
-        chatHistory: _messages.where((m) => m != aiMessage).toList(),
-        userMessage: userMessage.content,
-        assistantId: widget.assistantId,
-        providerId: providerId,
-        modelName: modelName,
-      );
-
-      // 使用传统的流式监听方式
-      final chatService = ref.read(aiChatServiceProvider);
-      final provider = ref.read(aiProviderProvider(providerId));
-      final assistant = ref.read(aiAssistantProvider(widget.assistantId));
-
-      if (provider == null || assistant == null) {
-        throw Exception('Provider or assistant not found');
-      }
-
-      final stream = chatService.sendMessageStream(
-        provider: provider,
-        assistant: assistant,
-        modelName: modelName,
-        chatHistory: params.chatHistory,
-        userMessage: params.userMessage,
-      );
-
-      _pendingStreamResponse = StreamResponse(
-        stream: stream,
-        onUpdate: () {
-          setState(() {
-            // 更新流式消息内容
-            if (_streamingMessage != null) {
-              final updatedMessage = Message(
-                content: _pendingStreamResponse!.fullContent,
-                timestamp: _streamingMessage!.timestamp,
-                isFromUser: false,
-                author: _streamingMessage!.author,
-                duration: _pendingStreamResponse!.duration,
-              );
-
-              final index = _messages.indexOf(_streamingMessage!);
-              if (index != -1) {
-                _messages[index] = updatedMessage;
-                _streamingMessage = updatedMessage;
-              }
-            }
-          });
-        },
-        onDone: (error) {
-          // 如果有错误，先处理错误消息
-          if (error != null) {
-            final errorHandler = ChatErrorHandler();
-
-            // 如果有流式消息，将其标记为错误状态
-            if (_streamingMessage != null) {
-              final errorMessage = errorHandler.handleStreamError(
-                error: error,
-                streamingMessage: _streamingMessage!,
-                partialContent: _streamingMessage!.content,
-              );
-
-              final index = _messages.indexOf(_streamingMessage!);
-              if (index != -1) {
-                setState(() {
-                  _messages[index] = errorMessage;
-                });
-              }
-            }
-          }
-
-          // 清空状态变量
-          setState(() {
-            _pendingStreamResponse = null;
-            _streamingMessage = null;
-            _isLoading = false;
-          });
-
-          // 只在流式响应完成时通知消息变化（无论成功还是失败）
-          _notifyMessagesChanged();
-        },
-      );
-    } catch (e) {
-      setState(() {
-        _pendingStreamResponse = null;
-        _streamingMessage = null;
-        _isLoading = false; // 确保在异常时也重置加载状态
-      });
-      rethrow;
-    }
-  }
-
-  Future<void> _handleNormalMessage(
-    Message userMessage,
-    AiAssistant assistant,
-  ) async {
-    // 获取当前的聊天配置
-    final chatConfig = ref.read(chatConfigurationProvider);
-    final providerId =
-        chatConfig.selectedProvider?.id ?? widget.selectedProviderId;
-    final modelName =
-        chatConfig.selectedModel?.name ?? widget.selectedModelName;
-
-    // 使用新的智能聊天Provider
-    final params = SmartChatParams(
-      chatHistory: _messages,
-      userMessage: userMessage.content,
-      assistantId: widget.assistantId,
-      providerId: providerId,
-      modelName: modelName,
-    );
-
-    try {
-      final response = await ref.read(smartChatProvider(params).future);
-
-      if (response.isSuccess) {
-        final aiMessage = Message(
-          content: response.content,
-          timestamp: DateTime.now(),
-          isFromUser: false,
-          author: assistant.name,
-          duration: response.duration,
-        );
-
-        setState(() {
-          _messages.add(aiMessage);
-        });
-
-        _notifyMessagesChanged();
-      } else {
-        NotificationService().showError(response.error ?? '请求失败');
-      }
-    } catch (e) {
-      NotificationService().showError('请求失败: $e');
-    }
-  }
-
   void _onEditMessage(Message message) {
     if (!message.isFromUser) return;
 
+    // 获取当前消息状态
+    final chatState =
+        ref.read(chatMessageNotifierProvider(widget.conversationId));
+
     // 找到对应的AI回复消息
-    final messageIndex = _messages.indexOf(message);
+    final messageIndex = chatState.messages.indexOf(message);
     Message? associatedResponse;
 
-    if (messageIndex != -1 && messageIndex < _messages.length - 1) {
-      final nextMessage = _messages[messageIndex + 1];
+    if (messageIndex != -1 && messageIndex < chatState.messages.length - 1) {
+      final nextMessage = chatState.messages[messageIndex + 1];
       if (!nextMessage.isFromUser) {
         associatedResponse = nextMessage;
       }
@@ -503,17 +359,6 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   void _onCancelEdit() {
-    // 恢复原来的消息
-    if (_editingMessage != null && _originalAssistantMessage != null) {
-      if (!_messages.contains(_editingMessage!)) {
-        _messages.add(_editingMessage!);
-      }
-      if (!_messages.contains(_originalAssistantMessage!)) {
-        _messages.add(_originalAssistantMessage!);
-      }
-      _notifyMessagesChanged();
-    }
-
     setState(() {
       _editingMessage = null;
       _originalAssistantMessage = null;
@@ -523,76 +368,58 @@ class _ChatViewState extends ConsumerState<ChatView>
   void _onRegenerateMessage(Message aiMessage) async {
     if (aiMessage.isFromUser) return;
 
+    // 获取当前消息状态
+    final chatState =
+        ref.read(chatMessageNotifierProvider(widget.conversationId));
+
     // 找到对应的用户消息
-    final messageIndex = _messages.indexOf(aiMessage);
+    final messageIndex = chatState.messages.indexOf(aiMessage);
     if (messageIndex <= 0) return; // AI消息应该不是第一条消息
 
-    final userMessage = _messages[messageIndex - 1];
+    final userMessage = chatState.messages[messageIndex - 1];
     if (!userMessage.isFromUser) return;
 
-    // 移除当前的AI消息
-    setState(() {
-      _messages.removeAt(messageIndex);
-      _isLoading = true;
-    });
+    // 删除当前的AI消息
+    ref
+        .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+        .deleteMessage(aiMessage);
 
-    // 使用 Riverpod 获取助手信息
+    // 获取助手信息以确定是否使用流式输出
     final assistantsAsync = ref.read(aiAssistantNotifierProvider);
-    AiAssistant? assistant;
+    bool isStreaming = true; // 默认使用流式输出
 
     assistantsAsync.whenData((assistants) {
-      assistant =
+      final assistant =
           assistants.where((a) => a.id == widget.assistantId).firstOrNull;
+      if (assistant != null) {
+        isStreaming = assistant.streamOutput;
+      }
     });
 
-    if (assistant == null) {
-      NotificationService().showError('找不到助手配置');
-      setState(() {
-        _isLoading = false;
-      });
-      return;
-    }
+    try {
+      // 重新发送消息
+      await ref
+          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+          .sendMessage(
+            content: userMessage.content,
+            assistantId: widget.assistantId,
+            providerId: widget.selectedProviderId,
+            modelName: widget.selectedModelName,
+            isStreaming: isStreaming,
+          );
 
-    // 重新发送消息
-    if (assistant!.streamOutput) {
-      await _handleStreamMessage(userMessage, assistant!);
-      // 流式消息的 _isLoading 状态由 _handleStreamMessage 内部管理
-    } else {
-      await _handleNormalMessage(userMessage, assistant!);
-      // 非流式消息完成后重置加载状态
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _handleError(Object error) {
-    final errorHandler = ChatErrorHandler();
-
-    // 如果有流式消息，将其标记为错误状态（不保存到数据库）
-    if (_streamingMessage != null) {
-      final errorMessage = errorHandler.handleStreamError(
-        error: error,
-        streamingMessage: _streamingMessage!,
-        partialContent: _streamingMessage!.content,
-      );
-
-      final index = _messages.indexOf(_streamingMessage!);
-      if (index != -1) {
-        setState(() {
-          _messages[index] = errorMessage;
-        });
-        // 注意：错误消息不会被保存到数据库，因为 shouldPersist = false
-        _notifyMessagesChanged();
-      }
-    } else {
-      // 如果没有流式消息，只显示通知
-      NotificationService().showError('请求失败: $error');
+      // 通知消息变化
+      _notifyMessagesChanged();
+    } catch (e) {
+      NotificationService().showError('重新生成失败: $e');
     }
   }
 
   void _notifyMessagesChanged() {
-    widget.onMessagesChanged?.call(_messages);
+    // 获取当前消息状态
+    final chatState =
+        ref.read(chatMessageNotifierProvider(widget.conversationId));
+    widget.onMessagesChanged?.call(chatState.messages);
 
     // 检查是否有新的 AI 消息，如果有则触发标题生成
     _checkForNewAiMessage();
@@ -600,10 +427,12 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   /// 检查是否有新的 AI 消息并触发标题生成
   void _checkForNewAiMessage() {
-    if (_messages.isEmpty) return;
+    final chatState =
+        ref.read(chatMessageNotifierProvider(widget.conversationId));
+    if (chatState.messages.isEmpty) return;
 
     // 获取最后一条消息
-    final lastMessage = _messages.last;
+    final lastMessage = chatState.messages.last;
 
     // 如果最后一条消息是 AI 消息，触发标题生成检查
     if (!lastMessage.isFromUser && lastMessage.content.isNotEmpty) {
