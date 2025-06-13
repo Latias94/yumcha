@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
     as models;
@@ -9,6 +10,10 @@ import '../../../../../features/ai_management/presentation/providers/ai_assistan
 
 import '../chat/chat_service.dart';
 import '../capabilities/model_service.dart';
+import '../capabilities/speech_service.dart';
+import '../capabilities/multimodal_service.dart';
+import '../capabilities/image_generation_service.dart';
+import '../capabilities/web_search_service.dart';
 import '../core/ai_response_models.dart';
 
 // ============================================================================
@@ -23,6 +28,26 @@ final aiChatServiceProvider = Provider<ChatService>((ref) {
 /// AI模型服务Provider
 final aiModelServiceProvider = Provider<ModelService>((ref) {
   return ModelService();
+});
+
+/// AI语音服务Provider
+final aiSpeechServiceProvider = Provider<SpeechService>((ref) {
+  return SpeechService();
+});
+
+/// AI多模态服务Provider
+final aiMultimodalServiceProvider = Provider<MultimodalService>((ref) {
+  return MultimodalService();
+});
+
+/// AI图像生成服务Provider
+final aiImageGenerationServiceProvider = Provider<ImageGenerationService>((ref) {
+  return ImageGenerationService();
+});
+
+/// AI Web搜索服务Provider
+final aiWebSearchServiceProvider = Provider<WebSearchService>((ref) {
+  return WebSearchService();
 });
 
 // ============================================================================
@@ -268,6 +293,180 @@ final clearModelCacheProvider = Provider.family<void, String?>((
 final modelCacheStatsProvider = Provider<Map<String, dynamic>>((ref) {
   final modelService = ref.read(aiModelServiceProvider);
   return modelService.getCacheStats();
+});
+
+// ============================================================================
+// 图像生成功能Providers
+// ============================================================================
+
+/// 图像生成Provider
+final generateImageProvider = FutureProvider.autoDispose.family<ImageGenerationResponse, ImageGenerationParams>((
+  ref,
+  params,
+) async {
+  final imageService = ref.read(aiImageGenerationServiceProvider);
+
+  return await imageService.generateImage(
+    provider: params.provider,
+    prompt: params.prompt,
+    size: params.size,
+    quality: params.quality,
+    style: params.style,
+    count: params.count,
+  );
+});
+
+/// 检查图像生成支持的Provider
+final imageGenerationSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+  final imageService = ref.read(aiImageGenerationServiceProvider);
+  return imageService.supportsImageGeneration(provider);
+});
+
+/// 获取支持的图像尺寸Provider
+final supportedImageSizesProvider = Provider.family<List<String>, models.AiProvider>((ref, provider) {
+  final imageService = ref.read(aiImageGenerationServiceProvider);
+  return imageService.getSupportedSizes(provider);
+});
+
+// ============================================================================
+// Web搜索功能Providers
+// ============================================================================
+
+/// Web搜索Provider
+final webSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, WebSearchParams>((
+  ref,
+  params,
+) async {
+  final webSearchService = ref.read(aiWebSearchServiceProvider);
+
+  return await webSearchService.searchWeb(
+    provider: params.provider,
+    assistant: params.assistant,
+    query: params.query,
+    maxResults: params.maxResults,
+    language: params.language,
+    allowedDomains: params.allowedDomains,
+    blockedDomains: params.blockedDomains,
+  );
+});
+
+/// 新闻搜索Provider
+final newsSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, NewsSearchParams>((
+  ref,
+  params,
+) async {
+  final webSearchService = ref.read(aiWebSearchServiceProvider);
+
+  return await webSearchService.searchNews(
+    provider: params.provider,
+    assistant: params.assistant,
+    query: params.query,
+    maxResults: params.maxResults,
+    fromDate: params.fromDate,
+    toDate: params.toDate,
+  );
+});
+
+/// 检查Web搜索支持的Provider
+final webSearchSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+  final webSearchService = ref.read(aiWebSearchServiceProvider);
+  return webSearchService.supportsWebSearch(provider);
+});
+
+// ============================================================================
+// 语音功能Providers
+// ============================================================================
+
+/// 文字转语音Provider
+final textToSpeechProvider = FutureProvider.autoDispose.family<TextToSpeechResponse, TextToSpeechParams>((
+  ref,
+  params,
+) async {
+  final multimodalService = ref.read(aiMultimodalServiceProvider);
+
+  return await multimodalService.textToSpeech(
+    provider: params.provider,
+    text: params.text,
+    voice: params.voice,
+    model: params.model,
+  );
+});
+
+/// 语音转文字Provider
+final speechToTextProvider = FutureProvider.autoDispose.family<SpeechToTextResponse, SpeechToTextParams>((
+  ref,
+  params,
+) async {
+  final multimodalService = ref.read(aiMultimodalServiceProvider);
+
+  return await multimodalService.speechToText(
+    provider: params.provider,
+    audioData: params.audioData,
+    language: params.language,
+    model: params.model,
+  );
+});
+
+/// 检查TTS支持的Provider
+final ttsSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+  final speechService = ref.read(aiSpeechServiceProvider);
+  return speechService.supportsTts(provider);
+});
+
+/// 检查STT支持的Provider
+final sttSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+  final speechService = ref.read(aiSpeechServiceProvider);
+  return speechService.supportsStt(provider);
+});
+
+/// 获取支持的语音列表Provider
+final supportedVoicesProvider = Provider.family<List<String>, models.AiProvider>((ref, provider) {
+  final speechService = ref.read(aiSpeechServiceProvider);
+  return speechService.getSupportedVoices(provider);
+});
+
+// ============================================================================
+// 多模态功能Providers
+// ============================================================================
+
+/// 图像分析Provider
+final analyzeImageProvider = FutureProvider.autoDispose.family<AiResponse, ImageAnalysisParams>((
+  ref,
+  params,
+) async {
+  final multimodalService = ref.read(aiMultimodalServiceProvider);
+
+  return await multimodalService.analyzeImage(
+    provider: params.provider,
+    assistant: params.assistant,
+    modelName: params.modelName,
+    imageData: params.imageData,
+    prompt: params.prompt,
+    imageFormat: params.imageFormat,
+  );
+});
+
+// ============================================================================
+// HTTP配置功能Providers
+// ============================================================================
+
+/// HTTP代理配置Provider
+final httpProxyConfigProvider = Provider.family<HttpProxyConfig?, String?>((ref, proxyUrl) {
+  if (proxyUrl == null || proxyUrl.isEmpty) return null;
+
+  return HttpProxyConfig(
+    proxyUrl: proxyUrl,
+    isEnabled: true,
+  );
+});
+
+/// HTTP超时配置Provider
+final httpTimeoutConfigProvider = Provider.family<HttpTimeoutConfig, Duration>((ref, timeout) {
+  return HttpTimeoutConfig(
+    connectionTimeout: timeout,
+    receiveTimeout: timeout,
+    sendTimeout: timeout,
+  );
 });
 
 // ============================================================================
@@ -644,4 +843,292 @@ class ConversationChatStreamEvent {
 
   /// 是否为错误事件
   bool get isError => error != null;
+}
+
+// ============================================================================
+// 新增功能参数类定义
+// ============================================================================
+
+/// 图像生成的参数类
+class ImageGenerationParams {
+  final models.AiProvider provider;
+  final String prompt;
+  final String? size;
+  final String? quality;
+  final String? style;
+  final int count;
+
+  const ImageGenerationParams({
+    required this.provider,
+    required this.prompt,
+    this.size = '1024x1024',
+    this.quality = 'standard',
+    this.style = 'natural',
+    this.count = 1,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageGenerationParams &&
+          runtimeType == other.runtimeType &&
+          provider.id == other.provider.id &&
+          prompt == other.prompt &&
+          size == other.size &&
+          quality == other.quality &&
+          style == other.style &&
+          count == other.count;
+
+  @override
+  int get hashCode =>
+      provider.id.hashCode ^
+      prompt.hashCode ^
+      size.hashCode ^
+      quality.hashCode ^
+      style.hashCode ^
+      count.hashCode;
+}
+
+/// Web搜索的参数类
+class WebSearchParams {
+  final models.AiProvider provider;
+  final AiAssistant assistant;
+  final String query;
+  final int maxResults;
+  final String? language;
+  final List<String>? allowedDomains;
+  final List<String>? blockedDomains;
+
+  const WebSearchParams({
+    required this.provider,
+    required this.assistant,
+    required this.query,
+    this.maxResults = 5,
+    this.language,
+    this.allowedDomains,
+    this.blockedDomains,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WebSearchParams &&
+          runtimeType == other.runtimeType &&
+          provider.id == other.provider.id &&
+          assistant.id == other.assistant.id &&
+          query == other.query &&
+          maxResults == other.maxResults &&
+          language == other.language;
+
+  @override
+  int get hashCode =>
+      provider.id.hashCode ^
+      assistant.id.hashCode ^
+      query.hashCode ^
+      maxResults.hashCode ^
+      language.hashCode;
+}
+
+/// 新闻搜索的参数类
+class NewsSearchParams {
+  final models.AiProvider provider;
+  final AiAssistant assistant;
+  final String query;
+  final int maxResults;
+  final String? fromDate;
+  final String? toDate;
+
+  const NewsSearchParams({
+    required this.provider,
+    required this.assistant,
+    required this.query,
+    this.maxResults = 5,
+    this.fromDate,
+    this.toDate,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NewsSearchParams &&
+          runtimeType == other.runtimeType &&
+          provider.id == other.provider.id &&
+          assistant.id == other.assistant.id &&
+          query == other.query &&
+          maxResults == other.maxResults &&
+          fromDate == other.fromDate &&
+          toDate == other.toDate;
+
+  @override
+  int get hashCode =>
+      provider.id.hashCode ^
+      assistant.id.hashCode ^
+      query.hashCode ^
+      maxResults.hashCode ^
+      fromDate.hashCode ^
+      toDate.hashCode;
+}
+
+/// 文字转语音的参数类
+class TextToSpeechParams {
+  final models.AiProvider provider;
+  final String text;
+  final String? voice;
+  final String? model;
+
+  const TextToSpeechParams({
+    required this.provider,
+    required this.text,
+    this.voice,
+    this.model,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TextToSpeechParams &&
+          runtimeType == other.runtimeType &&
+          provider.id == other.provider.id &&
+          text == other.text &&
+          voice == other.voice &&
+          model == other.model;
+
+  @override
+  int get hashCode =>
+      provider.id.hashCode ^
+      text.hashCode ^
+      voice.hashCode ^
+      model.hashCode;
+}
+
+/// 语音转文字的参数类
+class SpeechToTextParams {
+  final models.AiProvider provider;
+  final Uint8List audioData;
+  final String? language;
+  final String? model;
+
+  const SpeechToTextParams({
+    required this.provider,
+    required this.audioData,
+    this.language,
+    this.model,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SpeechToTextParams &&
+          runtimeType == other.runtimeType &&
+          provider.id == other.provider.id &&
+          audioData == other.audioData &&
+          language == other.language &&
+          model == other.model;
+
+  @override
+  int get hashCode =>
+      provider.id.hashCode ^
+      audioData.hashCode ^
+      language.hashCode ^
+      model.hashCode;
+}
+
+/// 图像分析的参数类
+class ImageAnalysisParams {
+  final models.AiProvider provider;
+  final AiAssistant assistant;
+  final String modelName;
+  final Uint8List imageData;
+  final String prompt;
+  final String? imageFormat;
+
+  const ImageAnalysisParams({
+    required this.provider,
+    required this.assistant,
+    required this.modelName,
+    required this.imageData,
+    required this.prompt,
+    this.imageFormat = 'png',
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageAnalysisParams &&
+          runtimeType == other.runtimeType &&
+          provider.id == other.provider.id &&
+          assistant.id == other.assistant.id &&
+          modelName == other.modelName &&
+          imageData == other.imageData &&
+          prompt == other.prompt &&
+          imageFormat == other.imageFormat;
+
+  @override
+  int get hashCode =>
+      provider.id.hashCode ^
+      assistant.id.hashCode ^
+      modelName.hashCode ^
+      imageData.hashCode ^
+      prompt.hashCode ^
+      imageFormat.hashCode;
+}
+
+/// HTTP代理配置类
+class HttpProxyConfig {
+  final String proxyUrl;
+  final bool isEnabled;
+  final String? username;
+  final String? password;
+
+  const HttpProxyConfig({
+    required this.proxyUrl,
+    required this.isEnabled,
+    this.username,
+    this.password,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HttpProxyConfig &&
+          runtimeType == other.runtimeType &&
+          proxyUrl == other.proxyUrl &&
+          isEnabled == other.isEnabled &&
+          username == other.username &&
+          password == other.password;
+
+  @override
+  int get hashCode =>
+      proxyUrl.hashCode ^
+      isEnabled.hashCode ^
+      username.hashCode ^
+      password.hashCode;
+}
+
+/// HTTP超时配置类
+class HttpTimeoutConfig {
+  final Duration connectionTimeout;
+  final Duration receiveTimeout;
+  final Duration sendTimeout;
+
+  const HttpTimeoutConfig({
+    required this.connectionTimeout,
+    required this.receiveTimeout,
+    required this.sendTimeout,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HttpTimeoutConfig &&
+          runtimeType == other.runtimeType &&
+          connectionTimeout == other.connectionTimeout &&
+          receiveTimeout == other.receiveTimeout &&
+          sendTimeout == other.sendTimeout;
+
+  @override
+  int get hashCode =>
+      connectionTimeout.hashCode ^
+      receiveTimeout.hashCode ^
+      sendTimeout.hashCode;
 }

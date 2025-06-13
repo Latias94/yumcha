@@ -404,6 +404,16 @@ class AppDatabase extends _$AppDatabase {
             ..limit(1))
           .getSingleOrNull();
 
+  // 获取对话的消息数量
+  Future<int> getMessageCountByConversation(String conversationId) async {
+    final countExp = messages.id.count();
+    final query = selectOnly(messages)
+      ..addColumns([countExp])
+      ..where(messages.conversationId.equals(conversationId));
+    final result = await query.getSingle();
+    return result.read(countExp) ?? 0;
+  }
+
   // 搜索消息内容
   Future<List<MessageData>> searchMessages(
     String query, {

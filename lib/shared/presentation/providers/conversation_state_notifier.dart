@@ -222,42 +222,73 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
   /// 加载现有对话
   Future<void> loadConversation(String conversationId) async {
     try {
-      _logger.info('开始加载对话', {'conversationId': conversationId});
+      _logger.info('ConversationStateNotifier 开始加载对话', {'conversationId': conversationId});
       state = state.copyWith(isLoading: true, error: null);
 
       final repository = _ref.read(conversationRepositoryProvider);
       final conversation = await repository.getConversation(conversationId);
 
       if (conversation != null) {
+        _logger.info('对话数据加载成功', {
+          'conversationId': conversation.id,
+          'title': conversation.channelName,
+          'messageCount': conversation.messages.length,
+        });
+
         state = state.copyWith(
           currentConversation: conversation,
           isLoading: false,
           selectedMenu: conversationId,
         );
-        _logger.info('对话加载成功');
+
+        _logger.info('对话状态更新完成', {
+          'currentConversationId': state.currentConversation?.id,
+          'selectedMenu': state.selectedMenu,
+          'isLoading': state.isLoading,
+        });
       } else {
         _logger.warning('对话不存在', {'conversationId': conversationId});
         state = state.copyWith(isLoading: false, error: '对话不存在');
       }
     } catch (e) {
-      _logger.error('加载对话失败', {'error': e.toString()});
+      _logger.error('加载对话失败', {
+        'conversationId': conversationId,
+        'error': e.toString(),
+      });
       state = state.copyWith(isLoading: false, error: '加载对话失败: $e');
     }
   }
 
   /// 切换对话
   Future<void> switchToConversation(String chatId) async {
-    if (state.isLoading) return;
+    _logger.info('ConversationStateNotifier 开始切换对话', {
+      'targetChatId': chatId,
+      'currentConversationId': state.currentConversation?.id,
+      'isLoading': state.isLoading,
+    });
+
+    if (state.isLoading) {
+      _logger.warning('对话正在加载中，忽略切换请求');
+      return;
+    }
 
     if (state.currentConversation?.id == chatId && chatId != "new_chat") {
+      _logger.info('目标对话已经是当前对话，无需切换');
       return;
     }
 
     if (chatId == "new_chat") {
+      _logger.info('切换到新对话');
       await createNewConversation();
     } else {
+      _logger.info('切换到现有对话', {'conversationId': chatId});
       await loadConversation(chatId);
     }
+
+    _logger.info('对话切换完成', {
+      'newConversationId': state.currentConversation?.id,
+      'selectedMenu': state.selectedMenu,
+    });
   }
 
   /// 更新对话
@@ -407,9 +438,3 @@ final conversationStateNotifierProvider =
     StateNotifierProvider<ConversationStateNotifier, ConversationState>(
   (ref) => ConversationStateNotifier(ref),
 );
-
-/// 当前对话Provider
-final currentConversationProvider = Provider<ConversationUiState?>((ref) {
-  final state = ref.watch(conversationStateNotifierProvider);
-  return state.currentConversation;
-});

@@ -537,35 +537,7 @@ class DrawerConversationList extends ConsumerWidget {
                   ),
                 ),
 
-                // 消息数量指示器
-                if (conversation.messages.isNotEmpty) ...[
-                  Container(
-                    margin: EdgeInsets.only(left: DesignConstants.spaceS),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: DesignConstants.spaceS,
-                      vertical: DesignConstants.spaceXS,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.6),
-                      borderRadius: DesignConstants.radiusS,
-                    ),
-                    child: Text(
-                      conversation.messages.length.toString(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                        fontSize: DesignConstants.getResponsiveFontSize(
-                          context,
-                          mobile: 10.0,
-                          tablet: 11.0,
-                          desktop: 12.0,
-                        ),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: DesignConstants.spaceXS),
-                ],
+
 
                 // 更多选项按钮
                 PopupMenuButton<String>(

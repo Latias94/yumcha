@@ -3,6 +3,7 @@ import '../../../features/chat/domain/entities/conversation_ui_state.dart';
 import '../../../features/chat/domain/entities/message.dart';
 import 'conversation_coordinator.dart';
 import 'conversation_state_notifier.dart';
+import '../../infrastructure/services/logger_service.dart';
 
 /// 🔄 重构后的对话管理器
 ///
@@ -60,18 +61,35 @@ class CurrentConversationNotifier
     extends StateNotifier<CurrentConversationState> {
   CurrentConversationNotifier(this.ref)
       : super(const CurrentConversationState()) {
+    _logger.info('CurrentConversationNotifier 初始化');
+
     // 监听新的状态管理器的变化，保持状态同步
     ref.listen(conversationStateNotifierProvider, (previous, next) {
-      state = CurrentConversationState(
+      _logger.debug('状态同步：从新架构同步到兼容性层', {
+        'previousConversationId': previous?.currentConversation?.id,
+        'nextConversationId': next.currentConversation?.id,
+        'isLoading': next.isLoading,
+        'hasError': next.error != null,
+      });
+
+      final newState = CurrentConversationState(
         currentConversation: next.currentConversation,
         isLoading: next.isLoading,
         error: next.error,
         selectedMenu: next.selectedMenu,
       );
+
+      state = newState;
+
+      _logger.debug('兼容性层状态已更新', {
+        'conversationId': newState.currentConversation?.id,
+        'selectedMenu': newState.selectedMenu,
+      });
     });
   }
 
   final Ref ref;
+  final LoggerService _logger = LoggerService();
 
   /// 创建新对话 - 转发给协调器
   Future<void> createNewConversation() async {

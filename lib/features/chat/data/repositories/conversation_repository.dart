@@ -316,6 +316,11 @@ class ConversationRepository {
     return messageDataList.map(_messageDataToModel).toList();
   }
 
+  // 获取对话的消息数量
+  Future<int> getMessageCountByConversation(String conversationId) async {
+    return await _database.getMessageCountByConversation(conversationId);
+  }
+
   // 添加消息
   Future<String> addMessage({
     String? id, // 可选的ID参数，如果不提供则自动生成

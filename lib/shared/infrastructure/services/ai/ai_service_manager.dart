@@ -12,8 +12,11 @@ import 'chat/chat_service.dart';
 import 'capabilities/model_service.dart';
 import 'capabilities/embedding_service.dart';
 import 'capabilities/speech_service.dart';
-import 'capabilities/enhanced_tool_service.dart';
 import 'capabilities/multimodal_service.dart';
+import 'capabilities/image_generation_service.dart';
+import 'capabilities/web_search_service.dart';
+import 'capabilities/http_configuration_service.dart';
+import 'capabilities/enhanced_tool_service.dart';
 import '../logger_service.dart';
 
 /// AI服务管理器 - 统一管理所有AI相关服务
@@ -136,6 +139,36 @@ class AiServiceManager {
   MultimodalService get multimodalService =>
       _getService<MultimodalService>('multimodal');
 
+  /// 获取图像生成服务
+  ///
+  /// 提供AI图像生成功能，支持：
+  /// - 文本到图像生成
+  /// - 图像编辑和修改
+  /// - 风格转换
+  /// - 多种图像格式和尺寸
+  ImageGenerationService get imageGenerationService =>
+      _getService<ImageGenerationService>('imageGeneration');
+
+  /// 获取Web搜索服务
+  ///
+  /// 提供AI Web搜索功能，支持：
+  /// - 实时网络搜索
+  /// - 新闻搜索
+  /// - 学术搜索
+  /// - 多语言搜索
+  WebSearchService get webSearchService =>
+      _getService<WebSearchService>('webSearch');
+
+  /// 获取HTTP配置服务
+  ///
+  /// 提供HTTP配置管理功能，支持：
+  /// - 代理配置
+  /// - 超时设置
+  /// - SSL配置
+  /// - 自定义请求头
+  HttpConfigurationService get httpConfigurationService =>
+      _getService<HttpConfigurationService>('httpConfiguration');
+
   /// 获取MCP服务
   ///
   /// 提供MCP (Model Context Protocol) 功能，支持：
@@ -183,6 +216,12 @@ class AiServiceManager {
       _registerService('speech', SpeechService());
       _registerService('enhanced_tool', EnhancedToolService());
       _registerService('multimodal', MultimodalService());
+      _registerService('imageGeneration', ImageGenerationService());
+      _registerService('webSearch', WebSearchService());
+      _registerService('httpConfiguration', HttpConfigurationService());
+      _registerService('imageGeneration', ImageGenerationService());
+      _registerService('webSearch', WebSearchService());
+      _registerService('httpConfiguration', HttpConfigurationService());
 
       // 初始化所有服务 - 确保每个服务都正确启动
       for (final service in _services.values) {

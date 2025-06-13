@@ -178,11 +178,19 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       drawer: AppDrawer(
         selectedMenu: conversationState.selectedMenu,
         onChatClicked: (chatId) {
-          _logger.debug('MainNavigation 收到点击事件', {'chatId': chatId});
+          _logger.info('MainNavigation 收到聊天点击事件', {
+            'chatId': chatId,
+            'currentConversationId': conversationState.conversation?.id,
+            'isLoading': conversationState.isLoading,
+          });
+
           // 防止在加载状态时重复点击
           if (!conversationState.isLoading) {
+            _logger.info('开始切换对话', {'targetChatId': chatId});
             conversationNotifier.switchToConversation(chatId);
             Navigator.of(context).pop(); // Close drawer
+          } else {
+            _logger.warning('对话正在加载中，忽略点击事件');
           }
         },
         onProfileClicked: (String userId) {}, // 移除profile功能，保留空实现避免错误
@@ -232,8 +240,17 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     CurrentConversationState state,
     CurrentConversationNotifier notifier,
   ) {
+    _logger.debug('MainNavigation 渲染屏幕', {
+      'isLoading': state.isLoading,
+      'hasError': state.error != null,
+      'hasConversation': state.conversation != null,
+      'conversationId': state.conversation?.id,
+      'selectedMenu': state.selectedMenu,
+    });
+
     // 如果正在加载
     if (state.isLoading) {
+      _logger.debug('显示加载状态');
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -248,6 +265,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
     // 如果有错误
     if (state.error != null) {
+      _logger.warning('显示错误状态', {'error': state.error});
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -271,6 +289,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
     // 显示当前对话
     if (state.conversation != null) {
+      _logger.info('显示聊天界面', {
+        'conversationId': state.conversation!.id,
+        'assistantId': state.conversation!.assistantId,
+        'messageCount': state.conversation!.messages.length,
+      });
       return ChatScreen(
         conversationState: state.conversation!,
         showAppBar: false,
@@ -281,6 +304,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     }
 
     // 没有对话时显示加载状态
+    _logger.warning('没有对话，显示初始化状态');
     return const Center(child: Text('正在初始化...'));
   }
 }

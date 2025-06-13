@@ -143,7 +143,7 @@ class DrawerSearchService {
           _selectedAssistant,
           limit: _pageSize,
           offset: pageKey,
-          includeMessages: false, // 暂时不包含消息内容，提高性能
+          includeMessages: false, // 不包含完整消息内容，提高性能
         ).timeout(
           const Duration(seconds: 10),
           onTimeout: () {

@@ -133,14 +133,30 @@ class MyNotifier extends StateNotifier<MyState> {
 | `currentConversationProvider` | 兼容性适配器 | ⚠️ 状态映射，类型转换 |
 | `conversationActionsProvider` | 便捷操作接口 | ⚠️ 操作原子性，错误处理 |
 
-### 🤖 **AI服务层** (4个)
+### 🤖 **AI服务层** (15个)
 
+#### 核心AI服务 (4个)
 | Service Provider | 类型 | 注意事项 |
 |-----------------|------|----------|
 | `aiChatServiceProvider` | Provider | ⚠️ 服务可用性检查 |
 | `sendChatMessageProvider` | FutureProvider.autoDispose.family | ⚠️ 超时处理，错误重试 |
 | `sendChatMessageStreamProvider` | StreamProvider.autoDispose.family | ⚠️ 流取消，内存清理 |
 | `smartChatProvider` | FutureProvider.autoDispose.family | ⚠️ 参数验证，结果缓存 |
+
+#### 增强AI功能服务 (11个)
+| Service Provider | 类型 | 注意事项 |
+|-----------------|------|----------|
+| `imageGenerationServiceProvider` | Provider | ⚠️ 提供商支持检查 |
+| `webSearchServiceProvider` | Provider | ⚠️ 搜索权限验证 |
+| `multimodalServiceProvider` | Provider | ⚠️ 多模态能力检查 |
+| `httpConfigurationServiceProvider` | Provider | ⚠️ 代理配置验证 |
+| `enhancedChatConfigurationServiceProvider` | Provider | ⚠️ 配置完整性检查 |
+| `generateImageProvider` | FutureProvider.autoDispose.family | ⚠️ 图像生成超时，结果缓存 |
+| `webSearchProvider` | FutureProvider.autoDispose.family | ⚠️ 搜索限流，结果过滤 |
+| `textToSpeechProvider` | FutureProvider.autoDispose.family | ⚠️ 音频流处理，内存管理 |
+| `speechToTextProvider` | FutureProvider.autoDispose.family | ⚠️ 音频格式验证，转录精度 |
+| `analyzeImageProvider` | FutureProvider.autoDispose.family | ⚠️ 图像大小限制，分析超时 |
+| `createEnhancedConfigProvider` | FutureProvider.autoDispose.family | ⚠️ 配置验证，依赖检查 |
 
 **编码注意事项**：
 ```dart
@@ -152,6 +168,57 @@ final sendMessageProvider = FutureProvider.autoDispose.family<Response, Params>(
 // ❌ 错误：临时Provider不使用autoDispose
 final sendMessageProvider = FutureProvider.family<Response, Params>((ref, params) async {
   // 可能导致内存泄漏
+});
+
+// ✅ 正确：增强AI功能Provider的参数验证
+final generateImageProvider = FutureProvider.autoDispose.family<ImageGenerationResponse, ImageGenerationParams>((
+  ref,
+  params,
+) async {
+  // 验证参数
+  if (params.prompt.trim().isEmpty) {
+    throw ArgumentError('图像生成提示词不能为空');
+  }
+
+  // 检查提供商支持
+  final imageService = ref.read(imageGenerationServiceProvider);
+  if (!imageService.supportsImageGeneration(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持图像生成');
+  }
+
+  return await imageService.generateImage(
+    provider: params.provider,
+    prompt: params.prompt,
+    size: params.size,
+    quality: params.quality,
+    style: params.style,
+    count: params.count,
+  );
+});
+
+// ✅ 正确：HTTP配置Provider的安全验证
+final createHttpConfigProvider = Provider.family<HttpConfig, HttpConfigParams>((ref, params) {
+  final httpService = ref.read(httpConfigurationServiceProvider);
+
+  // 创建配置
+  final config = httpService.createHttpConfig(
+    provider: params.provider,
+    proxyUrl: params.proxyUrl,
+    connectionTimeout: params.connectionTimeout,
+    receiveTimeout: params.receiveTimeout,
+    sendTimeout: params.sendTimeout,
+    customHeaders: params.customHeaders,
+    enableLogging: params.enableLogging,
+    bypassSSLVerification: params.bypassSSLVerification,
+    sslCertificatePath: params.sslCertificatePath,
+  );
+
+  // 验证配置
+  if (!httpService.validateHttpConfig(config)) {
+    throw ArgumentError('HTTP配置验证失败');
+  }
+
+  return config;
 });
 ```
 
@@ -277,6 +344,22 @@ graph TD
     ACS --> SCS[sendChatMessageStreamProvider]
     ACS --> SMP[smartChatProvider]
 
+    %% 增强AI功能服务层
+    APN --> IGS[imageGenerationServiceProvider]
+    APN --> WSS[webSearchServiceProvider]
+    APN --> MSS[multimodalServiceProvider]
+    APN --> HCS[httpConfigurationServiceProvider]
+    APN --> ECCS[enhancedChatConfigurationServiceProvider]
+
+    %% 增强AI功能Provider
+    IGS --> GIP[generateImageProvider]
+    WSS --> WSP[webSearchProvider]
+    MSS --> TTSP[textToSpeechProvider]
+    MSS --> STSP[speechToTextProvider]
+    MSS --> AIP[analyzeImageProvider]
+    ECCS --> CECP[createEnhancedConfigProvider]
+    HCS --> CHCP[createHttpConfigProvider]
+
     %% 衍生Provider
     APN --> APP[aiProviderProvider]
     APN --> EAP[enabledAiProvidersProvider]
@@ -308,7 +391,238 @@ graph TD
 
 ## 📝 编码最佳实践
 
-### 1. **Provider定义规范**
+### 1. **增强AI功能Provider最佳实践** ⭐ **新增**
+
+#### 🎨 图像生成功能
+```dart
+// ✅ 正确：图像生成Provider实现
+final generateImageProvider = FutureProvider.autoDispose.family<ImageGenerationResponse, ImageGenerationParams>((
+  ref,
+  params,
+) async {
+  // 1. 参数验证
+  if (params.prompt.trim().isEmpty) {
+    throw ArgumentError('图像生成提示词不能为空');
+  }
+
+  if (params.count <= 0 || params.count > 10) {
+    throw ArgumentError('图像数量必须在1-10之间');
+  }
+
+  // 2. 服务可用性检查
+  final imageService = ref.read(imageGenerationServiceProvider);
+  if (!imageService.supportsImageGeneration(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持图像生成');
+  }
+
+  // 3. 尺寸验证
+  final supportedSizes = imageService.getSupportedSizes(params.provider);
+  if (params.size != null && !supportedSizes.contains(params.size)) {
+    throw ArgumentError('不支持的图像尺寸: ${params.size}');
+  }
+
+  // 4. 执行生成
+  return await imageService.generateImage(
+    provider: params.provider,
+    prompt: params.prompt,
+    size: params.size,
+    quality: params.quality,
+    style: params.style,
+    count: params.count,
+  );
+});
+
+// ❌ 错误：缺少验证的实现
+final generateImageProvider = FutureProvider.autoDispose.family<ImageGenerationResponse, ImageGenerationParams>((
+  ref,
+  params,
+) async {
+  final imageService = ref.read(imageGenerationServiceProvider);
+  return await imageService.generateImage(/* 直接调用，没有验证 */);
+});
+```
+
+#### 🔍 Web搜索功能
+```dart
+// ✅ 正确：Web搜索Provider实现
+final webSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, WebSearchParams>((
+  ref,
+  params,
+) async {
+  // 1. 查询验证
+  final query = params.query.trim();
+  if (query.isEmpty) {
+    throw ArgumentError('搜索查询不能为空');
+  }
+
+  if (query.length > 500) {
+    throw ArgumentError('搜索查询过长，最多500字符');
+  }
+
+  // 2. 搜索权限检查
+  final webSearchService = ref.read(webSearchServiceProvider);
+  if (!webSearchService.supportsWebSearch(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持Web搜索');
+  }
+
+  // 3. 结果数量限制
+  final maxResults = params.maxResults.clamp(1, 20); // 限制在1-20之间
+
+  // 4. 执行搜索
+  return await webSearchService.searchWeb(
+    provider: params.provider,
+    assistant: params.assistant,
+    query: query,
+    maxResults: maxResults,
+    language: params.language,
+    allowedDomains: params.allowedDomains,
+    blockedDomains: params.blockedDomains,
+  );
+});
+```
+
+#### 🎵 语音处理功能
+```dart
+// ✅ 正确：TTS Provider实现
+final textToSpeechProvider = FutureProvider.autoDispose.family<TextToSpeechResponse, TextToSpeechParams>((
+  ref,
+  params,
+) async {
+  // 1. 文本验证
+  final text = params.text.trim();
+  if (text.isEmpty) {
+    throw ArgumentError('TTS文本不能为空');
+  }
+
+  if (text.length > 4000) {
+    throw ArgumentError('TTS文本过长，最多4000字符');
+  }
+
+  // 2. 服务支持检查
+  final speechService = ref.read(aiSpeechServiceProvider);
+  if (!speechService.supportsTts(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持TTS');
+  }
+
+  // 3. 语音验证
+  if (params.voice != null) {
+    final supportedVoices = speechService.getSupportedVoices(params.provider);
+    if (!supportedVoices.contains(params.voice)) {
+      throw ArgumentError('不支持的语音: ${params.voice}');
+    }
+  }
+
+  // 4. 执行TTS
+  final multimodalService = ref.read(multimodalServiceProvider);
+  return await multimodalService.textToSpeech(
+    provider: params.provider,
+    text: text,
+    voice: params.voice,
+    model: params.model,
+  );
+});
+
+// ✅ 正确：STT Provider实现
+final speechToTextProvider = FutureProvider.autoDispose.family<SpeechToTextResponse, SpeechToTextParams>((
+  ref,
+  params,
+) async {
+  // 1. 音频数据验证
+  if (params.audioData.isEmpty) {
+    throw ArgumentError('音频数据不能为空');
+  }
+
+  // 音频大小限制 (25MB)
+  if (params.audioData.length > 25 * 1024 * 1024) {
+    throw ArgumentError('音频文件过大，最大25MB');
+  }
+
+  // 2. 服务支持检查
+  final speechService = ref.read(aiSpeechServiceProvider);
+  if (!speechService.supportsStt(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持STT');
+  }
+
+  // 3. 执行STT
+  final multimodalService = ref.read(multimodalServiceProvider);
+  return await multimodalService.speechToText(
+    provider: params.provider,
+    audioData: params.audioData,
+    language: params.language,
+    model: params.model,
+  );
+});
+```
+
+#### ⚙️ 增强配置管理
+```dart
+// ✅ 正确：增强配置Provider实现
+final createEnhancedConfigProvider = FutureProvider.autoDispose.family<EnhancedChatConfig, EnhancedConfigParams>((
+  ref,
+  params,
+) async {
+  // 1. 基础参数验证
+  if (params.modelName.trim().isEmpty) {
+    throw ArgumentError('模型名称不能为空');
+  }
+
+  // 2. HTTP配置验证
+  if (params.proxyUrl != null) {
+    final uri = Uri.tryParse(params.proxyUrl!);
+    if (uri == null || !uri.scheme.startsWith('http')) {
+      throw ArgumentError('无效的代理URL格式');
+    }
+  }
+
+  // 3. 功能支持检查
+  if (params.enableWebSearch) {
+    final webSearchService = ref.read(webSearchServiceProvider);
+    if (!webSearchService.supportsWebSearch(params.provider)) {
+      throw UnsupportedError('提供商不支持Web搜索功能');
+    }
+  }
+
+  if (params.enableImageGeneration) {
+    final imageService = ref.read(imageGenerationServiceProvider);
+    if (!imageService.supportsImageGeneration(params.provider)) {
+      throw UnsupportedError('提供商不支持图像生成功能');
+    }
+  }
+
+  // 4. 创建配置
+  final configService = ref.read(enhancedChatConfigurationServiceProvider);
+  final config = await configService.createEnhancedConfig(
+    provider: params.provider,
+    assistant: params.assistant,
+    modelName: params.modelName,
+    proxyUrl: params.proxyUrl,
+    connectionTimeout: params.connectionTimeout,
+    receiveTimeout: params.receiveTimeout,
+    customHeaders: params.customHeaders,
+    enableHttpLogging: params.enableHttpLogging,
+    enableWebSearch: params.enableWebSearch,
+    enableImageGeneration: params.enableImageGeneration,
+    enableTTS: params.enableTTS,
+    enableSTT: params.enableSTT,
+    maxSearchResults: params.maxSearchResults,
+    allowedDomains: params.allowedDomains,
+    searchLanguage: params.searchLanguage,
+    imageSize: params.imageSize,
+    imageQuality: params.imageQuality,
+    ttsVoice: params.ttsVoice,
+    sttLanguage: params.sttLanguage,
+  );
+
+  // 5. 配置验证
+  if (!configService.validateEnhancedConfig(config)) {
+    throw StateError('增强配置验证失败');
+  }
+
+  return config;
+});
+```
+
+### 2. **Provider定义规范**
 
 ```dart
 // ✅ 正确：Provider命名和文档
@@ -1188,6 +1502,7 @@ void main() {
 
 ### ✅ Provider实现检查清单
 
+#### 基础Provider检查清单
 - [ ] Provider有清晰的命名和文档注释
 - [ ] StateNotifier构造函数接受Ref参数
 - [ ] **避免 late final 重复初始化问题**：使用 getter 方法获取依赖
@@ -1202,6 +1517,18 @@ void main() {
 - [ ] **状态验证**：在依赖变化时验证当前状态的有效性
 - [ ] **状态清理**：在页面恢复时检查并清理异常状态
 - [ ] **避免直接调用**：不直接调用其他模块的方法，使用响应式监听
+
+#### 增强AI功能Provider检查清单 ⭐ **新增**
+- [ ] **参数验证**：所有输入参数都有适当的验证（空值、长度、格式等）
+- [ ] **提供商支持检查**：在执行功能前检查提供商是否支持该功能
+- [ ] **资源限制**：实施适当的资源限制（文件大小、文本长度、请求频率等）
+- [ ] **错误分类**：区分不同类型的错误（参数错误、不支持错误、网络错误等）
+- [ ] **超时处理**：为长时间运行的操作设置合理的超时时间
+- [ ] **内存管理**：及时清理大型资源（音频数据、图像数据等）
+- [ ] **配置验证**：HTTP代理、SSL证书等配置的格式和有效性验证
+- [ ] **功能组合验证**：检查多个功能组合使用时的兼容性
+- [ ] **统计信息**：记录功能使用统计，便于监控和优化
+- [ ] **降级策略**：当某个功能不可用时的备用方案
 
 ### ✅ Repository实现检查清单
 
@@ -1226,6 +1553,7 @@ void main() {
 
 遵循这些最佳实践，你的YumCha应用将具有：
 
+### 🏗️ 核心架构优势
 - **🏗️ 清晰的架构** - 分层明确，职责分离
 - **🔧 高可维护性** - 代码规范，易于理解
 - **🚀 优秀性能** - 内存管理，缓存优化
@@ -1234,8 +1562,21 @@ void main() {
 - **📈 可扩展性** - 模块化设计，易于扩展
 - **⚡ 运行稳定性** - 避免 late final 重复初始化等常见错误
 
+### 🤖 增强AI功能优势 ⭐ **新增**
+- **🎨 图像生成能力** - 支持多提供商的AI图像创作功能
+- **🔍 Web搜索集成** - 实时网络信息搜索和新闻检索
+- **🎵 语音处理功能** - 完整的TTS/STT语音处理能力
+- **🖼️ 多模态分析** - 图像理解和跨模态AI交互
+- **🌐 HTTP代理支持** - 企业级网络环境适配
+- **⚙️ 统一配置管理** - 集成所有高级功能的配置系统
+- **📊 功能监控统计** - 完整的使用统计和性能监控
+- **🔒 安全验证机制** - 参数验证、权限检查、资源限制
+- **🚀 性能优化策略** - 缓存、批处理、资源管理
+- **🛡️ 错误处理增强** - 分类错误处理、降级策略、恢复机制
+
 ### 🔑 关键要点
 
+#### 核心架构要点
 1. **依赖注入模式**：始终使用 `get _repository => _ref.read(provider)` 而不是 `late final` 字段
 2. **错误预防**：避免在方法中初始化 `late final` 字段，这会导致重复初始化错误
 3. **跨模块状态同步**：使用 `_ref.listen()` 监听其他 Provider 的变化，而不是直接调用其他模块的方法
@@ -1244,6 +1585,16 @@ void main() {
 6. **架构演进**：从单一巨大的 Notifier 拆分为多个专门的 Provider，提高可维护性
 7. **性能优化**：合理使用 autoDispose、select 和缓存策略
 8. **测试友好**：依赖注入使得 Mock 和单元测试更容易
+
+#### 增强AI功能要点 ⭐ **新增**
+9. **参数验证优先**：所有AI功能Provider都必须进行严格的参数验证
+10. **提供商兼容性检查**：在执行功能前检查提供商是否支持该功能
+11. **资源管理策略**：对大型资源（音频、图像）实施适当的大小限制和内存管理
+12. **错误分类处理**：区分参数错误、不支持错误、网络错误等，提供相应的处理策略
+13. **配置验证机制**：HTTP代理、SSL证书等配置的格式和有效性验证
+14. **功能组合验证**：检查多个AI功能组合使用时的兼容性
+15. **统计监控集成**：记录功能使用统计，便于性能监控和优化
+16. **降级策略实施**：当某个AI功能不可用时的备用方案
 
 记住：**好的架构是演进出来的，而不是一开始就完美的**。持续重构和优化是保持代码质量的关键！ 🚀
 
