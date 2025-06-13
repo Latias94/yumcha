@@ -35,6 +35,7 @@ import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../../ai_management/domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
+import '../providers/chat_configuration_notifier.dart';
 import 'chat_view.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -384,10 +385,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  /// 选择助手并配置相应的提供商和模型
+  Future<void> _selectAssistantWithConfiguration(AiAssistant assistant) async {
+    try {
+      // 1. 首先选择助手
+      final chatConfigNotifier = ref.read(chatConfigurationProvider.notifier);
+      await chatConfigNotifier.selectAssistant(assistant);
+
+      // 2. 获取更新后的配置
+      final chatConfig = ref.read(chatConfigurationProvider);
+
+      // 3. 更新对话状态
+      setState(() {
+        _conversationState = _conversationState.copyWith(
+          assistantId: assistant.id,
+          selectedProviderId: chatConfig.selectedProvider?.id ?? '',
+          selectedModelId: chatConfig.selectedModel?.name ?? '',
+        );
+      });
+
+      // 4. 通知父组件
+      widget.onConversationUpdated?.call(_conversationState);
+      if (chatConfig.hasCompleteConfiguration) {
+        widget.onAssistantConfigChanged?.call(
+          assistant.id,
+          chatConfig.selectedProvider!.id,
+          chatConfig.selectedModel!.name,
+        );
+      }
+    } catch (e) {
+      // 错误处理
+      if (mounted) {
+        NotificationService().showError('选择助手失败: $e');
+      }
+    }
+  }
+
   Widget _buildAssistantSettingsSheet(BuildContext context) {
     final theme = Theme.of(context);
     final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
-    final providersAsync = ref.watch(aiProviderNotifierProvider);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -467,31 +503,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           : '助手配置', // 临时修复：不再显示提供商和模型信息
                     ),
                     trailing: isSelected ? const Icon(Icons.check) : null,
-                    onTap: () {
-                      // 临时修复：选择助手时使用第一个可用的提供商和模型
-                      providersAsync.whenData((providers) {
-                        final provider =
-                            providers.where((p) => p.isEnabled).firstOrNull;
-                        if (provider != null && provider.models.isNotEmpty) {
-                          Navigator.of(context).pop();
-                          setState(() {
-                            _conversationState = _conversationState.copyWith(
-                              assistantId: assistant.id,
-                              selectedProviderId: provider.id,
-                              selectedModelId: provider.models.first.name,
-                            );
-                          });
+                    onTap: () async {
+                      // 保存context引用
+                      final navigator = Navigator.of(context);
 
-                          widget.onConversationUpdated?.call(
-                            _conversationState,
-                          );
-                          widget.onAssistantConfigChanged?.call(
-                            assistant.id,
-                            provider.id,
-                            provider.models.first.name,
-                          );
-                        }
-                      });
+                      // 使用ChatConfigurationNotifier来处理助手选择
+                      await _selectAssistantWithConfiguration(assistant);
+
+                      if (mounted) {
+                        navigator.pop();
+                      }
                     },
                   ),
                 );

@@ -20,25 +20,25 @@ class MonochromeTheme {
   static const _onErrorLight = Color(0xFFFFFFFF);
   static const _errorContainerLight = Color(0xFFFFDAD6);
   static const _onErrorContainerLight = Color(0xFF93000A);
-  static const _backgroundLight = Color(0xFFFCF8F8);
-  static const _onBackgroundLight = Color(0xFF1C1B1B);
-  static const _surfaceLight = Color(0xFFFCF8F8);
+  // static const _backgroundLight = Color(0xFFFCF8F8); // 已弃用，不再使用
+  // static const _onBackgroundLight = Color(0xFF1C1B1B); // 已弃用，不再使用
+  static const _surfaceLight = Color(0xFFFAFAFA); // 改为纯灰色，去除红色调
   static const _onSurfaceLight = Color(0xFF1C1B1B);
-  static const _surfaceVariantLight = Color(0xFFE1E3E5);
+  // static const _surfaceVariantLight = Color(0xFFE1E3E5); // 未在ColorScheme中使用
   static const _onSurfaceVariantLight = Color(0xFF444749);
   static const _outlineLight = Color(0xFF75777A);
   static const _outlineVariantLight = Color(0xFFC5C7C9);
   static const _scrimLight = Color(0xFF000000);
   static const _inverseSurfaceLight = Color(0xFF313030);
-  static const _inverseOnSurfaceLight = Color(0xFFF4F0EF);
+  static const _inverseOnSurfaceLight = Color(0xFFF0F0F0); // 改为纯灰色，去除红色调
   static const _inversePrimaryLight = Color(0xFFC7C6C7);
-  static const _surfaceDimLight = Color(0xFFDDD9D9);
-  static const _surfaceBrightLight = Color(0xFFFCF8F8);
+  static const _surfaceDimLight = Color(0xFFD9D9D9); // 改为纯灰色，去除红色调
+  static const _surfaceBrightLight = Color(0xFFFAFAFA); // 改为纯灰色，去除红色调
   static const _surfaceContainerLowestLight = Color(0xFFFFFFFF);
-  static const _surfaceContainerLowLight = Color(0xFFF7F3F2);
-  static const _surfaceContainerLight = Color(0xFFF1EDEC);
-  static const _surfaceContainerHighLight = Color(0xFFEBE7E7);
-  static const _surfaceContainerHighestLight = Color(0xFFE5E2E1);
+  static const _surfaceContainerLowLight = Color(0xFFF3F3F3); // 改为纯灰色，去除红色调
+  static const _surfaceContainerLight = Color(0xFFEDEDED); // 改为纯灰色，去除红色调
+  static const _surfaceContainerHighLight = Color(0xFFE7E7E7); // 改为纯灰色，去除红色调
+  static const _surfaceContainerHighestLight = Color(0xFFE2E2E2); // 改为纯灰色，去除红色调
 
   // ===== 中对比度 - 浅色模式 =====
   static const _primaryLightMediumContrast = Color(0xFF2B2C2D);
@@ -57,25 +57,32 @@ class MonochromeTheme {
   static const _onErrorLightMediumContrast = Color(0xFFFFFFFF);
   static const _errorContainerLightMediumContrast = Color(0xFFCF2C27);
   static const _onErrorContainerLightMediumContrast = Color(0xFFFFFFFF);
-  static const _backgroundLightMediumContrast = Color(0xFFFCF8F8);
-  static const _onBackgroundLightMediumContrast = Color(0xFF1C1B1B);
-  static const _surfaceLightMediumContrast = Color(0xFFFCF8F8);
+  // static const _backgroundLightMediumContrast = Color(0xFFFCF8F8); // 已弃用，不再使用
+  // static const _onBackgroundLightMediumContrast = Color(0xFF1C1B1B); // 已弃用，不再使用
+  static const _surfaceLightMediumContrast = Color(0xFFFAFAFA); // 改为纯灰色，去除红色调
   static const _onSurfaceLightMediumContrast = Color(0xFF111111);
-  static const _surfaceVariantLightMediumContrast = Color(0xFFE1E3E5);
+  // static const _surfaceVariantLightMediumContrast = Color(0xFFE1E3E5); // 未在ColorScheme中使用
   static const _onSurfaceVariantLightMediumContrast = Color(0xFF333739);
   static const _outlineLightMediumContrast = Color(0xFF505355);
   static const _outlineVariantLightMediumContrast = Color(0xFF6B6D70);
   static const _scrimLightMediumContrast = Color(0xFF000000);
   static const _inverseSurfaceLightMediumContrast = Color(0xFF313030);
-  static const _inverseOnSurfaceLightMediumContrast = Color(0xFFF4F0EF);
+  static const _inverseOnSurfaceLightMediumContrast =
+      Color(0xFFF0F0F0); // 改为纯灰色，去除红色调
   static const _inversePrimaryLightMediumContrast = Color(0xFFC7C6C7);
-  static const _surfaceDimLightMediumContrast = Color(0xFFC9C6C5);
-  static const _surfaceBrightLightMediumContrast = Color(0xFFFCF8F8);
+  static const _surfaceDimLightMediumContrast =
+      Color(0xFFC6C6C6); // 改为纯灰色，去除红色调
+  static const _surfaceBrightLightMediumContrast =
+      Color(0xFFFAFAFA); // 改为纯灰色，去除红色调
   static const _surfaceContainerLowestLightMediumContrast = Color(0xFFFFFFFF);
-  static const _surfaceContainerLowLightMediumContrast = Color(0xFFF7F3F2);
-  static const _surfaceContainerLightMediumContrast = Color(0xFFEBE7E7);
-  static const _surfaceContainerHighLightMediumContrast = Color(0xFFDFDCDB);
-  static const _surfaceContainerHighestLightMediumContrast = Color(0xFFD4D1D0);
+  static const _surfaceContainerLowLightMediumContrast =
+      Color(0xFFF3F3F3); // 改为纯灰色，去除红色调
+  static const _surfaceContainerLightMediumContrast =
+      Color(0xFFE7E7E7); // 改为纯灰色，去除红色调
+  static const _surfaceContainerHighLightMediumContrast =
+      Color(0xFFDCDCDC); // 改为纯灰色，去除红色调
+  static const _surfaceContainerHighestLightMediumContrast =
+      Color(0xFFD1D1D1); // 改为纯灰色，去除红色调
 
   // ===== 高对比度 - 浅色模式 =====
   static const _primaryLightHighContrast = Color(0xFF2B2C2D);
@@ -94,11 +101,11 @@ class MonochromeTheme {
   static const _onErrorLightHighContrast = Color(0xFFFFFFFF);
   static const _errorContainerLightHighContrast = Color(0xFF98000A);
   static const _onErrorContainerLightHighContrast = Color(0xFFFFFFFF);
-  static const _backgroundLightHighContrast = Color(0xFFFCF8F8);
-  static const _onBackgroundLightHighContrast = Color(0xFF1C1B1B);
-  static const _surfaceLightHighContrast = Color(0xFFFCF8F8);
+  // static const _backgroundLightHighContrast = Color(0xFFFCF8F8); // 已弃用，不再使用
+  // static const _onBackgroundLightHighContrast = Color(0xFF1C1B1B); // 已弃用，不再使用
+  static const _surfaceLightHighContrast = Color(0xFFFAFAFA); // 改为纯灰色，去除红色调
   static const _onSurfaceLightHighContrast = Color(0xFF000000);
-  static const _surfaceVariantLightHighContrast = Color(0xFFE1E3E5);
+  // static const _surfaceVariantLightHighContrast = Color(0xFFE1E3E5); // 未在ColorScheme中使用
   static const _onSurfaceVariantLightHighContrast = Color(0xFF000000);
   static const _outlineLightHighContrast = Color(0xFF292D2E);
   static const _outlineVariantLightHighContrast = Color(0xFF47494C);
@@ -107,12 +114,17 @@ class MonochromeTheme {
   static const _inverseOnSurfaceLightHighContrast = Color(0xFFFFFFFF);
   static const _inversePrimaryLightHighContrast = Color(0xFFC7C6C7);
   static const _surfaceDimLightHighContrast = Color(0xFFBBB8B8);
-  static const _surfaceBrightLightHighContrast = Color(0xFFFCF8F8);
+  static const _surfaceBrightLightHighContrast =
+      Color(0xFFFAFAFA); // 改为纯灰色，去除红色调
   static const _surfaceContainerLowestLightHighContrast = Color(0xFFFFFFFF);
-  static const _surfaceContainerLowLightHighContrast = Color(0xFFF4F0EF);
-  static const _surfaceContainerLightHighContrast = Color(0xFFE5E2E1);
-  static const _surfaceContainerHighLightHighContrast = Color(0xFFD7D4D3);
-  static const _surfaceContainerHighestLightHighContrast = Color(0xFFC9C6C5);
+  static const _surfaceContainerLowLightHighContrast =
+      Color(0xFFF0F0F0); // 改为纯灰色，去除红色调
+  static const _surfaceContainerLightHighContrast =
+      Color(0xFFE2E2E2); // 改为纯灰色，去除红色调
+  static const _surfaceContainerHighLightHighContrast =
+      Color(0xFFD4D4D4); // 改为纯灰色，去除红色调
+  static const _surfaceContainerHighestLightHighContrast =
+      Color(0xFFC6C6C6); // 改为纯灰色，去除红色调
 
   // ===== 标准对比度 - 深色模式 =====
   static const _primaryDark = Color(0xFFC7C6C7);
@@ -131,11 +143,11 @@ class MonochromeTheme {
   static const _onErrorDark = Color(0xFF690005);
   static const _errorContainerDark = Color(0xFF93000A);
   static const _onErrorContainerDark = Color(0xFFFFDAD6);
-  static const _backgroundDark = Color(0xFF141313);
-  static const _onBackgroundDark = Color(0xFFE5E2E1);
+  // static const _backgroundDark = Color(0xFF141313); // 已弃用，不再使用
+  // static const _onBackgroundDark = Color(0xFFE5E2E1); // 已弃用，不再使用
   static const _surfaceDark = Color(0xFF141313);
   static const _onSurfaceDark = Color(0xFFE5E2E1);
-  static const _surfaceVariantDark = Color(0xFF444749);
+  // static const _surfaceVariantDark = Color(0xFF444749); // 未在ColorScheme中使用
   static const _onSurfaceVariantDark = Color(0xFFC5C7C9);
   static const _outlineDark = Color(0xFF8E9193);
   static const _outlineVariantDark = Color(0xFF444749);
@@ -168,11 +180,11 @@ class MonochromeTheme {
   static const _onErrorDarkMediumContrast = Color(0xFF540003);
   static const _errorContainerDarkMediumContrast = Color(0xFFFF5449);
   static const _onErrorContainerDarkMediumContrast = Color(0xFF000000);
-  static const _backgroundDarkMediumContrast = Color(0xFF141313);
-  static const _onBackgroundDarkMediumContrast = Color(0xFFE5E2E1);
+  // static const _backgroundDarkMediumContrast = Color(0xFF141313); // 已弃用，不再使用
+  // static const _onBackgroundDarkMediumContrast = Color(0xFFE5E2E1); // 已弃用，不再使用
   static const _surfaceDarkMediumContrast = Color(0xFF141313);
   static const _onSurfaceDarkMediumContrast = Color(0xFFFFFFFF);
-  static const _surfaceVariantDarkMediumContrast = Color(0xFF444749);
+  // static const _surfaceVariantDarkMediumContrast = Color(0xFF444749); // 未在ColorScheme中使用
   static const _onSurfaceVariantDarkMediumContrast = Color(0xFFDBDCDF);
   static const _outlineDarkMediumContrast = Color(0xFFB0B2B4);
   static const _outlineVariantDarkMediumContrast = Color(0xFF8E9193);
@@ -205,11 +217,11 @@ class MonochromeTheme {
   static const _onErrorDarkHighContrast = Color(0xFF000000);
   static const _errorContainerDarkHighContrast = Color(0xFFFFAEA4);
   static const _onErrorContainerDarkHighContrast = Color(0xFF220001);
-  static const _backgroundDarkHighContrast = Color(0xFF141313);
-  static const _onBackgroundDarkHighContrast = Color(0xFFE5E2E1);
+  // static const _backgroundDarkHighContrast = Color(0xFF141313); // 已弃用，不再使用
+  // static const _onBackgroundDarkHighContrast = Color(0xFFE5E2E1); // 已弃用，不再使用
   static const _surfaceDarkHighContrast = Color(0xFF141313);
   static const _onSurfaceDarkHighContrast = Color(0xFFFFFFFF);
-  static const _surfaceVariantDarkHighContrast = Color(0xFF444749);
+  // static const _surfaceVariantDarkHighContrast = Color(0xFF444749); // 未在ColorScheme中使用
   static const _onSurfaceVariantDarkHighContrast = Color(0xFFFFFFFF);
   static const _outlineDarkHighContrast = Color(0xFFEEF0F2);
   static const _outlineVariantDarkHighContrast = Color(0xFFC1C3C5);

@@ -108,7 +108,7 @@ class AssistantsScreen extends ConsumerWidget {
                   final providers = providersAsync.when(
                     data: (data) => data,
                     loading: () => <AiProvider>[],
-                    error: (_1, _2) => <AiProvider>[],
+                    error: (error, stackTrace) => <AiProvider>[],
                   );
 
                   final result = await Navigator.push<bool>(
@@ -262,7 +262,8 @@ class AssistantsScreen extends ConsumerWidget {
                                   final providers = providersAsync.when(
                                     data: (data) => data,
                                     loading: () => <AiProvider>[],
-                                    error: (_1, _2) => <AiProvider>[],
+                                    error: (error, stackTrace) =>
+                                        <AiProvider>[],
                                   );
 
                                   Navigator.push<bool>(

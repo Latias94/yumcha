@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'notification_service.dart';
 
 /// 通知服务演示页面
-/// 
+///
 /// 用于测试和演示改进后的通知服务功能
 class NotificationServiceDemo extends StatelessWidget {
   const NotificationServiceDemo({super.key});
@@ -23,7 +23,7 @@ class NotificationServiceDemo extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             // 低重要性（静默）
             ElevatedButton(
               onPressed: () {
@@ -34,7 +34,7 @@ class NotificationServiceDemo extends StatelessWidget {
               },
               child: const Text('低重要性成功通知（静默）'),
             ),
-            
+
             // 中等重要性
             ElevatedButton(
               onPressed: () {
@@ -45,7 +45,7 @@ class NotificationServiceDemo extends StatelessWidget {
               },
               child: const Text('中等重要性成功通知'),
             ),
-            
+
             // 高重要性错误
             ElevatedButton(
               onPressed: () {
@@ -56,7 +56,7 @@ class NotificationServiceDemo extends StatelessWidget {
               },
               child: const Text('高重要性错误通知'),
             ),
-            
+
             // 关键重要性（Overlay）
             ElevatedButton(
               onPressed: () {
@@ -67,14 +67,14 @@ class NotificationServiceDemo extends StatelessWidget {
               },
               child: const Text('关键重要性错误通知（Overlay）'),
             ),
-            
+
             const SizedBox(height: 24),
             const Text(
               '模态窗口测试',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             // 模态窗口中的通知测试
             ElevatedButton(
               onPressed: () {
@@ -82,14 +82,14 @@ class NotificationServiceDemo extends StatelessWidget {
               },
               child: const Text('测试模态窗口中的通知'),
             ),
-            
+
             const SizedBox(height: 24),
             const Text(
               '其他功能测试',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             // 清除所有通知
             ElevatedButton(
               onPressed: () {
@@ -97,7 +97,7 @@ class NotificationServiceDemo extends StatelessWidget {
               },
               child: const Text('清除所有通知'),
             ),
-            
+
             // 批量通知测试
             ElevatedButton(
               onPressed: () {
@@ -150,7 +150,7 @@ class NotificationServiceDemo extends StatelessWidget {
   void _showBatchNotifications() {
     // 模拟批量操作
     final items = ['项目A', '项目B', '项目C'];
-    
+
     for (int i = 0; i < items.length; i++) {
       Future.delayed(Duration(milliseconds: i * 500), () {
         NotificationService().showSuccess(
@@ -159,7 +159,7 @@ class NotificationServiceDemo extends StatelessWidget {
         );
       });
     }
-    
+
     // 最后显示汇总
     Future.delayed(Duration(milliseconds: items.length * 500), () {
       NotificationService().showSuccess(

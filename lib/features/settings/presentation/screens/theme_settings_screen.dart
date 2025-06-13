@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/theme/theme_provider.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../widgets/enhanced_theme_selector.dart';
 
@@ -45,48 +44,6 @@ class ThemeSettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDynamicColorInfoCard(BuildContext context) {
-    return Card(
-      elevation: 2,
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: DesignConstants.paddingL,
-        child: Row(
-          children: [
-            Icon(
-              Icons.palette,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-            SizedBox(width: DesignConstants.spaceM),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '动态颜色已启用',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  SizedBox(height: DesignConstants.spaceXS),
-                  Text(
-                    '应用正在使用系统壁纸颜色，主题方案和对比度设置已被禁用',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/chat_bubble_style.dart';
 import '../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
+import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 /// 聊天样式状态类
 class ChatStyleState {
@@ -55,13 +56,17 @@ class ChatStyleState {
 
 /// 聊天样式状态管理器
 class ChatStyleNotifier extends StateNotifier<ChatStyleState> {
-  ChatStyleNotifier()
+  ChatStyleNotifier(this._ref)
       : super(const ChatStyleState(style: ChatBubbleStyle.list)) {
     _loadStyle();
   }
 
-  final _preferenceService = PreferenceService();
+  final Ref _ref;
   final _logger = LoggerService();
+
+  /// 获取PreferenceService实例
+  PreferenceService get _preferenceService =>
+      _ref.read(preferenceServiceProvider);
 
   /// 加载保存的样式设置
   Future<void> _loadStyle() async {
@@ -117,10 +122,10 @@ class ChatStyleNotifier extends StateNotifier<ChatStyleState> {
 /// 聊天样式 Provider
 final chatStyleProvider =
     StateNotifierProvider<ChatStyleNotifier, ChatStyleState>((ref) {
-  return ChatStyleNotifier();
+  return ChatStyleNotifier(ref);
 });
 
 /// 便捷的样式获取 Provider
-final currentChatStyleProvider = Provider<ChatBubbleStyle>((ref) {
+final currentChatStyleProvider = Provider.autoDispose<ChatBubbleStyle>((ref) {
   return ref.watch(chatStyleProvider).style;
 });

@@ -156,6 +156,18 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
     }
   }
 
+  bool _supportsCustomBaseUrl(ProviderType type) {
+    switch (type) {
+      case ProviderType.openai:
+      case ProviderType.ollama:
+      case ProviderType.custom:
+        return true;
+      case ProviderType.anthropic:
+      case ProviderType.google:
+        return false;
+    }
+  }
+
   String? _getDefaultBaseUrl(ProviderType type) {
     switch (type) {
       case ProviderType.openai:
@@ -335,7 +347,8 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
                   // Base URL
                   Builder(
                     builder: (context) {
-                      final supportsCustomBaseUrl = true;
+                      final supportsCustomBaseUrl =
+                          _supportsCustomBaseUrl(_selectedType);
                       return TextFormField(
                         controller: _baseUrlController,
                         decoration: InputDecoration(

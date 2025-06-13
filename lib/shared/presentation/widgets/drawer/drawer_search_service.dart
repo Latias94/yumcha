@@ -5,10 +5,12 @@ import '../../../../features/chat/domain/entities/conversation_ui_state.dart';
 import '../../../../features/chat/data/repositories/conversation_repository.dart';
 import '../../../infrastructure/services/logger_service.dart';
 import '../../providers/providers.dart';
+import '../../../../features/settings/domain/entities/app_setting.dart';
+import '../../../../features/settings/presentation/providers/settings_notifier.dart';
 import 'drawer_constants.dart';
 
 /// 侧边栏搜索服务
-/// 
+///
 /// 提供搜索相关的业务逻辑，包括：
 /// - 防抖搜索
 /// - 综合搜索（标题+内容）
@@ -32,17 +34,33 @@ class DrawerSearchService {
   DrawerSearchService({
     required ConversationRepository conversationRepository,
     required WidgetRef ref,
-  }) : _conversationRepository = conversationRepository,
-       _ref = ref;
+  })  : _conversationRepository = conversationRepository,
+        _ref = ref;
 
   /// 设置当前搜索查询
   void setSearchQuery(String query) {
     _searchQuery = query;
   }
 
-  /// 设置当前选中的助手
-  void setSelectedAssistant(String assistantId) {
+  /// 设置当前选中的助手并保存到设置
+  Future<void> setSelectedAssistant(String assistantId) async {
     _selectedAssistant = assistantId;
+
+    // 保存到设置中
+    try {
+      final settingsNotifier = _ref.read(settingsNotifierProvider.notifier);
+      await settingsNotifier.setSetting<String>(
+        key: SettingKeys.lastUsedAssistantId,
+        value: assistantId,
+        description: '最后使用的助手ID',
+      );
+      _logger.debug('助手选择已保存到设置: $assistantId');
+    } catch (e) {
+      _logger.error('保存助手选择失败', {
+        'assistantId': assistantId,
+        'error': e.toString(),
+      });
+    }
   }
 
   /// 获取当前搜索查询
@@ -56,7 +74,8 @@ class DrawerSearchService {
     required String query,
     required VoidCallback onSearchStart,
     required VoidCallback onSearchComplete,
-    Duration debounceDelay = const Duration(milliseconds: DrawerConstants.searchDebounceMs),
+    Duration debounceDelay =
+        const Duration(milliseconds: DrawerConstants.searchDebounceMs),
   }) {
     // 取消之前的防抖Timer
     _searchDebounce?.cancel();
@@ -154,8 +173,8 @@ class DrawerSearchService {
 
     try {
       // 1. 搜索对话标题
-      final conversationResults = await _conversationRepository
-          .searchConversationsByTitle(
+      final conversationResults =
+          await _conversationRepository.searchConversationsByTitle(
         trimmedQuery,
         assistantId: assistantId,
         limit: limit,
@@ -183,8 +202,8 @@ class DrawerSearchService {
         final conversationId = messageResult.conversationId;
         if (!uniqueConversations.containsKey(conversationId)) {
           // 获取完整的对话信息
-          final conversation = await _conversationRepository
-              .getConversation(conversationId);
+          final conversation =
+              await _conversationRepository.getConversation(conversationId);
           if (conversation != null) {
             uniqueConversations[conversationId] = conversation;
           }
@@ -219,24 +238,69 @@ class DrawerSearchService {
     }
   }
 
-  /// 初始化选中的助手
-  void initializeSelectedAssistant(VoidCallback onRefreshConversations) {
+  /// 初始化选中的助手（从设置中恢复）
+  Future<void> initializeSelectedAssistant(
+      VoidCallback onRefreshConversations) async {
     final assistantsAsync = _ref.read(enabledAiAssistantsProvider);
-    if (assistantsAsync.isNotEmpty) {
-      // 如果当前选择的是默认值或无效值，选择第一个可用助手
-      if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) {
-        _selectedAssistant = assistantsAsync.first.id;
-        onRefreshConversations();
-      } else {
-        // 验证当前选择的助手是否仍然有效
+    if (assistantsAsync.isEmpty) {
+      _logger.warning('没有可用助手');
+      return;
+    }
+
+    try {
+      // 从设置中读取上次选择的助手
+      final settingsNotifier = _ref.read(settingsNotifierProvider.notifier);
+      final lastUsedAssistantId = settingsNotifier.getValue<String>(
+        SettingKeys.lastUsedAssistantId,
+      );
+
+      _logger.debug('从设置中读取的助手ID: $lastUsedAssistantId');
+
+      String targetAssistantId;
+
+      if (lastUsedAssistantId != null && lastUsedAssistantId.isNotEmpty) {
+        // 验证保存的助手是否仍然有效
         final isValidAssistant = assistantsAsync.any(
-          (a) => a.id == _selectedAssistant,
+          (a) => a.id == lastUsedAssistantId,
         );
-        if (!isValidAssistant) {
-          _selectedAssistant = assistantsAsync.first.id;
-          onRefreshConversations();
+
+        if (isValidAssistant) {
+          targetAssistantId = lastUsedAssistantId;
+          _logger.debug('恢复上次选择的助手: $targetAssistantId');
+        } else {
+          // 如果保存的助手无效，选择第一个可用助手
+          targetAssistantId = assistantsAsync.first.id;
+          _logger.debug('上次选择的助手无效，选择第一个可用助手: $targetAssistantId');
         }
+      } else {
+        // 如果没有保存的选择，选择第一个可用助手
+        targetAssistantId = assistantsAsync.first.id;
+        _logger.debug('没有保存的助手选择，选择第一个可用助手: $targetAssistantId');
       }
+
+      // 更新选择的助手
+      if (_selectedAssistant != targetAssistantId) {
+        _selectedAssistant = targetAssistantId;
+
+        // 保存新的选择到设置（如果是从默认值或无效值切换过来的）
+        if (lastUsedAssistantId != targetAssistantId) {
+          await settingsNotifier.setSetting<String>(
+            key: SettingKeys.lastUsedAssistantId,
+            value: targetAssistantId,
+            description: '最后使用的助手ID',
+          );
+        }
+
+        onRefreshConversations();
+      }
+    } catch (e) {
+      _logger.error('初始化助手选择失败', {
+        'error': e.toString(),
+      });
+
+      // 出错时使用第一个可用助手
+      _selectedAssistant = assistantsAsync.first.id;
+      onRefreshConversations();
     }
   }
 

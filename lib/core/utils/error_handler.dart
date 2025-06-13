@@ -29,32 +29,24 @@ class AppError implements Exception {
 /// 网络错误
 class NetworkError extends AppError {
   const NetworkError({
-    required String message,
-    String? code,
-    dynamic originalError,
-    StackTrace? stackTrace,
+    required super.message,
+    super.code,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-          message: message,
           type: ErrorType.network,
-          code: code,
-          originalError: originalError,
-          stackTrace: stackTrace,
         );
 }
 
 /// 数据库错误
 class DatabaseError extends AppError {
   const DatabaseError({
-    required String message,
-    String? code,
-    dynamic originalError,
-    StackTrace? stackTrace,
+    required super.message,
+    super.code,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-          message: message,
           type: ErrorType.database,
-          code: code,
-          originalError: originalError,
-          stackTrace: stackTrace,
         );
 }
 
@@ -63,17 +55,13 @@ class ApiError extends AppError {
   final int? statusCode;
 
   const ApiError({
-    required String message,
+    required super.message,
     this.statusCode,
-    String? code,
-    dynamic originalError,
-    StackTrace? stackTrace,
+    super.code,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-          message: message,
           type: ErrorType.api,
-          code: code,
-          originalError: originalError,
-          stackTrace: stackTrace,
         );
 }
 
@@ -82,33 +70,25 @@ class ValidationError extends AppError {
   final Map<String, List<String>>? fieldErrors;
 
   const ValidationError({
-    required String message,
+    required super.message,
     this.fieldErrors,
-    String? code,
-    dynamic originalError,
-    StackTrace? stackTrace,
+    super.code,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-          message: message,
           type: ErrorType.validation,
-          code: code,
-          originalError: originalError,
-          stackTrace: stackTrace,
         );
 }
 
 /// 权限错误
 class PermissionError extends AppError {
   const PermissionError({
-    required String message,
-    String? code,
-    dynamic originalError,
-    StackTrace? stackTrace,
+    required super.message,
+    super.code,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-          message: message,
           type: ErrorType.permission,
-          code: code,
-          originalError: originalError,
-          stackTrace: stackTrace,
         );
 }
 

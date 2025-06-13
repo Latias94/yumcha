@@ -83,7 +83,7 @@ class SpeechService extends AiServiceBase {
       );
 
       // 创建提供商实例
-      final chatProvider = await adapter.createProvider();
+      await adapter.createProvider();
 
       // 简化处理 - 实际使用中应该使用正确的音频API
       // 这里返回模拟的音频数据
@@ -145,7 +145,7 @@ class SpeechService extends AiServiceBase {
       );
 
       // 创建提供商实例
-      final chatProvider = await adapter.createProvider();
+      await adapter.createProvider();
 
       // 简化处理 - 实际使用中应该使用正确的音频API
       // 这里返回模拟的转录结果
@@ -196,7 +196,7 @@ class SpeechService extends AiServiceBase {
       );
 
       // 创建提供商实例
-      final chatProvider = await adapter.createProvider();
+      await adapter.createProvider();
 
       // 简化处理 - 实际使用中应该使用正确的音频API
       // 这里返回模拟的转录结果

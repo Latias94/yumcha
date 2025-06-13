@@ -1,7 +1,7 @@
 /// 聊天功能导出文件
 ///
 /// 这个文件统一导出聊天相关的所有功能，简化导入路径
-library chat_exports;
+library;
 
 // 领域层
 export 'domain/entities/message.dart';

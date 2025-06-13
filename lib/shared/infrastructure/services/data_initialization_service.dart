@@ -46,7 +46,7 @@ class DataInitializationService {
   /// 2. 如果是首次启动，创建默认助手和提供商
   /// 3. 记录初始化结果
   ///
-  /// @returns Future<bool> 是否执行了初始化
+  /// Returns Future&lt;bool&gt; 是否执行了初始化
   Future<bool> initializeDefaultDataIfNeeded() async {
     try {
       _logger.info('🚀 开始检查数据初始化需求');
@@ -245,23 +245,6 @@ class DataInitializationService {
       apiKey: '', // 用户需要自己配置
       models: [
         AiModel(
-          id: 'gpt-4o-mini',
-          name: 'gpt-4o-mini',
-          displayName: 'GPT-4o mini',
-          capabilities: [
-            ModelCapability.reasoning,
-            ModelCapability.vision,
-            ModelCapability.tools
-          ],
-          metadata: {
-            'contextLength': 128000,
-            'maxTokens': 16384,
-            'description': 'GPT-4o mini模型，快速且经济',
-          },
-          createdAt: now,
-          updatedAt: now,
-        ),
-        AiModel(
           id: 'gpt-4o',
           name: 'gpt-4o',
           displayName: 'GPT-4o',
@@ -279,7 +262,7 @@ class DataInitializationService {
           updatedAt: now,
         ),
       ],
-      isEnabled: false, // 默认禁用，需要用户配置API密钥后启用
+      isEnabled: true, // 默认启用
       createdAt: now,
       updatedAt: now,
     );
@@ -483,20 +466,63 @@ final initializeDefaultDataProvider = FutureProvider<bool>((ref) async {
 });
 
 /// 简单的fallback logger，用于测试环境
+///
+/// 当LoggerService不可用时使用的备用日志记录器。
+/// 优先尝试使用LoggerService，如果失败则使用print作为最后的备用方案。
 class _FallbackLogger {
+  /// 尝试获取LoggerService实例，如果失败返回null
+  LoggerService? _getLoggerService() {
+    try {
+      final logger = LoggerService();
+      // 简单测试logger是否可用
+      return logger;
+    } catch (e) {
+      // LoggerService不可用，返回null
+      return null;
+    }
+  }
+
   void info(String message, [Map<String, dynamic>? data]) {
-    print('INFO: $message ${data != null ? data.toString() : ''}');
+    final logger = _getLoggerService();
+    if (logger != null) {
+      logger.info(message, data);
+    } else {
+      // 最后的备用方案：使用print
+      // ignore: avoid_print
+      print('INFO: $message ${data != null ? data.toString() : ''}');
+    }
   }
 
   void debug(String message, [Map<String, dynamic>? data]) {
-    print('DEBUG: $message ${data != null ? data.toString() : ''}');
+    final logger = _getLoggerService();
+    if (logger != null) {
+      logger.debug(message, data);
+    } else {
+      // 最后的备用方案：使用print
+      // ignore: avoid_print
+      print('DEBUG: $message ${data != null ? data.toString() : ''}');
+    }
   }
 
   void error(String message, [Map<String, dynamic>? data]) {
-    print('ERROR: $message ${data != null ? data.toString() : ''}');
+    final logger = _getLoggerService();
+    if (logger != null) {
+      logger.error(message, data);
+    } else {
+      // 最后的备用方案：使用print
+      // ignore: avoid_print
+      print('ERROR: $message ${data != null ? data.toString() : ''}');
+    }
   }
 
   void warning(String message, [Map<String, dynamic>? data]) {
-    print('WARNING: $message ${data != null ? data.toString() : ''}');
+    final logger = _getLoggerService();
+    if (logger != null) {
+      logger.warning(message, data);
+    } else {
+      // 最后的备用方案：使用print
+      // ignore: avoid_print
+      print('WARNING: $message ${data != null ? data.toString() : ''}');
+    }
   }
 }

@@ -1,23 +1,21 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../entities/chat_message_content.dart';
-import '../entities/message.dart';
 
 /// 消息处理结果
 @immutable
 class MessageProcessingResult {
   /// 处理后的文本内容
   final String processedText;
-  
+
   /// 是否成功处理
   final bool success;
-  
+
   /// 错误信息（如果处理失败）
   final String? error;
-  
+
   /// 处理后的附件信息
   final List<ProcessedAttachment>? attachments;
-  
+
   /// 额外的元数据
   final Map<String, dynamic>? metadata;
 
@@ -58,16 +56,16 @@ class MessageProcessingResult {
 class ProcessedAttachment {
   /// 附件类型
   final String type;
-  
+
   /// 附件ID或URL
   final String reference;
-  
+
   /// 附件名称
   final String name;
-  
+
   /// 附件大小
   final int size;
-  
+
   /// 额外信息
   final Map<String, dynamic>? metadata;
 
@@ -84,16 +82,16 @@ class ProcessedAttachment {
 abstract class MessageProcessor {
   /// 处理器名称
   String get name;
-  
+
   /// 处理器描述
   String get description;
-  
+
   /// 支持的内容类型
   List<Type> get supportedContentTypes;
-  
+
   /// 是否支持指定的内容类型
   bool supports(ChatMessageContent content);
-  
+
   /// 处理消息内容
   Future<MessageProcessingResult> process(
     ChatMessageContent content,
@@ -137,11 +135,11 @@ class PromptPreprocessor implements MessageProcessor {
 
   @override
   List<Type> get supportedContentTypes => [
-    TextContent,
-    ImageContent,
-    FileContent,
-    MixedContent,
-  ];
+        TextContent,
+        ImageContent,
+        FileContent,
+        MixedContent,
+      ];
 
   @override
   bool supports(ChatMessageContent content) => true;
@@ -182,11 +180,11 @@ class PromptPreprocessor implements MessageProcessor {
 
         case MixedContent mixedContent:
           final parts = <String>[];
-          
+
           if (mixedContent.hasText) {
             parts.add(mixedContent.text!);
           }
-          
+
           for (final attachment in mixedContent.attachments) {
             if (attachment is ImageContent) {
               parts.add(_processImageToPrompt(attachment));
@@ -206,7 +204,7 @@ class PromptPreprocessor implements MessageProcessor {
               ));
             }
           }
-          
+
           processedText = parts.join('\n\n');
           break;
       }
@@ -222,31 +220,31 @@ class PromptPreprocessor implements MessageProcessor {
 
   String _processImageToPrompt(ImageContent image) {
     final parts = <String>[];
-    
+
     parts.add('[图片]');
-    
+
     if (image.fileName != null) {
       parts.add('文件名: ${image.fileName}');
     }
-    
+
     parts.add('大小: ${image.formattedSize}');
-    
+
     if (image.description != null && image.description!.isNotEmpty) {
       parts.add('描述: ${image.description}');
     } else {
       parts.add('请分析这张图片的内容');
     }
-    
+
     return parts.join('\n');
   }
 
   String _processFileToPrompt(FileContent file) {
     final parts = <String>[];
-    
+
     parts.add('[${file.typeDescription}]');
     parts.add('文件名: ${file.fileName}');
     parts.add('大小: ${file.formattedSize}');
-    
+
     if (file.description != null && file.description!.isNotEmpty) {
       parts.add('描述: ${file.description}');
     } else {
@@ -260,7 +258,7 @@ class PromptPreprocessor implements MessageProcessor {
         parts.add('请分析这个文件');
       }
     }
-    
+
     return parts.join('\n');
   }
 }
@@ -275,16 +273,16 @@ class MultimodalProcessor implements MessageProcessor {
 
   @override
   List<Type> get supportedContentTypes => [
-    ImageContent,
-    FileContent,
-    MixedContent,
-  ];
+        ImageContent,
+        FileContent,
+        MixedContent,
+      ];
 
   @override
   bool supports(ChatMessageContent content) {
-    return content is ImageContent || 
-           content is FileContent || 
-           content is MixedContent;
+    return content is ImageContent ||
+        content is FileContent ||
+        content is MixedContent;
   }
 
   @override
@@ -373,7 +371,8 @@ class MessageProcessorManager {
   }
 
   /// 处理消息请求
-  Future<MessageProcessingResult> processRequest(ChatMessageRequest request) async {
+  Future<MessageProcessingResult> processRequest(
+      ChatMessageRequest request) async {
     MessageProcessor? processor;
 
     if (request.strategy == MessageProcessingStrategy.custom) {

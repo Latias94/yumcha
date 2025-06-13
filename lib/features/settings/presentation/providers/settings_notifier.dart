@@ -385,28 +385,41 @@ final settingsNotifierProvider =
 );
 
 /// 获取特定设置值的 Provider
-final settingValueProvider = Provider.family<dynamic, String>((ref, key) {
+final settingValueProvider =
+    Provider.autoDispose.family<dynamic, String>((ref, key) {
   final settings = ref.watch(settingsNotifierProvider);
   return settings.getValue(key);
 });
 
 /// 默认模型配置 Providers
-final defaultChatModelProvider = Provider<DefaultModelConfig?>((ref) {
-  final notifier = ref.read(settingsNotifierProvider.notifier);
-  return notifier.getDefaultChatModel();
+final defaultChatModelProvider =
+    Provider.autoDispose<DefaultModelConfig?>((ref) {
+  final settings = ref.watch(settingsNotifierProvider);
+  final value =
+      settings.getValue<Map<String, dynamic>>(SettingKeys.defaultChatModel);
+  return value != null ? DefaultModelConfig.fromJson(value) : null;
 });
 
-final defaultTitleModelProvider = Provider<DefaultModelConfig?>((ref) {
-  final notifier = ref.read(settingsNotifierProvider.notifier);
-  return notifier.getDefaultTitleModel();
+final defaultTitleModelProvider =
+    Provider.autoDispose<DefaultModelConfig?>((ref) {
+  final settings = ref.watch(settingsNotifierProvider);
+  final value =
+      settings.getValue<Map<String, dynamic>>(SettingKeys.defaultTitleModel);
+  return value != null ? DefaultModelConfig.fromJson(value) : null;
 });
 
-final defaultTranslationModelProvider = Provider<DefaultModelConfig?>((ref) {
-  final notifier = ref.read(settingsNotifierProvider.notifier);
-  return notifier.getDefaultTranslationModel();
+final defaultTranslationModelProvider =
+    Provider.autoDispose<DefaultModelConfig?>((ref) {
+  final settings = ref.watch(settingsNotifierProvider);
+  final value = settings
+      .getValue<Map<String, dynamic>>(SettingKeys.defaultTranslationModel);
+  return value != null ? DefaultModelConfig.fromJson(value) : null;
 });
 
-final defaultSummaryModelProvider = Provider<DefaultModelConfig?>((ref) {
-  final notifier = ref.read(settingsNotifierProvider.notifier);
-  return notifier.getDefaultSummaryModel();
+final defaultSummaryModelProvider =
+    Provider.autoDispose<DefaultModelConfig?>((ref) {
+  final settings = ref.watch(settingsNotifierProvider);
+  final value =
+      settings.getValue<Map<String, dynamic>>(SettingKeys.defaultSummaryModel);
+  return value != null ? DefaultModelConfig.fromJson(value) : null;
 });

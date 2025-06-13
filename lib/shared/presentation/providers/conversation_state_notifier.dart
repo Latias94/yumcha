@@ -5,6 +5,7 @@ import '../../infrastructure/services/logger_service.dart';
 import '../../infrastructure/services/data_initialization_service.dart';
 import 'dependency_providers.dart';
 import '../../../features/ai_management/presentation/providers/ai_assistant_notifier.dart';
+import '../../../features/ai_management/presentation/providers/ai_provider_notifier.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
 import 'configuration_persistence_notifier.dart';
 import 'package:uuid/uuid.dart';
@@ -138,15 +139,47 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
       }
 
       // 获取默认配置
-      final config = _getDefaultConfiguration();
+      final config = await _getDefaultConfiguration();
+
+      // 确保有有效的提供商和模型配置
+      String providerId = config.providerId ?? '';
+      String? modelName = config.modelName;
+
+      // 如果配置不完整，尝试获取第一个可用的提供商和模型
+      if (providerId.isEmpty || modelName == null) {
+        final providersAsync = _ref.read(aiProviderNotifierProvider);
+        await providersAsync.when(
+          data: (providers) async {
+            final enabledProviders =
+                providers.where((p) => p.isEnabled).toList();
+            if (enabledProviders.isNotEmpty) {
+              final firstProvider = enabledProviders.first;
+              if (firstProvider.models.isNotEmpty) {
+                providerId = firstProvider.id;
+                modelName = firstProvider.models.first.name;
+                _logger.info('使用fallback提供商和模型', {
+                  'providerId': providerId,
+                  'modelName': modelName,
+                });
+              }
+            }
+          },
+          loading: () async {
+            _logger.warning('提供商数据仍在加载中，使用空配置');
+          },
+          error: (error, stack) async {
+            _logger.error('获取提供商数据失败', {'error': error.toString()});
+          },
+        );
+      }
 
       final newConversation = ConversationUiState(
         id: conversationId,
         channelName: "新对话",
         channelMembers: 1,
         assistantId: assistant.id,
-        selectedProviderId: config.providerId ?? '',
-        selectedModelId: config.modelName,
+        selectedProviderId: providerId,
+        selectedModelId: modelName,
         messages: [],
       );
 
@@ -164,8 +197,8 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
       // 保存配置
       await _saveCurrentConfiguration(
         assistant.id,
-        config.providerId ?? '',
-        config.modelName ?? '',
+        providerId,
+        modelName ?? '',
       );
     } catch (e) {
       // 创建空白对话作为后备方案
@@ -295,16 +328,39 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
     );
   }
 
-  /// 获取默认配置
-  ({String? providerId, String? modelName}) _getDefaultConfiguration() {
-    final defaultConfig =
-        _ref.read(chatConfigurationProvider).defaultConfiguration;
+  /// 获取默认配置 - 改进版，依赖ChatConfigurationNotifier
+  Future<({String? providerId, String? modelName})>
+      _getDefaultConfiguration() async {
+    final chatConfig = _ref.read(chatConfigurationProvider);
+
+    // 优先使用 ChatConfigurationNotifier 的配置，它有更完善的fallback逻辑
+    if (chatConfig.hasCompleteConfiguration) {
+      return (
+        providerId: chatConfig.selectedProvider!.id,
+        modelName: chatConfig.selectedModel!.name,
+      );
+    }
+
+    // 如果 ChatConfigurationNotifier 还没有完整配置，等待其初始化完成
+    if (chatConfig.isLoading) {
+      _logger.info('等待ChatConfigurationNotifier初始化完成');
+      // 等待一段时间让ChatConfigurationNotifier完成初始化
+      await Future.delayed(const Duration(milliseconds: 500));
+      final updatedConfig = _ref.read(chatConfigurationProvider);
+      if (updatedConfig.hasCompleteConfiguration) {
+        return (
+          providerId: updatedConfig.selectedProvider!.id,
+          modelName: updatedConfig.selectedModel!.name,
+        );
+      }
+    }
+
+    // 如果仍然没有配置，使用持久化配置作为最后的fallback
     final persistedConfig = _ref.read(configurationPersistenceNotifierProvider);
 
     return (
-      providerId:
-          persistedConfig.lastUsedProviderId ?? defaultConfig.providerId,
-      modelName: persistedConfig.lastUsedModelName ?? defaultConfig.modelName,
+      providerId: persistedConfig.lastUsedProviderId,
+      modelName: persistedConfig.lastUsedModelName,
     );
   }
 
@@ -314,12 +370,30 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
     String providerId,
     String modelName,
   ) async {
-    // 这里需要获取实际的对象，暂时简化处理
-    _logger.info('保存配置', {
-      'assistantId': assistantId,
-      'providerId': providerId,
-      'modelName': modelName,
-    });
+    try {
+      // 直接使用PreferenceService保存配置
+      final preferenceService = _ref.read(preferenceServiceProvider);
+
+      // 分别保存助手和模型配置
+      await Future.wait([
+        preferenceService.saveLastUsedAssistantId(assistantId),
+        if (providerId.isNotEmpty && modelName.isNotEmpty)
+          preferenceService.saveLastUsedModel(providerId, modelName),
+      ]);
+
+      _logger.info('配置保存成功', {
+        'assistantId': assistantId,
+        'providerId': providerId,
+        'modelName': modelName,
+      });
+    } catch (e) {
+      _logger.error('配置保存失败', {
+        'assistantId': assistantId,
+        'providerId': providerId,
+        'modelName': modelName,
+        'error': e.toString(),
+      });
+    }
   }
 
   /// 清除错误

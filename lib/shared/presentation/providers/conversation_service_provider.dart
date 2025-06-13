@@ -25,13 +25,13 @@ class ConversationService {
     final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
 
     // 处理复杂的配置逻辑
-    final providers = await providersAsync.when(
+    final providers = providersAsync.when(
       data: (data) => data,
       loading: () => <AiProvider>[],
       error: (_, __) => <AiProvider>[],
     );
 
-    final assistants = await assistantsAsync.when(
+    final assistants = assistantsAsync.when(
       data: (data) => data,
       loading: () => <AiAssistant>[],
       error: (_, __) => <AiAssistant>[],

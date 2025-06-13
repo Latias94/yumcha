@@ -5,7 +5,6 @@ import '../../../../features/ai_management/domain/entities/ai_provider.dart'
 import '../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../features/chat/domain/entities/message.dart';
 import '../../../../features/ai_management/domain/entities/ai_model.dart';
-import '../../../../features/settings/domain/entities/mcp_server_config.dart';
 import '../../../../features/settings/domain/usecases/manage_mcp_server_usecase.dart';
 import 'core/ai_service_base.dart';
 import 'core/ai_response_models.dart';

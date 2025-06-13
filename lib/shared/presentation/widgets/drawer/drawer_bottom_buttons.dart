@@ -4,7 +4,7 @@ import '../../design_system/design_constants.dart';
 import 'drawer_constants.dart';
 
 /// 侧边栏底部按钮组件
-/// 
+///
 /// 提供底部操作按钮，包括：
 /// - 智能布局切换（水平/垂直）
 /// - 紧凑模式支持
@@ -51,16 +51,18 @@ class DrawerBottomButtons extends StatelessWidget {
 
   /// 桌面端智能按钮布局
   /// 优先使用水平布局，当空间不足时自动切换到垂直布局
-  Widget _buildDesktopButtonLayout(BuildContext context, ThemeData theme, DeviceType deviceType) {
+  Widget _buildDesktopButtonLayout(
+      BuildContext context, ThemeData theme, DeviceType deviceType) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // 计算按钮所需的最小宽度
         // 考虑图标、文字、内边距和间距
         const double iconWidth = DrawerConstants.buttonIconWidth;
         const double spacing = DrawerConstants.buttonSpacing;
-        const double horizontalPadding = DrawerConstants.buttonHorizontalPadding;
+        const double horizontalPadding =
+            DrawerConstants.buttonHorizontalPadding;
         const double buttonSpacing = DrawerConstants.buttonLayoutSpacing;
-        
+
         // 估算文字宽度（基于字符数和字体大小）
         final fontSize = DesignConstants.getResponsiveFontSize(
           context,
@@ -71,11 +73,13 @@ class DrawerBottomButtons extends StatelessWidget {
         const double avgCharWidth = DrawerConstants.chineseCharWidthRatio;
         final double searchTextWidth = "聊天历史".length * fontSize * avgCharWidth;
         final double settingsTextWidth = "设置".length * fontSize * avgCharWidth;
-        
-        final double minButtonWidth = iconWidth + spacing + 
-            math.max(searchTextWidth, settingsTextWidth) + horizontalPadding;
+
+        final double minButtonWidth = iconWidth +
+            spacing +
+            math.max(searchTextWidth, settingsTextWidth) +
+            horizontalPadding;
         final double totalHorizontalWidth = minButtonWidth * 2 + buttonSpacing;
-        
+
         // 如果可用宽度足够，使用水平布局；否则使用垂直布局
         if (constraints.maxWidth >= totalHorizontalWidth) {
           return _buildHorizontalButtonLayout(context, theme, deviceType);
@@ -87,7 +91,8 @@ class DrawerBottomButtons extends StatelessWidget {
   }
 
   /// 移动端和平板端按钮布局
-  Widget _buildMobileButtonLayout(BuildContext context, ThemeData theme, DeviceType deviceType) {
+  Widget _buildMobileButtonLayout(
+      BuildContext context, ThemeData theme, DeviceType deviceType) {
     return Row(
       children: [
         Expanded(
@@ -116,7 +121,8 @@ class DrawerBottomButtons extends StatelessWidget {
   }
 
   /// 水平按钮布局（桌面端优化版）
-  Widget _buildHorizontalButtonLayout(BuildContext context, ThemeData theme, DeviceType deviceType) {
+  Widget _buildHorizontalButtonLayout(
+      BuildContext context, ThemeData theme, DeviceType deviceType) {
     return Row(
       children: [
         Expanded(
@@ -147,7 +153,8 @@ class DrawerBottomButtons extends StatelessWidget {
   }
 
   /// 垂直按钮布局（桌面端备选方案）
-  Widget _buildVerticalButtonLayout(BuildContext context, ThemeData theme, DeviceType deviceType) {
+  Widget _buildVerticalButtonLayout(
+      BuildContext context, ThemeData theme, DeviceType deviceType) {
     return Column(
       children: [
         _buildBottomButton(
@@ -190,30 +197,35 @@ class DrawerBottomButtons extends StatelessWidget {
         child: Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
-            vertical: isCompact 
-                ? DesignConstants.spaceM 
+            vertical: isCompact
+                ? DesignConstants.spaceM
                 : (isDesktop ? DesignConstants.spaceL : DesignConstants.spaceM),
-            horizontal: isCompact 
-                ? DesignConstants.spaceS 
-                : DesignConstants.spaceM,
+            horizontal:
+                isCompact ? DesignConstants.spaceS : DesignConstants.spaceM,
           ),
           child: Row(
-            mainAxisAlignment: isCompact 
-                ? MainAxisAlignment.center 
-                : (isDesktop ? MainAxisAlignment.start : MainAxisAlignment.center),
+            mainAxisAlignment: isCompact
+                ? MainAxisAlignment.center
+                : (isDesktop
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.center),
             mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
             children: [
               Icon(
                 icon,
-                size: isCompact ? DesignConstants.iconSizeS : DesignConstants.iconSizeM,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                size: isCompact
+                    ? DesignConstants.iconSizeS
+                    : DesignConstants.iconSizeM,
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
               ),
               SizedBox(width: DesignConstants.spaceS),
               Flexible(
                 child: Text(
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.8),
                     fontSize: DesignConstants.getResponsiveFontSize(
                       context,
                       mobile: 14.0,

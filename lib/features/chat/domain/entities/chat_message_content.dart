@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 
 /// 聊天消息内容类型的基类
@@ -20,7 +19,9 @@ class TextContent extends ChatMessageContent {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is TextContent && runtimeType == other.runtimeType && text == other.text;
+      other is TextContent &&
+          runtimeType == other.runtimeType &&
+          text == other.text;
 
   @override
   int get hashCode => text.hashCode;
@@ -52,7 +53,8 @@ class ImageContent extends ChatMessageContent {
   }
 
   @override
-  String toString() => 'ImageContent(fileName: $fileName, size: $formattedSize, mimeType: $mimeType)';
+  String toString() =>
+      'ImageContent(fileName: $fileName, size: $formattedSize, mimeType: $mimeType)';
 
   @override
   bool operator ==(Object other) =>
@@ -122,7 +124,8 @@ class FileContent extends ChatMessageContent {
   }
 
   @override
-  String toString() => 'FileContent(fileName: $fileName, size: $formattedSize, type: $typeDescription)';
+  String toString() =>
+      'FileContent(fileName: $fileName, size: $formattedSize, type: $typeDescription)';
 
   @override
   bool operator ==(Object other) =>
@@ -156,12 +159,11 @@ class MixedContent extends ChatMessageContent {
   bool get hasAttachments => attachments.isNotEmpty;
 
   /// 获取所有图片附件
-  List<ImageContent> get images => 
+  List<ImageContent> get images =>
       attachments.whereType<ImageContent>().toList();
 
   /// 获取所有文件附件
-  List<FileContent> get files => 
-      attachments.whereType<FileContent>().toList();
+  List<FileContent> get files => attachments.whereType<FileContent>().toList();
 
   /// 附件总数
   int get attachmentCount => attachments.length;
@@ -182,12 +184,14 @@ class MixedContent extends ChatMessageContent {
   /// 格式化的总大小
   String get formattedTotalSize {
     if (totalSize < 1024) return '$totalSize B';
-    if (totalSize < 1024 * 1024) return '${(totalSize / 1024).toStringAsFixed(1)} KB';
+    if (totalSize < 1024 * 1024)
+      return '${(totalSize / 1024).toStringAsFixed(1)} KB';
     return '${(totalSize / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   @override
-  String toString() => 'MixedContent(text: $text, attachments: ${attachments.length})';
+  String toString() =>
+      'MixedContent(text: $text, attachments: ${attachments.length})';
 
   @override
   bool operator ==(Object other) =>
@@ -205,16 +209,16 @@ class MixedContent extends ChatMessageContent {
 enum MessageProcessingStrategy {
   /// 直接发送（不预处理）
   direct,
-  
+
   /// 预处理为统一prompt
   preprocessToPrompt,
-  
+
   /// 使用多模态API
   multimodal,
-  
+
   /// 上传到云服务（如OpenAI文件API）
   cloudUpload,
-  
+
   /// 自定义处理
   custom,
 }
@@ -224,16 +228,16 @@ enum MessageProcessingStrategy {
 class ChatMessageRequest {
   /// 消息内容
   final ChatMessageContent content;
-  
+
   /// 处理策略
   final MessageProcessingStrategy strategy;
-  
+
   /// 自定义处理器名称（当strategy为custom时使用）
   final String? customProcessor;
-  
+
   /// 额外的处理参数
   final Map<String, dynamic>? processingParams;
-  
+
   /// 是否需要预览确认
   final bool requiresPreview;
 
@@ -324,5 +328,6 @@ class ChatMessageRequest {
   }
 
   @override
-  String toString() => 'ChatMessageRequest(content: $content, strategy: $strategy)';
+  String toString() =>
+      'ChatMessageRequest(content: $content, strategy: $strategy)';
 }

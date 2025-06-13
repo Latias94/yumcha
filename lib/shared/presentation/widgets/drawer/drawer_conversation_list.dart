@@ -4,11 +4,10 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../design_system/design_constants.dart';
 import '../../../../features/chat/domain/entities/conversation_ui_state.dart';
-import '../../../infrastructure/services/logger_service.dart';
 import 'drawer_constants.dart';
 
 /// 侧边栏对话列表组件
-/// 
+///
 /// 提供对话列表功能，包括：
 /// - 分页加载
 /// - 搜索结果显示
@@ -49,7 +48,8 @@ class DrawerConversationList extends ConsumerWidget {
               PagingListener<int, ConversationUiState>(
                 controller: pagingController,
                 builder: (context, state, fetchNextPage) {
-                  return _buildGroupedPagedListView(context, state, fetchNextPage);
+                  return _buildGroupedPagedListView(
+                      context, state, fetchNextPage);
                 },
               ),
               // 搜索加载指示器
@@ -159,7 +159,8 @@ class DrawerConversationList extends ConsumerWidget {
           if (searchQuery.trim().isNotEmpty) {
             return AnimationConfiguration.staggeredList(
               position: globalIndex,
-              duration: const Duration(milliseconds: DrawerConstants.staggeredAnimationDurationMs),
+              duration: const Duration(
+                  milliseconds: DrawerConstants.staggeredAnimationDurationMs),
               child: SlideAnimation(
                 verticalOffset: 50.0,
                 child: FadeInAnimation(child: conversationWidget),
@@ -170,16 +171,19 @@ class DrawerConversationList extends ConsumerWidget {
             return conversationWidget;
           }
         },
-        firstPageErrorIndicatorBuilder: (context) => _buildErrorIndicator(context),
+        firstPageErrorIndicatorBuilder: (context) =>
+            _buildErrorIndicator(context),
         firstPageProgressIndicatorBuilder: (context) =>
             const Center(child: CircularProgressIndicator()),
         newPageProgressIndicatorBuilder: (context) => Padding(
           padding: DesignConstants.paddingL,
           child: const Center(child: CircularProgressIndicator()),
         ),
-        noItemsFoundIndicatorBuilder: (context) => _buildNoItemsIndicator(context),
+        noItemsFoundIndicatorBuilder: (context) =>
+            _buildNoItemsIndicator(context),
       ),
-      separatorBuilder: (context, index) => SizedBox(height: DesignConstants.spaceXS),
+      separatorBuilder: (context, index) =>
+          SizedBox(height: DesignConstants.spaceXS),
     );
   }
 
@@ -413,10 +417,7 @@ class DrawerConversationList extends ConsumerWidget {
             .withValues(alpha: 0.3),
         borderRadius: DesignConstants.radiusS,
         border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .primary
-              .withValues(alpha: 0.2),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
           width: DesignConstants.borderWidthThin,
         ),
       ),
@@ -447,7 +448,8 @@ class DrawerConversationList extends ConsumerWidget {
     );
   }
 
-  Widget _buildChatHistoryItem(BuildContext context, ConversationUiState conversation) {
+  Widget _buildChatHistoryItem(
+      BuildContext context, ConversationUiState conversation) {
     final theme = Theme.of(context);
     final deviceType = DesignConstants.getDeviceType(context);
     final isDesktop = deviceType == DeviceType.desktop;
@@ -469,7 +471,8 @@ class DrawerConversationList extends ConsumerWidget {
             width: double.infinity,
             padding: EdgeInsets.symmetric(
               horizontal: DesignConstants.spaceL,
-              vertical: isDesktop ? DesignConstants.spaceM : DesignConstants.spaceS,
+              vertical:
+                  isDesktop ? DesignConstants.spaceM : DesignConstants.spaceS,
             ),
             decoration: BoxDecoration(
               borderRadius: DesignConstants.radiusM,
@@ -486,7 +489,8 @@ class DrawerConversationList extends ConsumerWidget {
                     width: DesignConstants.iconSizeL,
                     height: DesignConstants.iconSizeL,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      color: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.3),
                       borderRadius: DesignConstants.radiusS,
                     ),
                     child: Icon(
@@ -521,7 +525,8 @@ class DrawerConversationList extends ConsumerWidget {
                       if (isDesktop && conversation.messages.isNotEmpty) ...[
                         SizedBox(height: DesignConstants.spaceXS),
                         Text(
-                          _getRelativeTime(conversation.messages.first.timestamp),
+                          _getRelativeTime(
+                              conversation.messages.first.timestamp),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 12.0,
@@ -541,7 +546,8 @@ class DrawerConversationList extends ConsumerWidget {
                       vertical: DesignConstants.spaceXS,
                     ),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                      color: theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.6),
                       borderRadius: DesignConstants.radiusS,
                     ),
                     child: Text(

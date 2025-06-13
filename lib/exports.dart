@@ -2,7 +2,7 @@
 ///
 /// 这个文件是整个应用的统一导出入口，提供最常用的导入路径
 /// 使用方式：import 'package:yumcha/exports.dart';
-library yumcha_exports;
+library;
 
 // 核心功能
 export 'core/exports.dart';

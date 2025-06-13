@@ -91,7 +91,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   // MCP相关
   String _mcpDebugInfo = '';
   List<McpServerConfig> _availableMcpServers = [];
-  List<String> _selectedMcpServerIds = [];
+  final List<String> _selectedMcpServerIds = [];
 
   // 请求取消相关
   Completer<void>? _currentRequestCompleter;

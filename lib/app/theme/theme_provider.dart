@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'theme_color_schemes.dart';
 import '../../shared/presentation/design_system/design_constants.dart';
+import '../../features/settings/presentation/providers/settings_notifier.dart';
+import '../../features/settings/domain/entities/app_setting.dart';
+import '../../shared/infrastructure/services/logger_service.dart';
 
 // 主题模式枚举
 enum AppColorMode { system, light, dark }
@@ -15,6 +17,7 @@ enum AppThemeScheme {
   monochrome, // 极简灰 - 经典永恒
   forest, // 森林绿 - 专注护眼
   warmOrange, // 暖橙 - 温暖友好
+  custom, // 自定义 - 个性化配色
 }
 
 // 对比度类型枚举
@@ -92,6 +95,8 @@ class ThemeSettings {
         return '森林绿';
       case AppThemeScheme.warmOrange:
         return '暖橙';
+      case AppThemeScheme.custom:
+        return '自定义';
     }
   }
 
@@ -127,15 +132,11 @@ class ThemeSettings {
 
 // 主题状态管理器
 class ThemeNotifier extends StateNotifier<ThemeSettings> {
-  static const String _colorModeKey = 'app_color_mode';
-  static const String _dynamicColorKey = 'app_dynamic_color';
-  static const String _themeSchemeKey = 'app_theme_scheme';
-  static const String _contrastLevelKey = 'app_contrast_level';
-
   ColorScheme? _lightDynamicColorScheme;
   ColorScheme? _darkDynamicColorScheme;
+  final LoggerService _logger = LoggerService();
 
-  ThemeNotifier()
+  ThemeNotifier(this._ref)
       : super(
           const ThemeSettings(
             colorMode: AppColorMode.system,
@@ -148,31 +149,69 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
     _initialize();
   }
 
+  final Ref _ref;
+
+  /// 获取设置管理器
+  SettingsNotifier get _settingsNotifier =>
+      _ref.read(settingsNotifierProvider.notifier);
+
   Future<void> _initialize() async {
-    await _loadSettings();
-    await _loadDynamicColors();
+    try {
+      // 等待设置系统初始化完成
+      await _waitForSettingsInitialization();
+      await _loadSettings();
+      await _loadDynamicColors();
+    } catch (e) {
+      _logger.error('主题初始化失败', {'error': e.toString()});
+    }
+  }
+
+  /// 等待设置系统初始化完成
+  Future<void> _waitForSettingsInitialization() async {
+    // 等待设置系统加载完成
+    final settingsState = _ref.read(settingsNotifierProvider);
+    if (settingsState.isLoading) {
+      // 如果还在加载中，等待一段时间后重试
+      await Future.delayed(const Duration(milliseconds: 100));
+      return _waitForSettingsInitialization();
+    }
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      // 从数据库设置中读取主题配置
+      final colorModeIndex =
+          _settingsNotifier.getValueOrDefault<int>(SettingKeys.colorMode, 0);
+      final colorMode = AppColorMode.values[colorModeIndex];
 
-    final colorModeIndex = prefs.getInt(_colorModeKey) ?? 0;
-    final colorMode = AppColorMode.values[colorModeIndex];
+      final dynamicColorEnabled = _settingsNotifier.getValueOrDefault<bool>(
+          SettingKeys.dynamicColorEnabled, true);
 
-    final dynamicColorEnabled = prefs.getBool(_dynamicColorKey) ?? true;
+      final themeSchemeIndex =
+          _settingsNotifier.getValueOrDefault<int>(SettingKeys.themeScheme, 0);
+      final themeScheme = AppThemeScheme.values[themeSchemeIndex];
 
-    final themeSchemeIndex = prefs.getInt(_themeSchemeKey) ?? 0;
-    final themeScheme = AppThemeScheme.values[themeSchemeIndex];
+      final contrastLevelIndex = _settingsNotifier.getValueOrDefault<int>(
+          SettingKeys.contrastLevel, 0);
+      final contrastLevel = AppContrastLevel.values[contrastLevelIndex];
 
-    final contrastLevelIndex = prefs.getInt(_contrastLevelKey) ?? 0;
-    final contrastLevel = AppContrastLevel.values[contrastLevelIndex];
+      state = state.copyWith(
+        colorMode: colorMode,
+        dynamicColorEnabled: dynamicColorEnabled,
+        themeScheme: themeScheme,
+        contrastLevel: contrastLevel,
+      );
 
-    state = state.copyWith(
-      colorMode: colorMode,
-      dynamicColorEnabled: dynamicColorEnabled,
-      themeScheme: themeScheme,
-      contrastLevel: contrastLevel,
-    );
+      _logger.debug('主题设置加载完成', {
+        'colorMode': colorMode.name,
+        'dynamicColorEnabled': dynamicColorEnabled,
+        'themeScheme': themeScheme.name,
+        'contrastLevel': contrastLevel.name,
+      });
+    } catch (e) {
+      _logger.error('主题设置加载失败', {'error': e.toString()});
+      // 使用默认设置
+    }
   }
 
   Future<void> _loadDynamicColors() async {
@@ -184,8 +223,7 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       bool dynamicEnabled = state.dynamicColorEnabled;
       if (!isAvailable && dynamicEnabled) {
         dynamicEnabled = false;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_dynamicColorKey, false);
+        await _settingsNotifier.setDynamicColorEnabled(false);
       }
 
       if (dynamicEnabled && corePalette != null) {
@@ -202,12 +240,16 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         isDynamicColorAvailable: isAvailable,
         dynamicColorEnabled: dynamicEnabled,
       );
+
+      _logger.debug('动态颜色加载完成', {
+        'isAvailable': isAvailable,
+        'dynamicEnabled': dynamicEnabled,
+      });
     } catch (e) {
       // 如果获取动态颜色失败，标记为不可用并关闭动态颜色
       bool dynamicEnabled = false;
       if (state.dynamicColorEnabled) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool(_dynamicColorKey, false);
+        await _settingsNotifier.setDynamicColorEnabled(false);
       }
 
       _lightDynamicColorScheme = null;
@@ -217,15 +259,17 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         isDynamicColorAvailable: false,
         dynamicColorEnabled: dynamicEnabled,
       );
+
+      _logger.error('动态颜色加载失败', {'error': e.toString()});
     }
   }
 
   // 设置颜色模式
   Future<void> setColorMode(AppColorMode mode) async {
     if (state.colorMode != mode) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_colorModeKey, mode.index);
+      await _settingsNotifier.setColorMode(mode.index);
       state = state.copyWith(colorMode: mode);
+      _logger.debug('颜色模式已更新', {'mode': mode.name});
     }
   }
 
@@ -236,8 +280,7 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
     }
 
     if (state.dynamicColorEnabled != enabled) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_dynamicColorKey, enabled);
+      await _settingsNotifier.setDynamicColorEnabled(enabled);
 
       if (enabled) {
         await _loadDynamicColors();
@@ -246,6 +289,7 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         _darkDynamicColorScheme = null;
         state = state.copyWith(dynamicColorEnabled: enabled);
       }
+      _logger.debug('动态颜色设置已更新', {'enabled': enabled});
     }
     return true;
   }
@@ -253,19 +297,45 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
   // 设置主题方案
   Future<void> setThemeScheme(AppThemeScheme scheme) async {
     if (state.themeScheme != scheme) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_themeSchemeKey, scheme.index);
+      await _settingsNotifier.setThemeScheme(scheme.index);
       state = state.copyWith(themeScheme: scheme);
+      _logger.debug('主题方案已更新', {'scheme': scheme.name});
     }
   }
 
   // 设置对比度级别
   Future<void> setContrastLevel(AppContrastLevel level) async {
     if (state.contrastLevel != level) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_contrastLevelKey, level.index);
+      await _settingsNotifier.setContrastLevel(level.index);
       state = state.copyWith(contrastLevel: level);
+      _logger.debug('对比度级别已更新', {'level': level.name});
     }
+  }
+
+  // 设置是否使用自定义颜色
+  Future<void> setUseCustomColors(bool enabled) async {
+    await _settingsNotifier.setUseCustomColors(enabled);
+    _logger.debug('自定义颜色设置已更新', {'enabled': enabled});
+  }
+
+  // 设置自定义主色调
+  Future<void> setCustomPrimaryColor(Color color) async {
+    final colorValue = color.toARGB32();
+    await _settingsNotifier.setCustomPrimaryColor(colorValue);
+    _logger.debug('自定义主色调已更新', {'color': colorValue.toRadixString(16)});
+  }
+
+  // 获取是否使用自定义颜色
+  bool getUseCustomColors() {
+    return _settingsNotifier.getValueOrDefault<bool>(
+        SettingKeys.useCustomColors, false);
+  }
+
+  // 获取自定义主色调
+  Color? getCustomPrimaryColor() {
+    final colorValue =
+        _settingsNotifier.getValue<int>(SettingKeys.customPrimaryColor);
+    return colorValue != null ? Color(colorValue) : null;
   }
 
   // 获取浅色主题
@@ -277,7 +347,15 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       );
     }
 
-    // 检查是否有自定义颜色方案
+    // 检查是否是自定义主题
+    if (state.themeScheme == AppThemeScheme.custom) {
+      final customColorScheme = _getCustomColorScheme(Brightness.light);
+      if (customColorScheme != null) {
+        return _getCustomTheme(customColorScheme, Brightness.light);
+      }
+    }
+
+    // 检查是否有预定义的自定义颜色方案
     final customColorScheme = ThemeColorSchemes.getColorSchemeForTheme(
       state.themeScheme.name,
       Brightness.light,
@@ -300,7 +378,15 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       );
     }
 
-    // 检查是否有自定义颜色方案
+    // 检查是否是自定义主题
+    if (state.themeScheme == AppThemeScheme.custom) {
+      final customColorScheme = _getCustomColorScheme(Brightness.dark);
+      if (customColorScheme != null) {
+        return _getCustomTheme(customColorScheme, Brightness.dark);
+      }
+    }
+
+    // 检查是否有预定义的自定义颜色方案
     final customColorScheme = ThemeColorSchemes.getColorSchemeForTheme(
       state.themeScheme.name,
       Brightness.dark,
@@ -419,6 +505,8 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         return FlexScheme.greenM3; // Material 3 绿色
       case AppThemeScheme.warmOrange:
         return FlexScheme.orangeM3; // 橙色
+      case AppThemeScheme.custom:
+        return FlexScheme.material; // 自定义主题使用默认 Material 方案
     }
   }
 
@@ -445,6 +533,8 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
         return FlexScheme.greenM3; // Material 3 绿色
       case AppThemeScheme.warmOrange:
         return FlexScheme.orangeM3; // 橙色
+      case AppThemeScheme.custom:
+        return FlexScheme.material; // 自定义主题使用默认 Material 方案
     }
   }
 
@@ -541,11 +631,41 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       ),
     );
   }
+
+  // 获取自定义颜色方案
+  ColorScheme? _getCustomColorScheme(Brightness brightness) {
+    try {
+      // 检查是否启用了自定义颜色
+      final useCustomColors = _settingsNotifier.getValueOrDefault<bool>(
+          SettingKeys.useCustomColors, false);
+      if (!useCustomColors) {
+        return null;
+      }
+
+      // 获取自定义主色调
+      final customPrimaryColorValue =
+          _settingsNotifier.getValue<int>(SettingKeys.customPrimaryColor);
+      if (customPrimaryColorValue == null) {
+        return null;
+      }
+
+      final customPrimaryColor = Color(customPrimaryColorValue);
+
+      // 使用 Material 3 的 ColorScheme.fromSeed 方法生成完整的颜色方案
+      return ColorScheme.fromSeed(
+        seedColor: customPrimaryColor,
+        brightness: brightness,
+      );
+    } catch (e) {
+      _logger.error('获取自定义颜色方案失败', {'error': e.toString()});
+      return null;
+    }
+  }
 }
 
 // Provider
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeSettings>((
   ref,
 ) {
-  return ThemeNotifier();
+  return ThemeNotifier(ref);
 });

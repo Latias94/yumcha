@@ -3,17 +3,20 @@
 /// 美观的启动页面，显示应用初始化进度。
 ///
 /// ## 特性
-/// - 🎨 渐变背景和动画效果
+/// - 🎨 渐变背景和动画效果，跟随主题变化
 /// - 📊 实时初始化进度显示
 /// - 🔄 平滑的状态转换动画
 /// - 📱 响应式设计
+/// - 🌙 支持浅色/深色主题自动适配
+library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/presentation/providers/app_initialization_provider.dart';
 import '../../shared/presentation/design_system/design_constants.dart';
 
 /// 应用启动页面组件
-class AppSplashScreen extends StatelessWidget {
+class AppSplashScreen extends ConsumerWidget {
   const AppSplashScreen({
     super.key,
     required this.initState,
@@ -22,18 +25,31 @@ class AppSplashScreen extends StatelessWidget {
   final AppInitializationState initState;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 根据主题获取背景颜色
+    final backgroundColor = colorScheme.surface;
+    final gradientColors = isDark
+        ? [
+            colorScheme.surface,
+            colorScheme.surface.withValues(alpha: 0.8),
+          ]
+        : [
+            colorScheme.surface,
+            colorScheme.surfaceContainerLowest,
+          ];
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E), // 深色背景
+      backgroundColor: backgroundColor,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1E1E1E),
-              Color(0xFF2D2D2D),
-            ],
+            colors: gradientColors,
           ),
         ),
         child: Center(
@@ -41,19 +57,19 @@ class AppSplashScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // 应用Logo区域
-              _buildLogoSection(),
+              _buildLogoSection(context, colorScheme),
               SizedBox(height: DesignConstants.spaceXXXL * 2),
 
               // 加载进度区域
-              _buildLoadingSection(),
+              _buildLoadingSection(context, colorScheme),
               SizedBox(height: DesignConstants.spaceXXL),
 
               // 初始化状态详情
-              _buildInitializationDetails(),
+              _buildInitializationDetails(context, colorScheme),
 
               // 底部版本信息
               const Spacer(),
-              _buildVersionInfo(),
+              _buildVersionInfo(context, colorScheme),
               SizedBox(height: DesignConstants.spaceXXL),
             ],
           ),
@@ -63,7 +79,7 @@ class AppSplashScreen extends StatelessWidget {
   }
 
   /// 构建Logo区域
-  Widget _buildLogoSection() {
+  Widget _buildLogoSection(BuildContext context, ColorScheme colorScheme) {
     return Column(
       children: [
         // Logo动画容器
@@ -80,11 +96,11 @@ class AppSplashScreen extends StatelessWidget {
                   width: DesignConstants.iconSizeXXL * 2.5, // 100px
                   height: DesignConstants.iconSizeXXL * 2.5, // 100px
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(
+                    color: colorScheme.primaryContainer.withValues(
                         alpha: DesignConstants.opacityMedium * 0.17), // 0.1
                     borderRadius: DesignConstants.radiusXL,
                     border: Border.all(
-                      color: Colors.blue.withValues(
+                      color: colorScheme.primary.withValues(
                           alpha: DesignConstants.opacityMedium * 0.5), // 0.3
                       width: DesignConstants.borderWidthThick,
                     ),
@@ -93,7 +109,7 @@ class AppSplashScreen extends StatelessWidget {
                     Icons.chat_bubble_outline,
                     size: DesignConstants.iconSizeXXL +
                         DesignConstants.iconSizeM, // 50px
-                    color: Colors.blue,
+                    color: colorScheme.primary,
                   ),
                 ),
               ),
@@ -116,7 +132,7 @@ class AppSplashScreen extends StatelessWidget {
                   fontSize: DesignConstants.getResponsiveFontSize(context,
                       mobile: 32.0, tablet: 36.0, desktop: 40.0),
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: colorScheme.onSurface,
                   letterSpacing: 2.0,
                 ),
               ),
@@ -137,7 +153,7 @@ class AppSplashScreen extends StatelessWidget {
                 'AI 聊天助手',
                 style: TextStyle(
                   fontSize: DesignConstants.getResponsiveFontSize(context),
-                  color: Colors.grey,
+                  color: colorScheme.onSurfaceVariant,
                   letterSpacing: 1.0,
                 ),
               ),
@@ -149,7 +165,7 @@ class AppSplashScreen extends StatelessWidget {
   }
 
   /// 构建加载区域
-  Widget _buildLoadingSection() {
+  Widget _buildLoadingSection(BuildContext context, ColorScheme colorScheme) {
     return Column(
       children: [
         // 自定义进度指示器
@@ -159,9 +175,10 @@ class AppSplashScreen extends StatelessWidget {
           child: CircularProgressIndicator(
             strokeWidth: DesignConstants.borderWidthMedium + 1, // 3px
             valueColor: AlwaysStoppedAnimation<Color>(
-              Colors.blue.withValues(alpha: DesignConstants.opacityHigh),
+              colorScheme.primary
+                  .withValues(alpha: DesignConstants.opacityHigh),
             ),
-            backgroundColor: Colors.grey
+            backgroundColor: colorScheme.surfaceContainerHighest
                 .withValues(alpha: DesignConstants.opacityMedium * 0.33), // 0.2
           ),
         ),
@@ -174,9 +191,9 @@ class AppSplashScreen extends StatelessWidget {
           child: Text(
             initState.currentStep,
             key: ValueKey(initState.currentStep),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16, // 保持固定字体大小
-              color: Colors.white70,
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -187,23 +204,26 @@ class AppSplashScreen extends StatelessWidget {
   }
 
   /// 构建初始化详情
-  Widget _buildInitializationDetails() {
+  Widget _buildInitializationDetails(
+      BuildContext context, ColorScheme colorScheme) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: DesignConstants.spaceXXL * 2),
       child: Column(
         children: [
-          _buildStatusItem('数据初始化', initState.isDataInitialized),
+          _buildStatusItem('数据初始化', initState.isDataInitialized, colorScheme),
           SizedBox(height: DesignConstants.spaceM),
-          _buildStatusItem('AI服务初始化', initState.isAiServicesInitialized),
+          _buildStatusItem(
+              'AI服务初始化', initState.isAiServicesInitialized, colorScheme),
           SizedBox(height: DesignConstants.spaceM),
-          _buildStatusItem('MCP服务初始化', initState.isMcpInitialized),
+          _buildStatusItem('MCP服务初始化', initState.isMcpInitialized, colorScheme),
         ],
       ),
     );
   }
 
   /// 构建状态项
-  Widget _buildStatusItem(String title, bool isCompleted) {
+  Widget _buildStatusItem(
+      String title, bool isCompleted, ColorScheme colorScheme) {
     return AnimatedContainer(
       duration: DesignConstants.animationNormal +
           const Duration(milliseconds: 50), // 300ms
@@ -211,16 +231,16 @@ class AppSplashScreen extends StatelessWidget {
           horizontal: DesignConstants.spaceL, vertical: DesignConstants.spaceS),
       decoration: BoxDecoration(
         color: isCompleted
-            ? Colors.green
+            ? colorScheme.primaryContainer
                 .withValues(alpha: DesignConstants.opacityMedium * 0.17) // 0.1
-            : Colors.grey.withValues(
+            : colorScheme.surfaceContainerHighest.withValues(
                 alpha: DesignConstants.opacityMedium * 0.08), // 0.05
         borderRadius: DesignConstants.radiusS,
         border: Border.all(
           color: isCompleted
-              ? Colors.green
+              ? colorScheme.primary
                   .withValues(alpha: DesignConstants.opacityMedium * 0.5) // 0.3
-              : Colors.grey.withValues(
+              : colorScheme.outline.withValues(
                   alpha: DesignConstants.opacityMedium * 0.33), // 0.2
           width: DesignConstants.borderWidthThin,
         ),
@@ -232,7 +252,9 @@ class AppSplashScreen extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 14, // 保持固定字体大小
-              color: isCompleted ? Colors.green : Colors.white70,
+              color: isCompleted
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
               fontWeight: isCompleted ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -242,7 +264,9 @@ class AppSplashScreen extends StatelessWidget {
             child: Icon(
               isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
               key: ValueKey(isCompleted),
-              color: isCompleted ? Colors.green : Colors.grey,
+              color: isCompleted
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
               size: DesignConstants.iconSizeS + 2, // 18px
             ),
           ),
@@ -252,14 +276,14 @@ class AppSplashScreen extends StatelessWidget {
   }
 
   /// 构建版本信息
-  Widget _buildVersionInfo() {
-    return const Column(
+  Widget _buildVersionInfo(BuildContext context, ColorScheme colorScheme) {
+    return Column(
       children: [
         Text(
           'Version 1.0.0',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         SizedBox(height: DesignConstants.spaceXS),
@@ -267,7 +291,7 @@ class AppSplashScreen extends StatelessWidget {
           'Powered by Flutter & Riverpod',
           style: TextStyle(
             fontSize: 10,
-            color: Colors.grey,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
       ],

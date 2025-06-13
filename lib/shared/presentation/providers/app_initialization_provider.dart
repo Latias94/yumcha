@@ -9,6 +9,7 @@
 /// - **错误处理**: 完整的错误处理和恢复机制
 /// - **状态跟踪**: 详细的初始化状态跟踪
 /// - **性能优化**: 避免重复初始化和内存泄漏
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../infrastructure/services/logger_service.dart';
@@ -17,6 +18,8 @@ import '../../infrastructure/services/ai/ai_service_manager.dart';
 import '../../../app/config/splash_config.dart';
 import '../../../features/ai_management/presentation/providers/ai_provider_notifier.dart';
 import '../../../features/ai_management/presentation/providers/ai_assistant_notifier.dart';
+import '../../../features/settings/presentation/providers/settings_notifier.dart';
+import 'favorite_model_notifier.dart';
 
 /// 应用初始化状态
 class AppInitializationState {
@@ -180,21 +183,15 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
       await _ref.read(initializeDefaultDataProvider.future);
 
       // 主动触发关键Provider的加载，确保数据可用
-      state = state.copyWith(currentStep: '正在加载AI提供商和助手...');
+      state = state.copyWith(currentStep: '正在加载核心数据...');
 
-      // 触发AI提供商数据加载
-      final providersAsync = _ref.read(aiProviderNotifierProvider);
-      if (providersAsync is AsyncLoading) {
-        // 等待提供商数据加载完成
-        await _waitForProviderData();
-      }
-
-      // 触发AI助手数据加载
-      final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
-      if (assistantsAsync is AsyncLoading) {
-        // 等待助手数据加载完成
-        await _waitForAssistantData();
-      }
+      // 等待所有核心数据Provider加载完成
+      await Future.wait([
+        _waitForProviderData(),
+        _waitForAssistantData(),
+        _waitForSettingsData(),
+        _waitForFavoriteModelsData(),
+      ]);
 
       state = state.copyWith(
         isDataInitialized: true,
@@ -322,6 +319,72 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     }
 
     _logger.warning('⏱️ 等待助手数据超时，继续初始化');
+  }
+
+  /// 等待设置数据加载完成
+  Future<void> _waitForSettingsData() async {
+    const maxWaitTime = Duration(seconds: 10);
+    const checkInterval = Duration(milliseconds: 100);
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      final settingsState = _ref.read(settingsNotifierProvider);
+
+      // 检查是否加载完成
+      if (!settingsState.isLoading && settingsState.error == null) {
+        _logger.info('✅ 设置数据加载完成');
+        return;
+      }
+
+      // 检查是否有错误
+      if (settingsState.error != null) {
+        _logger.warning('⚠️ 设置数据加载失败，但继续初始化');
+        return;
+      }
+
+      // 等待一段时间后重试
+      await Future.delayed(checkInterval);
+    }
+
+    _logger.warning('⏱️ 等待设置数据超时，继续初始化');
+  }
+
+  /// 等待收藏模型数据加载完成
+  Future<void> _waitForFavoriteModelsData() async {
+    const maxWaitTime = Duration(seconds: 10);
+    const checkInterval = Duration(milliseconds: 100);
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      final favoriteModelsAsync = _ref.read(favoriteModelNotifierProvider);
+
+      // 检查是否加载完成
+      final hasData = favoriteModelsAsync.whenOrNull(
+            data: (models) => true,
+          ) ??
+          false;
+
+      if (hasData) {
+        _logger.info('✅ 收藏模型数据加载完成');
+        return;
+      }
+
+      // 检查是否有错误
+      final hasError = favoriteModelsAsync.whenOrNull(
+            error: (error, stack) => true,
+          ) ??
+          false;
+
+      if (hasError) {
+        _logger.warning('⚠️ 收藏模型数据加载失败，但继续初始化');
+        return;
+      }
+
+      // 等待一段时间后重试
+      await Future.delayed(checkInterval);
+    }
+
+    _logger.warning('⏱️ 等待收藏模型数据超时，继续初始化');
   }
 
   /// 重试初始化

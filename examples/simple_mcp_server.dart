@@ -2,7 +2,7 @@
 
 /// 简单的 MCP 服务器示例
 /// 提供基本的计算和文本处理工具
-/// 
+///
 /// 使用方法：
 /// 1. 编译: dart compile exe examples/simple_mcp_server.dart -o simple_mcp_server
 /// 2. 在 YumCha 中配置:
@@ -10,6 +10,7 @@
 ///    - 类型: Standard I/O
 ///    - 命令: /path/to/simple_mcp_server
 ///    - 参数: (留空)
+library;
 
 import 'package:mcp_dart/mcp_dart.dart';
 
@@ -69,7 +70,7 @@ void main() async {
           throw Exception('不支持的运算类型: $operation');
       }
 
-      return CallToolResult(
+      return CallToolResult.fromContent(
         content: [
           TextContent(text: '计算结果: $a $operation $b = $result'),
         ],
@@ -114,7 +115,7 @@ void main() async {
           throw Exception('不支持的文本操作: $operation');
       }
 
-      return CallToolResult(
+      return CallToolResult.fromContent(
         content: [
           TextContent(text: result),
         ],
@@ -144,7 +145,8 @@ void main() async {
           result = 'ISO 格式时间: ${now.toIso8601String()}';
           break;
         case 'readable':
-          result = '当前时间: ${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+          result =
+              '当前时间: ${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
           break;
         case 'timestamp':
           result = '时间戳: ${now.millisecondsSinceEpoch}';
@@ -153,7 +155,7 @@ void main() async {
           throw Exception('不支持的时间格式: $format');
       }
 
-      return CallToolResult(
+      return CallToolResult.fromContent(
         content: [
           TextContent(text: result),
         ],
@@ -195,18 +197,17 @@ void main() async {
 
       final random = DateTime.now().millisecondsSinceEpoch;
       final numbers = <int>[];
-      
+
       for (int i = 0; i < count; i++) {
         final seed = random + i;
         final value = min + (seed % (max - min + 1));
         numbers.add(value);
       }
 
-      final result = count == 1 
-          ? '随机数: ${numbers.first}'
-          : '随机数列表: ${numbers.join(', ')}';
+      final result =
+          count == 1 ? '随机数: ${numbers.first}' : '随机数列表: ${numbers.join(', ')}';
 
-      return CallToolResult(
+      return CallToolResult.fromContent(
         content: [
           TextContent(text: result),
         ],

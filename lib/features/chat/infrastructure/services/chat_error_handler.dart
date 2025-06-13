@@ -3,9 +3,9 @@ import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 
 /// 聊天错误处理服务
-/// 
+///
 /// 专门处理AI聊天过程中的各种错误情况，提供统一的错误处理策略。
-/// 
+///
 /// 核心功能：
 /// - 🚨 **错误分类**: 区分网络错误、API错误、系统错误等
 /// - 💬 **错误消息**: 创建用户友好的错误消息
@@ -21,11 +21,11 @@ class ChatErrorHandler {
   final NotificationService _notification = NotificationService();
 
   /// 处理聊天错误
-  /// 
+  ///
   /// [error] 原始错误对象
   /// [originalMessage] 发生错误的原始消息
   /// [context] 错误上下文信息
-  /// 
+  ///
   /// 返回处理后的错误消息对象
   Message handleChatError({
     required Object error,
@@ -33,7 +33,7 @@ class ChatErrorHandler {
     Map<String, dynamic>? context,
   }) {
     final errorInfo = _analyzeError(error);
-    
+
     // 记录错误日志
     _logger.error('聊天错误', {
       'error': error.toString(),
@@ -49,9 +49,8 @@ class ChatErrorHandler {
     return originalMessage.copyWith(
       status: MessageStatus.error,
       errorInfo: errorInfo.userMessage,
-      content: originalMessage.content.isEmpty 
-          ? '消息发送失败' 
-          : originalMessage.content,
+      content:
+          originalMessage.content.isEmpty ? '消息发送失败' : originalMessage.content,
     );
   }
 
@@ -62,7 +61,7 @@ class ChatErrorHandler {
     String? partialContent,
   }) {
     final errorInfo = _analyzeError(error);
-    
+
     _logger.error('流式消息错误', {
       'error': error.toString(),
       'errorType': errorInfo.type.name,
@@ -213,12 +212,12 @@ class ChatErrorHandler {
 
 /// 聊天错误类型
 enum ChatErrorType {
-  network,      // 网络错误
-  api,          // API错误
-  server,       // 服务器错误
-  rateLimit,    // 限流错误
+  network, // 网络错误
+  api, // API错误
+  server, // 服务器错误
+  rateLimit, // 限流错误
   contentFilter, // 内容过滤错误
-  unknown,      // 未知错误
+  unknown, // 未知错误
 }
 
 /// 聊天错误信息

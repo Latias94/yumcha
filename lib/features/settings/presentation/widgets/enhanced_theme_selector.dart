@@ -26,6 +26,12 @@ class EnhancedThemeSelector extends ConsumerWidget {
         _buildThemeSchemeSection(context, themeSettings, themeNotifier),
         SizedBox(height: DesignConstants.spaceXXL),
 
+        // 自定义主题设置（仅在选择自定义主题时显示）
+        if (themeSettings.themeScheme == AppThemeScheme.custom) ...[
+          _buildCustomThemeSection(context, themeSettings, themeNotifier),
+          SizedBox(height: DesignConstants.spaceXXL),
+        ],
+
         // 对比度级别选择
         _buildContrastLevelSection(context, themeSettings, themeNotifier),
         SizedBox(height: DesignConstants.spaceXXL),
@@ -103,6 +109,7 @@ class EnhancedThemeSelector extends ConsumerWidget {
                   context,
                   scheme,
                   isSelected,
+                  themeNotifier,
                   () => themeNotifier.setThemeScheme(scheme),
                 );
               },
@@ -117,11 +124,16 @@ class EnhancedThemeSelector extends ConsumerWidget {
     BuildContext context,
     AppThemeScheme scheme,
     bool isSelected,
+    ThemeNotifier themeNotifier,
     VoidCallback onTap,
   ) {
     // 获取主题预览颜色
     Color primaryColor;
-    if (ThemeColorSchemes.hasCustomColorScheme(scheme.name)) {
+    if (scheme == AppThemeScheme.custom) {
+      // 对于自定义主题，尝试获取用户设置的颜色
+      final customColor = themeNotifier.getCustomPrimaryColor();
+      primaryColor = customColor ?? Colors.blue;
+    } else if (ThemeColorSchemes.hasCustomColorScheme(scheme.name)) {
       primaryColor = ThemeColorSchemes.getPrimaryColorForTheme(scheme.name);
     } else {
       // 使用默认颜色
@@ -137,6 +149,9 @@ class EnhancedThemeSelector extends ConsumerWidget {
           break;
         case AppThemeScheme.warmOrange:
           primaryColor = const Color(0xFFBF360C);
+          break;
+        case AppThemeScheme.custom:
+          primaryColor = Colors.blue; // 备用默认颜色
           break;
       }
     }
@@ -339,6 +354,8 @@ class EnhancedThemeSelector extends ConsumerWidget {
         return '森林绿';
       case AppThemeScheme.warmOrange:
         return '暖橙';
+      case AppThemeScheme.custom:
+        return '自定义';
     }
   }
 
@@ -373,5 +390,277 @@ class EnhancedThemeSelector extends ConsumerWidget {
       case AppColorMode.dark:
         return Icons.brightness_2;
     }
+  }
+
+  Widget _buildCustomThemeSection(
+    BuildContext context,
+    ThemeSettings themeSettings,
+    ThemeNotifier themeNotifier,
+  ) {
+    return _CustomThemeSettings(themeNotifier: themeNotifier);
+  }
+}
+
+/// 自定义主题设置组件（集成到主题选择器中）
+class _CustomThemeSettings extends ConsumerStatefulWidget {
+  final ThemeNotifier themeNotifier;
+
+  const _CustomThemeSettings({required this.themeNotifier});
+
+  @override
+  ConsumerState<_CustomThemeSettings> createState() => _CustomThemeSettingsState();
+}
+
+class _CustomThemeSettingsState extends ConsumerState<_CustomThemeSettings> {
+  Color? _selectedColor;
+  bool _useCustomColors = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentSettings();
+  }
+
+  void _loadCurrentSettings() {
+    _useCustomColors = widget.themeNotifier.getUseCustomColors();
+    _selectedColor = widget.themeNotifier.getCustomPrimaryColor();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '自定义主题设置',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: DesignConstants.spaceM),
+        Text(
+          '配置您的个性化主题颜色',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        SizedBox(height: DesignConstants.spaceL),
+
+        // 启用自定义颜色开关
+        SwitchListTile(
+          title: const Text('使用自定义颜色'),
+          subtitle: const Text('启用后可以自定义主题的主色调'),
+          value: _useCustomColors,
+          onChanged: _onUseCustomColorsChanged,
+          contentPadding: EdgeInsets.zero,
+        ),
+
+        if (_useCustomColors) ...[
+          SizedBox(height: DesignConstants.spaceL),
+
+          // 当前选择的颜色
+          if (_selectedColor != null) ...[
+            _buildCurrentColorDisplay(),
+            SizedBox(height: DesignConstants.spaceL),
+          ],
+
+          // 快速颜色选择
+          _buildQuickColorSelection(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCurrentColorDisplay() {
+    if (_selectedColor == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: DesignConstants.paddingM,
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outline),
+        borderRadius: DesignConstants.radiusM,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: _selectedColor,
+              borderRadius: DesignConstants.radiusS,
+              border: Border.all(color: theme.colorScheme.outline),
+            ),
+          ),
+          SizedBox(width: DesignConstants.spaceM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '当前主色调',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  _getColorDisplayName(_selectedColor!),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickColorSelection() {
+    final quickColors = [
+      Colors.red,
+      Colors.pink,
+      Colors.purple,
+      Colors.deepPurple,
+      Colors.indigo,
+      Colors.blue,
+      Colors.lightBlue,
+      Colors.cyan,
+      Colors.teal,
+      Colors.green,
+      Colors.lightGreen,
+      Colors.amber,
+      Colors.orange,
+      Colors.deepOrange,
+      Colors.brown,
+      Colors.grey,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '快速选择颜色',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: DesignConstants.spaceS),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 8,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1,
+          ),
+          itemCount: quickColors.length,
+          itemBuilder: (context, index) {
+            final color = quickColors[index];
+            final isSelected = _selectedColor == color;
+
+            return GestureDetector(
+              onTap: () => _selectColor(color),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: DesignConstants.radiusS,
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outline,
+                    width: isSelected ? 3 : 1,
+                  ),
+                ),
+                child: isSelected
+                    ? Icon(
+                        Icons.check,
+                        color: _getContrastColor(color),
+                        size: 16,
+                      )
+                    : null,
+              ),
+            );
+          },
+        ),
+        SizedBox(height: DesignConstants.spaceM),
+
+        // 随机颜色按钮
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _generateRandomColor,
+            icon: const Icon(Icons.shuffle, size: 18),
+            label: const Text('随机生成颜色'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _onUseCustomColorsChanged(bool value) {
+    setState(() {
+      _useCustomColors = value;
+    });
+
+    widget.themeNotifier.setUseCustomColors(value);
+
+    // 如果启用自定义颜色但没有选择颜色，设置默认颜色
+    if (value && _selectedColor == null) {
+      _selectColor(Colors.blue);
+    }
+  }
+
+  void _selectColor(Color color) {
+    setState(() {
+      _selectedColor = color;
+    });
+
+    widget.themeNotifier.setCustomPrimaryColor(color);
+  }
+
+  void _generateRandomColor() {
+    // 生成随机颜色
+    final random = DateTime.now().millisecondsSinceEpoch;
+    final hue = (random % 360).toDouble();
+    final color = HSLColor.fromAHSL(1.0, hue, 0.7, 0.5).toColor();
+
+    _selectColor(color);
+  }
+
+  Color _getContrastColor(Color color) {
+    // 计算颜色的亮度，选择合适的对比色
+    final luminance = color.computeLuminance();
+    return luminance > 0.5 ? Colors.black : Colors.white;
+  }
+
+  String _getColorDisplayName(Color color) {
+    final hsl = HSLColor.fromColor(color);
+    final hue = hsl.hue;
+
+    // 基于色相确定基础颜色名称
+    String baseName;
+    if (hue >= 0 && hue < 30) {
+      baseName = '红色';
+    } else if (hue >= 30 && hue < 60) {
+      baseName = '橙色';
+    } else if (hue >= 60 && hue < 120) {
+      baseName = '黄色';
+    } else if (hue >= 120 && hue < 180) {
+      baseName = '绿色';
+    } else if (hue >= 180 && hue < 240) {
+      baseName = '青色';
+    } else if (hue >= 240 && hue < 300) {
+      baseName = '蓝色';
+    } else {
+      baseName = '紫色';
+    }
+
+    return baseName;
   }
 }

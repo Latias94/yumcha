@@ -207,8 +207,6 @@ class MultimodalService extends AiServiceBase {
         throw UnsupportedError('提供商 ${provider.name} 不支持音频功能');
       }
 
-      final audioProvider = chatProvider as AudioCapability;
-
       // 执行语音转文字 - 简化处理，实际使用中需要保存为临时文件
       // 这里暂时返回模拟结果
       final result = STTResponse(
@@ -287,10 +285,9 @@ class MultimodalService extends AiServiceBase {
         throw UnsupportedError('提供商 ${provider.name} 不支持音频功能');
       }
 
-      final audioProvider = chatProvider as AudioCapability;
-
       // 执行文字转语音
-      final result = await audioProvider.textToSpeech(TTSRequest(
+      final result =
+          await (chatProvider as AudioCapability).textToSpeech(TTSRequest(
         text: text,
         voice: voice,
       ));

@@ -1,7 +1,7 @@
 /// 共享功能导出文件
 ///
 /// 这个文件统一导出所有共享功能，简化导入路径
-library shared_exports;
+library;
 
 // 数据层
 export 'data/database/database.dart';

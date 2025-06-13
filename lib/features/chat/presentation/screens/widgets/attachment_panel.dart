@@ -62,7 +62,8 @@ class AttachmentPanel extends StatelessWidget {
           horizontal: DesignConstants.spaceL,
         ),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
           borderRadius: DesignConstants.radiusM,
           border: Border.all(
             color: theme.colorScheme.outline.withValues(alpha: 0.1),
@@ -81,7 +82,8 @@ class AttachmentPanel extends StatelessWidget {
             Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
               ),
             ),
           ],

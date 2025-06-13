@@ -2,6 +2,7 @@
 ///
 /// 统一管理应用的设计规范，包括圆角、间距、阴影等视觉元素。
 /// 确保整个应用的视觉一致性和设计规范的统一性。
+library;
 
 import 'package:flutter/material.dart';
 

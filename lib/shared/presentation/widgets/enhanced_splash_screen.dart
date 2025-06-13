@@ -9,12 +9,14 @@
 /// - 📊 实时进度显示
 /// - 🔄 平滑的状态转换
 /// - 📱 响应式设计
+library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_initialization_provider.dart';
 import '../design_system/design_constants.dart';
 
-class EnhancedSplashScreen extends StatefulWidget {
+class EnhancedSplashScreen extends ConsumerStatefulWidget {
   const EnhancedSplashScreen({
     super.key,
     required this.initState,
@@ -23,10 +25,11 @@ class EnhancedSplashScreen extends StatefulWidget {
   final AppInitializationState initState;
 
   @override
-  State<EnhancedSplashScreen> createState() => _EnhancedSplashScreenState();
+  ConsumerState<EnhancedSplashScreen> createState() =>
+      _EnhancedSplashScreenState();
 }
 
-class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
+class _EnhancedSplashScreenState extends ConsumerState<EnhancedSplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _progressController;
@@ -128,23 +131,36 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 根据主题获取渐变颜色
+    final gradientColors = isDark
+        ? [
+            colorScheme.surface,
+            colorScheme.surfaceContainerLow,
+            colorScheme.surfaceContainerLowest,
+          ]
+        : [
+            colorScheme.surface,
+            colorScheme.surfaceContainerHigh,
+            colorScheme.surfaceContainerHighest,
+          ];
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.center,
             radius: 1.0,
-            colors: [
-              Color(0xFF2D2D2D),
-              Color(0xFF1E1E1E),
-              Color(0xFF0D0D0D),
-            ],
+            colors: gradientColors,
           ),
         ),
         child: Stack(
           children: [
             // 背景粒子效果
-            _buildParticleBackground(),
+            _buildParticleBackground(colorScheme),
 
             // 主要内容
             Center(
@@ -152,43 +168,43 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo区域
-                  _buildAnimatedLogo(),
+                  _buildAnimatedLogo(colorScheme),
                   SizedBox(
                       height: DesignConstants.spaceXXXL * 2), // 60px -> 64px
 
                   // 进度区域
-                  _buildProgressSection(),
+                  _buildProgressSection(colorScheme),
                   SizedBox(
                       height: DesignConstants.spaceXXXL +
                           DesignConstants.spaceS), // 40px -> 40px
 
                   // 状态详情
-                  _buildStatusDetails(),
+                  _buildStatusDetails(colorScheme),
                 ],
               ),
             ),
 
             // 底部信息
-            _buildBottomInfo(),
+            _buildBottomInfo(colorScheme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildParticleBackground() {
+  Widget _buildParticleBackground(ColorScheme colorScheme) {
     return AnimatedBuilder(
       animation: _particleController,
       builder: (context, child) {
         return CustomPaint(
-          painter: ParticlePainter(_particleController.value),
+          painter: ParticlePainter(_particleController.value, colorScheme),
           size: Size.infinite,
         );
       },
     );
   }
 
-  Widget _buildAnimatedLogo() {
+  Widget _buildAnimatedLogo(ColorScheme colorScheme) {
     return AnimatedBuilder(
       animation: _logoController,
       builder: (context, child) {
@@ -200,18 +216,18 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
               width: DesignConstants.iconSizeXXL * 3, // 120px -> 120px
               height: DesignConstants.iconSizeXXL * 3, // 120px -> 120px
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(
+                color: colorScheme.primaryContainer.withValues(
                     alpha: DesignConstants.opacityMedium * 0.17), // 0.1
                 borderRadius: BorderRadius.circular(
                     DesignConstants.radiusXXLValue + 6), // 30px
                 border: Border.all(
-                  color: Colors.blue.withValues(
+                  color: colorScheme.primary.withValues(
                       alpha: DesignConstants.opacityMedium * 0.5), // 0.3
                   width: DesignConstants.borderWidthThick,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.blue.withValues(
+                    color: colorScheme.primary.withValues(
                         alpha: DesignConstants.opacityMedium * 0.33), // 0.2
                     blurRadius: DesignConstants.spaceL +
                         DesignConstants.spaceXS, // 20px
@@ -222,7 +238,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
               child: Icon(
                 Icons.chat_bubble_outline,
                 size: DesignConstants.iconSizeXXL * 1.5, // 60px
-                color: Colors.blue,
+                color: colorScheme.primary,
               ),
             ),
           ),
@@ -231,7 +247,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
     );
   }
 
-  Widget _buildProgressSection() {
+  Widget _buildProgressSection(ColorScheme colorScheme) {
     return Column(
       children: [
         // 应用名称
@@ -241,7 +257,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             fontSize: DesignConstants.getResponsiveFontSize(context,
                 mobile: 38.0, tablet: 40.0, desktop: 42.0), // 响应式字体大小
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: colorScheme.onSurface,
             letterSpacing: 3.0,
           ),
         ),
@@ -250,7 +266,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
           'AI 聊天助手',
           style: TextStyle(
             fontSize: DesignConstants.getResponsiveFontSize(context), // 响应式字体大小
-            color: Colors.grey,
+            color: colorScheme.onSurfaceVariant,
             letterSpacing: 1.5,
           ),
         ),
@@ -268,7 +284,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
                       mobile: 180.0, tablet: 200.0, desktop: 220.0), // 响应式宽度
                   height: DesignConstants.spaceXS,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(
+                    color: colorScheme.surfaceContainerHighest.withValues(
                         alpha: DesignConstants.opacityMedium * 0.33), // 0.2
                     borderRadius:
                         BorderRadius.circular(DesignConstants.spaceXS / 2),
@@ -278,8 +294,8 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
                     widthFactor: _progressValue.value,
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Colors.blue, Colors.cyan],
+                        gradient: LinearGradient(
+                          colors: [colorScheme.primary, colorScheme.secondary],
                         ),
                         borderRadius:
                             BorderRadius.circular(DesignConstants.spaceXS / 2),
@@ -293,7 +309,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
                   style: TextStyle(
                     fontSize: DesignConstants.getResponsiveFontSize(context,
                         mobile: 13.0, tablet: 14.0, desktop: 14.0),
-                    color: Colors.white70,
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -311,7 +327,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             key: ValueKey(widget.initState.currentStep),
             style: TextStyle(
               fontSize: DesignConstants.getResponsiveFontSize(context),
-              color: Colors.white70,
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -321,7 +337,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
     );
   }
 
-  Widget _buildStatusDetails() {
+  Widget _buildStatusDetails(ColorScheme colorScheme) {
     final statuses = [
       ('数据初始化', widget.initState.isDataInitialized),
       ('AI服务初始化', widget.initState.isAiServicesInitialized),
@@ -332,13 +348,14 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
       children: statuses.map((status) {
         return Padding(
           padding: EdgeInsets.symmetric(vertical: DesignConstants.spaceXS),
-          child: _buildStatusItem(status.$1, status.$2),
+          child: _buildStatusItem(status.$1, status.$2, colorScheme),
         );
       }).toList(),
     );
   }
 
-  Widget _buildStatusItem(String title, bool isCompleted) {
+  Widget _buildStatusItem(
+      String title, bool isCompleted, ColorScheme colorScheme) {
     return AnimatedContainer(
       duration: DesignConstants.animationSlow,
       padding: EdgeInsets.symmetric(
@@ -347,15 +364,15 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
       ),
       decoration: BoxDecoration(
         color: isCompleted
-            ? Colors.green
+            ? colorScheme.primaryContainer
                 .withValues(alpha: DesignConstants.opacityMedium * 0.17) // 0.1
             : Colors.transparent,
         borderRadius: DesignConstants.radiusXL,
         border: Border.all(
           color: isCompleted
-              ? Colors.green
+              ? colorScheme.primary
                   .withValues(alpha: DesignConstants.opacityMedium * 0.5) // 0.3
-              : Colors.grey.withValues(
+              : colorScheme.outline.withValues(
                   alpha: DesignConstants.opacityMedium * 0.33), // 0.2
           width: DesignConstants.borderWidthThin,
         ),
@@ -368,7 +385,9 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             child: Icon(
               isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
               key: ValueKey(isCompleted),
-              color: isCompleted ? Colors.green : Colors.grey,
+              color: isCompleted
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
               size: DesignConstants.iconSizeS,
             ),
           ),
@@ -378,7 +397,9 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             style: TextStyle(
               fontSize: DesignConstants.getResponsiveFontSize(context,
                   mobile: 13.0, tablet: 14.0, desktop: 14.0),
-              color: isCompleted ? Colors.green : Colors.white70,
+              color: isCompleted
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
               fontWeight: isCompleted ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -387,7 +408,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
     );
   }
 
-  Widget _buildBottomInfo() {
+  Widget _buildBottomInfo(ColorScheme colorScheme) {
     return Positioned(
       bottom: DesignConstants.spaceXXXL + DesignConstants.spaceS, // 40px
       left: 0,
@@ -399,7 +420,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             style: TextStyle(
               fontSize: DesignConstants.getResponsiveFontSize(context,
                   mobile: 11.0, tablet: 12.0, desktop: 12.0),
-              color: Colors.grey,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           SizedBox(height: DesignConstants.spaceXS),
@@ -408,7 +429,7 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
             style: TextStyle(
               fontSize: DesignConstants.getResponsiveFontSize(context,
                   mobile: 9.0, tablet: 10.0, desktop: 10.0),
-              color: Colors.grey,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -420,13 +441,14 @@ class _EnhancedSplashScreenState extends State<EnhancedSplashScreen>
 /// 粒子效果绘制器
 class ParticlePainter extends CustomPainter {
   final double animationValue;
+  final ColorScheme colorScheme;
 
-  ParticlePainter(this.animationValue);
+  ParticlePainter(this.animationValue, this.colorScheme);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.blue
+      ..color = colorScheme.primary
           .withValues(alpha: DesignConstants.opacityMedium * 0.17) // 0.1
       ..style = PaintingStyle.fill;
 

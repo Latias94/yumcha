@@ -5,7 +5,7 @@ import '../../providers/providers.dart';
 import 'drawer_constants.dart';
 
 /// 侧边栏助手选择器组件
-/// 
+///
 /// 提供助手选择功能，包括：
 /// - 当前选中助手显示
 /// - 助手列表展开/收起
@@ -22,11 +22,14 @@ class DrawerAssistantSelector extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<DrawerAssistantSelector> createState() => _DrawerAssistantSelectorState();
+  ConsumerState<DrawerAssistantSelector> createState() =>
+      _DrawerAssistantSelectorState();
 }
 
-class _DrawerAssistantSelectorState extends ConsumerState<DrawerAssistantSelector> {
-  final TextEditingController _assistantSearchController = TextEditingController();
+class _DrawerAssistantSelectorState
+    extends ConsumerState<DrawerAssistantSelector> {
+  final TextEditingController _assistantSearchController =
+      TextEditingController();
   String _assistantSearchQuery = "";
   bool _isAssistantDropdownExpanded = false;
 
@@ -97,7 +100,8 @@ class _DrawerAssistantSelectorState extends ConsumerState<DrawerAssistantSelecto
             child: Column(
               children: [
                 // 当前选中的助手
-                _buildCurrentAssistant(context, theme, deviceType, selectedAssistant),
+                _buildCurrentAssistant(
+                    context, theme, deviceType, selectedAssistant),
 
                 // 展开的助手列表
                 if (_isAssistantDropdownExpanded) ...[
@@ -207,9 +211,10 @@ class _DrawerAssistantSelectorState extends ConsumerState<DrawerAssistantSelecto
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: assistants.length > DrawerConstants.assistantListScrollThreshold
-            ? DrawerConstants.assistantDropdownMaxHeight
-            : double.infinity,
+        maxHeight:
+            assistants.length > DrawerConstants.assistantListScrollThreshold
+                ? DrawerConstants.assistantDropdownMaxHeight
+                : double.infinity,
       ),
       child: filteredAssistants.isEmpty
           ? _buildNoAssistantsFound(context)
@@ -264,7 +269,8 @@ class _DrawerAssistantSelectorState extends ConsumerState<DrawerAssistantSelecto
                     Text(
                       assistant.description,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -299,7 +305,8 @@ class _DrawerAssistantSelectorState extends ConsumerState<DrawerAssistantSelecto
     );
   }
 
-  Widget _buildErrorIndicator(BuildContext context, Object error, WidgetRef ref) {
+  Widget _buildErrorIndicator(
+      BuildContext context, Object error, WidgetRef ref) {
     return Container(
       margin: DesignConstants.paddingL,
       child: Center(

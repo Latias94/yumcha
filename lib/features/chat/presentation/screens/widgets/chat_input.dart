@@ -8,6 +8,8 @@ import '../../../../../shared/infrastructure/services/notification_service.dart'
 import '../../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../providers/chat_configuration_notifier.dart';
+import '../../providers/chat_configuration_monitor.dart';
+import '../../widgets/chat_configuration_status.dart';
 import 'model_selector.dart';
 import 'attachment_panel.dart';
 import 'attachment_manager.dart';
@@ -229,6 +231,13 @@ class _ChatInputState extends ConsumerState<ChatInput>
     final hasAttachments = _attachmentState.hasAttachments;
 
     if ((hasText || hasAttachments) && widget.onSendMessage != null) {
+      // 检查配置状态
+      final canChat = ref.read(canStartChatProvider);
+      if (!canChat) {
+        final issue = ref.read(configurationIssueProvider);
+        NotificationService().showError(issue ?? '聊天配置不完整，请检查助手和模型设置');
+        return;
+      }
       ChatMessageRequest request;
 
       if (hasAttachments && hasText) {
@@ -451,6 +460,9 @@ class _ChatInputState extends ConsumerState<ChatInput>
             // 编辑指示器
             if (isEditing) _buildEditingIndicator(context, theme),
 
+            // 配置状态指示器（仅在非编辑模式显示）
+            if (!isEditing) _buildConfigurationStatusIndicator(context, theme),
+
             // 附件标签（仅在非编辑模式且有附件时显示）
             if (!isEditing && _attachmentState.hasAttachments)
               AttachmentChips(
@@ -503,6 +515,71 @@ class _ChatInputState extends ConsumerState<ChatInput>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildConfigurationStatusIndicator(
+      BuildContext context, ThemeData theme) {
+    final needsAttention = ref.watch(configurationNeedsAttentionProvider);
+
+    // 只在需要关注时显示
+    if (!needsAttention) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: DesignConstants.responsiveHorizontalPadding(context).copyWith(
+        top: DesignConstants.spaceS,
+        bottom: 0,
+      ),
+      child: ChatConfigurationStatus(
+        compact: true,
+        showDetails: false,
+        onFixRequested: () {
+          // 显示配置问题详情
+          final issue = ref.read(configurationIssueProvider);
+          final suggestions = ref.read(configurationFixSuggestionsProvider);
+
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('配置问题'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (issue != null) ...[
+                    Text('问题: $issue'),
+                    const SizedBox(height: 16),
+                  ],
+                  if (suggestions.isNotEmpty) ...[
+                    const Text('建议:'),
+                    const SizedBox(height: 8),
+                    ...suggestions.map((suggestion) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text('• $suggestion'),
+                        )),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('知道了'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // 这里可以导航到设置页面
+                    NotificationService().showInfo('请前往设置页面修复配置问题');
+                  },
+                  child: const Text('前往设置'),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

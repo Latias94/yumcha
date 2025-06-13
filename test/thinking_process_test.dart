@@ -82,7 +82,8 @@ class CounterWidget extends ConsumerWidget {
 这是实际的回复内容。
 ''';
 
-      final result = ThinkingProcessParser.parseMessage(messageWithEmptyThinking);
+      final result =
+          ThinkingProcessParser.parseMessage(messageWithEmptyThinking);
 
       expect(result.hasThinkingProcess, true);
       expect(result.thinkingContent, isEmpty);
@@ -104,7 +105,8 @@ class CounterWidget extends ConsumerWidget {
 最终的回复内容
 ''';
 
-      final result = ThinkingProcessParser.parseMessage(messageWithMultipleThinking);
+      final result =
+          ThinkingProcessParser.parseMessage(messageWithMultipleThinking);
 
       expect(result.hasThinkingProcess, true);
       expect(result.actualContent, contains('中间的内容'));
@@ -121,7 +123,8 @@ class CounterWidget extends ConsumerWidget {
 这应该被当作普通内容处理。
 ''';
 
-      final result = ThinkingProcessParser.parseMessage(messageWithMalformedThinking);
+      final result =
+          ThinkingProcessParser.parseMessage(messageWithMalformedThinking);
 
       expect(result.hasThinkingProcess, false);
       expect(result.actualContent, equals(messageWithMalformedThinking));
@@ -146,7 +149,8 @@ class CounterWidget extends ConsumerWidget {
 基于分析，我推荐B方案。
 ''';
 
-      final result = ThinkingProcessParser.parseMessage(messageWithFormattedThinking);
+      final result =
+          ThinkingProcessParser.parseMessage(messageWithFormattedThinking);
 
       expect(result.hasThinkingProcess, true);
       expect(result.thinkingContent, contains('1. 首先考虑A方案'));

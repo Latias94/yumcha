@@ -186,7 +186,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                         final currentFavorites = favoriteModelsAsync.when(
                           data: (models) => models,
                           loading: () => data.favoriteModels,
-                          error: (_1, _2) => data.favoriteModels,
+                          error: (error, stackTrace) => data.favoriteModels,
                         );
 
                         return ListView(
@@ -281,7 +281,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
       final favoriteModels = favoriteModelsAsync.when(
         data: (models) => models,
         loading: () => <FavoriteModel>[],
-        error: (_1, _2) => <FavoriteModel>[],
+        error: (error, stackTrace) => <FavoriteModel>[],
       );
 
       // 获取所有启用提供商的启用模型

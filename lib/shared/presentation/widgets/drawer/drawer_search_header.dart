@@ -1,10 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../design_system/design_constants.dart';
 
 /// 侧边栏搜索头部组件
-/// 
+///
 /// 提供搜索功能，包括：
 /// - 响应式搜索框
 /// - 防抖搜索
@@ -78,7 +77,8 @@ class _DrawerSearchHeaderState extends ConsumerState<DrawerSearchHeader> {
                       transitionBuilder: (child, animation) {
                         return ScaleTransition(
                           scale: animation,
-                          child: FadeTransition(opacity: animation, child: child),
+                          child:
+                              FadeTransition(opacity: animation, child: child),
                         );
                       },
                       child: showClear

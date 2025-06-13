@@ -73,9 +73,9 @@ class NotificationService {
   // Overlay 相关
   OverlayEntry? _currentOverlayEntry;
 
-  // 通知队列管理
-  final List<String> _notificationQueue = [];
-  bool _isShowingNotification = false;
+  // 通知队列管理（预留功能）
+  // final List<String> _notificationQueue = [];
+  // bool _isShowingNotification = false;
 
   // 显示通知（智能选择显示方式）
   void showNotification({

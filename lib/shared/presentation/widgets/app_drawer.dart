@@ -88,8 +88,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     );
 
     // 监听助手状态变化
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeSelectedAssistant();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _initializeSelectedAssistant();
     });
   }
 
@@ -105,12 +105,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   }
 
   // 初始化选中的助手
-  void _initializeSelectedAssistant() {
-    _searchService.initializeSelectedAssistant(() {
-      setState(() {
-        _selectedAssistant = _searchService.selectedAssistant;
-      });
-      _refreshConversations();
+  Future<void> _initializeSelectedAssistant() async {
+    await _searchService.initializeSelectedAssistant(() {
+      if (mounted) {
+        setState(() {
+          _selectedAssistant = _searchService.selectedAssistant;
+        });
+        _refreshConversations();
+      }
     });
   }
 
@@ -230,18 +232,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     _pagingController.refresh();
   }
 
-
-
   // 处理助手变化
-  void _onAssistantChanged(String assistantId) {
+  Future<void> _onAssistantChanged(String assistantId) async {
     setState(() {
       _selectedAssistant = assistantId;
     });
-    _searchService.setSelectedAssistant(assistantId);
+    await _searchService.setSelectedAssistant(assistantId);
     _refreshConversations();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +284,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     searchQuery: _searchService.searchQuery,
                     isSearching: _isSearching,
                     searchQueryNotifier: _searchQueryNotifier,
-                    onConversationTap: (conversation) => widget.onChatClicked(conversation.id),
+                    onConversationTap: (conversation) =>
+                        widget.onChatClicked(conversation.id),
                     onDeleteConversation: _showDeleteConfirmDialog,
                     onRegenerateTitle: _regenerateTitle,
                   ),
@@ -310,18 +309,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       },
     );
   }
-
-
-
-
-
-
-
-
-
-
-
-
 
   void _showSettingsDialog() {
     Navigator.of(context).pop(); // 关闭侧边栏

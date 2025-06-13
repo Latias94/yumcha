@@ -3,6 +3,7 @@ import 'themes/ocean_theme.dart';
 import 'themes/monochrome_theme.dart';
 import 'themes/forest_theme.dart';
 import 'themes/warm_orange_theme.dart';
+import 'themes/custom_theme.dart';
 
 /// 主题颜色方案管理器
 /// 统一管理四个AI聊天优化主题：海洋、极简灰、森林绿、暖橙
@@ -22,6 +23,8 @@ class ThemeColorSchemes {
         return ForestTheme.getColorScheme(brightness, contrastLevel);
       case 'warmOrange':
         return WarmOrangeTheme.getColorScheme(brightness, contrastLevel);
+      case 'custom':
+        return null; // 自定义主题返回 null，由主题提供者处理
       default:
         return null; // 使用 FlexColorScheme 或其他方案
     }
@@ -38,6 +41,8 @@ class ThemeColorSchemes {
         return const Color(0xFF2E7D32); // 森林绿主色调
       case 'warmOrange':
         return const Color(0xFFBF360C); // 暖橙主色调
+      case 'custom':
+        return Colors.blue; // 自定义主题的默认颜色，实际使用时会被覆盖
       default:
         return Colors.blue; // 默认颜色
     }
@@ -51,7 +56,7 @@ class ThemeColorSchemes {
 
   /// 获取所有可用主题的列表
   static List<String> getAvailableThemes() {
-    return ['ocean', 'monochrome', 'forest', 'warmOrange'];
+    return ['ocean', 'monochrome', 'forest', 'warmOrange', 'custom'];
   }
 
   /// 获取主题的显示名称
@@ -65,6 +70,8 @@ class ThemeColorSchemes {
         return '森林绿';
       case 'warmOrange':
         return '暖橙';
+      case 'custom':
+        return '自定义';
       default:
         return '未知主题';
     }
@@ -81,6 +88,8 @@ class ThemeColorSchemes {
         return '专注护眼，自然清新';
       case 'warmOrange':
         return '温暖友好，舒适亲切';
+      case 'custom':
+        return '个性化配色，展现独特品味';
       default:
         return '';
     }
@@ -113,5 +122,29 @@ class ThemeColorSchemes {
     String contrastLevel = 'standard',
   ]) {
     return WarmOrangeTheme.getColorScheme(brightness, contrastLevel);
+  }
+
+  /// 获取自定义主题的颜色方案
+  static ColorScheme getCustomColorScheme(
+    Color seedColor,
+    Brightness brightness, [
+    String contrastLevel = 'standard',
+  ]) {
+    return CustomTheme.getColorScheme(seedColor, brightness, contrastLevel);
+  }
+
+  /// 验证和调整种子颜色
+  static Color validateAndAdjustSeedColor(Color seedColor) {
+    return CustomTheme.validateAndAdjustSeedColor(seedColor);
+  }
+
+  /// 生成推荐的配色方案
+  static List<Color> generateRecommendedColors(Color seedColor) {
+    return CustomTheme.generateRecommendedColors(seedColor);
+  }
+
+  /// 获取颜色的显示名称
+  static String getColorDisplayName(Color color) {
+    return CustomTheme.getColorDisplayName(color);
   }
 }

@@ -53,13 +53,15 @@ class McpServiceState {
 
 /// MCP 服务状态管理器
 class McpServiceNotifier extends StateNotifier<McpServiceState> {
-  McpServiceNotifier(this._settingsNotifier, this._ref)
-      : super(const McpServiceState()) {
+  McpServiceNotifier(this._ref) : super(const McpServiceState()) {
     _init();
   }
 
-  final SettingsNotifier _settingsNotifier;
   final Ref _ref;
+
+  /// 获取SettingsNotifier实例
+  SettingsNotifier get _settingsNotifier =>
+      _ref.read(settingsNotifierProvider.notifier);
   final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase();
   final LoggerService _logger = LoggerService();
   Timer? _statusUpdateTimer;
@@ -324,33 +326,32 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
 /// MCP 服务状态 Provider
 final mcpServiceProvider =
     StateNotifierProvider<McpServiceNotifier, McpServiceState>((ref) {
-  final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
-  return McpServiceNotifier(settingsNotifier, ref);
+  return McpServiceNotifier(ref);
 });
 
 /// 获取特定服务器状态的 Provider
 final mcpServerStatusProvider =
-    Provider.family<McpServerStatus, String>((ref, serverId) {
+    Provider.autoDispose.family<McpServerStatus, String>((ref, serverId) {
   final mcpState = ref.watch(mcpServiceProvider);
   return mcpState.serverStatuses[serverId] ?? McpServerStatus.disconnected;
 });
 
 /// 获取特定服务器错误的 Provider
 final mcpServerErrorProvider =
-    Provider.family<String?, String>((ref, serverId) {
+    Provider.autoDispose.family<String?, String>((ref, serverId) {
   final mcpState = ref.watch(mcpServiceProvider);
   return mcpState.serverErrors[serverId];
 });
 
 /// 获取特定服务器工具的 Provider
 final mcpServerToolsProvider =
-    Provider.family<List<dynamic>, String>((ref, serverId) {
+    Provider.autoDispose.family<List<dynamic>, String>((ref, serverId) {
   final mcpState = ref.watch(mcpServiceProvider);
   return mcpState.serverTools[serverId] ?? [];
 });
 
 /// 获取所有可用工具的 Provider
-final mcpAllToolsProvider = Provider<List<dynamic>>((ref) {
+final mcpAllToolsProvider = Provider.autoDispose<List<dynamic>>((ref) {
   final notifier = ref.read(mcpServiceProvider.notifier);
   return notifier.getAllAvailableTools();
 });
