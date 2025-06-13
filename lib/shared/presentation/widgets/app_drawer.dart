@@ -106,14 +106,29 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   // 初始化选中的助手
   Future<void> _initializeSelectedAssistant() async {
-    await _searchService.initializeSelectedAssistant(() {
-      if (mounted) {
+    try {
+      await _searchService.initializeSelectedAssistant(() {
+        if (mounted) {
+          setState(() {
+            _selectedAssistant = _searchService.selectedAssistant;
+          });
+          // 只有在助手ID有效时才刷新对话列表
+          if (_selectedAssistant.isNotEmpty && _selectedAssistant != "ai") {
+            _refreshConversations();
+          }
+        }
+      });
+    } catch (e) {
+      _logger.error('初始化助手失败', {'error': e.toString()});
+      // 如果初始化失败，尝试手动设置一个默认助手
+      final enabledAssistants = ref.read(enabledAiAssistantsProvider);
+      if (enabledAssistants.isNotEmpty && mounted) {
         setState(() {
-          _selectedAssistant = _searchService.selectedAssistant;
+          _selectedAssistant = enabledAssistants.first.id;
         });
         _refreshConversations();
       }
-    });
+    }
   }
 
   // 处理搜索变化

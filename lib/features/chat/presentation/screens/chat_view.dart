@@ -85,6 +85,10 @@ class _ChatViewState extends ConsumerState<ChatView>
     // 初始化消息列表
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeMessagesIfNeeded();
+      // 检查并清理可能残留的流式状态
+      ref
+          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+          .checkAndCleanupStreamingState();
     });
   }
 
@@ -154,9 +158,6 @@ class _ChatViewState extends ConsumerState<ChatView>
   Widget _buildChatContent(ChatMessageState chatState) {
     return Column(
       children: [
-        // 错误提示横幅
-        if (chatState.error != null) _buildErrorBanner(chatState.error!),
-
         // 聊天历史
         Expanded(
           child: ChatHistoryView(
@@ -192,6 +193,13 @@ class _ChatViewState extends ConsumerState<ChatView>
             // TODO: 实现新的助手选择逻辑
           },
           initialAssistantId: widget.assistantId,
+          onStartTyping: () {
+            // 当用户开始输入时，清除错误状态
+            ref
+                .read(chatMessageNotifierProvider(widget.conversationId)
+                    .notifier)
+                .clearError();
+          },
         ),
       ],
     );
@@ -206,36 +214,6 @@ class _ChatViewState extends ConsumerState<ChatView>
           Icon(Icons.error, color: Theme.of(context).colorScheme.error),
           const SizedBox(height: 16),
           Text(errorMessage),
-        ],
-      ),
-    );
-  }
-
-  /// 构建错误横幅
-  Widget _buildErrorBanner(String error) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      color: Colors.red.shade100,
-      child: Row(
-        children: [
-          Icon(Icons.error, color: Colors.red.shade700),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              error,
-              style: TextStyle(color: Colors.red.shade700),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () {
-              ref
-                  .read(chatMessageNotifierProvider(widget.conversationId)
-                      .notifier)
-                  .clearError();
-            },
-          ),
         ],
       ),
     );
@@ -395,10 +373,13 @@ class _ChatViewState extends ConsumerState<ChatView>
     final userMessage = chatState.messages[messageIndex - 1];
     if (!userMessage.isFromUser) return;
 
-    // 删除当前的AI消息
+    // 删除当前的AI消息和对应的用户消息（避免重复）
     ref
         .read(chatMessageNotifierProvider(widget.conversationId).notifier)
         .deleteMessage(aiMessage);
+    ref
+        .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+        .deleteMessage(userMessage);
 
     // 获取助手信息以确定是否使用流式输出
     final assistantsAsync = ref.read(aiAssistantNotifierProvider);

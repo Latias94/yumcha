@@ -171,8 +171,12 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
               color: _getListStyleBackgroundColor(theme),
               borderRadius: DesignConstants.radiusM,
               border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: DesignConstants.borderWidthThin,
+                color: widget.message.isError
+                    ? theme.colorScheme.error.withValues(alpha: 0.5)
+                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: widget.message.isError
+                    ? DesignConstants.borderWidthThin * 2
+                    : DesignConstants.borderWidthThin,
               ),
               // 添加轻微阴影增强层次感
               boxShadow: DesignConstants.shadowXS(theme),
@@ -186,6 +190,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                   theme.colorScheme.onSurface,
                   content: thinkingResult.actualContent,
                 ),
+
+                // 错误信息显示
+                if (widget.message.isError && widget.message.errorInfo != null)
+                  _buildErrorInfo(context, theme),
 
                 // 流式状态指示器
                 if (widget.message.status == MessageStatus.streaming)
@@ -220,8 +228,12 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
         shape: RoundedRectangleBorder(
           borderRadius: DesignConstants.radiusL,
           side: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            width: DesignConstants.borderWidthThin,
+            color: widget.message.isError
+                ? theme.colorScheme.error.withValues(alpha: 0.5)
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            width: widget.message.isError
+                ? DesignConstants.borderWidthThin * 2
+                : DesignConstants.borderWidthThin,
           ),
         ),
         child: Padding(
@@ -322,6 +334,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     content: thinkingResult.actualContent,
                   ),
 
+                  // 错误信息显示
+                  if (widget.message.isError && widget.message.errorInfo != null)
+                    _buildErrorInfo(context, theme),
+
                   // 流式状态指示器
                   if (widget.message.status == MessageStatus.streaming)
                     _buildStreamingIndicator(context, theme),
@@ -397,6 +413,15 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 content: thinkingResult.actualContent,
                 maxWidth: maxWidth,
               ),
+
+              // 错误信息显示（在气泡下方）
+              if (widget.message.isError && widget.message.errorInfo != null)
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                  ),
+                  child: _buildErrorInfo(context, theme),
+                ),
 
               // 流式状态指示器（在气泡内部）
               if (widget.message.status == MessageStatus.streaming)
@@ -613,6 +638,12 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 ? DesignConstants.radiusXS.bottomRight
                 : DesignConstants.radiusXL.bottomRight,
           ),
+          border: widget.message.isError
+              ? Border.all(
+                  color: theme.colorScheme.error.withValues(alpha: 0.7),
+                  width: DesignConstants.borderWidthThin * 2,
+                )
+              : null,
           boxShadow: DesignConstants.shadowXS(theme),
         ),
         child: _buildMarkdownContent(
@@ -851,5 +882,71 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
       // 深色模式：使用稍微亮一点的表面容器色，避免过于暗淡
       return colorScheme.surfaceContainerLow;
     }
+  }
+
+  /// 构建错误信息显示组件
+  Widget _buildErrorInfo(BuildContext context, ThemeData theme) {
+    final isDesktop = DesignConstants.isDesktop(context);
+
+    return Container(
+      margin: EdgeInsets.only(top: DesignConstants.spaceS),
+      padding: EdgeInsets.all(
+        isDesktop ? DesignConstants.spaceM : DesignConstants.spaceS,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.1),
+        borderRadius: DesignConstants.radiusS,
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.3),
+          width: DesignConstants.borderWidthThin,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 错误图标
+          Icon(
+            Icons.error_outline_rounded,
+            color: theme.colorScheme.error,
+            size: isDesktop ? DesignConstants.iconSizeS : 14,
+          ),
+          SizedBox(width: DesignConstants.spaceXS),
+
+          // 错误信息文本
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '发生错误',
+                  style: TextStyle(
+                    color: theme.colorScheme.error,
+                    fontSize: DesignConstants.getResponsiveFontSize(
+                      context,
+                      mobile: 12,
+                      desktop: 13,
+                    ),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: DesignConstants.spaceXS / 2),
+                Text(
+                  widget.message.errorInfo!,
+                  style: TextStyle(
+                    color: theme.colorScheme.onErrorContainer,
+                    fontSize: DesignConstants.getResponsiveFontSize(
+                      context,
+                      mobile: 11,
+                      desktop: 12,
+                    ),
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

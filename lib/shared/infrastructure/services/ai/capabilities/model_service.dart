@@ -83,7 +83,18 @@ class ModelService extends AiServiceBase {
       }
 
       final modelProvider = chatProvider as ModelListingCapability;
+
+      logger.debug('开始调用模型列表API', {
+        'provider': provider.name,
+        'baseUrl': provider.baseUrl ?? '默认端点',
+      });
+
       final aiModels = await modelProvider.models();
+
+      logger.debug('API调用成功，获取到模型数量', {
+        'provider': provider.name,
+        'modelCount': aiModels.length,
+      });
 
       // 转换LLM Dart模型到应用模型格式
       final appModels = aiModels.map((aiModel) {
@@ -136,18 +147,14 @@ class ModelService extends AiServiceBase {
         'friendlyError': friendlyError,
       });
 
-      // 配置错误，抛出友好的异常
-      if (e.toString().contains('Invalid configuration')) {
-        throw Exception(friendlyError);
-      }
-
       // 返回缓存的模型（如果有）
       if (_modelCache.containsKey(cacheKey)) {
-        logger.info('返回缓存的模型列表', {'provider': provider.name});
+        logger.info('API 调用失败，返回缓存的模型列表', {'provider': provider.name});
         return _modelCache[cacheKey]!;
       }
 
-      return [];
+      // 如果没有缓存，抛出友好的异常让用户知道发生了什么
+      throw Exception(friendlyError);
     }
   }
 
@@ -332,45 +339,34 @@ class ModelService extends AiServiceBase {
 
   /// 获取友好的错误信息
   String _getFriendlyErrorMessage(dynamic error, models.AiProvider provider) {
-    final errorStr = error.toString();
+    final errorStr = error.toString().toLowerCase();
 
-    if (errorStr.contains(
-        'Invalid configuration for provider: ${provider.type.name}')) {
-      if (errorStr.contains('API密钥不能为空')) {
-        return '❌ ${provider.name} 提供商配置错误：\n\n'
-            '🔑 API密钥未配置\n'
-            '请在 "设置 → AI提供商" 中为 ${provider.name} 配置有效的API密钥。\n\n'
-            '💡 提示：\n'
-            '• OpenAI API密钥格式：sk-xxxxxxxxxxxxxxxx\n'
-            '• 可在 https://platform.openai.com/api-keys 获取';
-      }
+    // 根据错误类型提供更友好的错误信息
+    if (errorStr.contains('unauthorized') || errorStr.contains('401')) {
+      return '认证失败：请检查 ${provider.name} 的 API 密钥是否正确';
+    }
 
-      if (errorStr.contains('API密钥格式不正确')) {
-        return '❌ ${provider.name} 提供商配置错误：\n\n'
-            '🔑 API密钥格式不正确\n'
-            '请检查API密钥格式是否符合 ${provider.type.name} 的要求。\n\n'
-            '💡 正确格式：\n'
-            '• OpenAI: sk-xxxxxxxxxxxxxxxx\n'
-            '• Anthropic: sk-ant-xxxxxxxxxxxxxxxx';
-      }
+    if (errorStr.contains('forbidden') || errorStr.contains('403')) {
+      return '访问被拒绝：API 密钥可能没有访问权限';
+    }
 
-      if (errorStr.contains('基础URL格式不正确')) {
-        return '❌ ${provider.name} 提供商配置错误：\n\n'
-            '🌐 基础URL格式不正确\n'
-            '请检查URL格式是否正确（需要包含 http:// 或 https://）。';
-      }
+    if (errorStr.contains('not found') || errorStr.contains('404')) {
+      return '服务未找到：请检查 ${provider.name} 的 Base URL 是否正确';
     }
 
     if (errorStr.contains('timeout') || errorStr.contains('connection')) {
-      return '❌ 网络连接错误：\n\n'
-          '🌐 无法连接到 ${provider.name} 服务器\n'
-          '请检查网络连接或稍后重试。';
+      return '网络连接超时：请检查网络连接或稍后重试';
     }
 
-    // 默认错误信息
-    return '❌ 获取模型列表失败：\n\n'
-        '提供商：${provider.name}\n'
-        '错误：$errorStr\n\n'
-        '请检查提供商配置或稍后重试。';
+    if (errorStr.contains('rate limit') || errorStr.contains('429')) {
+      return 'API 调用频率超限：请稍后重试';
+    }
+
+    if (errorStr.contains('invalid') && errorStr.contains('key')) {
+      return 'API 密钥无效：请检查 ${provider.name} 的 API 密钥格式';
+    }
+
+    // 如果无法识别具体错误类型，返回通用错误信息
+    return '获取 ${provider.name} 模型列表失败：${error.toString()}';
   }
 }

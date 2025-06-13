@@ -136,13 +136,22 @@ class DrawerSearchService {
       } else {
         // 否则使用正常的分页获取
         _logger.debug('获取正常对话列表: assistantId=$_selectedAssistant');
+
+        // 添加超时保护，避免无限等待
         results = await _conversationRepository
             .getConversationsByAssistantWithPagination(
           _selectedAssistant,
           limit: _pageSize,
           offset: pageKey,
-          includeMessages: true, // 需要消息来获取时间戳
+          includeMessages: false, // 暂时不包含消息内容，提高性能
+        ).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            _logger.warning('获取对话列表超时，返回空列表');
+            return <ConversationUiState>[];
+          },
         );
+
         _logger.debug('对话列表数量: ${results.length}');
       }
 
@@ -241,13 +250,40 @@ class DrawerSearchService {
   /// 初始化选中的助手（从设置中恢复）
   Future<void> initializeSelectedAssistant(
       VoidCallback onRefreshConversations) async {
+    // 检查助手数据的加载状态
+    final assistantsAsyncValue = _ref.read(aiAssistantNotifierProvider);
+    _logger.debug('助手数据状态: ${assistantsAsyncValue.runtimeType}');
+
+    assistantsAsyncValue.when(
+      data: (allAssistants) {
+        _logger.debug('所有助手数量: ${allAssistants.length}');
+        final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
+        _logger.debug('启用的助手数量: ${enabledAssistants.length}');
+        for (final assistant in enabledAssistants) {
+          _logger.debug('启用的助手: ${assistant.id} - ${assistant.name}');
+        }
+      },
+      loading: () => _logger.debug('助手数据正在加载中'),
+      error: (error, stack) => _logger.error('助手数据加载失败: $error'),
+    );
+
     final assistantsAsync = _ref.read(enabledAiAssistantsProvider);
     if (assistantsAsync.isEmpty) {
-      _logger.warning('没有可用助手');
-      return;
+      _logger.warning('没有可用助手，等待数据加载...');
+
+      // 如果助手数据还在加载中，等待一段时间后重试
+      await Future.delayed(const Duration(milliseconds: 500));
+      final retryAssistants = _ref.read(enabledAiAssistantsProvider);
+      if (retryAssistants.isEmpty) {
+        _logger.error('重试后仍然没有可用助手');
+        return;
+      }
+      _logger.debug('重试后找到助手: ${retryAssistants.length}个');
     }
 
     try {
+      final enabledAssistants = _ref.read(enabledAiAssistantsProvider);
+
       // 从设置中读取上次选择的助手
       final settingsNotifier = _ref.read(settingsNotifierProvider.notifier);
       final lastUsedAssistantId = settingsNotifier.getValue<String>(
@@ -260,7 +296,7 @@ class DrawerSearchService {
 
       if (lastUsedAssistantId != null && lastUsedAssistantId.isNotEmpty) {
         // 验证保存的助手是否仍然有效
-        final isValidAssistant = assistantsAsync.any(
+        final isValidAssistant = enabledAssistants.any(
           (a) => a.id == lastUsedAssistantId,
         );
 
@@ -269,12 +305,12 @@ class DrawerSearchService {
           _logger.debug('恢复上次选择的助手: $targetAssistantId');
         } else {
           // 如果保存的助手无效，选择第一个可用助手
-          targetAssistantId = assistantsAsync.first.id;
+          targetAssistantId = enabledAssistants.first.id;
           _logger.debug('上次选择的助手无效，选择第一个可用助手: $targetAssistantId');
         }
       } else {
         // 如果没有保存的选择，选择第一个可用助手
-        targetAssistantId = assistantsAsync.first.id;
+        targetAssistantId = enabledAssistants.first.id;
         _logger.debug('没有保存的助手选择，选择第一个可用助手: $targetAssistantId');
       }
 
@@ -299,8 +335,11 @@ class DrawerSearchService {
       });
 
       // 出错时使用第一个可用助手
-      _selectedAssistant = assistantsAsync.first.id;
-      onRefreshConversations();
+      final enabledAssistants = _ref.read(enabledAiAssistantsProvider);
+      if (enabledAssistants.isNotEmpty) {
+        _selectedAssistant = enabledAssistants.first.id;
+        onRefreshConversations();
+      }
     }
   }
 

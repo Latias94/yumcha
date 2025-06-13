@@ -63,6 +63,7 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
   late List<AiModel> _models;
   bool _isEnabled = true;
   bool _isLoading = false;
+  bool _obscureApiKey = true;
 
   bool get _isEditing => widget.provider != null;
 
@@ -328,13 +329,24 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
                   // API Key
                   TextFormField(
                     controller: _apiKeyController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'API Key',
                       hintText: '输入 API 密钥',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                       helperText: '从AI提供商官网获取的API密钥，用于身份验证和计费',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureApiKey ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureApiKey = !_obscureApiKey;
+                          });
+                        },
+                        tooltip: _obscureApiKey ? '显示密钥' : '隐藏密钥',
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: _obscureApiKey,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return '请输入 API Key';

@@ -3,6 +3,8 @@ import '../../domain/entities/chat_configuration.dart';
 import '../../infrastructure/services/chat_configuration_validator.dart';
 import 'chat_configuration_notifier.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
+import '../../../ai_management/presentation/providers/ai_provider_notifier.dart';
+import '../../../ai_management/presentation/providers/ai_assistant_notifier.dart';
 
 /// 聊天配置监控状态
 ///
@@ -92,6 +94,18 @@ class ChatConfigurationMonitor
       _updateMonitorState(next);
     });
 
+    // 监听提供商数据变化
+    _ref.listen(aiProviderNotifierProvider, (previous, next) {
+      // 当提供商数据变化时，刷新聊天配置并重新检查
+      _refreshConfigurationAndCheck();
+    });
+
+    // 监听助手数据变化
+    _ref.listen(aiAssistantNotifierProvider, (previous, next) {
+      // 当助手数据变化时，刷新聊天配置并重新检查
+      _refreshConfigurationAndCheck();
+    });
+
     // 初始检查
     final currentConfig = _ref.read(chatConfigurationProvider);
     _updateMonitorState(currentConfig);
@@ -153,6 +167,32 @@ class ChatConfigurationMonitor
         healthDescription: '配置监控出现错误',
         lastChecked: DateTime.now(),
       );
+    }
+  }
+
+  /// 刷新配置并重新检查
+  void _refreshConfigurationAndCheck() {
+    try {
+      // 刷新聊天配置（异步操作）
+      final chatConfigNotifier = _ref.read(chatConfigurationProvider.notifier);
+
+      // 使用 Future.microtask 来异步执行刷新操作
+      Future.microtask(() async {
+        try {
+          await chatConfigNotifier.refresh();
+
+          // 刷新完成后重新检查配置状态
+          final currentConfig = _ref.read(chatConfigurationProvider);
+          _updateMonitorState(currentConfig);
+
+          _logger.debug('配置刷新并重新检查完成');
+        } catch (e) {
+          _logger.error('异步配置刷新失败', {'error': e.toString()});
+        }
+      });
+
+    } catch (e) {
+      _logger.error('配置刷新失败', {'error': e.toString()});
     }
   }
 

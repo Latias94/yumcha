@@ -109,14 +109,20 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
     final currentProvider = widget.providerBuilder?.call() ?? widget.provider;
 
     if (currentProvider == null) {
-      NotificationService().showWarning('请先填写提供商配置信息');
+      NotificationService().showWarning(
+        '请先填写提供商配置信息',
+        importance: NotificationImportance.high,
+      );
       return;
     }
 
     // 验证必要的配置
     if (currentProvider.apiKey.trim().isEmpty &&
         currentProvider.type != ProviderType.ollama) {
-      NotificationService().showError('请先配置 API 密钥');
+      NotificationService().showError(
+        '请先配置 API 密钥',
+        importance: NotificationImportance.high,
+      );
       return;
     }
 
@@ -136,15 +142,11 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
       }
     } catch (error) {
       if (mounted) {
-        // 显示友好的错误信息
-        String errorMessage = error.toString();
-        if (errorMessage.contains('❌')) {
-          // 如果是我们自定义的友好错误信息，直接显示
-          NotificationService().showError(errorMessage);
-        } else {
-          // 否则显示通用错误信息
-          NotificationService().showError('获取模型列表失败: $errorMessage');
-        }
+        // 使用高重要性确保错误信息能够显示，会自动尝试 overlay 并在失败时回退到 SnackBar
+        NotificationService().showError(
+          error.toString(),
+          importance: NotificationImportance.critical,
+        );
       }
     } finally {
       if (mounted) {

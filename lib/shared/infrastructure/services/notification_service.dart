@@ -511,71 +511,99 @@ class NotificationService {
     bool showCloseButton = true,
   }) {
     final context = scaffoldMessengerKey.currentContext;
-    if (context == null) return;
+    if (context == null) {
+      // 如果没有 context，回退到 SnackBar 模式
+      _showSnackBar(
+        message: message,
+        type: type,
+        importance: importance,
+        duration: duration,
+        actionLabel: actionLabel,
+        onActionPressed: onActionPressed,
+        showCloseButton: showCloseButton,
+      );
+      return;
+    }
 
-    // 清除之前的 overlay 通知
-    _currentOverlayEntry?.remove();
+    // 检查是否有可用的 Overlay
+    try {
+      final overlay = Overlay.of(context);
 
-    final colorScheme = Theme.of(context).colorScheme;
-    final (backgroundColor, textColor, icon) =
-        _getNotificationColors(colorScheme, type);
+      // 清除之前的 overlay 通知
+      _currentOverlayEntry?.remove();
 
-    _currentOverlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: MediaQuery.of(context).padding.top + 16,
-        left: 16,
-        right: 16,
-        child: Material(
-          elevation: 12,
-          borderRadius: BorderRadius.circular(12),
-          color: backgroundColor,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(icon, color: textColor, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                if (showCloseButton) ...[
-                  const SizedBox(width: 8),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        _currentOverlayEntry?.remove();
-                        _currentOverlayEntry = null;
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        child: Icon(Icons.close, color: textColor, size: 20),
+      final colorScheme = Theme.of(context).colorScheme;
+      final (backgroundColor, textColor, icon) =
+          _getNotificationColors(colorScheme, type);
+
+      _currentOverlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          top: MediaQuery.of(context).padding.top + 16,
+          left: 16,
+          right: 16,
+          child: Material(
+            elevation: 12,
+            borderRadius: BorderRadius.circular(12),
+            color: backgroundColor,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(icon, color: textColor, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
+                  if (showCloseButton) ...[
+                    const SizedBox(width: 8),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          _currentOverlayEntry?.remove();
+                          _currentOverlayEntry = null;
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(Icons.close, color: textColor, size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    Overlay.of(context).insert(_currentOverlayEntry!);
+      overlay.insert(_currentOverlayEntry!);
 
-    // 自动移除
-    Future.delayed(duration, () {
-      _currentOverlayEntry?.remove();
-      _currentOverlayEntry = null;
-    });
+      // 自动移除
+      Future.delayed(duration, () {
+        _currentOverlayEntry?.remove();
+        _currentOverlayEntry = null;
+      });
+    } catch (e) {
+      // 如果 Overlay 不可用，回退到 SnackBar 模式
+      _showSnackBar(
+        message: message,
+        type: type,
+        importance: importance,
+        duration: duration,
+        actionLabel: actionLabel,
+        onActionPressed: onActionPressed,
+        showCloseButton: showCloseButton,
+      );
+    }
   }
 
   // 清除所有通知

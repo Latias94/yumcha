@@ -25,6 +25,10 @@ import 'favorite_model_notifier.dart';
 class AppInitializationState {
   const AppInitializationState({
     this.isDataInitialized = false,
+    this.isProvidersLoaded = false,
+    this.isAssistantsLoaded = false,
+    this.isSettingsLoaded = false,
+    this.isFavoriteModelsLoaded = false,
     this.isAiServicesInitialized = false,
     this.isMcpInitialized = false,
     this.error,
@@ -35,6 +39,18 @@ class AppInitializationState {
 
   /// 数据初始化是否完成
   final bool isDataInitialized;
+
+  /// 提供商数据是否加载完成
+  final bool isProvidersLoaded;
+
+  /// 助手数据是否加载完成
+  final bool isAssistantsLoaded;
+
+  /// 设置数据是否加载完成
+  final bool isSettingsLoaded;
+
+  /// 收藏模型数据是否加载完成
+  final bool isFavoriteModelsLoaded;
 
   /// AI服务是否初始化完成
   final bool isAiServicesInitialized;
@@ -54,9 +70,13 @@ class AppInitializationState {
   /// 是否可以导航离开启动页面
   final bool canNavigateAway;
 
+  /// 是否所有核心数据都已加载
+  bool get isCoreDataLoaded =>
+      isProvidersLoaded && isAssistantsLoaded && isSettingsLoaded && isFavoriteModelsLoaded;
+
   /// 是否所有服务都已初始化
   bool get isFullyInitialized =>
-      isDataInitialized && isAiServicesInitialized && isMcpInitialized;
+      isDataInitialized && isCoreDataLoaded && isAiServicesInitialized && isMcpInitialized;
 
   /// 是否正在初始化
   bool get isInitializing => !isFullyInitialized && error == null;
@@ -69,6 +89,10 @@ class AppInitializationState {
 
   AppInitializationState copyWith({
     bool? isDataInitialized,
+    bool? isProvidersLoaded,
+    bool? isAssistantsLoaded,
+    bool? isSettingsLoaded,
+    bool? isFavoriteModelsLoaded,
     bool? isAiServicesInitialized,
     bool? isMcpInitialized,
     String? error,
@@ -78,6 +102,10 @@ class AppInitializationState {
   }) {
     return AppInitializationState(
       isDataInitialized: isDataInitialized ?? this.isDataInitialized,
+      isProvidersLoaded: isProvidersLoaded ?? this.isProvidersLoaded,
+      isAssistantsLoaded: isAssistantsLoaded ?? this.isAssistantsLoaded,
+      isSettingsLoaded: isSettingsLoaded ?? this.isSettingsLoaded,
+      isFavoriteModelsLoaded: isFavoriteModelsLoaded ?? this.isFavoriteModelsLoaded,
       isAiServicesInitialized:
           isAiServicesInitialized ?? this.isAiServicesInitialized,
       isMcpInitialized: isMcpInitialized ?? this.isMcpInitialized,
@@ -247,33 +275,61 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
 
   /// 等待提供商数据加载完成
   Future<void> _waitForProviderData() async {
-    const maxWaitTime = Duration(seconds: 10);
+    const maxWaitTime = Duration(seconds: 15); // 增加等待时间
     const checkInterval = Duration(milliseconds: 100);
     final startTime = DateTime.now();
+
+    _logger.info('🔌 开始等待提供商数据加载...');
 
     while (DateTime.now().difference(startTime) < maxWaitTime) {
       final providersAsync = _ref.read(aiProviderNotifierProvider);
 
-      // 检查是否加载完成
-      final hasData = providersAsync.whenOrNull(
-            data: (providers) => true,
+      // 检查是否加载完成并且有可用的启用提供商
+      final hasValidData = providersAsync.whenOrNull(
+            data: (providers) {
+              final enabledProviders = providers.where((p) => p.isEnabled).toList();
+              _logger.debug('提供商数据检查: 总数=${providers.length}, 启用数=${enabledProviders.length}');
+
+              if (enabledProviders.isNotEmpty) {
+                _logger.info('✅ 找到可用提供商: ${enabledProviders.map((p) => '${p.id}(${p.name})').join(', ')}');
+                return true;
+              }
+              return false;
+            },
           ) ??
           false;
 
-      if (hasData) {
-        _logger.info('✅ 提供商数据加载完成');
+      if (hasValidData) {
+        _logger.info('✅ 提供商数据加载完成，有可用提供商');
+        state = state.copyWith(
+          isProvidersLoaded: true,
+          currentStep: '提供商数据加载完成',
+        );
         return;
       }
 
       // 检查是否有错误
       final hasError = providersAsync.whenOrNull(
-            error: (error, stack) => true,
+            error: (error, stack) {
+              _logger.error('提供商数据加载错误: $error');
+              return true;
+            },
           ) ??
           false;
 
       if (hasError) {
         _logger.warning('⚠️ 提供商数据加载失败，但继续初始化');
         return;
+      }
+
+      // 检查是否还在加载中
+      final isLoading = providersAsync.whenOrNull(
+            loading: () => true,
+          ) ??
+          false;
+
+      if (isLoading) {
+        _logger.debug('提供商数据仍在加载中...');
       }
 
       // 等待一段时间后重试
@@ -285,33 +341,61 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
 
   /// 等待助手数据加载完成
   Future<void> _waitForAssistantData() async {
-    const maxWaitTime = Duration(seconds: 10);
+    const maxWaitTime = Duration(seconds: 15); // 增加等待时间
     const checkInterval = Duration(milliseconds: 100);
     final startTime = DateTime.now();
+
+    _logger.info('🤖 开始等待助手数据加载...');
 
     while (DateTime.now().difference(startTime) < maxWaitTime) {
       final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
 
-      // 检查是否加载完成
-      final hasData = assistantsAsync.whenOrNull(
-            data: (assistants) => true,
+      // 检查是否加载完成并且有可用的启用助手
+      final hasValidData = assistantsAsync.whenOrNull(
+            data: (assistants) {
+              final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
+              _logger.debug('助手数据检查: 总数=${assistants.length}, 启用数=${enabledAssistants.length}');
+
+              if (enabledAssistants.isNotEmpty) {
+                _logger.info('✅ 找到可用助手: ${enabledAssistants.map((a) => '${a.id}(${a.name})').join(', ')}');
+                return true;
+              }
+              return false;
+            },
           ) ??
           false;
 
-      if (hasData) {
-        _logger.info('✅ 助手数据加载完成');
+      if (hasValidData) {
+        _logger.info('✅ 助手数据加载完成，有可用助手');
+        state = state.copyWith(
+          isAssistantsLoaded: true,
+          currentStep: '助手数据加载完成',
+        );
         return;
       }
 
       // 检查是否有错误
       final hasError = assistantsAsync.whenOrNull(
-            error: (error, stack) => true,
+            error: (error, stack) {
+              _logger.error('助手数据加载错误: $error');
+              return true;
+            },
           ) ??
           false;
 
       if (hasError) {
         _logger.warning('⚠️ 助手数据加载失败，但继续初始化');
         return;
+      }
+
+      // 检查是否还在加载中
+      final isLoading = assistantsAsync.whenOrNull(
+            loading: () => true,
+          ) ??
+          false;
+
+      if (isLoading) {
+        _logger.debug('助手数据仍在加载中...');
       }
 
       // 等待一段时间后重试
@@ -333,6 +417,10 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
       // 检查是否加载完成
       if (!settingsState.isLoading && settingsState.error == null) {
         _logger.info('✅ 设置数据加载完成');
+        state = state.copyWith(
+          isSettingsLoaded: true,
+          currentStep: '设置数据加载完成',
+        );
         return;
       }
 
@@ -366,6 +454,10 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
 
       if (hasData) {
         _logger.info('✅ 收藏模型数据加载完成');
+        state = state.copyWith(
+          isFavoriteModelsLoaded: true,
+          currentStep: '收藏模型数据加载完成',
+        );
         return;
       }
 

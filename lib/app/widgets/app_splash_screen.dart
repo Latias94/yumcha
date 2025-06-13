@@ -211,6 +211,24 @@ class AppSplashScreen extends ConsumerWidget {
       child: Column(
         children: [
           _buildStatusItem('数据初始化', initState.isDataInitialized, colorScheme),
+          SizedBox(height: DesignConstants.spaceS),
+
+          // 详细的数据加载状态
+          Padding(
+            padding: EdgeInsets.only(left: DesignConstants.spaceL),
+            child: Column(
+              children: [
+                _buildSubStatusItem('提供商数据', initState.isProvidersLoaded, colorScheme),
+                SizedBox(height: DesignConstants.spaceXS),
+                _buildSubStatusItem('助手数据', initState.isAssistantsLoaded, colorScheme),
+                SizedBox(height: DesignConstants.spaceXS),
+                _buildSubStatusItem('设置数据', initState.isSettingsLoaded, colorScheme),
+                SizedBox(height: DesignConstants.spaceXS),
+                _buildSubStatusItem('收藏模型', initState.isFavoriteModelsLoaded, colorScheme),
+              ],
+            ),
+          ),
+
           SizedBox(height: DesignConstants.spaceM),
           _buildStatusItem(
               'AI服务初始化', initState.isAiServicesInitialized, colorScheme),
@@ -268,6 +286,60 @@ class AppSplashScreen extends ConsumerWidget {
                   ? colorScheme.primary
                   : colorScheme.onSurfaceVariant,
               size: DesignConstants.iconSizeS + 2, // 18px
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建子状态项（更小的状态指示器）
+  Widget _buildSubStatusItem(
+      String title, bool isCompleted, ColorScheme colorScheme) {
+    return AnimatedContainer(
+      duration: DesignConstants.animationNormal +
+          const Duration(milliseconds: 50), // 300ms
+      padding: EdgeInsets.symmetric(
+          horizontal: DesignConstants.spaceM, vertical: DesignConstants.spaceXS),
+      decoration: BoxDecoration(
+        color: isCompleted
+            ? colorScheme.primaryContainer
+                .withValues(alpha: DesignConstants.opacityMedium * 0.1) // 0.06
+            : colorScheme.surfaceContainerHighest.withValues(
+                alpha: DesignConstants.opacityMedium * 0.05), // 0.03
+        borderRadius: DesignConstants.radiusXS,
+        border: Border.all(
+          color: isCompleted
+              ? colorScheme.primary
+                  .withValues(alpha: DesignConstants.opacityMedium * 0.3) // 0.18
+              : colorScheme.outline.withValues(
+                  alpha: DesignConstants.opacityMedium * 0.2), // 0.12
+          width: DesignConstants.borderWidthThin * 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12, // 更小的字体
+              color: isCompleted
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
+              fontWeight: isCompleted ? FontWeight.w500 : FontWeight.normal,
+            ),
+          ),
+          AnimatedSwitcher(
+            duration: DesignConstants.animationFast +
+                const Duration(milliseconds: 50), // 200ms
+            child: Icon(
+              isCompleted ? Icons.check : Icons.circle_outlined,
+              key: ValueKey(isCompleted),
+              color: isCompleted
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
+              size: DesignConstants.iconSizeS, // 更小的图标
             ),
           ),
         ],

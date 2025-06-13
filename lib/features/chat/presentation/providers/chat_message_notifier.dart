@@ -203,6 +203,9 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
     required String modelName,
     bool isStreaming = true,
   }) async {
+    // 首先清除之前的错误状态，确保用户看到干净的界面
+    state = state.copyWith(error: null);
+
     if (content.trim().isEmpty) {
       state = state.copyWith(error: '请输入消息内容');
       return;
@@ -216,9 +219,6 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
       'isStreaming': isStreaming,
       'contentLength': content.length,
     });
-
-    // 清除之前的错误
-    state = state.copyWith(error: null);
 
     // 添加用户消息
     final userMessage = Message(
@@ -687,6 +687,20 @@ class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
   /// 清除错误
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  /// 检查并清理异常的流式状态
+  /// 用于页面恢复时清理可能残留的流式状态
+  void checkAndCleanupStreamingState() {
+    if (state.streamingMessageIds.isNotEmpty) {
+      _logger.info('检测到残留的流式状态，进行清理', {
+        'conversationId': _conversationId,
+        'streamingCount': state.streamingMessageIds.length,
+      });
+
+      // 清理所有流式状态
+      cancelStreaming();
+    }
   }
 
   /// 取消所有流式传输

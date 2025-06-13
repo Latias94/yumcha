@@ -17,6 +17,7 @@ import 'attachment_chips.dart';
 import 'attachment_preview_dialog.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 import '../../../../../shared/infrastructure/services/image_service.dart';
+import '../../../infrastructure/services/configuration_navigation_service.dart';
 
 /// 聊天输入组件 - 重构版
 class ChatInput extends ConsumerStatefulWidget {
@@ -30,6 +31,7 @@ class ChatInput extends ConsumerStatefulWidget {
     this.isLoading = false,
     this.onAssistantChanged,
     this.initialAssistantId,
+    this.onStartTyping,
   });
 
   /// 初始消息（用于编辑）
@@ -55,6 +57,9 @@ class ChatInput extends ConsumerStatefulWidget {
 
   /// 初始助手ID
   final String? initialAssistantId;
+
+  /// 开始输入回调（用于清除错误状态）
+  final VoidCallback? onStartTyping;
 
   @override
   ConsumerState<ChatInput> createState() => _ChatInputState();
@@ -214,6 +219,11 @@ class _ChatInputState extends ConsumerState<ChatInput>
       setState(() {
         _isComposing = newIsComposing;
       });
+
+      // 当用户开始输入时，清除错误状态
+      if (newIsComposing && widget.onStartTyping != null) {
+        widget.onStartTyping!();
+      }
     }
   }
 
@@ -235,7 +245,57 @@ class _ChatInputState extends ConsumerState<ChatInput>
       final canChat = ref.read(canStartChatProvider);
       if (!canChat) {
         final issue = ref.read(configurationIssueProvider);
-        NotificationService().showError(issue ?? '聊天配置不完整，请检查助手和模型设置');
+        final suggestions = ref.read(configurationFixSuggestionsProvider);
+        final chatConfig = ref.read(chatConfigurationProvider);
+
+        // 显示配置问题对话框，提供智能导航
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('无法发送消息'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(issue ?? '聊天配置不完整，请检查助手和模型设置'),
+                if (suggestions.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text('建议:'),
+                  const SizedBox(height: 8),
+                  ...suggestions.take(3).map((suggestion) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text('• $suggestion'),
+                      )),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  // 使用智能导航服务
+                  await ConfigurationNavigationService.navigateToFix(
+                    context,
+                    config: chatConfig.chatConfiguration,
+                    issue: issue,
+                    suggestions: suggestions,
+                  );
+                },
+                child: Text(
+                  ConfigurationNavigationService.getNavigationButtonText(
+                    config: chatConfig.chatConfiguration,
+                    issue: issue,
+                    suggestions: suggestions,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
         return;
       }
       ChatMessageRequest request;
@@ -540,6 +600,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
           // 显示配置问题详情
           final issue = ref.read(configurationIssueProvider);
           final suggestions = ref.read(configurationFixSuggestionsProvider);
+          final chatConfig = ref.read(chatConfigurationProvider);
 
           showDialog(
             context: context,
@@ -569,12 +630,23 @@ class _ChatInputState extends ConsumerState<ChatInput>
                   child: const Text('知道了'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(context).pop();
-                    // 这里可以导航到设置页面
-                    NotificationService().showInfo('请前往设置页面修复配置问题');
+                    // 使用智能导航服务
+                    await ConfigurationNavigationService.navigateToFix(
+                      context,
+                      config: chatConfig.chatConfiguration,
+                      issue: issue,
+                      suggestions: suggestions,
+                    );
                   },
-                  child: const Text('前往设置'),
+                  child: Text(
+                    ConfigurationNavigationService.getNavigationButtonText(
+                      config: chatConfig.chatConfiguration,
+                      issue: issue,
+                      suggestions: suggestions,
+                    ),
+                  ),
                 ),
               ],
             ),
