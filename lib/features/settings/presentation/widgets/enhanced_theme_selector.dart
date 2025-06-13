@@ -421,14 +421,39 @@ class _CustomThemeSettingsState extends ConsumerState<_CustomThemeSettings> {
     _loadCurrentSettings();
   }
 
+  @override
+  void didUpdateWidget(_CustomThemeSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当组件更新时重新加载设置
+    _loadCurrentSettings();
+  }
+
   void _loadCurrentSettings() {
-    _useCustomColors = widget.themeNotifier.getUseCustomColors();
-    _selectedColor = widget.themeNotifier.getCustomPrimaryColor();
+    final newUseCustomColors = widget.themeNotifier.getUseCustomColors();
+    final newSelectedColor = widget.themeNotifier.getCustomPrimaryColor();
+
+    if (mounted && (newUseCustomColors != _useCustomColors || newSelectedColor != _selectedColor)) {
+      setState(() {
+        _useCustomColors = newUseCustomColors;
+        _selectedColor = newSelectedColor;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // 监听主题状态变化，确保UI同步
+    ref.listen<ThemeSettings>(themeProvider, (previous, next) {
+      // 当主题状态变化时，重新加载当前设置
+      if (previous?.themeScheme == AppThemeScheme.custom &&
+          next.themeScheme == AppThemeScheme.custom) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _loadCurrentSettings();
+        });
+      }
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,7 +590,7 @@ class _CustomThemeSettingsState extends ConsumerState<_CustomThemeSettings> {
             final isSelected = _selectedColor == color;
 
             return GestureDetector(
-              onTap: () => _selectColor(color),
+              onTap: () async => await _selectColor(color),
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
@@ -603,25 +628,27 @@ class _CustomThemeSettingsState extends ConsumerState<_CustomThemeSettings> {
     );
   }
 
-  void _onUseCustomColorsChanged(bool value) {
+  void _onUseCustomColorsChanged(bool value) async {
     setState(() {
       _useCustomColors = value;
     });
 
-    widget.themeNotifier.setUseCustomColors(value);
+    // 异步保存设置
+    await widget.themeNotifier.setUseCustomColors(value);
 
     // 如果启用自定义颜色但没有选择颜色，设置默认颜色
     if (value && _selectedColor == null) {
-      _selectColor(Colors.blue);
+      await _selectColor(Colors.blue);
     }
   }
 
-  void _selectColor(Color color) {
+  Future<void> _selectColor(Color color) async {
     setState(() {
       _selectedColor = color;
     });
 
-    widget.themeNotifier.setCustomPrimaryColor(color);
+    // 异步保存自定义颜色
+    await widget.themeNotifier.setCustomPrimaryColor(color);
   }
 
   void _generateRandomColor() {

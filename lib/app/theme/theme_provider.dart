@@ -34,6 +34,7 @@ class ThemeSettings {
   final bool isDynamicColorAvailable;
   final AppThemeScheme themeScheme;
   final AppContrastLevel contrastLevel;
+  final int _rebuildTrigger; // 内部字段，用于触发重建
 
   const ThemeSettings({
     required this.colorMode,
@@ -41,7 +42,8 @@ class ThemeSettings {
     required this.isDynamicColorAvailable,
     required this.themeScheme,
     required this.contrastLevel,
-  });
+    int rebuildTrigger = 0,
+  }) : _rebuildTrigger = rebuildTrigger;
 
   ThemeSettings copyWith({
     AppColorMode? colorMode,
@@ -49,6 +51,7 @@ class ThemeSettings {
     bool? isDynamicColorAvailable,
     AppThemeScheme? themeScheme,
     AppContrastLevel? contrastLevel,
+    int? rebuildTrigger,
   }) {
     return ThemeSettings(
       colorMode: colorMode ?? this.colorMode,
@@ -57,6 +60,7 @@ class ThemeSettings {
           isDynamicColorAvailable ?? this.isDynamicColorAvailable,
       themeScheme: themeScheme ?? this.themeScheme,
       contrastLevel: contrastLevel ?? this.contrastLevel,
+      rebuildTrigger: rebuildTrigger ?? _rebuildTrigger,
     );
   }
 
@@ -144,6 +148,7 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
             isDynamicColorAvailable: false,
             themeScheme: AppThemeScheme.ocean,
             contrastLevel: AppContrastLevel.standard,
+            rebuildTrigger: 0,
           ),
         ) {
     _initialize();
@@ -316,6 +321,14 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
   Future<void> setUseCustomColors(bool enabled) async {
     await _settingsNotifier.setUseCustomColors(enabled);
     _logger.debug('自定义颜色设置已更新', {'enabled': enabled});
+
+    // 如果是自定义主题，触发状态更新以重建主题
+    if (state.themeScheme == AppThemeScheme.custom) {
+      // 使用内部重建触发器来强制重建，避免状态重置
+      state = state.copyWith(
+        rebuildTrigger: state._rebuildTrigger + 1,
+      );
+    }
   }
 
   // 设置自定义主色调
@@ -323,6 +336,14 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
     final colorValue = color.toARGB32();
     await _settingsNotifier.setCustomPrimaryColor(colorValue);
     _logger.debug('自定义主色调已更新', {'color': colorValue.toRadixString(16)});
+
+    // 如果是自定义主题，触发状态更新以重建主题
+    if (state.themeScheme == AppThemeScheme.custom) {
+      // 使用内部重建触发器来强制重建，避免状态重置
+      state = state.copyWith(
+        rebuildTrigger: state._rebuildTrigger + 1,
+      );
+    }
   }
 
   // 获取是否使用自定义颜色
@@ -638,6 +659,12 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       // 检查是否启用了自定义颜色
       final useCustomColors = _settingsNotifier.getValueOrDefault<bool>(
           SettingKeys.useCustomColors, false);
+
+      _logger.debug('检查自定义颜色设置', {
+        'useCustomColors': useCustomColors,
+        'themeScheme': state.themeScheme.name,
+      });
+
       if (!useCustomColors) {
         return null;
       }
@@ -645,17 +672,31 @@ class ThemeNotifier extends StateNotifier<ThemeSettings> {
       // 获取自定义主色调
       final customPrimaryColorValue =
           _settingsNotifier.getValue<int>(SettingKeys.customPrimaryColor);
+
+      _logger.debug('获取自定义主色调', {
+        'colorValue': customPrimaryColorValue?.toRadixString(16),
+      });
+
       if (customPrimaryColorValue == null) {
+        _logger.warning('自定义主色调未设置');
         return null;
       }
 
       final customPrimaryColor = Color(customPrimaryColorValue);
 
       // 使用 Material 3 的 ColorScheme.fromSeed 方法生成完整的颜色方案
-      return ColorScheme.fromSeed(
+      final colorScheme = ColorScheme.fromSeed(
         seedColor: customPrimaryColor,
         brightness: brightness,
       );
+
+      _logger.debug('自定义颜色方案生成成功', {
+        'seedColor': customPrimaryColor.toARGB32().toRadixString(16),
+        'brightness': brightness.name,
+        'primary': colorScheme.primary.toARGB32().toRadixString(16),
+      });
+
+      return colorScheme;
     } catch (e) {
       _logger.error('获取自定义颜色方案失败', {'error': e.toString()});
       return null;

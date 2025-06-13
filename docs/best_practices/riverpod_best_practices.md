@@ -6,6 +6,7 @@
 - [Repository清单](#repository清单)
 - [依赖关系图](#依赖关系图)
 - [编码最佳实践](#编码最佳实践)
+- [跨模块状态同步](#跨模块状态同步)
 - [常见问题和解决方案](#常见问题和解决方案)
 - [性能优化指南](#性能优化指南)
 - [测试策略](#测试策略)
@@ -493,6 +494,309 @@ Future<void> saveConfiguration() async {
 }
 ```
 
+## 🔄 跨模块状态同步
+
+### 📋 问题背景
+
+在复杂的应用中，经常会遇到跨模块状态同步的问题：
+
+1. **配置更新不及时**：修改AI提供商或助手后，聊天配置没有及时刷新
+2. **状态残留**：页面切换后某些状态没有正确清理
+3. **数据不一致**：不同模块显示的数据不同步
+
+### 🚫 错误做法：直接调用其他模块
+
+```dart
+// ❌ 错误：直接调用其他模块的方法
+class AiProviderNotifier extends StateNotifier<AsyncValue<List<AiProvider>>> {
+  Future<void> updateProvider(AiProvider provider) async {
+    try {
+      await _repository.updateProvider(provider);
+      await refresh();
+
+      // ❌ 直接调用其他模块 - 违反解耦原则
+      _ref.read(chatConfigurationProvider.notifier).forceRefresh();
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+}
+```
+
+**问题**：
+- 模块间紧耦合
+- 难以测试
+- 容易产生循环依赖
+- 违反单一职责原则
+
+### ✅ 正确做法：响应式监听
+
+```dart
+// ✅ 正确：使用 Riverpod 监听机制
+class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
+  ChatConfigurationNotifier(this._ref) : super(const ChatConfigurationState()) {
+    _initialize();
+    _setupListeners(); // 设置监听器
+  }
+
+  final Ref _ref;
+
+  /// 设置监听器 - 监听其他模块的状态变化
+  void _setupListeners() {
+    // 监听提供商变化
+    _ref.listen(aiProviderNotifierProvider, (previous, next) {
+      _handleProvidersChanged(previous, next);
+    });
+
+    // 监听助手变化
+    _ref.listen(aiAssistantNotifierProvider, (previous, next) {
+      _handleAssistantsChanged(previous, next);
+    });
+  }
+
+  /// 处理提供商变化
+  void _handleProvidersChanged(
+    AsyncValue<List<AiProvider>>? previous,
+    AsyncValue<List<AiProvider>> next,
+  ) {
+    // 只在数据真正变化时处理
+    if (previous?.valueOrNull != next.valueOrNull) {
+      _validateCurrentProviderAndModel();
+    }
+  }
+
+  /// 处理助手变化
+  void _handleAssistantsChanged(
+    AsyncValue<List<AiAssistant>>? previous,
+    AsyncValue<List<AiAssistant>> next,
+  ) {
+    // 只在数据真正变化时处理
+    if (previous?.valueOrNull != next.valueOrNull) {
+      _validateCurrentAssistant();
+    }
+  }
+
+  /// 验证当前选择的提供商和模型是否仍然有效
+  void _validateCurrentProviderAndModel() {
+    final currentProvider = state.selectedProvider;
+    final currentModel = state.selectedModel;
+
+    if (currentProvider == null || currentModel == null) return;
+
+    // 获取最新的提供商列表
+    final providersAsync = _ref.read(aiProviderNotifierProvider);
+    providersAsync.whenData((providers) {
+      // 检查当前提供商是否仍然存在且启用
+      final updatedProvider = providers
+          .where((p) => p.id == currentProvider.id && p.isEnabled)
+          .firstOrNull;
+
+      if (updatedProvider == null) {
+        // 提供商不存在或被禁用，重新选择
+        _selectFallbackProviderAndModel(providers);
+        return;
+      }
+
+      // 检查当前模型是否仍然存在
+      final updatedModel = updatedProvider.models
+          .where((m) => m.name == currentModel.name)
+          .firstOrNull;
+
+      if (updatedModel == null) {
+        // 模型不存在，选择该提供商的第一个模型
+        if (updatedProvider.models.isNotEmpty) {
+          state = state.copyWith(
+            selectedProvider: updatedProvider,
+            selectedModel: updatedProvider.models.first,
+          );
+        } else {
+          // 提供商没有模型，重新选择
+          _selectFallbackProviderAndModel(providers);
+        }
+        return;
+      }
+
+      // 更新为最新的提供商和模型数据
+      state = state.copyWith(
+        selectedProvider: updatedProvider,
+        selectedModel: updatedModel,
+      );
+    });
+  }
+
+  /// 选择备用的提供商和模型
+  void _selectFallbackProviderAndModel(List<AiProvider> providers) {
+    final enabledProviders = providers.where((p) => p.isEnabled).toList();
+    if (enabledProviders.isNotEmpty) {
+      final fallbackProvider = enabledProviders.first;
+      if (fallbackProvider.models.isNotEmpty) {
+        state = state.copyWith(
+          selectedProvider: fallbackProvider,
+          selectedModel: fallbackProvider.models.first,
+        );
+      } else {
+        state = state.copyWith(
+          selectedProvider: null,
+          selectedModel: null,
+        );
+      }
+    } else {
+      state = state.copyWith(
+        selectedProvider: null,
+        selectedModel: null,
+      );
+    }
+  }
+}
+```
+
+### 🎯 监听模式的优势
+
+1. **解耦合**：各模块不需要知道其他模块的存在
+2. **响应式**：状态变化自动触发更新
+3. **可测试**：更容易进行单元测试
+4. **可维护**：代码更清晰，职责分离
+5. **扩展性**：添加新的监听器很容易
+
+### 🛡️ 状态清理最佳实践
+
+```dart
+// ✅ 正确：页面恢复时检查和清理异常状态
+class ChatView extends ConsumerStatefulWidget {
+  @override
+  void initState() {
+    super.initState();
+
+    // 初始化消息列表
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeMessagesIfNeeded();
+
+      // 检查并清理可能残留的流式状态
+      ref
+          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
+          .checkAndCleanupStreamingState();
+    });
+  }
+}
+
+// ✅ 正确：在 Notifier 中添加状态清理方法
+class ChatMessageNotifier extends StateNotifier<ChatMessageState> {
+  /// 检查并清理异常的流式状态
+  /// 用于页面恢复时清理可能残留的流式状态
+  void checkAndCleanupStreamingState() {
+    if (state.streamingMessageIds.isNotEmpty) {
+      _logger.info('检测到残留的流式状态，进行清理', {
+        'conversationId': _conversationId,
+        'streamingCount': state.streamingMessageIds.length,
+      });
+
+      // 清理所有流式状态
+      cancelStreaming();
+    }
+  }
+
+  /// 处理错误时确保清理流式状态
+  void _handleError(Object error, StackTrace stackTrace) {
+    _logger.error('消息处理失败', {
+      'conversationId': _conversationId,
+      'error': error.toString(),
+      'stackTrace': stackTrace.toString(),
+    });
+
+    // 清理流式状态
+    cancelStreaming();
+
+    state = state.copyWith(
+      isLoading: false,
+      error: '消息发送失败: $error',
+    );
+  }
+}
+```
+
+### 📊 监听模式的实现模板
+
+```dart
+// 通用监听模式模板
+class MyNotifier extends StateNotifier<MyState> {
+  MyNotifier(this._ref) : super(initialState) {
+    _initialize();
+    _setupListeners();
+  }
+
+  final Ref _ref;
+
+  void _setupListeners() {
+    // 监听依赖的 Provider
+    _ref.listen(dependencyProvider, (previous, next) {
+      _handleDependencyChanged(previous, next);
+    });
+  }
+
+  void _handleDependencyChanged(
+    AsyncValue<DependencyType>? previous,
+    AsyncValue<DependencyType> next,
+  ) {
+    // 只在数据真正变化时处理
+    if (previous?.valueOrNull != next.valueOrNull) {
+      _updateStateBasedOnDependency(next.valueOrNull);
+    }
+  }
+
+  void _updateStateBasedOnDependency(DependencyType? dependency) {
+    if (dependency == null) return;
+
+    // 根据依赖变化更新状态
+    state = state.copyWith(
+      // 更新相关字段
+    );
+  }
+}
+```
+
+### 🔍 监听时机的选择
+
+```dart
+// ✅ 正确：在构造函数中设置监听
+class MyNotifier extends StateNotifier<MyState> {
+  MyNotifier(this._ref) : super(initialState) {
+    _setupListeners(); // 在构造函数中设置
+  }
+}
+
+// ❌ 错误：在方法中设置监听
+class MyNotifier extends StateNotifier<MyState> {
+  void someMethod() {
+    _ref.listen(someProvider, (prev, next) {
+      // 这会导致重复监听
+    });
+  }
+}
+```
+
+### 🎯 监听的性能优化
+
+```dart
+// ✅ 正确：使用条件判断避免不必要的处理
+void _handleProvidersChanged(
+  AsyncValue<List<AiProvider>>? previous,
+  AsyncValue<List<AiProvider>> next,
+) {
+  // 只在数据真正变化时处理
+  if (previous?.valueOrNull != next.valueOrNull) {
+    _validateCurrentProviderAndModel();
+  }
+}
+
+// ❌ 错误：每次都处理
+void _handleProvidersChanged(
+  AsyncValue<List<AiProvider>>? previous,
+  AsyncValue<List<AiProvider>> next,
+) {
+  _validateCurrentProviderAndModel(); // 即使数据没变化也会执行
+}
+```
+
 ## ⚠️ 常见问题和解决方案
 
 ### 1. **late final 重复初始化问题** ⚠️ **重要**
@@ -894,6 +1198,10 @@ void main() {
 - [ ] 避免循环依赖
 - [ ] 使用select优化性能
 - [ ] **依赖获取方式**：优先使用 `get _repository => _ref.read(provider)` 而不是 `late final`
+- [ ] **跨模块状态同步**：使用 `_ref.listen()` 监听依赖的 Provider 变化
+- [ ] **状态验证**：在依赖变化时验证当前状态的有效性
+- [ ] **状态清理**：在页面恢复时检查并清理异常状态
+- [ ] **避免直接调用**：不直接调用其他模块的方法，使用响应式监听
 
 ### ✅ Repository实现检查清单
 
@@ -930,10 +1238,19 @@ void main() {
 
 1. **依赖注入模式**：始终使用 `get _repository => _ref.read(provider)` 而不是 `late final` 字段
 2. **错误预防**：避免在方法中初始化 `late final` 字段，这会导致重复初始化错误
-3. **架构演进**：从单一巨大的 Notifier 拆分为多个专门的 Provider，提高可维护性
-4. **性能优化**：合理使用 autoDispose、select 和缓存策略
-5. **测试友好**：依赖注入使得 Mock 和单元测试更容易
+3. **跨模块状态同步**：使用 `_ref.listen()` 监听其他 Provider 的变化，而不是直接调用其他模块的方法
+4. **响应式设计**：让状态变化自动触发相关更新，保持数据一致性
+5. **状态清理**：在页面恢复时检查并清理异常状态，确保应用稳定性
+6. **架构演进**：从单一巨大的 Notifier 拆分为多个专门的 Provider，提高可维护性
+7. **性能优化**：合理使用 autoDispose、select 和缓存策略
+8. **测试友好**：依赖注入使得 Mock 和单元测试更容易
 
 记住：**好的架构是演进出来的，而不是一开始就完美的**。持续重构和优化是保持代码质量的关键！ 🚀
 
-> **重要提醒**：如果遇到 `LateInitializationError: Field 'repository@xxxxx' has already been initialized.` 错误，请检查是否在 StateNotifier 的方法中初始化了 `late final` 字段。解决方案是使用 getter 方法代替 `late final` 字段。
+> **重要提醒**：
+>
+> 1. **late final 错误**：如果遇到 `LateInitializationError: Field 'repository@xxxxx' has already been initialized.` 错误，请检查是否在 StateNotifier 的方法中初始化了 `late final` 字段。解决方案是使用 getter 方法代替 `late final` 字段。
+>
+> 2. **跨模块状态同步**：当需要在一个模块的状态变化时更新另一个模块时，不要直接调用其他模块的方法。应该使用 `_ref.listen()` 在目标模块中监听源模块的状态变化，这样可以保持模块间的解耦和响应式设计。
+>
+> 3. **状态清理**：页面切换或错误发生时，确保清理相关的状态（如流式状态、临时数据等），避免状态残留导致的问题。
