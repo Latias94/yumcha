@@ -21,6 +21,7 @@ import '../../../features/ai_management/presentation/providers/unified_ai_manage
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
 import '../../../features/settings/presentation/providers/mcp_service_provider.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
+import '../../infrastructure/services/mcp/mcp_service_manager.dart';
 import 'favorite_model_notifier.dart';
 
 /// 应用初始化状态
@@ -279,9 +280,15 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
       // 这确保了MCP服务在应用启动时就被正确初始化
       _ref.read(mcpServiceProvider.notifier);
 
+      // 同时初始化McpServiceManager，确保ChatService能够正确访问MCP服务
+      final mcpServiceManager = _ref.read(mcpServiceManagerProvider);
+      _logger.info('McpServiceManager已初始化，状态同步将自动处理服务器连接', {
+        'isEnabled': mcpServiceManager.isEnabled,
+      });
+
       // 等待MCP服务初始化完成
       // 注意：_loadInitialState 会根据设置自动决定是否启用MCP
-      await Future.delayed(const Duration(milliseconds: 500)); // 给Provider一些时间完成初始化
+      await Future.delayed(const Duration(milliseconds: 1000)); // 给Provider更多时间完成初始化和连接
 
       state = state.copyWith(
         isMcpInitialized: true,

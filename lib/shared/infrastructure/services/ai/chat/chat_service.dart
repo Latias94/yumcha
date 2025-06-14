@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
     as models;
@@ -97,6 +98,14 @@ class ChatService extends AiServiceBase {
   factory ChatService() => _instance;
   ChatService._internal();
 
+  // Riverpod 引用，用于访问其他 Provider
+  Ref? _ref;
+
+  /// 设置 Riverpod 引用
+  void setRef(Ref ref) {
+    _ref = ref;
+  }
+
   /// 提供商适配器缓存
   ///
   /// 缓存已创建的适配器实例以提升性能。缓存键格式：
@@ -190,11 +199,59 @@ class ChatService extends AiServiceBase {
           ? await _getMcpTools(assistant.mcpServerIds)
           : <Tool>[];
 
+      // 调试：记录工具信息
+      logger.info('准备发送聊天请求', {
+        'requestId': requestId,
+        'enableTools': assistant.enableTools,
+        'toolCount': tools.length,
+        'toolNames': tools.map((t) => t.function.name).toList(),
+        'willUseChatWithTools': tools.isNotEmpty,
+      });
+
       // 发送请求并处理工具调用
       var conversation = List<ChatMessage>.from(messages);
+
+      // 调试：记录详细的工具信息
+      if (tools.isNotEmpty) {
+        logger.info('即将调用 chatWithTools', {
+          'requestId': requestId,
+          'toolCount': tools.length,
+          'toolDetails': tools.map((t) => {
+            'name': t.function.name,
+            'description': t.function.description,
+            'parametersType': t.function.parameters.schemaType,
+          }).toList(),
+        });
+
+        // chatWithTools 方法已确认工作正常，现在使用真实的MCP工具
+      }
+
+      // 调试：记录即将发送的请求信息
+      if (tools.isNotEmpty) {
+        logger.info('发送带工具的聊天请求', {
+          'requestId': requestId,
+          'messageCount': conversation.length,
+          'toolCount': tools.length,
+          'toolsPreview': tools.take(3).map((t) => {
+            'name': t.function.name,
+            'description': t.function.description.length > 50
+                ? '${t.function.description.substring(0, 50)}...'
+                : t.function.description,
+          }).toList(),
+        });
+      }
+
       var finalResponse = tools.isNotEmpty
           ? await chatProvider.chatWithTools(conversation, tools)
           : await chatProvider.chat(conversation);
+
+      // 调试：记录响应信息
+      logger.info('收到聊天响应', {
+        'requestId': requestId,
+        'hasText': finalResponse.text?.isNotEmpty == true,
+        'hasToolCalls': finalResponse.toolCalls?.isNotEmpty == true,
+        'toolCallCount': finalResponse.toolCalls?.length ?? 0,
+      });
 
       // 处理工具调用（如果有）
       if (finalResponse.toolCalls != null &&
@@ -547,7 +604,9 @@ class ChatService extends AiServiceBase {
 
     try {
       // 获取MCP服务管理器
-      final mcpManager = McpServiceManager();
+      final mcpManager = _ref != null
+          ? _ref!.read(mcpServiceManagerProvider)
+          : McpServiceManager();
 
       // 检查MCP服务是否启用
       if (!mcpManager.isEnabled) {
@@ -590,10 +649,23 @@ class ChatService extends AiServiceBase {
 
       // 转换为llm_dart的Tool格式
       final tools = mcpTools.map((mcpTool) {
+        final parameters = _convertMcpSchemaToParametersSchema(mcpTool.inputSchema);
+
+        // 调试：记录工具转换详情
+        logger.debug('转换MCP工具到llm_dart格式', {
+          'toolName': mcpTool.name,
+          'originalSchema': mcpTool.inputSchema,
+          'convertedParameters': {
+            'schemaType': parameters.schemaType,
+            'properties': parameters.properties.keys.toList(),
+            'required': parameters.required,
+          },
+        });
+
         return Tool.function(
           name: mcpTool.name,
           description: mcpTool.description ?? '无描述',
-          parameters: _convertMcpSchemaToParametersSchema(mcpTool.inputSchema),
+          parameters: parameters,
         );
       }).toList();
 
@@ -670,7 +742,9 @@ class ChatService extends AiServiceBase {
           jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
 
       // 通过MCP服务管理器调用工具
-      final mcpManager = McpServiceManager();
+      final mcpManager = _ref != null
+          ? _ref!.read(mcpServiceManagerProvider)
+          : McpServiceManager();
       final result =
           await mcpManager.callTool(toolCall.function.name, arguments);
 
@@ -721,8 +795,15 @@ class ChatService extends AiServiceBase {
       );
     }
 
-    // 提取必需参数
+    // 提取必需参数 - 修复：确保正确提取required字段
     final required = (inputSchema['required'] as List?)?.cast<String>() ?? [];
+
+    // 调试：记录转换详情
+    logger.debug('MCP Schema转换详情', {
+      'originalRequired': inputSchema['required'],
+      'convertedRequired': required,
+      'propertiesCount': properties.length,
+    });
 
     return ParametersSchema(
       schemaType: inputSchema['type'] as String? ?? 'object',
@@ -731,3 +812,12 @@ class ChatService extends AiServiceBase {
     );
   }
 }
+
+/// ChatService Provider
+///
+/// 提供配置了 Riverpod 依赖注入的 ChatService 实例
+final chatServiceProvider = Provider<ChatService>((ref) {
+  final chatService = ChatService();
+  chatService.setRef(ref); // 设置 Riverpod 引用以支持依赖注入
+  return chatService;
+});

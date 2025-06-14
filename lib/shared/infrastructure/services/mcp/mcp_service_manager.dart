@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../features/settings/domain/entities/mcp_server_config.dart';
+import '../../../../features/settings/presentation/providers/settings_notifier.dart';
 import '../logger_service.dart';
 import 'mcp_client_service.dart';
 import 'mcp_tool_service.dart';
@@ -52,6 +53,9 @@ class McpServiceManager {
   bool _isInitialized = false;
   bool _isEnabled = false;
 
+  // 添加Riverpod依赖注入支持
+  Ref? _ref;
+
   /// 获取客户端服务
   McpClientService get clientService => _clientService;
 
@@ -94,6 +98,98 @@ class McpServiceManager {
     } catch (e) {
       _logger.error('❌ MCP服务管理器初始化失败', {'error': e.toString()});
       rethrow;
+    }
+  }
+
+  /// 设置Riverpod引用（用于状态同步）
+  void setRef(Ref ref) {
+    _ref = ref;
+    _setupStateListener();
+  }
+
+  /// 设置状态监听器，监听设置中的MCP启用状态
+  void _setupStateListener() {
+    if (_ref == null) return;
+
+    try {
+      // 监听设置状态变化，当设置更新时同步MCP服务状态
+      _ref!.listen(
+        settingsNotifierProvider,
+        (previous, next) {
+          if (previous != next) {
+            final settingsNotifier = _ref!.read(settingsNotifierProvider.notifier);
+            final mcpEnabled = settingsNotifier.getMcpEnabled();
+
+            if (_isEnabled != mcpEnabled) {
+              _logger.info('检测到MCP设置状态变化，同步服务状态', {
+                'previous': _isEnabled,
+                'current': mcpEnabled,
+              });
+              _isEnabled = mcpEnabled;
+
+              // 如果启用了MCP，自动初始化服务器
+              if (mcpEnabled) {
+                _autoInitializeServers();
+              }
+            }
+          }
+        },
+      );
+
+      // 初始化时同步一次状态
+      _syncWithSettings();
+    } catch (e) {
+      _logger.warning('设置MCP状态监听器失败', {'error': e.toString()});
+    }
+  }
+
+  /// 与设置状态同步
+  void _syncWithSettings() {
+    if (_ref == null) return;
+
+    try {
+      final settingsNotifier = _ref!.read(settingsNotifierProvider.notifier);
+      final mcpEnabled = settingsNotifier.getMcpEnabled();
+
+      if (_isEnabled != mcpEnabled) {
+        _logger.info('同步MCP服务状态与设置', {
+          'serviceEnabled': _isEnabled,
+          'settingsEnabled': mcpEnabled,
+          'syncing': mcpEnabled,
+        });
+        _isEnabled = mcpEnabled;
+
+        // 如果启用了MCP，自动初始化服务器
+        if (mcpEnabled) {
+          _autoInitializeServers();
+        }
+      }
+    } catch (e) {
+      _logger.warning('同步MCP状态失败', {'error': e.toString()});
+    }
+  }
+
+  /// 自动初始化服务器
+  void _autoInitializeServers() {
+    if (_ref == null) return;
+
+    try {
+      final settingsNotifier = _ref!.read(settingsNotifierProvider.notifier);
+      final mcpServers = settingsNotifier.getMcpServers();
+
+      // 异步初始化服务器，避免阻塞UI
+      Future.microtask(() async {
+        try {
+          await initializeServers(mcpServers.enabledServers);
+          _logger.info('MCP服务器自动初始化完成', {
+            'serverCount': mcpServers.enabledServers.length,
+          });
+        } catch (e) {
+          _logger.error('MCP服务器自动初始化失败', {'error': e.toString()});
+        }
+      });
+    } catch (e) {
+      _logger.warning('获取MCP服务器配置失败', {'error': e.toString()});
     }
   }
 
@@ -278,7 +374,9 @@ class McpServiceManager {
 
 /// Riverpod Provider for McpServiceManager
 final mcpServiceManagerProvider = Provider<McpServiceManager>((ref) {
-  return McpServiceManager();
+  final manager = McpServiceManager();
+  manager.setRef(ref); // 设置Riverpod引用以支持状态同步
+  return manager;
 });
 
 /// Riverpod Provider for initializing MCP services

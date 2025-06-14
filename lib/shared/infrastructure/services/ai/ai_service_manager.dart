@@ -81,6 +81,14 @@ class AiServiceManager {
   final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase(); // MCP服务
   bool _isInitialized = false; // 初始化状态标记
 
+  // Riverpod 引用，用于依赖注入
+  Ref? _ref;
+
+  /// 设置 Riverpod 引用
+  void setRef(Ref ref) {
+    _ref = ref;
+  }
+
   /// 获取聊天服务
   ///
   /// 提供AI聊天对话功能，支持：
@@ -210,15 +218,17 @@ class AiServiceManager {
 
     try {
       // 注册核心服务 - 按依赖关系顺序注册
-      _registerService('chat', ChatService());
+      // 使用 Riverpod Provider 获取配置了依赖注入的 ChatService
+      final chatService = _ref != null
+          ? _ref!.read(chatServiceProvider)
+          : ChatService();
+      _registerService('chat', chatService);
+
       _registerService('model', ModelService());
       _registerService('embedding', EmbeddingService());
       _registerService('speech', SpeechService());
       _registerService('enhanced_tool', EnhancedToolService());
       _registerService('multimodal', MultimodalService());
-      _registerService('imageGeneration', ImageGenerationService());
-      _registerService('webSearch', WebSearchService());
-      _registerService('httpConfiguration', HttpConfigurationService());
       _registerService('imageGeneration', ImageGenerationService());
       _registerService('webSearch', WebSearchService());
       _registerService('httpConfiguration', HttpConfigurationService());
@@ -624,7 +634,9 @@ class AiServiceManager {
 /// final response = await manager.sendMessage(...);
 /// ```
 final aiServiceManagerProvider = Provider<AiServiceManager>((ref) {
-  return AiServiceManager();
+  final manager = AiServiceManager();
+  manager.setRef(ref); // 设置 Riverpod 引用以支持依赖注入
+  return manager;
 });
 
 /// 初始化AI服务管理器的Provider

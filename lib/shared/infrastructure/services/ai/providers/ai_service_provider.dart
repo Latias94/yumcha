@@ -21,7 +21,8 @@ import '../core/ai_response_models.dart';
 
 /// AI聊天服务Provider
 final aiChatServiceProvider = Provider<ChatService>((ref) {
-  return ChatService();
+  // 使用配置了 Riverpod 依赖注入的 ChatService
+  return ref.read(chatServiceProvider);
 });
 
 /// AI模型服务Provider
