@@ -1,26 +1,63 @@
 import 'package:drift/drift.dart';
 import '../database.dart';
 import '../../../../features/settings/domain/entities/app_setting.dart';
+import '../../../infrastructure/services/logger_service.dart';
+import '../../../../core/utils/error_handler.dart';
 
-/// 设置数据访问层
+/// 设置数据访问层 - 管理应用设置的数据持久化操作
+///
+/// SettingRepository负责应用设置的CRUD操作：
+/// - 📊 **设置管理**：设置的增删改查操作
+/// - 🔄 **类型转换**：支持多种数据类型的设置值
+/// - ✅ **数据验证**：确保设置数据的完整性和有效性
+/// - 📝 **操作日志**：记录所有设置操作的详细日志
+/// - 🛡️ **错误处理**：统一的异常处理和错误包装
+/// - 🎛️ **便捷方法**：提供常用设置的便捷访问方法
 class SettingRepository {
   final AppDatabase _database;
+  final LoggerService _logger = LoggerService();
 
   SettingRepository(this._database);
 
   /// 获取所有设置
   Future<List<AppSetting>> getAllSettings() async {
-    final query = _database.select(_database.settings);
-    final results = await query.get();
-    return results.map((data) => AppSetting.fromData(data)).toList();
+    try {
+      _logger.debug('开始获取所有设置');
+      final query = _database.select(_database.settings);
+      final results = await query.get();
+      final settings = results.map((data) => AppSetting.fromData(data)).toList();
+
+      _logger.info('设置获取成功', {'count': settings.length});
+      return settings;
+    } catch (e, stackTrace) {
+      _logger.error('获取所有设置失败', {'error': e.toString()});
+      throw DatabaseError(
+        message: '获取设置失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   /// 根据键获取设置
   Future<AppSetting?> getSetting(String key) async {
-    final query = _database.select(_database.settings)
-      ..where((tbl) => tbl.key.equals(key));
-    final result = await query.getSingleOrNull();
-    return result != null ? AppSetting.fromData(result) : null;
+    try {
+      _logger.debug('获取设置', {'key': key});
+      final query = _database.select(_database.settings)
+        ..where((tbl) => tbl.key.equals(key));
+      final result = await query.getSingleOrNull();
+
+      final setting = result != null ? AppSetting.fromData(result) : null;
+      _logger.debug('设置获取完成', {'key': key, 'found': setting != null});
+      return setting;
+    } catch (e, stackTrace) {
+      _logger.error('获取设置失败', {'key': key, 'error': e.toString()});
+      throw DatabaseError(
+        message: '获取设置失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   /// 获取类型化的设置值
@@ -35,22 +72,47 @@ class SettingRepository {
     required T value,
     String? description,
   }) async {
-    final setting = AppSetting.create(
-      key: key,
-      value: value,
-      description: description,
-    );
+    try {
+      _logger.debug('设置配置值', {'key': key, 'type': T.toString()});
 
-    await _database.into(_database.settings).insertOnConflictUpdate(
-          SettingsCompanion(
-            key: Value(setting.key),
-            value: Value(setting.value),
-            type: Value(setting.type.toString()),
-            description: Value(setting.description),
-            createdAt: Value(setting.createdAt),
-            updatedAt: Value(setting.updatedAt),
-          ),
+      // 验证键名
+      if (key.trim().isEmpty) {
+        throw ValidationError(
+          message: '设置键名不能为空',
+          code: 'EMPTY_KEY',
         );
+      }
+
+      final setting = AppSetting.create(
+        key: key,
+        value: value,
+        description: description,
+      );
+
+      await _database.into(_database.settings).insertOnConflictUpdate(
+            SettingsCompanion(
+              key: Value(setting.key),
+              value: Value(setting.value),
+              type: Value(setting.type.toString()),
+              description: Value(setting.description),
+              createdAt: Value(setting.createdAt),
+              updatedAt: Value(setting.updatedAt),
+            ),
+          );
+
+      _logger.info('设置配置成功', {'key': key, 'type': T.toString()});
+    } catch (e, stackTrace) {
+      if (e is ValidationError) {
+        rethrow;
+      }
+
+      _logger.error('设置配置失败', {'key': key, 'error': e.toString()});
+      throw DatabaseError(
+        message: '设置配置失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   /// 更新设置值

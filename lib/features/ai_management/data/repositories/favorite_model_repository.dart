@@ -1,4 +1,6 @@
 import '../../../../shared/data/database/database.dart';
+import '../../../../shared/infrastructure/services/logger_service.dart';
+import '../../../../core/utils/error_handler.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -40,66 +42,211 @@ class FavoriteModel {
 class FavoriteModelRepository {
   final AppDatabase _database;
   final _uuid = Uuid();
+  final LoggerService _logger = LoggerService();
 
   FavoriteModelRepository(this._database);
 
-  // 获取所有收藏的模型
+  /// 获取所有收藏的模型
+  ///
+  /// @returns 所有收藏模型的列表
   Future<List<FavoriteModel>> getAllFavoriteModels() async {
-    final favoriteDataList =
-        await _database.select(_database.favoriteModels).get();
-    return favoriteDataList.map(_dataToModel).toList();
-  }
+    try {
+      _logger.debug('开始获取所有收藏模型');
+      final favoriteDataList =
+          await _database.select(_database.favoriteModels).get();
+      final favoriteModels = favoriteDataList.map(_dataToModel).toList();
 
-  // 检查模型是否被收藏
-  Future<bool> isModelFavorite(String providerId, String modelName) async {
-    final result = await (_database.select(_database.favoriteModels)
-          ..where(
-            (f) =>
-                f.providerId.equals(providerId) & f.modelName.equals(modelName),
-          ))
-        .getSingleOrNull();
-    return result != null;
-  }
-
-  // 添加收藏模型
-  Future<String> addFavoriteModel(String providerId, String modelName) async {
-    // 检查是否已经存在
-    final existing = await isModelFavorite(providerId, modelName);
-    if (existing) {
-      throw Exception('模型已经被收藏');
+      _logger.info('收藏模型获取成功', {'count': favoriteModels.length});
+      return favoriteModels;
+    } catch (e, stackTrace) {
+      _logger.error('获取收藏模型失败', {'error': e.toString()});
+      throw DatabaseError(
+        message: '获取收藏模型失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
     }
-
-    final id = _uuid.v4();
-    final companion = FavoriteModelsCompanion(
-      id: Value(id),
-      providerId: Value(providerId),
-      modelName: Value(modelName),
-      createdAt: Value(DateTime.now()),
-    );
-
-    await _database.into(_database.favoriteModels).insert(companion);
-    return id;
   }
 
-  // 移除收藏模型
+  /// 检查模型是否被收藏
+  ///
+  /// @param providerId 提供商ID
+  /// @param modelName 模型名称
+  /// @returns 是否已收藏
+  Future<bool> isModelFavorite(String providerId, String modelName) async {
+    try {
+      _logger.debug('检查模型收藏状态', {
+        'providerId': providerId,
+        'modelName': modelName,
+      });
+
+      final result = await (_database.select(_database.favoriteModels)
+            ..where(
+              (f) =>
+                  f.providerId.equals(providerId) & f.modelName.equals(modelName),
+            ))
+          .getSingleOrNull();
+
+      final isFavorite = result != null;
+      _logger.debug('模型收藏状态检查完成', {
+        'providerId': providerId,
+        'modelName': modelName,
+        'isFavorite': isFavorite,
+      });
+
+      return isFavorite;
+    } catch (e, stackTrace) {
+      _logger.error('检查模型收藏状态失败', {
+        'providerId': providerId,
+        'modelName': modelName,
+        'error': e.toString(),
+      });
+      throw DatabaseError(
+        message: '检查模型收藏状态失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  /// 添加收藏模型
+  ///
+  /// @param providerId 提供商ID
+  /// @param modelName 模型名称
+  /// @returns 收藏记录的ID
+  Future<String> addFavoriteModel(String providerId, String modelName) async {
+    try {
+      _logger.info('开始添加收藏模型', {
+        'providerId': providerId,
+        'modelName': modelName,
+      });
+
+      // 检查是否已经存在
+      final existing = await isModelFavorite(providerId, modelName);
+      if (existing) {
+        throw ValidationError(
+          message: '模型已经被收藏',
+          code: 'ALREADY_FAVORITED',
+        );
+      }
+
+      final id = _uuid.v4();
+      final companion = FavoriteModelsCompanion(
+        id: Value(id),
+        providerId: Value(providerId),
+        modelName: Value(modelName),
+        createdAt: Value(DateTime.now()),
+      );
+
+      await _database.into(_database.favoriteModels).insert(companion);
+
+      _logger.info('收藏模型添加成功', {
+        'id': id,
+        'providerId': providerId,
+        'modelName': modelName,
+      });
+
+      return id;
+    } catch (e, stackTrace) {
+      if (e is ValidationError) {
+        rethrow;
+      }
+
+      _logger.error('添加收藏模型失败', {
+        'providerId': providerId,
+        'modelName': modelName,
+        'error': e.toString(),
+      });
+
+      throw DatabaseError(
+        message: '添加收藏模型失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  /// 移除收藏模型
+  ///
+  /// @param providerId 提供商ID
+  /// @param modelName 模型名称
+  /// @returns 删除的记录数
   Future<int> removeFavoriteModel(String providerId, String modelName) async {
-    return await (_database.delete(_database.favoriteModels)
-          ..where(
-            (f) =>
-                f.providerId.equals(providerId) & f.modelName.equals(modelName),
-          ))
-        .go();
+    try {
+      _logger.info('开始移除收藏模型', {
+        'providerId': providerId,
+        'modelName': modelName,
+      });
+
+      final result = await (_database.delete(_database.favoriteModels)
+            ..where(
+              (f) =>
+                  f.providerId.equals(providerId) & f.modelName.equals(modelName),
+            ))
+          .go();
+
+      _logger.info('收藏模型移除完成', {
+        'providerId': providerId,
+        'modelName': modelName,
+        'deletedCount': result,
+      });
+
+      return result;
+    } catch (e, stackTrace) {
+      _logger.error('移除收藏模型失败', {
+        'providerId': providerId,
+        'modelName': modelName,
+        'error': e.toString(),
+      });
+
+      throw DatabaseError(
+        message: '移除收藏模型失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
-  // 切换收藏状态
+  /// 切换收藏状态
+  ///
+  /// @param providerId 提供商ID
+  /// @param modelName 模型名称
+  /// @returns 切换后的收藏状态（true=已收藏，false=已取消收藏）
   Future<bool> toggleFavoriteModel(String providerId, String modelName) async {
-    final isFavorite = await isModelFavorite(providerId, modelName);
-    if (isFavorite) {
-      await removeFavoriteModel(providerId, modelName);
-      return false;
-    } else {
-      await addFavoriteModel(providerId, modelName);
-      return true;
+    try {
+      _logger.info('开始切换模型收藏状态', {
+        'providerId': providerId,
+        'modelName': modelName,
+      });
+
+      final isFavorite = await isModelFavorite(providerId, modelName);
+      if (isFavorite) {
+        await removeFavoriteModel(providerId, modelName);
+        _logger.info('模型收藏状态切换完成：已取消收藏', {
+          'providerId': providerId,
+          'modelName': modelName,
+        });
+        return false;
+      } else {
+        await addFavoriteModel(providerId, modelName);
+        _logger.info('模型收藏状态切换完成：已添加收藏', {
+          'providerId': providerId,
+          'modelName': modelName,
+        });
+        return true;
+      }
+    } catch (e, stackTrace) {
+      _logger.error('切换模型收藏状态失败', {
+        'providerId': providerId,
+        'modelName': modelName,
+        'error': e.toString(),
+      });
+
+      throw DatabaseError(
+        message: '切换模型收藏状态失败',
+        originalError: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 

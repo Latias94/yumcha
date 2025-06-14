@@ -9,6 +9,7 @@ import '../capabilities/web_search_service.dart';
 import '../capabilities/multimodal_service.dart';
 import '../capabilities/http_configuration_service.dart';
 import '../core/ai_response_models.dart';
+import '../../../../../core/utils/error_handler.dart';
 
 /// 增强AI功能的Riverpod Providers
 ///
@@ -54,34 +55,102 @@ final multimodalServiceProvider = Provider<MultimodalService>((ref) {
 // 增强配置管理Providers
 // ============================================================================
 
-/// 创建增强聊天配置Provider
+/// 创建增强聊天配置Provider - 遵循Riverpod最佳实践
 final createEnhancedConfigProvider = FutureProvider.autoDispose.family<EnhancedChatConfig, EnhancedConfigParams>((
   ref,
   params,
 ) async {
-  final configService = ref.read(enhancedChatConfigurationServiceProvider);
+  // 1. 基础参数验证
+  if (params.modelName.trim().isEmpty) {
+    throw ArgumentError('模型名称不能为空');
+  }
 
-  return await configService.createEnhancedConfig(
-    provider: params.provider,
-    assistant: params.assistant,
-    modelName: params.modelName,
-    proxyUrl: params.proxyUrl,
-    connectionTimeout: params.connectionTimeout,
-    receiveTimeout: params.receiveTimeout,
-    customHeaders: params.customHeaders,
-    enableHttpLogging: params.enableHttpLogging,
-    enableWebSearch: params.enableWebSearch,
-    enableImageGeneration: params.enableImageGeneration,
-    enableTTS: params.enableTTS,
-    enableSTT: params.enableSTT,
-    maxSearchResults: params.maxSearchResults,
-    allowedDomains: params.allowedDomains,
-    searchLanguage: params.searchLanguage,
-    imageSize: params.imageSize,
-    imageQuality: params.imageQuality,
-    ttsVoice: params.ttsVoice,
-    sttLanguage: params.sttLanguage,
-  );
+  // 2. HTTP配置验证
+  if (params.proxyUrl != null) {
+    final uri = Uri.tryParse(params.proxyUrl!);
+    if (uri == null || !uri.scheme.startsWith('http')) {
+      throw ArgumentError('无效的代理URL格式');
+    }
+  }
+
+  // 3. 超时配置验证
+  if (params.connectionTimeout != null) {
+    if (params.connectionTimeout!.inSeconds < 1 || params.connectionTimeout!.inSeconds > 300) {
+      throw ArgumentError('连接超时时间必须在1-300秒之间');
+    }
+  }
+
+  if (params.receiveTimeout != null) {
+    if (params.receiveTimeout!.inSeconds < 1 || params.receiveTimeout!.inSeconds > 600) {
+      throw ArgumentError('接收超时时间必须在1-600秒之间');
+    }
+  }
+
+  // 4. 功能支持检查
+  if (params.enableWebSearch) {
+    final webSearchService = ref.read(webSearchServiceProvider);
+    if (!webSearchService.supportsWebSearch(params.provider)) {
+      throw UnsupportedError('提供商不支持Web搜索功能');
+    }
+  }
+
+  if (params.enableImageGeneration) {
+    final imageService = ref.read(imageGenerationServiceProvider);
+    if (!imageService.supportsImageGeneration(params.provider)) {
+      throw UnsupportedError('提供商不支持图像生成功能');
+    }
+  }
+
+  // 5. 搜索配置验证
+  if (params.maxSearchResults != null) {
+    if (params.maxSearchResults! < 1 || params.maxSearchResults! > 50) {
+      throw ArgumentError('搜索结果数量必须在1-50之间');
+    }
+  }
+
+  try {
+    // 6. 创建配置
+    final configService = ref.read(enhancedChatConfigurationServiceProvider);
+    final config = await configService.createEnhancedConfig(
+      provider: params.provider,
+      assistant: params.assistant,
+      modelName: params.modelName,
+      proxyUrl: params.proxyUrl,
+      connectionTimeout: params.connectionTimeout,
+      receiveTimeout: params.receiveTimeout,
+      customHeaders: params.customHeaders,
+      enableHttpLogging: params.enableHttpLogging,
+      enableWebSearch: params.enableWebSearch,
+      enableImageGeneration: params.enableImageGeneration,
+      enableTTS: params.enableTTS,
+      enableSTT: params.enableSTT,
+      maxSearchResults: params.maxSearchResults,
+      allowedDomains: params.allowedDomains,
+      searchLanguage: params.searchLanguage,
+      imageSize: params.imageSize,
+      imageQuality: params.imageQuality,
+      ttsVoice: params.ttsVoice,
+      sttLanguage: params.sttLanguage,
+    );
+
+    // 7. 配置验证
+    if (!configService.validateEnhancedConfig(config)) {
+      throw StateError('增强配置验证失败');
+    }
+
+    return config;
+  } catch (e) {
+    // 8. 错误处理
+    if (e is ArgumentError || e is UnsupportedError || e is StateError) {
+      rethrow;
+    }
+
+    throw ApiError(
+      message: '创建增强配置失败: ${e.toString()}',
+      code: 'CONFIG_CREATION_FAILED',
+      originalError: e,
+    );
+  }
 });
 
 /// 验证增强配置Provider
@@ -133,21 +202,69 @@ final httpConfigStatsProvider = Provider<Map<String, dynamic>>((ref) {
 // 图像生成功能Providers
 // ============================================================================
 
-/// 图像生成Provider
+/// 图像生成Provider - 遵循Riverpod最佳实践
 final generateImageProvider = FutureProvider.autoDispose.family<ImageGenerationResponse, ImageGenerationParams>((
   ref,
   params,
 ) async {
-  final imageService = ref.read(imageGenerationServiceProvider);
+  // 1. 参数验证
+  if (params.prompt.trim().isEmpty) {
+    throw ArgumentError('图像生成提示词不能为空');
+  }
 
-  return await imageService.generateImage(
-    provider: params.provider,
-    prompt: params.prompt,
-    size: params.size,
-    quality: params.quality,
-    style: params.style,
-    count: params.count,
-  );
+  if (params.prompt.length > 4000) {
+    throw ArgumentError('图像生成提示词过长，最多4000字符');
+  }
+
+  if (params.count <= 0 || params.count > 10) {
+    throw ArgumentError('图像数量必须在1-10之间');
+  }
+
+  // 2. 服务可用性检查
+  final imageService = ref.read(imageGenerationServiceProvider);
+  if (!imageService.supportsImageGeneration(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持图像生成');
+  }
+
+  // 3. 尺寸验证
+  final supportedSizes = imageService.getSupportedSizes(params.provider);
+  if (params.size != null && !supportedSizes.contains(params.size)) {
+    throw ArgumentError('不支持的图像尺寸: ${params.size}');
+  }
+
+  // 4. 质量验证
+  final supportedQualities = imageService.getSupportedQualities(params.provider);
+  if (params.quality != null && !supportedQualities.contains(params.quality)) {
+    throw ArgumentError('不支持的图像质量: ${params.quality}');
+  }
+
+  try {
+    // 5. 执行生成
+    return await imageService.generateImage(
+      provider: params.provider,
+      prompt: params.prompt,
+      size: params.size,
+      quality: params.quality,
+      style: params.style,
+      count: params.count,
+    );
+  } catch (e) {
+    // 6. 错误处理
+    if (e.toString().contains('quota') || e.toString().contains('limit')) {
+      throw ApiError(
+        message: '图像生成配额已用完，请稍后再试',
+        code: 'QUOTA_EXCEEDED',
+        originalError: e,
+      );
+    } else if (e.toString().contains('content_policy')) {
+      throw ValidationError(
+        message: '图像内容违反内容政策，请修改提示词',
+        code: 'CONTENT_POLICY_VIOLATION',
+        originalError: e,
+      );
+    }
+    rethrow;
+  }
 });
 
 /// 检查图像生成支持Provider
@@ -178,22 +295,75 @@ final imageGenerationStatsProvider = Provider<Map<String, ImageGenerationStats>>
 // Web搜索功能Providers
 // ============================================================================
 
-/// Web搜索Provider
+/// Web搜索Provider - 遵循Riverpod最佳实践
 final webSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, WebSearchParams>((
   ref,
   params,
 ) async {
-  final webSearchService = ref.read(webSearchServiceProvider);
+  // 1. 查询验证
+  final query = params.query.trim();
+  if (query.isEmpty) {
+    throw ArgumentError('搜索查询不能为空');
+  }
 
-  return await webSearchService.searchWeb(
-    provider: params.provider,
-    assistant: params.assistant,
-    query: params.query,
-    maxResults: params.maxResults,
-    language: params.language,
-    allowedDomains: params.allowedDomains,
-    blockedDomains: params.blockedDomains,
-  );
+  if (query.length > 500) {
+    throw ArgumentError('搜索查询过长，最多500字符');
+  }
+
+  // 2. 搜索权限检查
+  final webSearchService = ref.read(webSearchServiceProvider);
+  if (!webSearchService.supportsWebSearch(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持Web搜索');
+  }
+
+  // 3. 结果数量限制
+  final maxResults = params.maxResults.clamp(1, 20); // 限制在1-20之间
+
+  // 4. 域名验证
+  if (params.allowedDomains != null && params.allowedDomains!.isNotEmpty) {
+    for (final domain in params.allowedDomains!) {
+      if (!_isValidDomain(domain)) {
+        throw ArgumentError('无效的允许域名格式: $domain');
+      }
+    }
+  }
+
+  if (params.blockedDomains != null && params.blockedDomains!.isNotEmpty) {
+    for (final domain in params.blockedDomains!) {
+      if (!_isValidDomain(domain)) {
+        throw ArgumentError('无效的屏蔽域名格式: $domain');
+      }
+    }
+  }
+
+  try {
+    // 5. 执行搜索
+    return await webSearchService.searchWeb(
+      provider: params.provider,
+      assistant: params.assistant,
+      query: query,
+      maxResults: maxResults,
+      language: params.language,
+      allowedDomains: params.allowedDomains,
+      blockedDomains: params.blockedDomains,
+    );
+  } catch (e) {
+    // 6. 错误处理
+    if (e.toString().contains('rate_limit') || e.toString().contains('too_many_requests')) {
+      throw ApiError(
+        message: '搜索请求过于频繁，请稍后再试',
+        code: 'RATE_LIMIT_EXCEEDED',
+        originalError: e,
+      );
+    } else if (e.toString().contains('quota') || e.toString().contains('limit')) {
+      throw ApiError(
+        message: '搜索配额已用完，请稍后再试',
+        code: 'QUOTA_EXCEEDED',
+        originalError: e,
+      );
+    }
+    rethrow;
+  }
 });
 
 /// 新闻搜索Provider
@@ -229,51 +399,189 @@ final webSearchStatsProvider = Provider<Map<String, WebSearchStats>>((ref) {
 // 多模态功能Providers
 // ============================================================================
 
-/// 文字转语音Provider
+/// 文字转语音Provider - 遵循Riverpod最佳实践
 final textToSpeechProvider = FutureProvider.autoDispose.family<TextToSpeechResponse, TextToSpeechParams>((
   ref,
   params,
 ) async {
-  final multimodalService = ref.read(multimodalServiceProvider);
+  // 1. 文本验证
+  final text = params.text.trim();
+  if (text.isEmpty) {
+    throw ArgumentError('TTS文本不能为空');
+  }
 
-  return await multimodalService.textToSpeech(
-    provider: params.provider,
-    text: params.text,
-    voice: params.voice,
-    model: params.model,
-  );
+  if (text.length > 4000) {
+    throw ArgumentError('TTS文本过长，最多4000字符');
+  }
+
+  // 2. 服务支持检查
+  final multimodalService = ref.read(multimodalServiceProvider);
+  if (!multimodalService.supportsTts(params.provider)) {
+    throw UnsupportedError('提供商 ${params.provider.name} 不支持TTS');
+  }
+
+  // 3. 语音验证
+  if (params.voice != null) {
+    final supportedVoices = multimodalService.getSupportedVoices(params.provider);
+    if (!supportedVoices.contains(params.voice)) {
+      throw ArgumentError('不支持的语音: ${params.voice}');
+    }
+  }
+
+  try {
+    // 4. 执行TTS
+    return await multimodalService.textToSpeech(
+      provider: params.provider,
+      text: text,
+      voice: params.voice,
+      model: params.model,
+    );
+  } catch (e) {
+    // 5. 错误处理
+    if (e.toString().contains('quota') || e.toString().contains('limit')) {
+      throw ApiError(
+        message: 'TTS配额已用完，请稍后再试',
+        code: 'QUOTA_EXCEEDED',
+        originalError: e,
+      );
+    } else if (e.toString().contains('unsupported_voice')) {
+      throw ValidationError(
+        message: '不支持的语音类型',
+        code: 'UNSUPPORTED_VOICE',
+        originalError: e,
+      );
+    }
+    rethrow;
+  }
 });
 
-/// 语音转文字Provider
+/// 语音转文字Provider - 遵循Riverpod最佳实践
 final speechToTextProvider = FutureProvider.autoDispose.family<SpeechToTextResponse, SpeechToTextParams>((
   ref,
   params,
 ) async {
-  final multimodalService = ref.read(multimodalServiceProvider);
+  // 1. 音频数据验证
+  if (params.audioData.isEmpty) {
+    throw ArgumentError('音频数据不能为空');
+  }
 
-  return await multimodalService.speechToText(
-    provider: params.provider,
-    audioData: params.audioData,
-    language: params.language,
-    model: params.model,
-  );
+  // 音频大小限制 (25MB)
+  if (params.audioData.length > 25 * 1024 * 1024) {
+    throw ArgumentError('音频文件过大，最大25MB');
+  }
+
+  // 2. 服务支持检查
+  final multimodalService = ref.read(multimodalServiceProvider);
+  // TODO: 添加STT支持检查方法
+  // if (!multimodalService.supportsStt(params.provider)) {
+  //   throw UnsupportedError('提供商 ${params.provider.name} 不支持STT');
+  // }
+
+  try {
+    // 3. 执行STT
+    return await multimodalService.speechToText(
+      provider: params.provider,
+      audioData: params.audioData,
+      language: params.language,
+      model: params.model,
+    );
+  } catch (e) {
+    // 4. 错误处理
+    if (e.toString().contains('quota') || e.toString().contains('limit')) {
+      throw ApiError(
+        message: 'STT配额已用完，请稍后再试',
+        code: 'QUOTA_EXCEEDED',
+        originalError: e,
+      );
+    } else if (e.toString().contains('unsupported_format')) {
+      throw ValidationError(
+        message: '不支持的音频格式',
+        code: 'UNSUPPORTED_FORMAT',
+        originalError: e,
+      );
+    } else if (e.toString().contains('file_too_large')) {
+      throw ValidationError(
+        message: '音频文件过大',
+        code: 'FILE_TOO_LARGE',
+        originalError: e,
+      );
+    }
+    rethrow;
+  }
 });
 
-/// 图像分析Provider
+/// 图像分析Provider - 遵循Riverpod最佳实践
 final analyzeImageProvider = FutureProvider.autoDispose.family<AiResponse, ImageAnalysisParams>((
   ref,
   params,
 ) async {
-  final multimodalService = ref.read(multimodalServiceProvider);
+  // 1. 图像数据验证
+  if (params.imageData.isEmpty) {
+    throw ArgumentError('图像数据不能为空');
+  }
 
-  return await multimodalService.analyzeImage(
-    provider: params.provider,
-    assistant: params.assistant,
-    modelName: params.modelName,
-    imageData: params.imageData,
-    prompt: params.prompt,
-    imageFormat: params.imageFormat,
-  );
+  // 图像大小限制 (20MB)
+  if (params.imageData.length > 20 * 1024 * 1024) {
+    throw ArgumentError('图像文件过大，最大20MB');
+  }
+
+  // 2. 提示词验证
+  final prompt = params.prompt.trim();
+  if (prompt.isEmpty) {
+    throw ArgumentError('图像分析提示词不能为空');
+  }
+
+  if (prompt.length > 2000) {
+    throw ArgumentError('图像分析提示词过长，最多2000字符');
+  }
+
+  // 3. 图像格式验证
+  final supportedFormats = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+  final format = params.imageFormat?.toLowerCase() ?? 'png';
+  if (!supportedFormats.contains(format)) {
+    throw ArgumentError('不支持的图像格式: $format');
+  }
+
+  // 4. 服务支持检查
+  final multimodalService = ref.read(multimodalServiceProvider);
+  // TODO: 添加视觉分析支持检查方法
+  // if (!multimodalService.supportsVision(params.provider)) {
+  //   throw UnsupportedError('提供商 ${params.provider.name} 不支持图像分析');
+  // }
+
+  try {
+    // 5. 执行图像分析
+    return await multimodalService.analyzeImage(
+      provider: params.provider,
+      assistant: params.assistant,
+      modelName: params.modelName,
+      imageData: params.imageData,
+      prompt: prompt,
+      imageFormat: format,
+    );
+  } catch (e) {
+    // 6. 错误处理
+    if (e.toString().contains('quota') || e.toString().contains('limit')) {
+      throw ApiError(
+        message: '图像分析配额已用完，请稍后再试',
+        code: 'QUOTA_EXCEEDED',
+        originalError: e,
+      );
+    } else if (e.toString().contains('unsupported_format')) {
+      throw ValidationError(
+        message: '不支持的图像格式',
+        code: 'UNSUPPORTED_FORMAT',
+        originalError: e,
+      );
+    } else if (e.toString().contains('content_policy')) {
+      throw ValidationError(
+        message: '图像内容违反内容政策',
+        code: 'CONTENT_POLICY_VIOLATION',
+        originalError: e,
+      );
+    }
+    rethrow;
+  }
 });
 
 // ============================================================================
@@ -600,4 +908,17 @@ class ImageAnalysisParams {
       modelName.hashCode ^
       imageData.hashCode ^
       prompt.hashCode;
+}
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
+
+/// 验证域名格式是否有效
+bool _isValidDomain(String domain) {
+  if (domain.isEmpty) return false;
+
+  // 基本域名格式验证
+  final domainRegex = RegExp(r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$');
+  return domainRegex.hasMatch(domain);
 }
