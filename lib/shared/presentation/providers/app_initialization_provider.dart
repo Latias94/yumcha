@@ -19,6 +19,7 @@ import '../../../app/config/splash_config.dart';
 
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
+import '../../../features/settings/presentation/providers/mcp_service_provider.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
 import 'favorite_model_notifier.dart';
 
@@ -272,8 +273,15 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     state = state.copyWith(currentStep: '正在初始化MCP服务...');
 
     try {
-      // MCP服务初始化（目前是占位符）
-      await Future.delayed(const Duration(milliseconds: 100));
+      _logger.info('🔧 开始初始化MCP服务...');
+
+      // 主动触发MCP服务Provider的创建和初始化
+      // 这确保了MCP服务在应用启动时就被正确初始化
+      _ref.read(mcpServiceProvider.notifier);
+
+      // 等待MCP服务初始化完成
+      // 注意：_loadInitialState 会根据设置自动决定是否启用MCP
+      await Future.delayed(const Duration(milliseconds: 500)); // 给Provider一些时间完成初始化
 
       state = state.copyWith(
         isMcpInitialized: true,
@@ -283,7 +291,11 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
       _logger.info('✅ MCP服务初始化完成');
     } catch (e) {
       _logger.error('❌ MCP服务初始化失败', {'error': e.toString()});
-      rethrow;
+      // MCP初始化失败不应阻塞应用启动
+      state = state.copyWith(
+        isMcpInitialized: true,
+        currentStep: 'MCP服务初始化失败，继续启动',
+      );
     }
   }
 

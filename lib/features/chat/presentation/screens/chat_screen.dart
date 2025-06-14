@@ -32,10 +32,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/conversation_ui_state.dart';
 import '../../domain/entities/message.dart';
 import '../../../ai_management/domain/entities/ai_assistant.dart';
-import '../../../ai_management/domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
 import '../providers/unified_chat_notifier.dart';
+import '../widgets/chat_configuration_status.dart';
 import 'chat_view.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -198,17 +198,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
       return Scaffold(
         appBar: widget.showAppBar ? _buildAppBar(context, assistant) : null,
-        body: ChatView(
-          conversationId: _conversationState.id,
-          assistantId: _conversationState.assistantId ?? '',
-          selectedProviderId: _conversationState.selectedProviderId,
-          selectedModelName: _conversationState.selectedModelId ?? '',
-          messages: _conversationState.messages,
-          welcomeMessage: null, // 不显示欢迎消息，让界面开始时为空
-          suggestions: _getDefaultSuggestions(),
-          onMessagesChanged: _onMessagesChanged,
-          onProviderModelChanged: _onProviderModelChanged,
-          initialMessageId: widget.initialMessageId,
+        body: Column(
+          children: [
+            // 配置状态显示
+            _buildConfigurationStatusBar(context),
+            // 聊天界面
+            Expanded(
+              child: ChatView(
+                conversationId: _conversationState.id,
+                assistantId: _conversationState.assistantId ?? '',
+                selectedProviderId: _conversationState.selectedProviderId,
+                selectedModelName: _conversationState.selectedModelId ?? '',
+                messages: _conversationState.messages,
+                welcomeMessage: null, // 不显示欢迎消息，让界面开始时为空
+                suggestions: _getDefaultSuggestions(),
+                onMessagesChanged: _onMessagesChanged,
+                onProviderModelChanged: _onProviderModelChanged,
+                initialMessageId: widget.initialMessageId,
+              ),
+            ),
+          ],
         ),
       );
     } catch (error) {
@@ -236,6 +245,53 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   List<String> _getDefaultSuggestions() {
     // return ['你好', '帮我写代码', '解答问题', '创意建议'];
     return [];
+  }
+
+  /// 构建配置状态栏
+  /// 只在配置有问题时显示，正常状态下不显示任何内容
+  Widget _buildConfigurationStatusBar(BuildContext context) {
+    return ChatConfigurationStatus(
+      compact: true,
+      showDetails: false,
+      onFixRequested: () => _showConfigurationFixDialog(context),
+    );
+  }
+
+  /// 显示配置修复对话框
+  void _showConfigurationFixDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.settings,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            const Text('配置问题'),
+          ],
+        ),
+        content: const ChatConfigurationStatus(
+          compact: false,
+          showDetails: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('知道了'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // 导航到设置页面
+              Navigator.of(context).pushNamed('/settings');
+            },
+            child: const Text('去设置'),
+          ),
+        ],
+      ),
+    );
   }
 
   AppBar _buildAppBar(BuildContext context, AiAssistant? assistant) {

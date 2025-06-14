@@ -699,15 +699,15 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
   /// 处理流式更新
   void _handleStreamingUpdate(StreamingUpdate update) {
-    _logger.info('收到流式更新', {
-      'messageId': update.messageId,
-      'isDone': update.isDone,
-      'contentLength': update.fullContent?.length ?? 0,
-      'isError': update.isError,
-      'hasContent': update.fullContent != null,
-      'currentMessageCount': state.messageState.messages.length,
-      'streamingMessageCount': state.messageState.streamingMessageIds.length,
-    });
+    // _logger.info('收到流式更新', {
+    //   'messageId': update.messageId,
+    //   'isDone': update.isDone,
+    //   'contentLength': update.fullContent?.length ?? 0,
+    //   'isError': update.isError,
+    //   'hasContent': update.fullContent != null,
+    //   'currentMessageCount': state.messageState.messages.length,
+    //   'streamingMessageCount': state.messageState.streamingMessageIds.length,
+    // });
 
     try {
       if (update.isError) {

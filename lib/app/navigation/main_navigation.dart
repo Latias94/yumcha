@@ -30,6 +30,7 @@
 // - 错误处理：通过 SnackBar 和聊天气泡显示，不阻塞界面
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/presentation/widgets/app_drawer.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
@@ -200,6 +201,14 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         },
         onProfileClicked: (String userId) {}, // 移除profile功能，保留空实现避免错误
       ),
+      // 侧边栏手势配置 - 曲面屏优化
+      drawerEnableOpenDragGesture: true, // 启用从屏幕边缘滑动打开侧边栏
+      drawerEdgeDragWidth: 35.0, // 曲面屏适配：增加感应区域宽度，避开曲面边缘
+      drawerDragStartBehavior: DragStartBehavior.start, // 手势开始行为
+      onDrawerChanged: (isOpened) {
+        // 可选：监听侧边栏开关状态
+        _logger.debug('侧边栏状态变化: ${isOpened ? "打开" : "关闭"}');
+      },
       body: _getCurrentScreen(conversation, chatState, chatNotifier),
     );
   }

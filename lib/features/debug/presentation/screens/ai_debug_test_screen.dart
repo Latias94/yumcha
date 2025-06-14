@@ -44,11 +44,13 @@ import '../../../../shared/presentation/design_system/design_constants.dart';
 
 import '../../../ai_management/domain/entities/ai_provider.dart' as models;
 import '../../../ai_management/domain/entities/ai_assistant.dart';
+import '../../../ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../chat/domain/entities/message.dart';
 import '../../../settings/domain/entities/mcp_server_config.dart';
 import '../../../settings/presentation/providers/settings_notifier.dart';
 import '../../../settings/presentation/providers/mcp_service_provider.dart';
 import '../../../settings/presentation/screens/mcp_settings_screen.dart';
+import '../../../../shared/infrastructure/services/mcp/mcp_service_manager.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -74,6 +76,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   // 状态变量
   String _selectedProvider = 'openai';
+  String? _selectedAssistantId;
   bool _isLoading = false;
   bool _isStreamMode = false;
   bool _isResponsePanelExpanded = true;
@@ -108,6 +111,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   static const String _prefKeyProvider = 'debug_provider';
   static const String _prefKeyStreamMode = 'debug_stream_mode';
   static const String _prefKeyEnableMcp = 'debug_enable_mcp';
+  static const String _prefKeySelectedAssistant = 'debug_selected_assistant';
 
   // 预设配置
   static const Map<String, Map<String, String>> _presets = {
@@ -203,6 +207,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         _selectedProvider = prefs.getString(_prefKeyProvider) ?? 'openai';
         _isStreamMode = prefs.getBool(_prefKeyStreamMode) ?? false;
         _enableMcpTools = prefs.getBool(_prefKeyEnableMcp) ?? false;
+        _selectedAssistantId = prefs.getString(_prefKeySelectedAssistant);
       });
 
       // 如果没有保存的设置，加载默认预设
@@ -231,6 +236,9 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       await prefs.setString(_prefKeyProvider, _selectedProvider);
       await prefs.setBool(_prefKeyStreamMode, _isStreamMode);
       await prefs.setBool(_prefKeyEnableMcp, _enableMcpTools);
+      if (_selectedAssistantId != null) {
+        await prefs.setString(_prefKeySelectedAssistant, _selectedAssistantId!);
+      }
     } catch (e) {
       // 保存失败不影响主要功能
     }
@@ -296,7 +304,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     _saveCurrentSettings();
   }
 
-  String _formatRequestBody() {
+  Future<String> _formatRequestBody() async {
     final message = _messageController.text.trim();
 
     final requestData = {
@@ -313,25 +321,11 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       if (_maxTokensController.text.isNotEmpty)
         'max_tokens': int.tryParse(_maxTokensController.text),
       if (_isStreamMode) 'stream': true,
-      // 添加工具信息（如果启用了MCP工具）
+      // 添加真实的MCP工具信息（如果启用了MCP工具）
+      // 注意：这里显示的是将要发送给AI服务的工具信息，
+      // 实际的工具调用由AI服务内部处理
       if (_enableMcpTools && _selectedMcpServerIds.isNotEmpty)
-        'tools': _selectedMcpServerIds.map((serverId) {
-          final server =
-              _availableMcpServers.firstWhere((s) => s.id == serverId);
-          return {
-            'type': 'function',
-            'function': {
-              'name':
-                  'mcp_tool_${server.name.toLowerCase().replaceAll(' ', '_')}',
-              'description': '来自 ${server.name} 服务器的MCP工具',
-              'parameters': {
-                'type': 'object',
-                'properties': {},
-                'required': [],
-              },
-            },
-          };
-        }).toList(),
+        'tools': await _getRealMcpTools(_selectedMcpServerIds),
     };
 
     const encoder = JsonEncoder.withIndent('  ');
@@ -369,8 +363,9 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     });
 
     // 生成请求体
+    final requestBody = await _formatRequestBody();
     setState(() {
-      _requestBody = _formatRequestBody();
+      _requestBody = requestBody;
     });
 
     try {
@@ -384,24 +379,91 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         '参数: temperature=${_temperatureController.text}, topP=${_topPController.text}\n',
       );
 
-      // MCP调试信息
-      if (_enableMcpTools) {
-        _updateDebugInfo('🔧 MCP工具: 已启用\n');
-        _updateDebugInfo('选择的服务器: ${_selectedMcpServerIds.length} 个\n');
-        _updateMcpDebugInfo('🔧 MCP工具调试开始...\n');
-        _updateMcpDebugInfo('助手工具启用状态: $_enableMcpTools\n');
-        _updateMcpDebugInfo('选择的服务器ID: ${_selectedMcpServerIds.join(", ")}\n');
-        for (final serverId in _selectedMcpServerIds) {
-          final server =
-              _availableMcpServers.firstWhere((s) => s.id == serverId);
-          _updateMcpDebugInfo(
-              '服务器: ${server.name} (${server.type.displayName})\n');
+      // 助手信息
+      if (_selectedAssistantId != null) {
+        final assistants = ref.read(aiAssistantsProvider);
+        final selectedAssistant = assistants
+            .where((a) => a.id == _selectedAssistantId)
+            .firstOrNull;
+        if (selectedAssistant != null) {
+          _updateDebugInfo('🤖 助手: ${selectedAssistant.name}\n');
         }
-        _updateMcpDebugInfo('💡 提示: 工具将被添加到请求体的 tools 字段中\n');
+      } else {
+        _updateDebugInfo('🧪 助手: 测试助手配置\n');
+      }
+
+      // MCP调试信息
+      final assistant = await _getSelectedOrTestAssistant();
+      if (assistant.enableTools) {
+        _updateDebugInfo('🔧 MCP工具: 已启用\n');
+        if (_selectedAssistantId != null) {
+          _updateDebugInfo('工具配置来源: 选择的助手\n');
+          _updateDebugInfo('助手MCP服务器: ${assistant.mcpServerIds.length} 个\n');
+        } else {
+          _updateDebugInfo('工具配置来源: 测试配置\n');
+          _updateDebugInfo('选择的服务器: ${_selectedMcpServerIds.length} 个\n');
+        }
+        _updateMcpDebugInfo('🔧 MCP工具调试开始...\n');
+        _updateMcpDebugInfo('助手工具启用状态: ${assistant.enableTools}\n');
+        _updateMcpDebugInfo('MCP服务器ID: ${assistant.mcpServerIds.join(", ")}\n');
+
+        // 检查MCP服务状态
+        final mcpState = ref.read(mcpServiceProvider);
+        _updateMcpDebugInfo('MCP服务全局状态: ${mcpState.isEnabled ? "已启用" : "未启用"}\n');
+
+        if (!mcpState.isEnabled) {
+          _updateMcpDebugInfo('⚠️ MCP服务未启用，请先在设置中启用MCP服务\n');
+          _updateMcpDebugInfo('💡 提示: 即使助手启用了工具，MCP服务未启用时也无法使用工具\n');
+          _updateMcpDebugInfo('🚫 跳过MCP工具集成，继续发送普通请求\n');
+        } else {
+          // 检查服务器连接状态
+          bool hasDisconnectedServers = false;
+          final serverIds = assistant.mcpServerIds;
+
+          for (final serverId in serverIds) {
+            final server = _availableMcpServers.where((s) => s.id == serverId).firstOrNull;
+            if (server != null) {
+              final status = ref.read(mcpServerStatusProvider(serverId));
+              final statusText = _getStatusText(status);
+              _updateMcpDebugInfo('服务器: ${server.name} (${server.type.displayName}) - $statusText\n');
+
+              if (status != McpServerStatus.connected) {
+                _updateMcpDebugInfo('  ⚠️ 服务器未连接，工具可能无法正常使用\n');
+                hasDisconnectedServers = true;
+              }
+            } else {
+              _updateMcpDebugInfo('⚠️ 服务器配置未找到: $serverId\n');
+            }
+          }
+
+          // 如果有未连接的服务器，尝试重新连接
+          if (hasDisconnectedServers) {
+            _updateMcpDebugInfo('🔄 检测到未连接的服务器，尝试重新连接...\n');
+            await _reconnectMcpServersForAssistant(serverIds);
+          }
+
+          // 获取实际可用的工具
+          try {
+            final tools = await _getRealMcpTools(assistant.mcpServerIds);
+            _updateMcpDebugInfo('✅ 成功获取 ${tools.length} 个MCP工具\n');
+            if (tools.isNotEmpty) {
+              _updateMcpDebugInfo('📋 可用工具列表:\n');
+              for (final tool in tools) {
+                final functionInfo = tool['function'] as Map<String, dynamic>;
+                _updateMcpDebugInfo('  - ${functionInfo['name']}: ${functionInfo['description']}\n');
+              }
+              _updateMcpDebugInfo('💡 这些工具将通过AI服务传递给LLM，并在需要时自动调用\n');
+            } else {
+              _updateMcpDebugInfo('⚠️ 未获取到任何可用工具\n');
+            }
+          } catch (e) {
+            _updateMcpDebugInfo('❌ 获取MCP工具失败: $e\n');
+          }
+        }
         _updateMcpDebugInfo('\n');
       } else {
         _updateDebugInfo('🔧 MCP工具: 未启用\n');
-        _updateMcpDebugInfo('⚠️ 工具未启用，请求体中不会包含 tools 字段\n');
+        _updateMcpDebugInfo('⚠️ 工具未启用，AI服务不会集成MCP工具\n');
       }
       _updateDebugInfo('\n');
 
@@ -505,23 +567,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       // 转换 provider 类型
       final provider = _convertToModelsProvider();
 
-      // 创建测试助手
-      final assistant = AiAssistant(
-        id: 'debug-assistant',
-        name: 'Debug Assistant',
-        description: 'AI Debug Assistant for testing',
-        systemPrompt: _systemPromptController.text.trim().isEmpty
-            ? 'You are a helpful assistant.'
-            : _systemPromptController.text.trim(),
-        temperature: double.tryParse(_temperatureController.text) ?? 0.7,
-        maxTokens: int.tryParse(_maxTokensController.text) ?? 1000,
-        topP: double.tryParse(_topPController.text) ?? 0.9,
-        enableReasoning: false,
-        enableTools: _enableMcpTools, // 关键修复：根据MCP工具开关设置enableTools
-        mcpServerIds: _enableMcpTools ? _selectedMcpServerIds : [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+      // 获取选择的助手或创建测试助手
+      final assistant = await _getSelectedOrTestAssistant();
 
       final modelName = _modelController.text.trim();
       final chatHistory = <Message>[];
@@ -624,6 +671,45 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     }
   }
 
+  /// 获取选择的助手或创建测试助手
+  Future<AiAssistant> _getSelectedOrTestAssistant() async {
+    // 如果选择了助手，使用选择的助手
+    if (_selectedAssistantId != null) {
+      final assistants = ref.read(aiAssistantsProvider);
+      final selectedAssistant = assistants
+          .where((a) => a.id == _selectedAssistantId)
+          .firstOrNull;
+
+      if (selectedAssistant != null) {
+        _updateDebugInfo('🤖 使用选择的助手: ${selectedAssistant.name}\n');
+        _updateDebugInfo('助手工具设置: ${selectedAssistant.enableTools ? "已启用" : "未启用"}\n');
+        if (selectedAssistant.enableTools && selectedAssistant.mcpServerIds.isNotEmpty) {
+          _updateDebugInfo('助手MCP服务器: ${selectedAssistant.mcpServerIds.join(", ")}\n');
+        }
+        return selectedAssistant;
+      }
+    }
+
+    // 创建测试助手
+    _updateDebugInfo('🧪 使用测试助手配置\n');
+    return AiAssistant(
+      id: 'debug-assistant',
+      name: 'Debug Assistant',
+      description: 'AI Debug Assistant for testing',
+      systemPrompt: _systemPromptController.text.trim().isEmpty
+          ? 'You are a helpful assistant.'
+          : _systemPromptController.text.trim(),
+      temperature: double.tryParse(_temperatureController.text) ?? 0.7,
+      maxTokens: int.tryParse(_maxTokensController.text) ?? 1000,
+      topP: double.tryParse(_topPController.text) ?? 0.9,
+      enableReasoning: false,
+      enableTools: _enableMcpTools,
+      mcpServerIds: _enableMcpTools ? _selectedMcpServerIds : [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+  }
+
   /// 转换 provider 类型
   models.AiProvider _convertToModelsProvider() {
     models.ProviderType providerType;
@@ -664,6 +750,28 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     setState(() {
       _mcpDebugInfo += info;
     });
+  }
+
+  String _getMessageHintText() {
+    // 如果选择了助手
+    if (_selectedAssistantId != null) {
+      final assistants = ref.read(aiAssistantsProvider);
+      final selectedAssistant = assistants
+          .where((a) => a.id == _selectedAssistantId)
+          .firstOrNull;
+
+      if (selectedAssistant != null && selectedAssistant.enableTools) {
+        return '请帮我调用可用的工具（使用助手的MCP配置）';
+      }
+      return '你好，请介绍一下你自己。（使用选择的助手）';
+    }
+
+    // 使用测试配置
+    if (_enableMcpTools && _availableMcpServers.where((s) => s.isEnabled).isNotEmpty) {
+      return '请帮我调用可用的工具（测试MCP配置）';
+    }
+
+    return '你好，请介绍一下你自己。';
   }
 
   void _showError(String message) {
@@ -726,6 +834,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 children: [
                   _buildPresetSection(),
                   SizedBox(height: DesignConstants.spaceL),
+                  _buildAssistantSection(),
+                  SizedBox(height: DesignConstants.spaceL),
                   _buildProviderSection(),
                   SizedBox(height: DesignConstants.spaceL),
                   _buildApiConfigSection(),
@@ -776,6 +886,151 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAssistantSection() {
+    final assistants = ref.watch(aiAssistantsProvider);
+    final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
+
+    return Card(
+      child: Padding(
+        padding: DesignConstants.paddingL,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.smart_toy,
+                    size: DesignConstants.iconSizeS,
+                    color: Theme.of(context).colorScheme.primary),
+                SizedBox(width: DesignConstants.spaceS),
+                const Text(
+                  'AI助手选择',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            SizedBox(height: DesignConstants.spaceS),
+            if (enabledAssistants.isEmpty)
+              Container(
+                padding: DesignConstants.paddingM,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: DesignConstants.radiusS,
+                ),
+                child: const Text(
+                  '暂无可用助手，将使用测试助手配置',
+                  style: TextStyle(fontSize: 12),
+                ),
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<String?>(
+                    value: _selectedAssistantId,
+                    decoration: const InputDecoration(
+                      labelText: '选择助手',
+                      hintText: '选择一个助手或使用测试配置',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('使用测试助手配置'),
+                      ),
+                      ...enabledAssistants.map((assistant) {
+                        return DropdownMenuItem<String?>(
+                          value: assistant.id,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🤖'),
+                              SizedBox(width: DesignConstants.spaceS),
+                              Flexible(
+                                child: Text(
+                                  assistant.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (assistant.enableTools) ...[
+                                SizedBox(width: DesignConstants.spaceXS),
+                                Icon(Icons.extension,
+                                    size: DesignConstants.iconSizeS,
+                                    color: Theme.of(context).colorScheme.primary),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedAssistantId = value;
+                        // 如果选择了助手，清空MCP工具选择（使用助手的配置）
+                        if (value != null) {
+                          _enableMcpTools = false;
+                          _selectedMcpServerIds.clear();
+                        }
+                      });
+                      _saveCurrentSettings();
+                    },
+                  ),
+                  if (_selectedAssistantId != null) ...[
+                    SizedBox(height: DesignConstants.spaceS),
+                    _buildSelectedAssistantInfo(),
+                  ],
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedAssistantInfo() {
+    final assistants = ref.watch(aiAssistantsProvider);
+    final selectedAssistant = assistants
+        .where((a) => a.id == _selectedAssistantId)
+        .firstOrNull;
+
+    if (selectedAssistant == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: DesignConstants.paddingS,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+        borderRadius: DesignConstants.radiusXS,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '助手信息:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          SizedBox(height: DesignConstants.spaceXS),
+          Text(
+            '• 工具功能: ${selectedAssistant.enableTools ? "已启用" : "未启用"}',
+            style: const TextStyle(fontSize: 11),
+          ),
+          if (selectedAssistant.enableTools && selectedAssistant.mcpServerIds.isNotEmpty)
+            Text(
+              '• MCP服务器: ${selectedAssistant.mcpServerIds.length}个',
+              style: const TextStyle(fontSize: 11),
+            ),
+          if (selectedAssistant.systemPrompt.isNotEmpty)
+            Text(
+              '• 系统提示词: ${selectedAssistant.systemPrompt.length > 50 ? "${selectedAssistant.systemPrompt.substring(0, 50)}..." : selectedAssistant.systemPrompt}',
+              style: const TextStyle(fontSize: 11),
+            ),
+        ],
       ),
     );
   }
@@ -931,6 +1186,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   }
 
   Widget _buildMcpSection() {
+    final isAssistantSelected = _selectedAssistantId != null;
+
     return Card(
       child: Padding(
         padding: DesignConstants.paddingL,
@@ -950,7 +1207,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 const Spacer(),
                 Switch(
                   value: _enableMcpTools,
-                  onChanged: (value) {
+                  onChanged: isAssistantSelected ? null : (value) {
                     setState(() {
                       _enableMcpTools = value;
                       if (!value) {
@@ -962,7 +1219,21 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 ),
               ],
             ),
-            if (_enableMcpTools) ...[
+            if (isAssistantSelected) ...[
+              SizedBox(height: DesignConstants.spaceS),
+              Container(
+                padding: DesignConstants.paddingS,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: DesignConstants.radiusXS,
+                ),
+                child: const Text(
+                  '💡 已选择助手，将使用助手的MCP工具配置',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+            if (_enableMcpTools && !isAssistantSelected) ...[
               SizedBox(height: DesignConstants.spaceM),
               const Text(
                 '选择MCP服务器:',
@@ -1099,12 +1370,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               controller: _messageController,
               decoration: InputDecoration(
                 labelText: '输入消息',
-                hintText: _enableMcpTools &&
-                        _availableMcpServers
-                            .where((s) => s.isEnabled)
-                            .isNotEmpty
-                    ? '请帮我调用可用的工具'
-                    : '你好，请介绍一下你自己。',
+                hintText: _getMessageHintText(),
                 border: const OutlineInputBorder(),
               ),
               maxLines: 3,
@@ -1707,4 +1973,139 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         return colorScheme.onSurfaceVariant;
     }
   }
+
+  /// 获取服务器状态文本
+  String _getStatusText(McpServerStatus status) {
+    switch (status) {
+      case McpServerStatus.connected:
+        return '已连接';
+      case McpServerStatus.connecting:
+        return '连接中';
+      case McpServerStatus.error:
+        return '连接错误';
+      case McpServerStatus.disconnected:
+        return '未连接';
+    }
+  }
+
+  /// 获取真实的MCP工具列表
+  Future<List<Map<String, dynamic>>> _getRealMcpTools([List<String>? serverIds]) async {
+    try {
+      final mcpManager = McpServiceManager();
+      final targetServerIds = serverIds ?? _selectedMcpServerIds;
+
+      // 检查MCP服务是否启用
+      if (!mcpManager.isEnabled) {
+        _updateMcpDebugInfo('⚠️ MCP服务未启用，无法获取工具\n');
+        return [];
+      }
+
+      // 检查服务器连接状态
+      final connectedServerIds = <String>[];
+      for (final serverId in targetServerIds) {
+        final status = mcpManager.getServerStatus(serverId);
+        if (status == McpServerStatus.connected) {
+          connectedServerIds.add(serverId);
+        } else {
+          _updateMcpDebugInfo('⚠️ 服务器 $serverId 未连接 (状态: ${status.displayName})\n');
+        }
+      }
+
+      if (connectedServerIds.isEmpty) {
+        _updateMcpDebugInfo('⚠️ 没有已连接的MCP服务器，无法获取工具\n');
+        return [];
+      }
+
+      _updateMcpDebugInfo('🔍 从 ${connectedServerIds.length} 个已连接服务器获取工具...\n');
+
+      final mcpTools = await mcpManager.getAvailableTools(connectedServerIds);
+
+      if (mcpTools.isEmpty) {
+        _updateMcpDebugInfo('⚠️ 未找到可用的MCP工具\n');
+        return [];
+      }
+
+      _updateMcpDebugInfo('✅ 成功获取 ${mcpTools.length} 个MCP工具\n');
+
+      // 转换为OpenAI function calling格式
+      return mcpTools.map((mcpTool) {
+        return {
+          'type': 'function',
+          'function': {
+            'name': mcpTool.name,
+            'description': mcpTool.description ?? '无描述',
+            'parameters': _convertMcpSchemaToOpenAISchema(mcpTool.inputSchema),
+          },
+        };
+      }).toList();
+    } catch (e) {
+      _updateMcpDebugInfo('❌ 获取MCP工具失败: $e\n');
+
+      // 如果获取失败，返回空列表而不是错误工具
+      return [];
+    }
+  }
+
+  /// 将MCP输入模式转换为OpenAI参数模式
+  Map<String, dynamic> _convertMcpSchemaToOpenAISchema(Map<String, dynamic>? inputSchema) {
+    if (inputSchema == null) {
+      return {
+        'type': 'object',
+        'properties': {},
+        'required': [],
+      };
+    }
+
+    // 提取属性定义
+    final properties = <String, dynamic>{};
+    final mcpProperties = inputSchema['properties'] as Map<String, dynamic>? ?? {};
+
+    for (final entry in mcpProperties.entries) {
+      final propName = entry.key;
+      final propDef = entry.value as Map<String, dynamic>;
+
+      properties[propName] = {
+        'type': propDef['type'] ?? 'string',
+        'description': propDef['description'] ?? '',
+        if (propDef['enum'] != null) 'enum': propDef['enum'],
+        if (propDef['default'] != null) 'default': propDef['default'],
+        if (propDef['minimum'] != null) 'minimum': propDef['minimum'],
+        if (propDef['maximum'] != null) 'maximum': propDef['maximum'],
+      };
+    }
+
+    // 提取必需参数
+    final required = (inputSchema['required'] as List?)?.cast<String>() ?? [];
+
+    return {
+      'type': inputSchema['type'] ?? 'object',
+      'properties': properties,
+      'required': required,
+    };
+  }
+
+  /// 重新连接MCP服务器（用于助手配置）
+  Future<void> _reconnectMcpServersForAssistant(List<String> serverIds) async {
+    try {
+      final mcpNotifier = ref.read(mcpServiceProvider.notifier);
+
+      for (final serverId in serverIds) {
+        final status = ref.read(mcpServerStatusProvider(serverId));
+        if (status != McpServerStatus.connected) {
+          _updateMcpDebugInfo('🔄 重新连接服务器: $serverId\n');
+          await mcpNotifier.reconnectServer(serverId);
+
+          // 等待一下让连接状态更新
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          final newStatus = ref.read(mcpServerStatusProvider(serverId));
+          _updateMcpDebugInfo('  结果: ${_getStatusText(newStatus)}\n');
+        }
+      }
+    } catch (e) {
+      _updateMcpDebugInfo('❌ 重新连接失败: $e\n');
+    }
+  }
+
+
 }

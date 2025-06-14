@@ -99,8 +99,10 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
 
       if (mcpEnabled) {
         // 异步初始化服务器
-        _mcpService.setEnabled(true);
+        await _mcpService.setEnabled(true);
         await _mcpService.initializeServers(mcpServers.enabledServers);
+        // 更新服务器状态
+        await _updateServerStatuses();
       }
 
       _logger.info('MCP初始状态加载完成', {

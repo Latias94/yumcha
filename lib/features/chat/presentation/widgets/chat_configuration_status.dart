@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/unified_chat_notifier.dart';
 import '../../domain/entities/chat_state.dart';
+import '../../domain/entities/chat_configuration.dart' as config_entity;
+import '../../infrastructure/services/chat_configuration_validator.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 聊天配置状态显示组件 - 简化版
@@ -34,11 +36,36 @@ class ChatConfigurationStatus extends ConsumerWidget {
     final chatConfig = ref.watch(chatConfigurationProvider);
     final theme = Theme.of(context);
 
-    if (compact) {
-      return _buildCompactStatus(context, theme, chatConfig);
-    } else {
-      return _buildDetailedStatus(context, theme, chatConfig);
+    // 转换为验证器期望的配置类型
+    final validatorConfig = _convertToValidatorConfig(chatConfig);
+
+    // 检查配置是否有问题
+    final configurationIssue = ChatConfigurationValidator.getConfigurationIssue(validatorConfig);
+    final hasIssue = configurationIssue != null;
+
+    // 如果没有问题且是紧凑模式，不显示任何内容
+    if (!hasIssue && compact) {
+      return const SizedBox.shrink();
     }
+
+    if (compact) {
+      return _buildCompactStatus(context, theme, chatConfig, configurationIssue);
+    } else {
+      return _buildDetailedStatus(context, theme, chatConfig, configurationIssue, validatorConfig);
+    }
+  }
+
+  /// 转换为验证器期望的配置类型
+  config_entity.ChatConfiguration? _convertToValidatorConfig(ChatConfiguration chatConfig) {
+    if (!chatConfig.isComplete) {
+      return null;
+    }
+
+    return config_entity.ChatConfiguration(
+      assistant: chatConfig.selectedAssistant!,
+      provider: chatConfig.selectedProvider!,
+      model: chatConfig.selectedModel!,
+    );
   }
 
   /// 构建紧凑状态显示
@@ -46,11 +73,12 @@ class ChatConfigurationStatus extends ConsumerWidget {
     BuildContext context,
     ThemeData theme,
     ChatConfiguration chatConfig,
+    String? configurationIssue,
   ) {
-    final isComplete = chatConfig.isComplete;
-    final statusColor = isComplete ? Colors.green : Colors.orange;
-    final statusIcon = isComplete ? Icons.check_circle : Icons.warning;
-    final statusText = isComplete ? '配置完整' : '配置不完整';
+    final hasIssue = configurationIssue != null;
+    final statusColor = hasIssue ? Colors.red : Colors.green;
+    final statusIcon = hasIssue ? Icons.error : Icons.check_circle;
+    final statusText = hasIssue ? '配置有问题' : '配置正常';
 
     return Container(
       padding: DesignConstants.paddingS,
@@ -75,14 +103,14 @@ class ChatConfigurationStatus extends ConsumerWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (!isComplete && onFixRequested != null) ...[
+          if (hasIssue && onFixRequested != null) ...[
             SizedBox(width: DesignConstants.spaceXS),
             GestureDetector(
               onTap: onFixRequested,
               child: Icon(
-                Icons.warning_amber_rounded,
+                Icons.settings,
                 size: DesignConstants.iconSizeS,
-                color: Colors.orange,
+                color: statusColor,
               ),
             ),
           ],
@@ -96,9 +124,14 @@ class ChatConfigurationStatus extends ConsumerWidget {
     BuildContext context,
     ThemeData theme,
     ChatConfiguration chatConfig,
+    String? configurationIssue,
+    config_entity.ChatConfiguration? validatorConfig,
   ) {
-    final isComplete = chatConfig.isComplete;
-    
+    final hasIssue = configurationIssue != null;
+    final statusColor = hasIssue ? Colors.red : Colors.green;
+    final statusIcon = hasIssue ? Icons.error : Icons.check_circle;
+    final statusText = hasIssue ? '配置有问题' : '配置正常';
+
     return Card(
       child: Padding(
         padding: DesignConstants.paddingM,
@@ -108,24 +141,62 @@ class ChatConfigurationStatus extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  isComplete ? Icons.check_circle : Icons.warning,
-                  color: isComplete ? Colors.green : Colors.orange,
+                  statusIcon,
+                  color: statusColor,
                 ),
                 SizedBox(width: DesignConstants.spaceS),
-                Text(
-                  isComplete ? '配置完整' : '配置不完整',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: isComplete ? Colors.green : Colors.orange,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    statusText,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
+            if (hasIssue) ...[
+              SizedBox(height: DesignConstants.spaceS),
+              Container(
+                padding: DesignConstants.paddingS,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: DesignConstants.radiusS,
+                  border: Border.all(
+                    color: statusColor.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: DesignConstants.iconSizeS,
+                      color: statusColor,
+                    ),
+                    SizedBox(width: DesignConstants.spaceS),
+                    Expanded(
+                      child: Text(
+                        configurationIssue,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (showDetails) ...[
               SizedBox(height: DesignConstants.spaceM),
               _buildConfigurationSummary(theme, chatConfig),
             ],
-            if (onFixRequested != null && !isComplete) ...[
+            if (hasIssue) ...[
+              SizedBox(height: DesignConstants.spaceM),
+              _buildFixSuggestions(theme, validatorConfig),
+            ],
+            if (onFixRequested != null && hasIssue) ...[
               SizedBox(height: DesignConstants.spaceM),
               ElevatedButton(
                 onPressed: onFixRequested,
@@ -200,6 +271,65 @@ class ChatConfigurationStatus extends ConsumerWidget {
             style: theme.textTheme.bodyMedium,
           ),
         ),
+      ],
+    );
+  }
+
+  /// 构建修复建议
+  Widget _buildFixSuggestions(ThemeData theme, config_entity.ChatConfiguration? chatConfig) {
+    final suggestions = ChatConfigurationValidator.getFixSuggestions(chatConfig);
+
+    if (suggestions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.lightbulb_outline,
+              size: DesignConstants.iconSizeS,
+              color: theme.colorScheme.primary,
+            ),
+            SizedBox(width: DesignConstants.spaceS),
+            Text(
+              '修复建议',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: DesignConstants.spaceS),
+        ...suggestions.map((suggestion) => Padding(
+          padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 6),
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: DesignConstants.spaceS),
+              Expanded(
+                child: Text(
+                  suggestion,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )),
       ],
     );
   }

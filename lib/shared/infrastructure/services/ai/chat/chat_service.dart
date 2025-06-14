@@ -4,6 +4,7 @@ import '../../../../../features/ai_management/domain/entities/ai_assistant.dart'
 import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
     as models;
 import '../../../../../features/chat/domain/entities/message.dart';
+import '../../../../../features/settings/domain/entities/mcp_server_config.dart';
 
 import '../core/ai_response_models.dart';
 import '../core/ai_service_base.dart';
@@ -216,7 +217,6 @@ class ChatService extends AiServiceBase {
       logger.debug('ChatService: 非流式响应内容', {
         'content': responseText,
         'contentLength': responseText.length,
-        'contentBytes': responseText.codeUnits,
       });
 
       logger.info('聊天请求完成', {
@@ -549,12 +549,41 @@ class ChatService extends AiServiceBase {
       // 获取MCP服务管理器
       final mcpManager = McpServiceManager();
 
+      // 检查MCP服务是否启用
+      if (!mcpManager.isEnabled) {
+        logger.info('MCP服务未启用，跳过工具获取', {
+          'serverIds': mcpServerIds,
+        });
+        return [];
+      }
+
+      // 检查服务器连接状态
+      final connectedServerIds = <String>[];
+      for (final serverId in mcpServerIds) {
+        final status = mcpManager.getServerStatus(serverId);
+        if (status == McpServerStatus.connected) {
+          connectedServerIds.add(serverId);
+        } else {
+          logger.warning('MCP服务器未连接，跳过工具获取', {
+            'serverId': serverId,
+            'status': status.displayName,
+          });
+        }
+      }
+
+      if (connectedServerIds.isEmpty) {
+        logger.info('没有已连接的MCP服务器，跳过工具获取', {
+          'requestedServerIds': mcpServerIds,
+        });
+        return [];
+      }
+
       // 获取可用的MCP工具
-      final mcpTools = await mcpManager.getAvailableTools(mcpServerIds);
+      final mcpTools = await mcpManager.getAvailableTools(connectedServerIds);
 
       if (mcpTools.isEmpty) {
         logger.info('未找到可用的MCP工具', {
-          'serverIds': mcpServerIds,
+          'connectedServerIds': connectedServerIds,
         });
         return [];
       }
@@ -569,14 +598,15 @@ class ChatService extends AiServiceBase {
       }).toList();
 
       logger.info('MCP工具集成成功', {
-        'serverIds': mcpServerIds,
+        'requestedServerIds': mcpServerIds,
+        'connectedServerIds': connectedServerIds,
         'toolCount': tools.length,
         'tools': mcpTools.map((t) => t.name).toList(),
       });
 
       return tools;
     } catch (e) {
-      logger.error('MCP工具集成失败', {
+      logger.warning('MCP工具集成失败，继续使用无工具模式', {
         'serverIds': mcpServerIds,
         'error': e.toString(),
       });

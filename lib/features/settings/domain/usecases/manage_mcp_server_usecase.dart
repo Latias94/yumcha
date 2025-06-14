@@ -4,6 +4,7 @@ import '../entities/mcp_server_config.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
+import '../../../../shared/infrastructure/services/mcp/mcp_service_manager.dart';
 
 /// MCP (Model Context Protocol) 服务管理器
 ///
@@ -86,13 +87,17 @@ class ManageMcpServerUseCase {
   bool get isEnabled => _isEnabled;
 
   /// 设置 MCP 启用状态
-  void setEnabled(bool enabled) {
+  Future<void> setEnabled(bool enabled) async {
     _isEnabled = enabled;
     _logger.info('MCP 服务${enabled ? '启用' : '禁用'}');
 
+    // 同步设置 McpServiceManager 的状态
+    final mcpServiceManager = McpServiceManager();
+    await mcpServiceManager.setEnabled(enabled);
+
     if (!enabled) {
       // 禁用时断开所有连接
-      disconnectAllServers();
+      await disconnectAllServers();
     }
   }
 

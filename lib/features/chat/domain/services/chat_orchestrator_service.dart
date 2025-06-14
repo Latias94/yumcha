@@ -330,11 +330,11 @@ class ChatOrchestratorService {
       final fullContent = accumulator.buildFullContent();
 
       // 通知UI更新流式消息
-      _logger.debug('流式内容更新', {
-        'messageId': aiMessage.id,
-        'contentDelta': event.contentDelta?.length ?? 0,
-        'fullContentLength': fullContent.length,
-      });
+      // _logger.debug('流式内容更新', {
+      //   'messageId': aiMessage.id,
+      //   'contentDelta': event.contentDelta?.length ?? 0,
+      //   'fullContentLength': fullContent.length,
+      // });
       _notifyStreamingUpdate(StreamingUpdate(
         messageId: aiMessage.id!,
         contentDelta: event.contentDelta,
@@ -383,11 +383,11 @@ class ChatOrchestratorService {
       // 3. 避免保存空消息或不完整的流式片段
       if (fullContent.trim().isNotEmpty) {
         await _persistMessage(completedMessage, conversationId);
-        _logger.info('流式消息已持久化', {
-          'messageId': aiMessage.id,
-          'contentLength': fullContent.length,
-          'conversationId': conversationId,
-        });
+        // _logger.info('流式消息已持久化', {
+        //   'messageId': aiMessage.id,
+        //   'contentLength': fullContent.length,
+        //   'conversationId': conversationId,
+        // });
       } else {
         _logger.warning('流式消息内容为空，跳过持久化', {
           'messageId': aiMessage.id,
@@ -573,17 +573,17 @@ class ChatOrchestratorService {
 
   /// 通知流式更新
   void _notifyStreamingUpdate(StreamingUpdate update) {
-    _logger.info('通知流式更新', {
-      'messageId': update.messageId,
-      'hasCallback': _onStreamingUpdate != null,
-      'isDone': update.isDone,
-      'contentLength': update.fullContent?.length ?? 0,
-      'callbackType': _onStreamingUpdate?.runtimeType.toString(),
-    });
+    // _logger.info('通知流式更新', {
+    //   'messageId': update.messageId,
+    //   'hasCallback': _onStreamingUpdate != null,
+    //   'isDone': update.isDone,
+    //   'contentLength': update.fullContent?.length ?? 0,
+    //   'callbackType': _onStreamingUpdate?.runtimeType.toString(),
+    // });
 
     if (_onStreamingUpdate != null) {
       _onStreamingUpdate!(update);
-      _logger.info('流式更新回调已调用', {'messageId': update.messageId});
+      // _logger.info('流式更新回调已调用', {'messageId': update.messageId});
     } else {
       _logger.warning('流式更新回调为空', {'messageId': update.messageId});
     }

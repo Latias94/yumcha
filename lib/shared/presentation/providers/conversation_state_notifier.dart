@@ -95,6 +95,29 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
     _logger.warning('等待助手数据超时，继续创建对话');
   }
 
+  /// 等待聊天配置准备就绪
+  Future<void> _waitForChatConfigurationReady() async {
+    const maxWaitTime = Duration(seconds: 5);
+    const checkInterval = Duration(milliseconds: 100);
+
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      final config = _ref.read(chatConfigurationProvider);
+
+      // 检查配置是否完整且不在加载中
+      if (!config.isLoading && config.hasCompleteConfiguration) {
+        _logger.info('聊天配置准备就绪');
+        return;
+      }
+
+      // 等待一段时间后重试
+      await Future.delayed(checkInterval);
+    }
+
+    _logger.warning('等待聊天配置超时，使用fallback配置');
+  }
+
   /// 创建新对话 - 简化版
   Future<void> createNewConversation() async {
     _logger.info('开始创建新对话');
@@ -348,8 +371,8 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
     // 如果 ChatConfigurationNotifier 还没有完整配置，等待其初始化完成
     if (chatConfig.isLoading) {
       _logger.info('等待ChatConfigurationNotifier初始化完成');
-      // 等待一段时间让ChatConfigurationNotifier完成初始化
-      await Future.delayed(const Duration(milliseconds: 500));
+      // 使用基于状态的等待机制，而不是硬编码时间
+      await _waitForChatConfigurationReady();
       final updatedConfig = _ref.read(chatConfigurationProvider);
       if (updatedConfig.hasCompleteConfiguration) {
         return (
