@@ -5,8 +5,7 @@ import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../../features/chat/domain/entities/message.dart';
 import '../../../../../features/ai_management/domain/entities/ai_model.dart';
-import '../../../../../features/ai_management/presentation/providers/ai_provider_notifier.dart';
-import '../../../../../features/ai_management/presentation/providers/ai_assistant_notifier.dart';
+import '../../../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 
 import '../chat/chat_service.dart';
 import '../capabilities/model_service.dart';
@@ -105,14 +104,8 @@ final providerModelsProvider = FutureProvider.family<List<AiModel>, String>((
 ) async {
   final modelService = ref.read(aiModelServiceProvider);
 
-  // 确保provider已经加载
-  final providersAsync = ref.watch(aiProviderNotifierProvider);
-  final provider = providersAsync.whenOrNull(
-    data: (providers) => providers.firstWhere(
-      (p) => p.id == providerId,
-      orElse: () => throw Exception('Provider not found: $providerId'),
-    ),
-  );
+  // 使用新的统一AI管理Provider
+  final provider = ref.watch(specificProviderProvider(providerId));
 
   if (provider == null) {
     throw Exception('Provider not found: $providerId');
@@ -160,27 +153,11 @@ final smartChatProvider = FutureProvider.family<AiResponse, SmartChatParams>((
     throw Exception('Model name not specified');
   }
 
-  // 确保依赖的provider已经加载
-  final providersAsync = ref.watch(aiProviderNotifierProvider);
-  final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
-
-  final provider = providersAsync.whenOrNull(
-    data: (providers) => providers.firstWhere(
-      (p) => p.id == providerId,
-      orElse: () => throw Exception('Provider not found: $providerId'),
-    ),
-  );
-
+  // 使用新的统一AI管理Provider
+  final provider = ref.watch(specificProviderProvider(providerId));
   final assistant = params.assistantId != null
-      ? assistantsAsync.whenOrNull(
-          data: (assistants) => assistants.firstWhere(
-            (a) => a.id == params.assistantId!,
-            orElse: () =>
-                throw Exception('Assistant not found: ${params.assistantId}'),
-          ),
-        )
-      : assistantsAsync.whenOrNull(
-          data: (assistants) => assistants.firstOrNull);
+      ? ref.watch(specificAssistantProvider(params.assistantId!))
+      : ref.watch(aiAssistantsProvider).firstOrNull;
 
   if (provider == null) {
     throw Exception('Provider not found: $providerId');
@@ -215,27 +192,11 @@ final smartChatStreamProvider =
     throw Exception('Model name not specified');
   }
 
-  // 确保依赖的provider已经加载
-  final providersAsync = ref.read(aiProviderNotifierProvider);
-  final assistantsAsync = ref.read(aiAssistantNotifierProvider);
-
-  final provider = providersAsync.whenOrNull(
-    data: (providers) => providers.firstWhere(
-      (p) => p.id == providerId,
-      orElse: () => throw Exception('Provider not found: $providerId'),
-    ),
-  );
-
+  // 使用新的统一AI管理Provider
+  final provider = ref.watch(specificProviderProvider(providerId));
   final assistant = params.assistantId != null
-      ? assistantsAsync.whenOrNull(
-          data: (assistants) => assistants.firstWhere(
-            (a) => a.id == params.assistantId!,
-            orElse: () =>
-                throw Exception('Assistant not found: ${params.assistantId}'),
-          ),
-        )
-      : assistantsAsync.whenOrNull(
-          data: (assistants) => assistants.firstOrNull);
+      ? ref.watch(specificAssistantProvider(params.assistantId!))
+      : ref.watch(aiAssistantsProvider).firstOrNull;
 
   if (provider == null) {
     throw Exception('Provider not found: $providerId');

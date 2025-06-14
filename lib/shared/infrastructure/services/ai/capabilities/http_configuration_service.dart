@@ -98,7 +98,7 @@ class HttpConfigurationService extends AiServiceBase {
   }) {
     final config = HttpConfig(
       providerId: provider.id,
-      baseUrl: provider.baseUrl,
+      baseUrl: provider.baseUrl ?? '',
       proxyUrl: proxyUrl,
       connectionTimeout: connectionTimeout ?? Duration(seconds: 30),
       receiveTimeout: receiveTimeout ?? Duration(minutes: 2),

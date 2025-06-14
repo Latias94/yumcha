@@ -4,14 +4,14 @@ import '../../data/repositories/conversation_repository.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
 
-// 搜索查询状态
-final searchQueryProvider = StateProvider<String>((ref) => '');
+// 搜索查询状态 - 使用autoDispose避免内存泄漏
+final searchQueryProvider = StateProvider.autoDispose<String>((ref) => '');
 
 // 搜索类型枚举
 enum SearchType { all, conversations, messages }
 
-// 搜索类型状态
-final searchTypeProvider = StateProvider<SearchType>((ref) => SearchType.all);
+// 搜索类型状态 - 使用autoDispose避免内存泄漏
+final searchTypeProvider = StateProvider.autoDispose<SearchType>((ref) => SearchType.all);
 
 // 搜索结果Provider
 final searchResultsProvider =

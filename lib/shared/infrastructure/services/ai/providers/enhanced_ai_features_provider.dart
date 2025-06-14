@@ -7,9 +7,11 @@ import '../capabilities/enhanced_chat_configuration_service.dart';
 import '../capabilities/image_generation_service.dart';
 import '../capabilities/web_search_service.dart';
 import '../capabilities/multimodal_service.dart';
+import '../capabilities/speech_service.dart';
 import '../capabilities/http_configuration_service.dart';
 import '../core/ai_response_models.dart';
 import '../../../../../core/utils/error_handler.dart';
+import 'ai_service_provider.dart';
 
 /// 增强AI功能的Riverpod Providers
 ///
@@ -415,14 +417,14 @@ final textToSpeechProvider = FutureProvider.autoDispose.family<TextToSpeechRespo
   }
 
   // 2. 服务支持检查
-  final multimodalService = ref.read(multimodalServiceProvider);
-  if (!multimodalService.supportsTts(params.provider)) {
+  final speechService = ref.read(aiSpeechServiceProvider);
+  if (!speechService.supportsTts(params.provider)) {
     throw UnsupportedError('提供商 ${params.provider.name} 不支持TTS');
   }
 
   // 3. 语音验证
   if (params.voice != null) {
-    final supportedVoices = multimodalService.getSupportedVoices(params.provider);
+    final supportedVoices = speechService.getSupportedVoices(params.provider);
     if (!supportedVoices.contains(params.voice)) {
       throw ArgumentError('不支持的语音: ${params.voice}');
     }
@@ -430,6 +432,7 @@ final textToSpeechProvider = FutureProvider.autoDispose.family<TextToSpeechRespo
 
   try {
     // 4. 执行TTS
+    final multimodalService = ref.read(multimodalServiceProvider);
     return await multimodalService.textToSpeech(
       provider: params.provider,
       text: text,

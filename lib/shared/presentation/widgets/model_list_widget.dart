@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/ai_management/domain/entities/ai_model.dart';
 import '../../../features/ai_management/domain/entities/ai_provider.dart';
 import '../../infrastructure/services/ai/ai_service_manager.dart';
+import '../../infrastructure/services/ai/capabilities/model_service.dart';
 import '../../infrastructure/services/notification_service.dart';
 import '../design_system/design_constants.dart';
 import 'model_edit_dialog.dart';
@@ -142,11 +143,21 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
       }
     } catch (error) {
       if (mounted) {
-        // 使用高重要性确保错误信息能够显示，会自动尝试 overlay 并在失败时回退到 SnackBar
-        NotificationService().showError(
-          error.toString(),
-          importance: NotificationImportance.critical,
-        );
+        // 检查是否是包含缓存数据的异常
+        if (error is ModelServiceException && error.cachedModels != null) {
+          // 这是一个特殊情况：API失败但有缓存数据
+          // 直接显示带有错误信息的模型选择对话框
+          _showModelSelectionDialogWithError(
+            error.cachedModels!,
+            '${error.message}\n\n注意：显示的是缓存数据，可能不是最新的。',
+          );
+        } else {
+          // 普通错误处理
+          NotificationService().showError(
+            error.toString(),
+            importance: NotificationImportance.critical,
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -161,6 +172,23 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
       builder: (context) => ModelSelectionDialog(
         availableModels: availableModels,
         currentModels: _models,
+        onConfirm: (selectedModels) {
+          setState(() {
+            _models = selectedModels;
+          });
+          widget.onModelsChanged(_models);
+        },
+      ),
+    );
+  }
+
+  void _showModelSelectionDialogWithError(List<AiModel> availableModels, String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (context) => ModelSelectionDialog(
+        availableModels: availableModels,
+        currentModels: _models,
+        errorMessage: errorMessage,
         onConfirm: (selectedModels) {
           setState(() {
             _models = selectedModels;

@@ -72,8 +72,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
               SizedBox(height: DesignConstants.spaceXXL),
 
-              // 模型与服务
-              _buildSectionHeader("模型与服务"),
+              // AI与服务
+              _buildSectionHeader("AI与服务"),
+              // _buildAiSettingsItem(),
               _buildProvidersItem(),
               _buildAssistantsItem(),
               _buildDefaultModelItem(),
@@ -243,6 +244,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
+
+  // Widget _buildAiSettingsItem() {
+  //   return ListTile(
+  //     leading: const Icon(Icons.psychology_outlined),
+  //     title: const Text("AI设置"),
+  //     subtitle: const Text("管理AI提供商、助手和配置"),
+  //     trailing: const Icon(Icons.keyboard_arrow_right),
+  //     onTap: () {
+  //       // 直接跳转到提供商页面作为主要AI管理入口
+  //       Navigator.push(
+  //         context,
+  //         MaterialPageRoute(builder: (context) => const ProvidersScreen()),
+  //       );
+  //     },
+  //   );
+  // }
 
   Widget _buildProvidersItem() {
     return ListTile(

@@ -4,8 +4,8 @@ import '../../../features/chat/domain/entities/message.dart';
 import '../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../features/ai_management/domain/entities/ai_provider.dart';
 import 'dependency_providers.dart';
-import '../../../features/ai_management/presentation/providers/ai_provider_notifier.dart';
-import '../../../features/ai_management/presentation/providers/ai_assistant_notifier.dart';
+
+import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
 
 /// 对话服务 - 封装对话相关的复杂业务逻辑
@@ -21,21 +21,10 @@ class ConversationService {
   Future<ConversationConfig> getDefaultConfiguration() async {
     // 从多个Provider获取配置信息
     final chatConfig = _ref.read(chatConfigurationProvider);
-    final providersAsync = _ref.read(aiProviderNotifierProvider);
-    final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
 
-    // 处理复杂的配置逻辑
-    final providers = providersAsync.when(
-      data: (data) => data,
-      loading: () => <AiProvider>[],
-      error: (_, __) => <AiProvider>[],
-    );
-
-    final assistants = assistantsAsync.when(
-      data: (data) => data,
-      loading: () => <AiAssistant>[],
-      error: (_, __) => <AiAssistant>[],
-    );
+    // 使用新的统一AI管理Provider
+    final providers = _ref.read(aiProvidersProvider);
+    final assistants = _ref.read(aiAssistantsProvider);
 
     return ConversationConfig(
       assistant: assistants.firstOrNull,

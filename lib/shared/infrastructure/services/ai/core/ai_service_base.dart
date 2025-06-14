@@ -75,6 +75,12 @@ enum AiCapability {
 
   /// 视觉理解 - 图像识别和多模态理解
   vision,
+
+  /// Web搜索 - 网络搜索和信息检索
+  webSearch,
+
+  /// HTTP配置 - HTTP代理和网络配置
+  httpConfiguration,
 }
 
 /// AI服务基类 - 定义所有AI服务的通用接口和行为

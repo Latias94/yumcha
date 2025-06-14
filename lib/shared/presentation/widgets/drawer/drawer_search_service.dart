@@ -108,9 +108,10 @@ class DrawerSearchService {
     // 确保有有效的助手选择
     if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) {
       // 尝试重新初始化助手选择
-      final assistantsAsync = _ref.read(enabledAiAssistantsProvider);
-      if (assistantsAsync.isNotEmpty) {
-        _selectedAssistant = assistantsAsync.first.id;
+      final assistants = _ref.read(aiAssistantsProvider);
+      final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
+      if (enabledAssistants.isNotEmpty) {
+        _selectedAssistant = enabledAssistants.first.id;
         _logger.debug('重新初始化助手选择: $_selectedAssistant');
       } else {
         _logger.warning('没有可用助手');
@@ -251,38 +252,35 @@ class DrawerSearchService {
   Future<void> initializeSelectedAssistant(
       VoidCallback onRefreshConversations) async {
     // 检查助手数据的加载状态
-    final assistantsAsyncValue = _ref.read(aiAssistantNotifierProvider);
-    _logger.debug('助手数据状态: ${assistantsAsyncValue.runtimeType}');
-
-    assistantsAsyncValue.when(
-      data: (allAssistants) {
-        _logger.debug('所有助手数量: ${allAssistants.length}');
-        final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
-        _logger.debug('启用的助手数量: ${enabledAssistants.length}');
-        for (final assistant in enabledAssistants) {
-          _logger.debug('启用的助手: ${assistant.id} - ${assistant.name}');
-        }
-      },
-      loading: () => _logger.debug('助手数据正在加载中'),
-      error: (error, stack) => _logger.error('助手数据加载失败: $error'),
-    );
-
-    final assistantsAsync = _ref.read(enabledAiAssistantsProvider);
-    if (assistantsAsync.isEmpty) {
-      _logger.warning('没有可用助手，等待数据加载...');
-
-      // 如果助手数据还在加载中，等待一段时间后重试
-      await Future.delayed(const Duration(milliseconds: 500));
-      final retryAssistants = _ref.read(enabledAiAssistantsProvider);
-      if (retryAssistants.isEmpty) {
-        _logger.error('重试后仍然没有可用助手');
-        return;
+    try {
+      final allAssistants = _ref.read(aiAssistantsProvider);
+      _logger.debug('所有助手数量: ${allAssistants.length}');
+      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
+      _logger.debug('启用的助手数量: ${enabledAssistants.length}');
+      for (final assistant in enabledAssistants) {
+        _logger.debug('启用的助手: ${assistant.id} - ${assistant.name}');
       }
-      _logger.debug('重试后找到助手: ${retryAssistants.length}个');
+
+      if (enabledAssistants.isEmpty) {
+        _logger.warning('没有可用助手，等待数据加载...');
+
+        // 如果助手数据还在加载中，等待一段时间后重试
+        await Future.delayed(const Duration(milliseconds: 500));
+        final retryAssistants = _ref.read(aiAssistantsProvider).where((a) => a.isEnabled).toList();
+        if (retryAssistants.isEmpty) {
+          _logger.error('重试后仍然没有可用助手');
+          return;
+        }
+        _logger.debug('重试后找到助手: ${retryAssistants.length}个');
+      }
+    } catch (error) {
+      _logger.error('助手数据加载失败: $error');
+      return;
     }
 
     try {
-      final enabledAssistants = _ref.read(enabledAiAssistantsProvider);
+      final allAssistants = _ref.read(aiAssistantsProvider);
+      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
 
       // 从设置中读取上次选择的助手
       final settingsNotifier = _ref.read(settingsNotifierProvider.notifier);
@@ -335,7 +333,8 @@ class DrawerSearchService {
       });
 
       // 出错时使用第一个可用助手
-      final enabledAssistants = _ref.read(enabledAiAssistantsProvider);
+      final allAssistants = _ref.read(aiAssistantsProvider);
+      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
       if (enabledAssistants.isNotEmpty) {
         _selectedAssistant = enabledAssistants.first.id;
         onRefreshConversations();

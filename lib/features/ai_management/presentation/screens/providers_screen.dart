@@ -31,8 +31,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
-import '../providers/ai_provider_notifier.dart';
+
+import '../providers/unified_ai_management_providers.dart';
 import 'provider_edit_screen.dart';
+import 'assistants_screen.dart';
 
 class ProvidersScreen extends ConsumerWidget {
   const ProvidersScreen({super.key});
@@ -43,7 +45,7 @@ class ProvidersScreen extends ConsumerWidget {
     String id,
   ) async {
     try {
-      await ref.read(aiProviderNotifierProvider.notifier).deleteProvider(id);
+      await ref.read(aiManagementActionsProvider).deleteProvider(id);
       NotificationService().showSuccess('提供商已删除');
     } catch (e) {
       NotificationService().showError('删除失败: $e');
@@ -53,7 +55,7 @@ class ProvidersScreen extends ConsumerWidget {
   Future<void> _toggleProvider(WidgetRef ref, String id) async {
     try {
       await ref
-          .read(aiProviderNotifierProvider.notifier)
+          .read(aiManagementActionsProvider)
           .toggleProviderEnabled(id);
     } catch (e) {
       NotificationService().showError('切换状态失败: $e');
@@ -121,7 +123,11 @@ class ProvidersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final providersAsync = ref.watch(aiProviderNotifierProvider);
+    final providers = ref.watch(aiProvidersProvider);
+    final isLoading = ref.watch(aiManagementLoadingProvider);
+    final isInitialized = ref.watch(aiManagementInitializedProvider);
+
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -132,8 +138,20 @@ class ProvidersScreen extends ConsumerWidget {
               onPressed: () => Navigator.of(context).pop(),
             ),
             actions: [
+              // 跳转到助手页面
+              IconButton(
+                icon: const Icon(Icons.smart_toy_outlined),
+                tooltip: '助手',
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AssistantsScreen()),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.add),
+                tooltip: '添加提供商',
                 onPressed: () async {
                   final result = await Navigator.push<bool>(
                     context,
@@ -142,63 +160,70 @@ class ProvidersScreen extends ConsumerWidget {
                     ),
                   );
                   if (result == true) {
-                    ref.invalidate(aiProviderNotifierProvider);
+                    ref.invalidate(unifiedAiManagementProvider);
                   }
                 },
               ),
             ],
           ),
-          // 使用providersAsync来渲染内容
-          providersAsync.when(
-            data: (providers) {
-              if (providers.isEmpty) {
-                return SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.6,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.cloud_off_outlined,
-                            size: DesignConstants.iconSizeXXL * 1.6,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
-                          SizedBox(height: DesignConstants.spaceL),
-                          Text(
-                            '暂无提供商',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          SizedBox(height: DesignConstants.spaceS),
-                          Text(
-                            '点击右上角的 + 按钮添加一个',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
+          // 根据状态渲染内容
+          if (isLoading || !isInitialized)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.6,
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            )
+          else if (providers.isEmpty)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.6,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.cloud_off_outlined,
+                        size: DesignConstants.iconSizeXXL * 1.6,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant,
                       ),
-                    ),
+                      SizedBox(height: DesignConstants.spaceL),
+                      Text(
+                        '暂无提供商',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      SizedBox(height: DesignConstants.spaceS),
+                      Text(
+                        '点击右上角的 + 按钮添加一个',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
                   ),
-                );
-              }
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final provider = providers[index];
+                ),
+              ),
+            ),
+        if (isInitialized && !isLoading && providers.isNotEmpty)
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final provider = providers[index];
                   final colorScheme = Theme.of(context).colorScheme;
 
                   return Card(
@@ -276,7 +301,7 @@ class ProvidersScreen extends ConsumerWidget {
                                     ),
                                   );
                                   if (result == true) {
-                                    ref.invalidate(aiProviderNotifierProvider);
+                                    ref.invalidate(unifiedAiManagementProvider);
                                   }
                                 },
                               ),
@@ -299,38 +324,8 @@ class ProvidersScreen extends ConsumerWidget {
                       ),
                     ),
                   );
-                }, childCount: providers.length),
-              );
-            },
-            loading: () => SliverToBoxAdapter(
-              child: SizedBox(
-                height: 400,
-                child: Center(child: CircularProgressIndicator()),
-              ),
+              }, childCount: providers.length),
             ),
-            error: (error, stack) => SliverToBoxAdapter(
-              child: SizedBox(
-                height: 400,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error,
-                          color: Theme.of(context).colorScheme.error),
-                      SizedBox(height: DesignConstants.spaceL),
-                      Text('加载失败: $error'),
-                      SizedBox(height: DesignConstants.spaceS),
-                      ElevatedButton(
-                        onPressed: () =>
-                            ref.refresh(aiProviderNotifierProvider),
-                        child: Text('重试'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );

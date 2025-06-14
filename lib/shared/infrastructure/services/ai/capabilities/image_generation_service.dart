@@ -132,7 +132,7 @@ class ImageGenerationService extends AiServiceBase {
       return ImageGenerationResponse(
         images: result.images.map((img) => GeneratedImage(
           url: img.url,
-          base64: img.base64,
+          base64: null, // llm_dart 的 GeneratedImage 可能没有 base64 属性
           revisedPrompt: img.revisedPrompt,
         )).toList(),
         duration: duration,

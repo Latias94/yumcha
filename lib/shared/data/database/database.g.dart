@@ -2245,6 +2245,12 @@ class $MessagesTable extends Messages
   late final GeneratedColumn<String> metadata = GeneratedColumn<String>(
       'metadata', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _mediaMetadataMeta =
+      const VerificationMeta('mediaMetadata');
+  @override
+  late final GeneratedColumn<String> mediaMetadata = GeneratedColumn<String>(
+      'media_metadata', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2262,7 +2268,8 @@ class $MessagesTable extends Messages
         isActive,
         status,
         errorInfo,
-        metadata
+        metadata,
+        mediaMetadata
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2359,6 +2366,12 @@ class $MessagesTable extends Messages
       context.handle(_metadataMeta,
           metadata.isAcceptableOrUnknown(data['metadata']!, _metadataMeta));
     }
+    if (data.containsKey('media_metadata')) {
+      context.handle(
+          _mediaMetadataMeta,
+          mediaMetadata.isAcceptableOrUnknown(
+              data['media_metadata']!, _mediaMetadataMeta));
+    }
     return context;
   }
 
@@ -2400,6 +2413,8 @@ class $MessagesTable extends Messages
           .read(DriftSqlType.string, data['${effectivePrefix}error_info']),
       metadata: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}metadata']),
+      mediaMetadata: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}media_metadata']),
     );
   }
 
@@ -2426,6 +2441,7 @@ class MessageData extends DataClass implements Insertable<MessageData> {
   final String status;
   final String? errorInfo;
   final String? metadata;
+  final String? mediaMetadata;
   const MessageData(
       {required this.id,
       required this.conversationId,
@@ -2442,7 +2458,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       required this.isActive,
       required this.status,
       this.errorInfo,
-      this.metadata});
+      this.metadata,
+      this.mediaMetadata});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2471,6 +2488,9 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     }
     if (!nullToAbsent || metadata != null) {
       map['metadata'] = Variable<String>(metadata);
+    }
+    if (!nullToAbsent || mediaMetadata != null) {
+      map['media_metadata'] = Variable<String>(mediaMetadata);
     }
     return map;
   }
@@ -2503,6 +2523,9 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       metadata: metadata == null && nullToAbsent
           ? const Value.absent()
           : Value(metadata),
+      mediaMetadata: mediaMetadata == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mediaMetadata),
     );
   }
 
@@ -2526,6 +2549,7 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       status: serializer.fromJson<String>(json['status']),
       errorInfo: serializer.fromJson<String?>(json['errorInfo']),
       metadata: serializer.fromJson<String?>(json['metadata']),
+      mediaMetadata: serializer.fromJson<String?>(json['mediaMetadata']),
     );
   }
   @override
@@ -2548,6 +2572,7 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       'status': serializer.toJson<String>(status),
       'errorInfo': serializer.toJson<String?>(errorInfo),
       'metadata': serializer.toJson<String?>(metadata),
+      'mediaMetadata': serializer.toJson<String?>(mediaMetadata),
     };
   }
 
@@ -2567,7 +2592,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           bool? isActive,
           String? status,
           Value<String?> errorInfo = const Value.absent(),
-          Value<String?> metadata = const Value.absent()}) =>
+          Value<String?> metadata = const Value.absent(),
+          Value<String?> mediaMetadata = const Value.absent()}) =>
       MessageData(
         id: id ?? this.id,
         conversationId: conversationId ?? this.conversationId,
@@ -2587,6 +2613,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
         status: status ?? this.status,
         errorInfo: errorInfo.present ? errorInfo.value : this.errorInfo,
         metadata: metadata.present ? metadata.value : this.metadata,
+        mediaMetadata:
+            mediaMetadata.present ? mediaMetadata.value : this.mediaMetadata,
       );
   MessageData copyWithCompanion(MessagesCompanion data) {
     return MessageData(
@@ -2611,6 +2639,9 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       status: data.status.present ? data.status.value : this.status,
       errorInfo: data.errorInfo.present ? data.errorInfo.value : this.errorInfo,
       metadata: data.metadata.present ? data.metadata.value : this.metadata,
+      mediaMetadata: data.mediaMetadata.present
+          ? data.mediaMetadata.value
+          : this.mediaMetadata,
     );
   }
 
@@ -2632,7 +2663,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           ..write('isActive: $isActive, ')
           ..write('status: $status, ')
           ..write('errorInfo: $errorInfo, ')
-          ..write('metadata: $metadata')
+          ..write('metadata: $metadata, ')
+          ..write('mediaMetadata: $mediaMetadata')
           ..write(')'))
         .toString();
   }
@@ -2654,7 +2686,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       isActive,
       status,
       errorInfo,
-      metadata);
+      metadata,
+      mediaMetadata);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2674,7 +2707,8 @@ class MessageData extends DataClass implements Insertable<MessageData> {
           other.isActive == this.isActive &&
           other.status == this.status &&
           other.errorInfo == this.errorInfo &&
-          other.metadata == this.metadata);
+          other.metadata == this.metadata &&
+          other.mediaMetadata == this.mediaMetadata);
 }
 
 class MessagesCompanion extends UpdateCompanion<MessageData> {
@@ -2694,6 +2728,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
   final Value<String> status;
   final Value<String?> errorInfo;
   final Value<String?> metadata;
+  final Value<String?> mediaMetadata;
   final Value<int> rowid;
   const MessagesCompanion({
     this.id = const Value.absent(),
@@ -2712,6 +2747,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     this.status = const Value.absent(),
     this.errorInfo = const Value.absent(),
     this.metadata = const Value.absent(),
+    this.mediaMetadata = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MessagesCompanion.insert({
@@ -2731,6 +2767,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     this.status = const Value.absent(),
     this.errorInfo = const Value.absent(),
     this.metadata = const Value.absent(),
+    this.mediaMetadata = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         conversationId = Value(conversationId),
@@ -2757,6 +2794,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     Expression<String>? status,
     Expression<String>? errorInfo,
     Expression<String>? metadata,
+    Expression<String>? mediaMetadata,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2776,6 +2814,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       if (status != null) 'status': status,
       if (errorInfo != null) 'error_info': errorInfo,
       if (metadata != null) 'metadata': metadata,
+      if (mediaMetadata != null) 'media_metadata': mediaMetadata,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2797,6 +2836,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       Value<String>? status,
       Value<String?>? errorInfo,
       Value<String?>? metadata,
+      Value<String?>? mediaMetadata,
       Value<int>? rowid}) {
     return MessagesCompanion(
       id: id ?? this.id,
@@ -2815,6 +2855,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
       status: status ?? this.status,
       errorInfo: errorInfo ?? this.errorInfo,
       metadata: metadata ?? this.metadata,
+      mediaMetadata: mediaMetadata ?? this.mediaMetadata,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2870,6 +2911,9 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     if (metadata.present) {
       map['metadata'] = Variable<String>(metadata.value);
     }
+    if (mediaMetadata.present) {
+      map['media_metadata'] = Variable<String>(mediaMetadata.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2895,6 +2939,7 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
           ..write('status: $status, ')
           ..write('errorInfo: $errorInfo, ')
           ..write('metadata: $metadata, ')
+          ..write('mediaMetadata: $mediaMetadata, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4541,6 +4586,7 @@ typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
   Value<String> status,
   Value<String?> errorInfo,
   Value<String?> metadata,
+  Value<String?> mediaMetadata,
   Value<int> rowid,
 });
 typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
@@ -4560,6 +4606,7 @@ typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
   Value<String> status,
   Value<String?> errorInfo,
   Value<String?> metadata,
+  Value<String?> mediaMetadata,
   Value<int> rowid,
 });
 
@@ -4621,6 +4668,9 @@ class $$MessagesTableFilterComposer
 
   ColumnFilters<String> get metadata => $composableBuilder(
       column: $table.metadata, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mediaMetadata => $composableBuilder(
+      column: $table.mediaMetadata, builder: (column) => ColumnFilters(column));
 }
 
 class $$MessagesTableOrderingComposer
@@ -4681,6 +4731,10 @@ class $$MessagesTableOrderingComposer
 
   ColumnOrderings<String> get metadata => $composableBuilder(
       column: $table.metadata, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mediaMetadata => $composableBuilder(
+      column: $table.mediaMetadata,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$MessagesTableAnnotationComposer
@@ -4739,6 +4793,9 @@ class $$MessagesTableAnnotationComposer
 
   GeneratedColumn<String> get metadata =>
       $composableBuilder(column: $table.metadata, builder: (column) => column);
+
+  GeneratedColumn<String> get mediaMetadata => $composableBuilder(
+      column: $table.mediaMetadata, builder: (column) => column);
 }
 
 class $$MessagesTableTableManager extends RootTableManager<
@@ -4780,6 +4837,7 @@ class $$MessagesTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<String?> errorInfo = const Value.absent(),
             Value<String?> metadata = const Value.absent(),
+            Value<String?> mediaMetadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MessagesCompanion(
@@ -4799,6 +4857,7 @@ class $$MessagesTableTableManager extends RootTableManager<
             status: status,
             errorInfo: errorInfo,
             metadata: metadata,
+            mediaMetadata: mediaMetadata,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -4818,6 +4877,7 @@ class $$MessagesTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<String?> errorInfo = const Value.absent(),
             Value<String?> metadata = const Value.absent(),
+            Value<String?> mediaMetadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MessagesCompanion.insert(
@@ -4837,6 +4897,7 @@ class $$MessagesTableTableManager extends RootTableManager<
             status: status,
             errorInfo: errorInfo,
             metadata: metadata,
+            mediaMetadata: mediaMetadata,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

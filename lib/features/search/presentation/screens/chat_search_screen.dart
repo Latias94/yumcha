@@ -39,7 +39,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../chat/presentation/providers/chat_search_providers.dart';
-import '../../../../shared/presentation/providers/conversation_notifier.dart';
+import '../../../chat/presentation/providers/unified_chat_notifier.dart';
 import '../../../../shared/presentation/widgets/search_result_item.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 
@@ -366,13 +366,11 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
     });
 
     try {
-      // 直接使用 Riverpod 切换对话状态
-      final conversationNotifier = ref.read(
-        currentConversationProvider.notifier,
-      );
+      // 使用统一聊天状态管理切换对话
+      final chatNotifier = ref.read(unifiedChatProvider.notifier);
 
       _logger.info('开始切换对话状态');
-      await conversationNotifier.switchToConversation(conversationId);
+      await chatNotifier.loadConversation(conversationId);
 
       _logger.info('对话状态切换完成，开始导航');
 

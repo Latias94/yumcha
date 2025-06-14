@@ -36,7 +36,8 @@ import '../../domain/entities/app_setting.dart';
 import '../../../ai_management/domain/entities/ai_provider.dart';
 import '../../../chat/domain/entities/chat_configuration.dart';
 import '../providers/settings_notifier.dart';
-import '../../../ai_management/presentation/providers/ai_provider_notifier.dart';
+
+import '../../../ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../chat/presentation/screens/widgets/model_selector.dart';
@@ -54,7 +55,7 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
   @override
   Widget build(BuildContext context) {
     final settingsState = ref.watch(settingsNotifierProvider);
-    final providersAsync = ref.watch(aiProviderNotifierProvider);
+    final providers = ref.watch(aiProvidersProvider);
 
     return Scaffold(
       body: CustomScrollView(
@@ -107,41 +108,7 @@ class _DefaultModelsScreenState extends ConsumerState<DefaultModelsScreen> {
               ),
             )
           else
-            providersAsync.when(
-              data: (providers) => _buildContent(providers),
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, stack) => SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      SizedBox(height: DesignConstants.spaceL),
-                      Text(
-                        '加载提供商失败',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      SizedBox(height: DesignConstants.spaceS),
-                      Text(
-                        error.toString(),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            _buildContent(providers),
         ],
       ),
     );

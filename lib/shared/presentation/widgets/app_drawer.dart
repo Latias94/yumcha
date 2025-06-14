@@ -5,6 +5,8 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import '../design_system/design_constants.dart';
 import '../../../features/chat/domain/entities/conversation_ui_state.dart';
 import '../providers/providers.dart';
+import '../providers/conversation_coordinator.dart' hide conversationListRefreshProvider;
+import '../../../features/chat/presentation/providers/unified_chat_notifier.dart';
 import '../../../features/chat/data/repositories/conversation_repository.dart';
 import '../../infrastructure/services/database_service.dart';
 import '../../infrastructure/services/notification_service.dart';
@@ -153,9 +155,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   Future<void> _deleteConversation(String conversationId) async {
     try {
       // 检查删除的对话是否是当前正在显示的对话
-      final currentConversationState = ref.read(currentConversationProvider);
-      final isCurrentConversation =
-          currentConversationState.conversation?.id == conversationId;
+      final currentConversation = ref.read(currentConversationProvider);
+      final isCurrentConversation = currentConversation?.id == conversationId;
 
       _logger.info('删除对话: $conversationId, 是否为当前对话: $isCurrentConversation');
 
@@ -164,10 +165,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       // 如果删除的是当前对话，创建新对话
       if (isCurrentConversation) {
         _logger.info('删除的是当前对话，创建新对话');
-        final conversationNotifier = ref.read(
-          currentConversationProvider.notifier,
-        );
-        await conversationNotifier.createNewConversation();
+        final chatNotifier = ref.read(unifiedChatProvider.notifier);
+        await chatNotifier.createNewConversation();
       }
 
       // 刷新分页列表
@@ -199,11 +198,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       // 显示加载提示
       NotificationService().showInfo('正在重新生成标题...');
 
-      // 通过 Riverpod 调用重新生成标题
-      final conversationNotifier = ref.read(
-        currentConversationProvider.notifier,
-      );
-      await conversationNotifier.regenerateTitle(conversation.id);
+      // 通过协调器重新生成标题
+      final coordinator = ref.read(conversationCoordinatorProvider);
+      await coordinator.regenerateTitle(conversation.id);
 
       NotificationService().showSuccess('标题重新生成成功');
     } catch (e) {

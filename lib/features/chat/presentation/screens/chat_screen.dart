@@ -35,7 +35,7 @@ import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../../ai_management/domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
-import '../providers/chat_configuration_notifier.dart';
+import '../providers/unified_chat_notifier.dart';
 import 'chat_view.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -75,8 +75,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     _conversationState = widget.conversationState;
-    // AI服务已在main.dart中初始化，直接确保有效配置
-    _ensureValidConfiguration();
+
+    // 使用统一聊天状态管理初始化
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeUnifiedChatState();
+    });
   }
 
   @override
@@ -84,159 +87,132 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.didUpdateWidget(oldWidget);
     // 当父组件传入新的对话状态时，更新本地状态
     if (oldWidget.conversationState != widget.conversationState) {
-      // 调试信息已移除，使用正式日志系统
       setState(() {
         _conversationState = widget.conversationState;
       });
+      // 只有在关键配置发生变化时才同步状态，避免无限循环
+      if (_shouldSyncConfiguration(oldWidget.conversationState, widget.conversationState)) {
+        Future(() => _syncToUnifiedChatState());
+      }
     }
   }
 
-  void _ensureValidConfiguration() {
-    final assistantsAsync = ref.read(aiAssistantNotifierProvider);
-    final providersAsync = ref.read(aiProviderNotifierProvider);
+  /// 初始化统一聊天状态
+  void _initializeUnifiedChatState() {
+    final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
 
-    assistantsAsync.whenData((assistants) {
-      providersAsync.whenData((providers) {
-        // 确保有有效的助手和提供商配置
-        bool needsUpdate = false;
-        AiAssistant? selectedAssistant;
-        AiProvider? selectedProvider;
-        String? selectedModelId;
+    // 加载当前对话
+    if (_conversationState.id.isNotEmpty) {
+      unifiedChatNotifier.loadConversation(_conversationState.id);
+    }
 
-        // 1. 确保有选中的助手
-        if (_conversationState.assistantId == null ||
-            _conversationState.assistantId!.isEmpty) {
-          // 优先选择默认助手
-          selectedAssistant = assistants
-              .where((a) => a.id == 'default-assistant' && a.isEnabled)
-              .firstOrNull;
-          // 如果没有默认助手，选择第一个启用的助手
-          selectedAssistant ??=
-              assistants.where((a) => a.isEnabled).firstOrNull;
-          // 如果没有启用的助手，选择第一个助手
-          selectedAssistant ??= assistants.firstOrNull;
+    // 设置配置
+    if (_conversationState.assistantId != null) {
+      _syncConfigurationToUnifiedState();
+    }
+  }
 
-          if (selectedAssistant != null) {
+  /// 检查是否需要同步配置
+  bool _shouldSyncConfiguration(ConversationUiState? oldState, ConversationUiState? newState) {
+    if (oldState == null && newState == null) return false;
+    if (oldState == null || newState == null) return true;
+
+    // 检查关键配置是否发生变化
+    return oldState.assistantId != newState.assistantId ||
+           oldState.selectedProviderId != newState.selectedProviderId ||
+           oldState.selectedModelId != newState.selectedModelId ||
+           oldState.id != newState.id;
+  }
+
+  /// 同步到统一聊天状态
+  void _syncToUnifiedChatState() {
+    final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+
+    // 加载对话
+    if (_conversationState.id.isNotEmpty) {
+      unifiedChatNotifier.loadConversation(_conversationState.id);
+    }
+
+    // 同步配置
+    _syncConfigurationToUnifiedState();
+  }
+
+  /// 同步配置到统一状态
+  void _syncConfigurationToUnifiedState() {
+    try {
+      // 使用新的统一AI管理Provider
+      final assistants = ref.read(aiAssistantsProvider);
+      final providers = ref.read(aiProvidersProvider);
+      final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+      final currentConfig = ref.read(chatConfigurationProvider);
+
+      final assistant = assistants
+          .where((a) => a.id == _conversationState.assistantId)
+          .firstOrNull;
+      final provider = providers
+          .where((p) => p.id == _conversationState.selectedProviderId)
+          .firstOrNull;
+
+      if (assistant != null && provider != null) {
+        final model = provider.models
+            .where((m) => m.name == _conversationState.selectedModelId)
+            .firstOrNull;
+
+        if (model != null) {
+          // 只有在配置真正发生变化时才更新
+          bool needsUpdate = false;
+
+          if (currentConfig.selectedAssistant?.id != assistant.id) {
+            unifiedChatNotifier.selectAssistant(assistant);
             needsUpdate = true;
           }
-        } else {
-          selectedAssistant = assistants
-              .where((a) => a.id == _conversationState.assistantId!)
-              .firstOrNull;
 
-          // 如果选中的助手不存在或已被禁用，重新选择
-          if (selectedAssistant == null || !selectedAssistant.isEnabled) {
-            selectedAssistant =
-                assistants.where((a) => a.isEnabled).firstOrNull;
-            selectedAssistant ??= assistants.firstOrNull;
-            if (selectedAssistant != null) {
-              needsUpdate = true;
-            }
-          }
-        }
-
-        if (selectedAssistant != null) {
-          // 2. 确保有选中的提供商
-          if (_conversationState.selectedProviderId.isEmpty) {
-            // 选择第一个可用的提供商
-            selectedProvider = providers.where((p) => p.isEnabled).firstOrNull;
-            selectedProvider ??= providers.firstOrNull;
-
-            if (selectedProvider != null) {
-              needsUpdate = true;
-            }
-          } else {
-            selectedProvider = providers
-                .where((p) => p.id == _conversationState.selectedProviderId)
-                .firstOrNull;
-
-            // 如果选中的提供商不存在或已被禁用，重新选择
-            if (selectedProvider == null || !selectedProvider.isEnabled) {
-              selectedProvider =
-                  providers.where((p) => p.isEnabled).firstOrNull;
-              selectedProvider ??= providers.firstOrNull;
-              if (selectedProvider != null) {
-                needsUpdate = true;
-              }
-            }
+          if (currentConfig.selectedProvider?.id != provider.id ||
+              currentConfig.selectedModel?.name != model.name) {
+            unifiedChatNotifier.selectModel(provider, model);
+            needsUpdate = true;
           }
 
-          // 3. 确保有选中的模型
-          if (selectedProvider != null) {
-            if (_conversationState.selectedModelId == null ||
-                _conversationState.selectedModelId!.isEmpty ||
-                !selectedProvider.models.any(
-                  (m) => m.name == _conversationState.selectedModelId,
-                )) {
-              // 使用提供商的第一个模型
-              if (selectedProvider.models.isNotEmpty) {
-                selectedModelId = selectedProvider.models.first.name;
-                needsUpdate = true;
-              }
-            } else {
-              selectedModelId = _conversationState.selectedModelId;
-            }
+          if (needsUpdate) {
+            debugPrint('配置已同步到统一状态: ${assistant.name}, ${provider.name}, ${model.name}');
           }
         }
-
-        // 更新状态
-        if (needsUpdate &&
-            selectedAssistant != null &&
-            selectedProvider != null &&
-            selectedModelId != null) {
-          setState(() {
-            _conversationState = _conversationState.copyWith(
-              assistantId: selectedAssistant!.id,
-              selectedProviderId: selectedProvider!.id,
-              selectedModelId: selectedModelId,
-            );
-          });
-
-          // 延迟通知上级组件配置已更新，避免在widget构建期间修改Provider状态
-          Future(() {
-            widget.onConversationUpdated?.call(_conversationState);
-            widget.onAssistantConfigChanged?.call(
-              selectedAssistant!.id,
-              selectedProvider!.id,
-              selectedModelId!,
-            );
-          });
-        }
-      });
-    });
+      }
+    } catch (e) {
+      // 静默处理错误，避免影响界面显示
+      debugPrint('同步配置到统一状态失败: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
+    try {
+      // 使用新的统一AI管理Provider
+      final assistants = ref.watch(aiAssistantsProvider);
 
-    return assistantsAsync.when(
-      data: (assistants) {
-        final assistant = _conversationState.assistantId != null
-            ? assistants
-                .where((a) => a.id == _conversationState.assistantId!)
-                .firstOrNull
-            : null;
+      final assistant = _conversationState.assistantId != null
+          ? assistants
+              .where((a) => a.id == _conversationState.assistantId!)
+              .firstOrNull
+          : null;
 
-        return Scaffold(
-          appBar: widget.showAppBar ? _buildAppBar(context, assistant) : null,
-          body: ChatView(
-            conversationId: _conversationState.id,
-            assistantId: _conversationState.assistantId ?? '',
-            selectedProviderId: _conversationState.selectedProviderId,
-            selectedModelName: _conversationState.selectedModelId ?? '',
-            messages: _conversationState.messages,
-            welcomeMessage: null, // 不显示欢迎消息，让界面开始时为空
-            suggestions: _getDefaultSuggestions(),
-            onMessagesChanged: _onMessagesChanged,
-            onProviderModelChanged: _onProviderModelChanged,
-            initialMessageId: widget.initialMessageId,
-          ),
-        );
-      },
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, stack) => Scaffold(
+      return Scaffold(
+        appBar: widget.showAppBar ? _buildAppBar(context, assistant) : null,
+        body: ChatView(
+          conversationId: _conversationState.id,
+          assistantId: _conversationState.assistantId ?? '',
+          selectedProviderId: _conversationState.selectedProviderId,
+          selectedModelName: _conversationState.selectedModelId ?? '',
+          messages: _conversationState.messages,
+          welcomeMessage: null, // 不显示欢迎消息，让界面开始时为空
+          suggestions: _getDefaultSuggestions(),
+          onMessagesChanged: _onMessagesChanged,
+          onProviderModelChanged: _onProviderModelChanged,
+          initialMessageId: widget.initialMessageId,
+        ),
+      );
+    } catch (error) {
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -247,14 +223,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               Text('加载失败: $error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.refresh(aiAssistantNotifierProvider),
+                onPressed: () => ref.invalidate(unifiedAiManagementProvider),
                 child: const Text('重试'),
               ),
             ],
           ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   List<String> _getDefaultSuggestions() {
@@ -388,14 +364,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// 选择助手并配置相应的提供商和模型
   Future<void> _selectAssistantWithConfiguration(AiAssistant assistant) async {
     try {
-      // 1. 首先选择助手
-      final chatConfigNotifier = ref.read(chatConfigurationProvider.notifier);
-      await chatConfigNotifier.selectAssistant(assistant);
+      // 使用统一聊天状态管理选择助手
+      final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+      await unifiedChatNotifier.selectAssistant(assistant);
 
-      // 2. 获取更新后的配置
+      // 获取更新后的配置
       final chatConfig = ref.read(chatConfigurationProvider);
 
-      // 3. 更新对话状态
+      // 更新本地对话状态
       setState(() {
         _conversationState = _conversationState.copyWith(
           assistantId: assistant.id,
@@ -404,9 +380,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
       });
 
-      // 4. 通知父组件
+      // 通知父组件
       widget.onConversationUpdated?.call(_conversationState);
-      if (chatConfig.hasCompleteConfiguration) {
+      if (chatConfig.isComplete) {
         widget.onAssistantConfigChanged?.call(
           assistant.id,
           chatConfig.selectedProvider!.id,
@@ -423,69 +399,69 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Widget _buildAssistantSettingsSheet(BuildContext context) {
     final theme = Theme.of(context);
-    final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('助手设置', style: theme.textTheme.headlineSmall),
-              const Spacer(),
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+    try {
+      // 使用新的统一AI管理Provider
+      final assistants = ref.watch(aiAssistantsProvider);
 
-          // 当前助手信息
-          if (_conversationState.assistantId != null) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('当前助手', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    assistantsAsync.when(
-                      data: (assistants) {
-                        final assistant = assistants
-                            .where(
-                              (a) => a.id == _conversationState.assistantId!,
-                            )
-                            .firstOrNull;
-                        return Text(assistant?.name ?? '未知');
-                      },
-                      loading: () => const Text('加载中...'),
-                      error: (error, stack) => const Text('加载失败'),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '提供商: ${_conversationState.selectedProviderId}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    Text(
-                      '模型: ${_conversationState.selectedModelId}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('助手设置', style: theme.textTheme.headlineSmall),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
                 ),
-              ),
+              ],
             ),
             const SizedBox(height: 16),
-          ],
 
-          // 助手选择
-          Text('选择助手', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          assistantsAsync.when(
-            data: (assistants) => Column(
+            // 当前助手信息
+            if (_conversationState.assistantId != null) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('当前助手', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) {
+                          final assistant = assistants
+                              .where(
+                                (a) => a.id == _conversationState.assistantId!,
+                              )
+                              .firstOrNull;
+                          return Text(assistant?.name ?? '未知');
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '提供商: ${_conversationState.selectedProviderId}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      Text(
+                        '模型: ${_conversationState.selectedModelId}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 助手选择
+            Text('选择助手', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Column(
               children: assistants.map((assistant) {
                 final isSelected =
                     assistant.id == _conversationState.assistantId;
@@ -518,12 +494,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 );
               }).toList(),
             ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => Text('加载助手失败: $error'),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    } catch (error) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('加载助手失败: $error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(unifiedAiManagementProvider),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _clearConversation() {

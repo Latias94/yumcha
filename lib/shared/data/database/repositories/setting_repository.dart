@@ -373,4 +373,176 @@ class SettingRepository {
       description: 'MCP 服务器配置',
     );
   }
+
+  // === 便捷方法：多媒体功能设置 ===
+
+  /// 获取多媒体功能启用状态
+  Future<bool?> getMultimediaEnabled() async {
+    return await getSettingValue<bool>(SettingKeys.multimediaEnabled);
+  }
+
+  /// 设置多媒体功能启用状态
+  Future<void> setMultimediaEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.multimediaEnabled,
+      value: enabled,
+      description: '多媒体功能总开关',
+    );
+  }
+
+  /// 获取图像生成功能启用状态
+  Future<bool?> getImageGenerationEnabled() async {
+    return await getSettingValue<bool>(SettingKeys.imageGenerationEnabled);
+  }
+
+  /// 设置图像生成功能启用状态
+  Future<void> setImageGenerationEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.imageGenerationEnabled,
+      value: enabled,
+      description: 'AI图像生成功能开关',
+    );
+  }
+
+  /// 获取TTS功能启用状态
+  Future<bool?> getTtsEnabled() async {
+    return await getSettingValue<bool>(SettingKeys.ttsEnabled);
+  }
+
+  /// 设置TTS功能启用状态
+  Future<void> setTtsEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.ttsEnabled,
+      value: enabled,
+      description: '文字转语音功能开关',
+    );
+  }
+
+  /// 获取STT功能启用状态
+  Future<bool?> getSttEnabled() async {
+    return await getSettingValue<bool>(SettingKeys.sttEnabled);
+  }
+
+  /// 设置STT功能启用状态
+  Future<void> setSttEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.sttEnabled,
+      value: enabled,
+      description: '语音转文字功能开关',
+    );
+  }
+
+  /// 获取Web搜索功能启用状态
+  Future<bool?> getWebSearchEnabled() async {
+    return await getSettingValue<bool>(SettingKeys.webSearchEnabled);
+  }
+
+  /// 设置Web搜索功能启用状态
+  Future<void> setWebSearchEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.webSearchEnabled,
+      value: enabled,
+      description: 'Web搜索功能开关',
+    );
+  }
+
+  /// 获取图像分析功能启用状态
+  Future<bool?> getImageAnalysisEnabled() async {
+    return await getSettingValue<bool>(SettingKeys.imageAnalysisEnabled);
+  }
+
+  /// 设置图像分析功能启用状态
+  Future<void> setImageAnalysisEnabled(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.imageAnalysisEnabled,
+      value: enabled,
+      description: '图像分析功能开关',
+    );
+  }
+
+  /// 获取自动检测多媒体需求功能启用状态
+  Future<bool?> getAutoDetectMultimedia() async {
+    return await getSettingValue<bool>(SettingKeys.autoDetectMultimedia);
+  }
+
+  /// 设置自动检测多媒体需求功能启用状态
+  Future<void> setAutoDetectMultimedia(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.autoDetectMultimedia,
+      value: enabled,
+      description: '自动检测多媒体需求功能开关',
+    );
+  }
+
+  // === 便捷方法：多媒体网络设置 ===
+
+  /// 获取HTTP代理URL
+  Future<String?> getHttpProxyUrl() async {
+    return await getSettingValue<String>(SettingKeys.httpProxyUrl);
+  }
+
+  /// 设置HTTP代理URL
+  Future<void> setHttpProxyUrl(String? proxyUrl) async {
+    await setSetting(
+      key: SettingKeys.httpProxyUrl,
+      value: proxyUrl,
+      description: 'HTTP代理服务器URL',
+    );
+  }
+
+  /// 获取连接超时时间
+  Future<int?> getConnectionTimeout() async {
+    return await getSettingValue<int>(SettingKeys.connectionTimeout);
+  }
+
+  /// 设置连接超时时间
+  Future<void> setConnectionTimeout(int timeout) async {
+    await setSetting(
+      key: SettingKeys.connectionTimeout,
+      value: timeout,
+      description: '网络连接超时时间（秒）',
+    );
+  }
+
+  /// 获取接收超时时间
+  Future<int?> getReceiveTimeout() async {
+    return await getSettingValue<int>(SettingKeys.receiveTimeout);
+  }
+
+  /// 设置接收超时时间
+  Future<void> setReceiveTimeout(int timeout) async {
+    await setSetting(
+      key: SettingKeys.receiveTimeout,
+      value: timeout,
+      description: '网络接收超时时间（秒）',
+    );
+  }
+
+  /// 获取发送超时时间
+  Future<int?> getSendTimeout() async {
+    return await getSettingValue<int>(SettingKeys.sendTimeout);
+  }
+
+  /// 设置发送超时时间
+  Future<void> setSendTimeout(int timeout) async {
+    await setSetting(
+      key: SettingKeys.sendTimeout,
+      value: timeout,
+      description: '网络发送超时时间（秒）',
+    );
+  }
+
+  /// 获取HTTP日志启用状态
+  Future<bool?> getEnableHttpLogging() async {
+    return await getSettingValue<bool>(SettingKeys.enableHttpLogging);
+  }
+
+  /// 设置HTTP日志启用状态
+  Future<void> setEnableHttpLogging(bool enabled) async {
+    await setSetting(
+      key: SettingKeys.enableHttpLogging,
+      value: enabled,
+      description: 'HTTP请求日志启用状态',
+    );
+  }
 }

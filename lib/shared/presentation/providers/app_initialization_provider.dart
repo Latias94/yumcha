@@ -16,9 +16,10 @@ import '../../infrastructure/services/logger_service.dart';
 import '../../infrastructure/services/data_initialization_service.dart';
 import '../../infrastructure/services/ai/ai_service_manager.dart';
 import '../../../app/config/splash_config.dart';
-import '../../../features/ai_management/presentation/providers/ai_provider_notifier.dart';
-import '../../../features/ai_management/presentation/providers/ai_assistant_notifier.dart';
+
+import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
+import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
 import 'favorite_model_notifier.dart';
 
 /// 应用初始化状态
@@ -210,6 +211,15 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
       // 通过Provider获取初始化结果
       await _ref.read(initializeDefaultDataProvider.future);
 
+      // 主动触发统一AI管理Provider的初始化
+      state = state.copyWith(currentStep: '正在初始化AI管理器...');
+
+      // 触发统一AI管理Provider的初始化
+      _ref.read(unifiedAiManagementProvider);
+
+      // 等待统一AI管理器初始化完成
+      await _waitForUnifiedAiManagement();
+
       // 主动触发关键Provider的加载，确保数据可用
       state = state.copyWith(currentStep: '正在加载核心数据...');
 
@@ -220,6 +230,10 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         _waitForSettingsData(),
         _waitForFavoriteModelsData(),
       ]);
+
+      // 触发聊天配置Provider的初始化
+      state = state.copyWith(currentStep: '正在初始化聊天配置...');
+      await _initializeChatConfiguration();
 
       state = state.copyWith(
         isDataInitialized: true,
@@ -275,61 +289,50 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
 
   /// 等待提供商数据加载完成
   Future<void> _waitForProviderData() async {
-    const maxWaitTime = Duration(seconds: 15); // 增加等待时间
+    const maxWaitTime = Duration(seconds: 15);
     const checkInterval = Duration(milliseconds: 100);
     final startTime = DateTime.now();
 
     _logger.info('🔌 开始等待提供商数据加载...');
 
     while (DateTime.now().difference(startTime) < maxWaitTime) {
-      final providersAsync = _ref.read(aiProviderNotifierProvider);
+      try {
+        // 首先确保统一AI管理Provider已初始化
+        final unifiedState = _ref.read(unifiedAiManagementProvider);
 
-      // 检查是否加载完成并且有可用的启用提供商
-      final hasValidData = providersAsync.whenOrNull(
-            data: (providers) {
-              final enabledProviders = providers.where((p) => p.isEnabled).toList();
-              _logger.debug('提供商数据检查: 总数=${providers.length}, 启用数=${enabledProviders.length}');
+        if (!unifiedState.isInitialized) {
+          _logger.debug('统一AI管理器尚未初始化，等待中...');
+          await Future.delayed(checkInterval);
+          continue;
+        }
 
-              if (enabledProviders.isNotEmpty) {
-                _logger.info('✅ 找到可用提供商: ${enabledProviders.map((p) => '${p.id}(${p.name})').join(', ')}');
-                return true;
-              }
-              return false;
-            },
-          ) ??
-          false;
+        // 使用新的统一AI管理Provider
+        final providers = _ref.read(aiProvidersProvider);
+        final enabledProviders = providers.where((p) => p.isEnabled).toList();
 
-      if (hasValidData) {
-        _logger.info('✅ 提供商数据加载完成，有可用提供商');
+        _logger.debug('提供商数据检查: 总数=${providers.length}, 启用数=${enabledProviders.length}');
+
+        if (enabledProviders.isNotEmpty) {
+          _logger.info('✅ 找到可用提供商: ${enabledProviders.map((p) => '${p.id}(${p.name})').join(', ')}');
+          state = state.copyWith(
+            isProvidersLoaded: true,
+            currentStep: '提供商数据加载完成',
+          );
+          return;
+        }
+
+        _logger.debug('提供商数据仍在加载中...');
+
+      } catch (error) {
+        _logger.error('提供商数据加载错误: $error');
+        _logger.warning('⚠️ 提供商数据加载失败，但继续初始化');
+
+        // 标记为已加载，避免阻塞初始化
         state = state.copyWith(
           isProvidersLoaded: true,
-          currentStep: '提供商数据加载完成',
+          currentStep: '提供商数据加载失败，继续初始化',
         );
         return;
-      }
-
-      // 检查是否有错误
-      final hasError = providersAsync.whenOrNull(
-            error: (error, stack) {
-              _logger.error('提供商数据加载错误: $error');
-              return true;
-            },
-          ) ??
-          false;
-
-      if (hasError) {
-        _logger.warning('⚠️ 提供商数据加载失败，但继续初始化');
-        return;
-      }
-
-      // 检查是否还在加载中
-      final isLoading = providersAsync.whenOrNull(
-            loading: () => true,
-          ) ??
-          false;
-
-      if (isLoading) {
-        _logger.debug('提供商数据仍在加载中...');
       }
 
       // 等待一段时间后重试
@@ -337,65 +340,59 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     }
 
     _logger.warning('⏱️ 等待提供商数据超时，继续初始化');
+    // 超时也标记为已加载，避免阻塞
+    state = state.copyWith(
+      isProvidersLoaded: true,
+      currentStep: '提供商数据加载超时，继续初始化',
+    );
   }
 
   /// 等待助手数据加载完成
   Future<void> _waitForAssistantData() async {
-    const maxWaitTime = Duration(seconds: 15); // 增加等待时间
+    const maxWaitTime = Duration(seconds: 15);
     const checkInterval = Duration(milliseconds: 100);
     final startTime = DateTime.now();
 
     _logger.info('🤖 开始等待助手数据加载...');
 
     while (DateTime.now().difference(startTime) < maxWaitTime) {
-      final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
+      try {
+        // 首先确保统一AI管理Provider已初始化
+        final unifiedState = _ref.read(unifiedAiManagementProvider);
 
-      // 检查是否加载完成并且有可用的启用助手
-      final hasValidData = assistantsAsync.whenOrNull(
-            data: (assistants) {
-              final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
-              _logger.debug('助手数据检查: 总数=${assistants.length}, 启用数=${enabledAssistants.length}');
+        if (!unifiedState.isInitialized) {
+          _logger.debug('统一AI管理器尚未初始化，等待中...');
+          await Future.delayed(checkInterval);
+          continue;
+        }
 
-              if (enabledAssistants.isNotEmpty) {
-                _logger.info('✅ 找到可用助手: ${enabledAssistants.map((a) => '${a.id}(${a.name})').join(', ')}');
-                return true;
-              }
-              return false;
-            },
-          ) ??
-          false;
+        // 使用新的统一AI管理Provider
+        final assistants = _ref.read(aiAssistantsProvider);
+        final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
 
-      if (hasValidData) {
-        _logger.info('✅ 助手数据加载完成，有可用助手');
+        _logger.debug('助手数据检查: 总数=${assistants.length}, 启用数=${enabledAssistants.length}');
+
+        if (enabledAssistants.isNotEmpty) {
+          _logger.info('✅ 找到可用助手: ${enabledAssistants.map((a) => '${a.id}(${a.name})').join(', ')}');
+          state = state.copyWith(
+            isAssistantsLoaded: true,
+            currentStep: '助手数据加载完成',
+          );
+          return;
+        }
+
+        _logger.debug('助手数据仍在加载中...');
+
+      } catch (error) {
+        _logger.error('助手数据加载错误: $error');
+        _logger.warning('⚠️ 助手数据加载失败，但继续初始化');
+
+        // 标记为已加载，避免阻塞初始化
         state = state.copyWith(
           isAssistantsLoaded: true,
-          currentStep: '助手数据加载完成',
+          currentStep: '助手数据加载失败，继续初始化',
         );
         return;
-      }
-
-      // 检查是否有错误
-      final hasError = assistantsAsync.whenOrNull(
-            error: (error, stack) {
-              _logger.error('助手数据加载错误: $error');
-              return true;
-            },
-          ) ??
-          false;
-
-      if (hasError) {
-        _logger.warning('⚠️ 助手数据加载失败，但继续初始化');
-        return;
-      }
-
-      // 检查是否还在加载中
-      final isLoading = assistantsAsync.whenOrNull(
-            loading: () => true,
-          ) ??
-          false;
-
-      if (isLoading) {
-        _logger.debug('助手数据仍在加载中...');
       }
 
       // 等待一段时间后重试
@@ -403,6 +400,11 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     }
 
     _logger.warning('⏱️ 等待助手数据超时，继续初始化');
+    // 超时也标记为已加载，避免阻塞
+    state = state.copyWith(
+      isAssistantsLoaded: true,
+      currentStep: '助手数据加载超时，继续初始化',
+    );
   }
 
   /// 等待设置数据加载完成
@@ -427,6 +429,11 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
       // 检查是否有错误
       if (settingsState.error != null) {
         _logger.warning('⚠️ 设置数据加载失败，但继续初始化');
+        // 标记为已加载，避免阻塞初始化
+        state = state.copyWith(
+          isSettingsLoaded: true,
+          currentStep: '设置数据加载失败，继续初始化',
+        );
         return;
       }
 
@@ -435,6 +442,100 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     }
 
     _logger.warning('⏱️ 等待设置数据超时，继续初始化');
+    // 超时也标记为已加载，避免阻塞
+    state = state.copyWith(
+      isSettingsLoaded: true,
+      currentStep: '设置数据加载超时，继续初始化',
+    );
+  }
+
+  /// 等待统一AI管理器初始化完成
+  Future<void> _waitForUnifiedAiManagement() async {
+    const maxWaitTime = Duration(seconds: 20);
+    const checkInterval = Duration(milliseconds: 100);
+    final startTime = DateTime.now();
+
+    _logger.info('🔧 开始等待统一AI管理器初始化...');
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      try {
+        final unifiedState = _ref.read(unifiedAiManagementProvider);
+
+        if (unifiedState.isInitialized) {
+          _logger.info('✅ 统一AI管理器初始化完成');
+          return;
+        }
+
+        if (unifiedState.error != null) {
+          _logger.warning('⚠️ 统一AI管理器初始化失败: ${unifiedState.error}');
+          return;
+        }
+
+        _logger.debug('统一AI管理器仍在初始化中...');
+
+      } catch (error) {
+        _logger.error('统一AI管理器初始化检查错误: $error');
+        _logger.warning('⚠️ 统一AI管理器初始化检查失败，但继续初始化');
+        return;
+      }
+
+      // 等待一段时间后重试
+      await Future.delayed(checkInterval);
+    }
+
+    _logger.warning('⏱️ 等待统一AI管理器初始化超时，继续初始化');
+  }
+
+  /// 初始化聊天配置
+  Future<void> _initializeChatConfiguration() async {
+    try {
+      _logger.info('🔧 开始初始化聊天配置...');
+
+      // 触发聊天配置Provider的初始化
+      _ref.read(chatConfigurationProvider);
+
+      // 等待聊天配置初始化完成
+      await _waitForChatConfiguration();
+
+      _logger.info('✅ 聊天配置初始化完成');
+    } catch (error) {
+      _logger.error('❌ 聊天配置初始化失败: $error');
+      // 聊天配置初始化失败不应阻塞应用启动
+    }
+  }
+
+  /// 等待聊天配置初始化完成
+  Future<void> _waitForChatConfiguration() async {
+    const maxWaitTime = Duration(seconds: 10);
+    const checkInterval = Duration(milliseconds: 100);
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      try {
+        final chatConfig = _ref.read(chatConfigurationProvider);
+
+        if (!chatConfig.isLoading && chatConfig.error == null) {
+          _logger.info('✅ 聊天配置加载完成');
+          return;
+        }
+
+        if (chatConfig.error != null) {
+          _logger.warning('⚠️ 聊天配置加载失败: ${chatConfig.error}');
+          return;
+        }
+
+        _logger.debug('聊天配置仍在加载中...');
+
+      } catch (error) {
+        _logger.error('聊天配置检查错误: $error');
+        return;
+      }
+
+      // 等待一段时间后重试
+      await Future.delayed(checkInterval);
+    }
+
+    _logger.warning('⏱️ 等待聊天配置超时，继续初始化');
   }
 
   /// 等待收藏模型数据加载完成
@@ -469,6 +570,11 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
 
       if (hasError) {
         _logger.warning('⚠️ 收藏模型数据加载失败，但继续初始化');
+        // 标记为已加载，避免阻塞初始化
+        state = state.copyWith(
+          isFavoriteModelsLoaded: true,
+          currentStep: '收藏模型数据加载失败，继续初始化',
+        );
         return;
       }
 
@@ -477,6 +583,11 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     }
 
     _logger.warning('⏱️ 等待收藏模型数据超时，继续初始化');
+    // 超时也标记为已加载，避免阻塞
+    state = state.copyWith(
+      isFavoriteModelsLoaded: true,
+      currentStep: '收藏模型数据加载超时，继续初始化',
+    );
   }
 
   /// 重试初始化

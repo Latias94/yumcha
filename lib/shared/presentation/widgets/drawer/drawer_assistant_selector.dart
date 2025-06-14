@@ -46,21 +46,17 @@ class _DrawerAssistantSelectorState
 
     return Consumer(
       builder: (context, ref, _) {
-        final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
+        final assistants = ref.watch(aiAssistantsProvider);
         final selectedAssistant = ref.watch(
-          aiAssistantProvider(widget.selectedAssistant),
+          specificAssistantProvider(widget.selectedAssistant),
         );
 
-        return assistantsAsync.when(
-          data: (assistants) => _buildAssistantSelector(
-            context,
-            theme,
-            deviceType,
-            assistants,
-            selectedAssistant,
-          ),
-          loading: () => _buildLoadingIndicator(context),
-          error: (error, stack) => _buildErrorIndicator(context, error, ref),
+        return _buildAssistantSelector(
+          context,
+          theme,
+          deviceType,
+          assistants,
+          selectedAssistant,
         );
       },
     );
@@ -317,7 +313,7 @@ class _DrawerAssistantSelectorState
             Text('加载助手失败: $error'),
             SizedBox(height: DesignConstants.spaceS),
             ElevatedButton(
-              onPressed: () => ref.refresh(aiAssistantNotifierProvider),
+              onPressed: () => ref.invalidate(unifiedAiManagementProvider),
               child: const Text('重试'),
             ),
           ],

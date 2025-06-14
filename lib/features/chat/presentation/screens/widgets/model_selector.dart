@@ -7,7 +7,8 @@ import '../../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../../ai_management/domain/entities/ai_model.dart';
 import '../../../../ai_management/domain/entities/ai_provider.dart';
 import '../../../domain/entities/chat_configuration.dart';
-import '../../../../ai_management/presentation/providers/ai_provider_notifier.dart';
+
+import '../../../../ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../../../shared/presentation/providers/favorite_model_notifier.dart';
 
 /// 提供商-模型组合数据类
@@ -45,7 +46,7 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final providersAsync = ref.watch(aiProviderNotifierProvider);
+    final providers = ref.watch(aiProvidersProvider);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -105,121 +106,97 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
               ),
               // 主要内容
               Expanded(
-                child: providersAsync.when(
-                  data: (providers) {
-                    return FutureBuilder<ModelSelectorData>(
-                      future: _loadData(providers),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
+                child: FutureBuilder<ModelSelectorData>(
+                  future: _loadData(providers),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
 
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.error,
-                                    color: Theme.of(context).colorScheme.error),
-                                const SizedBox(height: 8),
-                                Text('加载失败: ${snapshot.error}'),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: () => setState(() {}),
-                                  child: const Text('重试'),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-
-                        final data = snapshot.data!;
-
-                        // 检查是否有可用的模型
-                        if (data.modelItems.isEmpty) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  size: 48,
-                                  color: Theme.of(context).colorScheme.tertiary,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  '没有可用的AI模型',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '请检查提供商配置或重新加载',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () => setState(() {}),
-                                  child: const Text('重新加载'),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-
-                        // 监听收藏模型状态变化
-                        final favoriteModelsAsync = ref.watch(
-                          favoriteModelNotifierProvider,
-                        );
-                        final currentFavorites = favoriteModelsAsync.when(
-                          data: (models) => models,
-                          loading: () => data.favoriteModels,
-                          error: (error, stackTrace) => data.favoriteModels,
-                        );
-
-                        return ListView(
-                          controller: scrollController,
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            ..._buildModelSections(
-                              _filterModelItems(data.modelItems),
-                              currentFavorites,
+                            Icon(Icons.error,
+                                color: Theme.of(context).colorScheme.error),
+                            const SizedBox(height: 8),
+                            Text('加载失败: ${snapshot.error}'),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: () => setState(() {}),
+                              child: const Text('重试'),
                             ),
                           ],
-                        );
-                      },
+                        ),
+                      );
+                    }
+
+                    final data = snapshot.data!;
+
+                    // 检查是否有可用的模型
+                    if (data.modelItems.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.tertiary,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              '没有可用的AI模型',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '请检查提供商配置或重新加载',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () => ref.invalidate(unifiedAiManagementProvider),
+                              child: const Text('重新加载'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // 监听收藏模型状态变化
+                    final favoriteModelsAsync = ref.watch(
+                      favoriteModelNotifierProvider,
                     );
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    final currentFavorites = favoriteModelsAsync.when(
+                      data: (models) => models,
+                      loading: () => data.favoriteModels,
+                      error: (error, stackTrace) => data.favoriteModels,
+                    );
+
+                    return ListView(
+                      controller: scrollController,
                       children: [
-                        Icon(Icons.error,
-                            color: Theme.of(context).colorScheme.error),
-                        const SizedBox(height: 8),
-                        Text('加载提供商失败: $error'),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: () =>
-                              ref.refresh(aiProviderNotifierProvider),
-                          child: const Text('重试'),
+                        ..._buildModelSections(
+                          _filterModelItems(data.modelItems),
+                          currentFavorites,
                         ),
                       ],
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ],

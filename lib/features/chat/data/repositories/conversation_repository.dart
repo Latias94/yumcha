@@ -1,7 +1,9 @@
 import '../../../../shared/data/database/database.dart';
 import '../../domain/entities/conversation_ui_state.dart';
 import '../../domain/entities/message.dart';
+import '../../domain/entities/enhanced_message.dart';
 import '../../domain/entities/message_metadata.dart';
+import '../../../../shared/infrastructure/services/media/media_storage_service.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
@@ -333,9 +335,29 @@ class ConversationRepository {
     Duration? duration,
     MessageStatus status = MessageStatus.normal,
     String? errorInfo,
+    List<MediaMetadata>? mediaFiles, // 新增：多媒体文件列表
   }) async {
     final messageId = id ?? _uuid.v4(); // 使用传入的ID或生成新ID
     final now = DateTime.now();
+
+    // 序列化多媒体元数据
+    String? mediaMetadataJson;
+    if (mediaFiles != null && mediaFiles.isNotEmpty) {
+      final enhancedMessage = EnhancedMessage.withMedia(
+        id: messageId,
+        author: author,
+        content: content,
+        timestamp: now,
+        imageUrl: imageUrl,
+        avatarUrl: avatarUrl,
+        isFromUser: isFromUser,
+        duration: duration,
+        status: status,
+        errorInfo: errorInfo,
+        mediaFiles: mediaFiles,
+      );
+      mediaMetadataJson = enhancedMessage.mediaMetadataJson;
+    }
 
     final companion = MessagesCompanion(
       id: Value(messageId),
@@ -350,6 +372,7 @@ class ConversationRepository {
       updatedAt: Value(now),
       status: Value(status.name),
       errorInfo: Value(errorInfo),
+      mediaMetadata: Value(mediaMetadataJson), // 新增：多媒体元数据
       // 暂时不设置元数据，保持向后兼容
     );
 
@@ -362,6 +385,27 @@ class ConversationRepository {
     );
 
     return messageId;
+  }
+
+  // 添加增强消息（包含多媒体内容）
+  Future<String> addEnhancedMessage({
+    String? id,
+    required String conversationId,
+    required EnhancedMessage message,
+  }) async {
+    return await addMessage(
+      id: id ?? message.id,
+      conversationId: conversationId,
+      content: message.content,
+      author: message.author,
+      isFromUser: message.isFromUser,
+      imageUrl: message.imageUrl,
+      avatarUrl: message.avatarUrl,
+      duration: message.duration,
+      status: message.status,
+      errorInfo: message.errorInfo,
+      mediaFiles: message.mediaFiles,
+    );
   }
 
   // 删除消息
@@ -483,6 +527,18 @@ class ConversationRepository {
       }
     }
 
+    // 解析多媒体元数据
+    List<MediaMetadata> mediaFiles = [];
+    try {
+      final mediaMetadataJson = data.toJson()['mediaMetadata'] as String?;
+      if (mediaMetadataJson != null) {
+        mediaFiles = EnhancedMessage.parseMediaMetadata(mediaMetadataJson);
+      }
+    } catch (e) {
+      // 向后兼容：如果字段不存在或解析失败，忽略
+      _logger.debug('解析多媒体元数据失败: $e');
+    }
+
     // 解析消息状态
     MessageStatus status = MessageStatus.normal;
     try {
@@ -508,25 +564,49 @@ class ConversationRepository {
       _logger.debug('获取错误信息失败: $e');
     }
 
-    return Message(
-      id: data.id,
-      author: data.author,
-      content: data.content,
-      timestamp: data.timestamp,
-      imageUrl: data.imageUrl,
-      avatarUrl: data.avatarUrl,
-      isFromUser: data.isFromUser,
-      metadata: metadata,
-      parentMessageId: data.parentMessageId,
-      version: data.version,
-      isActive: data.isActive,
-      status: status,
-      errorInfo: errorInfo,
-      // 向后兼容：如果没有元数据但有总耗时，使用总耗时
-      duration: metadata?.totalDurationMs != null
-          ? Duration(milliseconds: metadata!.totalDurationMs!)
-          : null,
-    );
+    // 如果有多媒体文件，返回EnhancedMessage，否则返回普通Message
+    if (mediaFiles.isNotEmpty) {
+      return EnhancedMessage(
+        id: data.id,
+        author: data.author,
+        content: data.content,
+        timestamp: data.timestamp,
+        imageUrl: data.imageUrl,
+        avatarUrl: data.avatarUrl,
+        isFromUser: data.isFromUser,
+        metadata: metadata,
+        parentMessageId: data.parentMessageId,
+        version: data.version,
+        isActive: data.isActive,
+        status: status,
+        errorInfo: errorInfo,
+        mediaFiles: mediaFiles,
+        // 向后兼容：如果没有元数据但有总耗时，使用总耗时
+        duration: metadata?.totalDurationMs != null
+            ? Duration(milliseconds: metadata!.totalDurationMs!)
+            : null,
+      );
+    } else {
+      return Message(
+        id: data.id,
+        author: data.author,
+        content: data.content,
+        timestamp: data.timestamp,
+        imageUrl: data.imageUrl,
+        avatarUrl: data.avatarUrl,
+        isFromUser: data.isFromUser,
+        metadata: metadata,
+        parentMessageId: data.parentMessageId,
+        version: data.version,
+        isActive: data.isActive,
+        status: status,
+        errorInfo: errorInfo,
+        // 向后兼容：如果没有元数据但有总耗时，使用总耗时
+        duration: metadata?.totalDurationMs != null
+            ? Duration(milliseconds: metadata!.totalDurationMs!)
+            : null,
+      );
+    }
   }
 }
 

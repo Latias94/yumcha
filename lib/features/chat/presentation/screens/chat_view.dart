@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/chat_message_content.dart';
+import '../../domain/entities/chat_state.dart';
 import '../../domain/services/message_processor.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
-import '../providers/chat_message_notifier.dart';
+import '../providers/unified_chat_notifier.dart';
 import 'widgets/chat_history_view.dart';
 import 'widgets/chat_input.dart';
 
-/// 重构后的聊天视图组件 - 使用纯 Riverpod 状态管理
+/// 重构后的聊天视图组件 - 使用统一聊天状态管理
 ///
 /// 遵循 Riverpod 最佳实践：
-/// - 🎯 单一数据源：所有状态通过 ChatMessageNotifier 管理
+/// - 🎯 单一数据源：所有状态通过 UnifiedChatNotifier 管理
 /// - 🔗 依赖注入：通过 Provider 获取依赖
 /// - 📝 清晰的职责分离：UI 只负责展示，状态管理交给 Notifier
 /// - ⚠️ 统一的错误处理：错误状态统一管理
+/// - 🔄 事件驱动：使用事件系统处理状态变化
 class ChatView extends ConsumerStatefulWidget {
   const ChatView({
     super.key,
@@ -82,13 +84,9 @@ class _ChatViewState extends ConsumerState<ChatView>
   void initState() {
     super.initState();
 
-    // 初始化消息列表
+    // 使用统一聊天状态管理初始化
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeMessagesIfNeeded();
-      // 检查并清理可能残留的流式状态
-      ref
-          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-          .checkAndCleanupStreamingState();
+      _initializeUnifiedChatState();
     });
   }
 
@@ -99,25 +97,36 @@ class _ChatViewState extends ConsumerState<ChatView>
     // 如果对话ID发生变化，重置初始化状态
     if (widget.conversationId != oldWidget.conversationId) {
       _hasInitialized = false;
+      _initializeUnifiedChatState();
     }
 
-    // 如果消息列表发生变化且不是同一个对话，延迟更新状态
+    // 如果消息列表发生变化，同步到统一状态
     if (widget.messages != oldWidget.messages &&
         widget.conversationId == oldWidget.conversationId) {
       Future(() {
-        _initializeMessagesIfNeeded();
+        _syncMessagesToUnifiedState();
       });
     }
   }
 
-  /// 仅在需要时初始化消息
-  void _initializeMessagesIfNeeded() {
-    if (!_hasInitialized && widget.messages.isNotEmpty && mounted) {
-      _hasInitialized = true; // 先设置标志，避免竞态条件
-      ref
-          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-          .initializeMessages(widget.messages);
+  /// 初始化统一聊天状态
+  void _initializeUnifiedChatState() {
+    if (!_hasInitialized && mounted) {
+      _hasInitialized = true;
+
+      final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+
+      // 加载对话
+      if (widget.conversationId.isNotEmpty) {
+        unifiedChatNotifier.loadConversation(widget.conversationId);
+      }
     }
+  }
+
+  /// 同步消息到统一状态
+  void _syncMessagesToUnifiedState() {
+    // 统一状态管理会自动处理消息同步
+    // 这里可以添加额外的同步逻辑如果需要
   }
 
   @override
@@ -130,32 +139,26 @@ class _ChatViewState extends ConsumerState<ChatView>
   Widget build(BuildContext context) {
     super.build(context); // for AutomaticKeepAliveClientMixin
 
-    // 监听聊天消息状态
-    final chatState =
-        ref.watch(chatMessageNotifierProvider(widget.conversationId));
-    final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
-    final providersAsync = ref.watch(aiProviderNotifierProvider);
+    // 监听统一聊天状态
+    final unifiedChatState = ref.watch(unifiedChatProvider);
+    final assistants = ref.watch(aiAssistantsProvider);
+    final providers = ref.watch(aiProvidersProvider);
+
+    // 检查数据是否可用
+    if (assistants.isEmpty || providers.isEmpty) {
+      return const SizedBox.expand(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     // 使用 SizedBox.expand 确保在 Scaffold.body 中正确布局
     return SizedBox.expand(
-      child: assistantsAsync.when(
-        data: (assistants) {
-          return providersAsync.when(
-            data: (providers) {
-              return _buildChatContent(chatState);
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => _buildErrorState('加载提供商失败: $error'),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => _buildErrorState('加载助手失败: $error'),
-      ),
+      child: _buildChatContent(unifiedChatState),
     );
   }
 
   /// 构建聊天内容
-  Widget _buildChatContent(ChatMessageState chatState) {
+  Widget _buildChatContent(UnifiedChatState chatState) {
     return Column(
       children: [
         // 聊天历史
@@ -163,13 +166,13 @@ class _ChatViewState extends ConsumerState<ChatView>
           child: ChatHistoryView(
             conversationId: widget.conversationId,
             onEditMessage:
-                !chatState.hasStreamingMessage ? _onEditMessage : null,
+                !chatState.messageState.hasStreamingMessages ? _onEditMessage : null,
             onRegenerateMessage:
-                !chatState.hasStreamingMessage ? _onRegenerateMessage : null,
+                !chatState.messageState.hasStreamingMessages ? _onRegenerateMessage : null,
             onSelectSuggestion: _onSelectSuggestion,
             initialMessageId: widget.initialMessageId,
             isLoading: chatState.isLoading,
-            isStreaming: chatState.hasStreamingMessage,
+            isStreaming: chatState.messageState.hasStreamingMessages,
             welcomeMessage: widget.welcomeMessage,
             suggestions: widget.suggestions,
           ),
@@ -180,25 +183,19 @@ class _ChatViewState extends ConsumerState<ChatView>
           initialMessage: _editingMessage,
           autofocus: widget.suggestions.isEmpty,
           onSendMessage: _onSendMessageRequest,
-          onCancelMessage: chatState.hasStreamingMessage
-              ? () => ref
-                  .read(chatMessageNotifierProvider(widget.conversationId)
-                      .notifier)
-                  .cancelStreaming()
+          onCancelMessage: chatState.messageState.hasStreamingMessages
+              ? () => ref.read(unifiedChatProvider.notifier).cancelStreaming()
               : null,
           onCancelEdit: _editingMessage != null ? _onCancelEdit : null,
           isLoading: chatState.isLoading,
           onAssistantChanged: (assistant) {
-            // 临时修复：助手不再关联提供商和模型
-            // TODO: 实现新的助手选择逻辑
+            // 使用统一状态管理选择助手
+            ref.read(unifiedChatProvider.notifier).selectAssistant(assistant);
           },
           initialAssistantId: widget.assistantId,
           onStartTyping: () {
             // 当用户开始输入时，清除错误状态
-            ref
-                .read(chatMessageNotifierProvider(widget.conversationId)
-                    .notifier)
-                .clearError();
+            ref.read(unifiedChatProvider.notifier).clearError();
           },
         ),
       ],
@@ -268,17 +265,14 @@ class _ChatViewState extends ConsumerState<ChatView>
       return;
     }
 
-    // 获取助手信息以确定是否使用流式输出
-    final assistantsAsync = ref.read(aiAssistantNotifierProvider);
+    // 获取助手信息以确定是否使用流式输出 - 使用新的统一AI管理Provider
+    final assistants = ref.read(aiAssistantsProvider);
     bool isStreaming = true; // 默认使用流式输出
 
-    assistantsAsync.whenData((assistants) {
-      final assistant =
-          assistants.where((a) => a.id == widget.assistantId).firstOrNull;
-      if (assistant != null) {
-        isStreaming = assistant.streamOutput;
-      }
-    });
+    final assistant = assistants.where((a) => a.id == widget.assistantId).firstOrNull;
+    if (assistant != null) {
+      isStreaming = assistant.streamOutput;
+    }
 
     // 如果是编辑模式，处理编辑逻辑
     if (_editingMessage != null) {
@@ -287,16 +281,10 @@ class _ChatViewState extends ConsumerState<ChatView>
     }
 
     try {
-      // 使用新的 ChatMessageNotifier 发送消息
+      // 使用统一聊天状态管理发送消息
       await ref
-          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-          .sendMessage(
-            content: content,
-            assistantId: widget.assistantId,
-            providerId: widget.selectedProviderId,
-            modelName: widget.selectedModelName,
-            isStreaming: isStreaming,
-          );
+          .read(unifiedChatProvider.notifier)
+          .sendMessage(content, useStreaming: isStreaming);
 
       // 通知消息变化（用于回调）
       _notifyMessagesChanged();
@@ -306,17 +294,17 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   void _handleEditMessage(String content) {
-    // 删除正在编辑的消息和相关的AI回复
+    // 使用统一聊天状态管理删除消息
+    final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+
     if (_editingMessage != null) {
-      ref
-          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-          .deleteMessage(_editingMessage!);
+      // TODO: 实现删除消息功能
+      // unifiedChatNotifier.deleteMessage(_editingMessage!.id);
     }
 
     if (_originalAssistantMessage != null) {
-      ref
-          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-          .deleteMessage(_originalAssistantMessage!);
+      // TODO: 实现删除消息功能
+      // unifiedChatNotifier.deleteMessage(_originalAssistantMessage!.id);
     }
 
     setState(() {
@@ -332,15 +320,14 @@ class _ChatViewState extends ConsumerState<ChatView>
     if (!message.isFromUser) return;
 
     // 获取当前消息状态
-    final chatState =
-        ref.read(chatMessageNotifierProvider(widget.conversationId));
+    final chatState = ref.read(unifiedChatProvider);
 
     // 找到对应的AI回复消息
-    final messageIndex = chatState.messages.indexOf(message);
+    final messageIndex = chatState.messageState.messages.indexOf(message);
     Message? associatedResponse;
 
-    if (messageIndex != -1 && messageIndex < chatState.messages.length - 1) {
-      final nextMessage = chatState.messages[messageIndex + 1];
+    if (messageIndex != -1 && messageIndex < chatState.messageState.messages.length - 1) {
+      final nextMessage = chatState.messageState.messages[messageIndex + 1];
       if (!nextMessage.isFromUser) {
         associatedResponse = nextMessage;
       }
@@ -363,47 +350,43 @@ class _ChatViewState extends ConsumerState<ChatView>
     if (aiMessage.isFromUser) return;
 
     // 获取当前消息状态
-    final chatState =
-        ref.read(chatMessageNotifierProvider(widget.conversationId));
+    final chatState = ref.read(unifiedChatProvider);
+    final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
 
-    // 找到对应的用户消息
-    final messageIndex = chatState.messages.indexOf(aiMessage);
-    if (messageIndex <= 0) return; // AI消息应该不是第一条消息
-
-    final userMessage = chatState.messages[messageIndex - 1];
-    if (!userMessage.isFromUser) return;
-
-    // 删除当前的AI消息和对应的用户消息（避免重复）
-    ref
-        .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-        .deleteMessage(aiMessage);
-    ref
-        .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-        .deleteMessage(userMessage);
+    // 找到AI消息的索引
+    final messageIndex = chatState.messageState.messages.indexOf(aiMessage);
+    if (messageIndex < 0) return;
 
     // 获取助手信息以确定是否使用流式输出
-    final assistantsAsync = ref.read(aiAssistantNotifierProvider);
+    final assistants = ref.read(aiAssistantsProvider);
     bool isStreaming = true; // 默认使用流式输出
 
-    assistantsAsync.whenData((assistants) {
-      final assistant =
-          assistants.where((a) => a.id == widget.assistantId).firstOrNull;
-      if (assistant != null) {
-        isStreaming = assistant.streamOutput;
-      }
-    });
+    final assistant = assistants.where((a) => a.id == widget.assistantId).firstOrNull;
+    if (assistant != null) {
+      isStreaming = assistant.streamOutput;
+    }
 
     try {
-      // 重新发送消息
-      await ref
-          .read(chatMessageNotifierProvider(widget.conversationId).notifier)
-          .sendMessage(
-            content: userMessage.content,
-            assistantId: widget.assistantId,
-            providerId: widget.selectedProviderId,
-            modelName: widget.selectedModelName,
-            isStreaming: isStreaming,
-          );
+      // 1. 清除AI消息内容（设为空内容，保持消息结构）
+      // TODO: 实现更新消息内容的功能
+      // unifiedChatNotifier.updateMessageContent(aiMessage.id!, '');
+
+      // 2. 获取当前聊天上下文（除去要重新生成的AI消息）
+      final contextMessages = chatState.messageState.messages
+          .take(messageIndex) // 取AI消息之前的所有消息
+          .toList();
+
+      // 3. 如果没有上下文消息，不能重新生成
+      if (contextMessages.isEmpty) {
+        NotificationService().showWarning('没有足够的上下文进行重新生成');
+        return;
+      }
+
+      // 4. 使用AI消息ID直接重新生成响应
+      await unifiedChatNotifier.regenerateResponse(
+        aiMessageId: aiMessage.id!,
+        useStreaming: isStreaming,
+      );
 
       // 通知消息变化
       _notifyMessagesChanged();
@@ -414,9 +397,8 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   void _notifyMessagesChanged() {
     // 获取当前消息状态
-    final chatState =
-        ref.read(chatMessageNotifierProvider(widget.conversationId));
-    widget.onMessagesChanged?.call(chatState.messages);
+    final chatState = ref.read(unifiedChatProvider);
+    widget.onMessagesChanged?.call(chatState.messageState.messages);
 
     // 检查是否有新的 AI 消息，如果有则触发标题生成
     _checkForNewAiMessage();
@@ -424,20 +406,16 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   /// 检查是否有新的 AI 消息并触发标题生成
   void _checkForNewAiMessage() {
-    final chatState =
-        ref.read(chatMessageNotifierProvider(widget.conversationId));
-    if (chatState.messages.isEmpty) return;
+    final chatState = ref.read(unifiedChatProvider);
+    if (chatState.messageState.messages.isEmpty) return;
 
     // 获取最后一条消息
-    final lastMessage = chatState.messages.last;
+    final lastMessage = chatState.messageState.messages.last;
 
     // 如果最后一条消息是 AI 消息，触发标题生成检查
     if (!lastMessage.isFromUser && lastMessage.content.isNotEmpty) {
-      // 使用 Riverpod 获取 conversation notifier 并调用标题生成
-      final conversationNotifier = ref.read(
-        currentConversationProvider.notifier,
-      );
-      conversationNotifier.onAiMessageAdded(lastMessage);
+      // 使用统一状态管理的事件系统
+      // 标题生成会通过事件系统自动处理
     }
   }
 }

@@ -7,12 +7,14 @@ class ModelSelectionDialog extends StatefulWidget {
   final List<AiModel> availableModels;
   final List<AiModel> currentModels;
   final Function(List<AiModel>) onConfirm;
+  final String? errorMessage; // 可选的错误信息
 
   const ModelSelectionDialog({
     super.key,
     required this.availableModels,
     required this.currentModels,
     required this.onConfirm,
+    this.errorMessage,
   });
 
   @override
@@ -119,6 +121,40 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
+
+            // 错误信息（如果有）
+            if (widget.errorMessage != null) ...[
+              Container(
+                width: double.infinity,
+                padding: DesignConstants.paddingM,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: DesignConstants.radiusM,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                      size: 20,
+                    ),
+                    SizedBox(width: DesignConstants.spaceS),
+                    Expanded(
+                      child: Text(
+                        widget.errorMessage!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onErrorContainer,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: DesignConstants.spaceL),
+            ],
 
             // 搜索框
             TextField(

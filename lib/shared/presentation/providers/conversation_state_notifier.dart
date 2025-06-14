@@ -4,8 +4,7 @@ import '../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../infrastructure/services/logger_service.dart';
 import '../../infrastructure/services/data_initialization_service.dart';
 import 'dependency_providers.dart';
-import '../../../features/ai_management/presentation/providers/ai_assistant_notifier.dart';
-import '../../../features/ai_management/presentation/providers/ai_provider_notifier.dart';
+import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
 import 'configuration_persistence_notifier.dart';
 import 'package:uuid/uuid.dart';
@@ -80,27 +79,12 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
     final startTime = DateTime.now();
 
     while (DateTime.now().difference(startTime) < maxWaitTime) {
-      final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
+      // 使用新的统一AI管理Provider - 直接检查助手列表
+      final assistants = _ref.read(aiAssistantsProvider);
 
-      // 检查是否加载完成且有数据
-      final hasData = assistantsAsync.whenOrNull(
-            data: (assistants) => assistants.isNotEmpty,
-          ) ??
-          false;
-
-      if (hasData) {
+      // 检查是否有数据
+      if (assistants.isNotEmpty) {
         _logger.info('助手数据加载完成');
-        return;
-      }
-
-      // 检查是否有错误
-      final hasError = assistantsAsync.whenOrNull(
-            error: (error, stack) => true,
-          ) ??
-          false;
-
-      if (hasError) {
-        _logger.warning('助手数据加载失败，但继续创建对话');
         return;
       }
 
@@ -147,30 +131,23 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
 
       // 如果配置不完整，尝试获取第一个可用的提供商和模型
       if (providerId.isEmpty || modelName == null) {
-        final providersAsync = _ref.read(aiProviderNotifierProvider);
-        await providersAsync.when(
-          data: (providers) async {
-            final enabledProviders =
-                providers.where((p) => p.isEnabled).toList();
-            if (enabledProviders.isNotEmpty) {
-              final firstProvider = enabledProviders.first;
-              if (firstProvider.models.isNotEmpty) {
-                providerId = firstProvider.id;
-                modelName = firstProvider.models.first.name;
-                _logger.info('使用fallback提供商和模型', {
-                  'providerId': providerId,
-                  'modelName': modelName,
-                });
-              }
-            }
-          },
-          loading: () async {
-            _logger.warning('提供商数据仍在加载中，使用空配置');
-          },
-          error: (error, stack) async {
-            _logger.error('获取提供商数据失败', {'error': error.toString()});
-          },
-        );
+        // 使用新的统一AI管理Provider - 直接获取提供商列表
+        final providers = _ref.read(aiProvidersProvider);
+        final enabledProviders = providers.where((p) => p.isEnabled).toList();
+
+        if (enabledProviders.isNotEmpty) {
+          final firstProvider = enabledProviders.first;
+          if (firstProvider.models.isNotEmpty) {
+            providerId = firstProvider.id;
+            modelName = firstProvider.models.first.name;
+            _logger.info('使用fallback提供商和模型', {
+              'providerId': providerId,
+              'modelName': modelName,
+            });
+          }
+        } else {
+          _logger.warning('没有可用的提供商，使用空配置');
+        }
       }
 
       final newConversation = ConversationUiState(
@@ -316,47 +293,43 @@ class ConversationStateNotifier extends StateNotifier<ConversationState> {
 
   /// 获取默认助手
   Future<AiAssistant?> _getDefaultAssistant() async {
-    final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
+    // 使用新的统一AI管理Provider - 直接获取助手列表
+    final assistants = _ref.read(aiAssistantsProvider);
     final persistedConfig = _ref.read(configurationPersistenceNotifierProvider);
 
-    // 如果数据还在加载中，等待加载完成
-    if (assistantsAsync is AsyncLoading) {
-      _logger.debug('助手数据正在加载中，等待完成...');
+    // 如果助手列表为空，等待数据加载
+    if (assistants.isEmpty) {
+      _logger.debug('助手数据为空，等待加载完成...');
       await _waitForAssistantsToLoad();
       // 重新获取数据
-      final updatedAssistantsAsync = _ref.read(aiAssistantNotifierProvider);
-      return _extractAssistantFromAsync(
-          updatedAssistantsAsync, persistedConfig);
+      final updatedAssistants = _ref.read(aiAssistantsProvider);
+      return _extractAssistantFromList(updatedAssistants, persistedConfig);
     }
 
-    return _extractAssistantFromAsync(assistantsAsync, persistedConfig);
+    return _extractAssistantFromList(assistants, persistedConfig);
   }
 
-  /// 从AsyncValue中提取助手
-  AiAssistant? _extractAssistantFromAsync(
-    AsyncValue<List<AiAssistant>> assistantsAsync,
+  /// 从助手列表中提取助手
+  AiAssistant? _extractAssistantFromList(
+    List<AiAssistant> assistants,
     dynamic persistedConfig,
   ) {
-    return assistantsAsync.whenOrNull(
-      data: (assistants) {
-        final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
+    final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
 
-        // 尝试获取上次使用的助手
-        if (persistedConfig.lastUsedAssistantId != null) {
-          final lastAssistant = assistants
-              .where((a) =>
-                  a.id == persistedConfig.lastUsedAssistantId! && a.isEnabled)
-              .firstOrNull;
-          if (lastAssistant != null) return lastAssistant;
-        }
+    // 尝试获取上次使用的助手
+    if (persistedConfig.lastUsedAssistantId != null) {
+      final lastAssistant = assistants
+          .where((a) =>
+              a.id == persistedConfig.lastUsedAssistantId! && a.isEnabled)
+          .firstOrNull;
+      if (lastAssistant != null) return lastAssistant;
+    }
 
-        // 选择默认助手或第一个可用助手
-        return enabledAssistants
-                .where((a) => a.id == 'default-assistant')
-                .firstOrNull ??
-            enabledAssistants.firstOrNull;
-      },
-    );
+    // 选择默认助手或第一个可用助手
+    return enabledAssistants
+            .where((a) => a.id == 'default-assistant')
+            .firstOrNull ??
+        enabledAssistants.firstOrNull;
   }
 
   /// 获取默认配置 - 改进版，依赖ChatConfigurationNotifier

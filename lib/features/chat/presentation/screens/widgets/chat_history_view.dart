@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/message.dart';
-import '../../providers/chat_message_notifier.dart';
+import '../../../domain/entities/chat_state.dart';
+import '../../providers/unified_chat_notifier.dart';
 import 'chat_message_view.dart';
 import 'chat_suggestions_view.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
-/// 聊天历史显示组件 - 重构为使用 Riverpod 状态管理
+/// 聊天历史显示组件 - 使用统一聊天状态管理
 class ChatHistoryView extends ConsumerStatefulWidget {
   const ChatHistoryView({
     super.key,
@@ -109,10 +110,8 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
 
   @override
   Widget build(BuildContext context) {
-    // 监听聊天消息状态
-    final chatState =
-        ref.watch(chatMessageNotifierProvider(widget.conversationId));
-    final messages = chatState.messages;
+    // 监听统一聊天状态
+    final messages = ref.watch(chatMessagesProvider);
 
     // 准备显示的消息列表（包括欢迎消息）
     final displayMessages = <Message>[];

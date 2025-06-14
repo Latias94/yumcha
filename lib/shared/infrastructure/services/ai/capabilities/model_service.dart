@@ -6,6 +6,17 @@ import '../../../../../features/ai_management/domain/entities/ai_model.dart';
 import '../core/ai_service_base.dart';
 import 'package:llm_dart/llm_dart.dart';
 
+/// 模型服务异常，包含缓存的模型数据
+class ModelServiceException implements Exception {
+  final String message;
+  final List<AiModel>? cachedModels;
+
+  const ModelServiceException(this.message, {this.cachedModels});
+
+  @override
+  String toString() => message;
+}
+
 /// 模型管理服务，负责获取和管理AI模型
 class ModelService extends AiServiceBase {
   static final ModelService _instance = ModelService._internal();
@@ -47,11 +58,17 @@ class ModelService extends AiServiceBase {
   }) async {
     await initialize();
 
-    final cacheKey = provider.id;
+    // 生成包含关键配置的缓存键，确保配置变更时缓存失效
+    final cacheKey = _generateCacheKey(provider);
 
     // 检查缓存
     if (useCache && _isCacheValid(cacheKey)) {
-      logger.debug('从缓存获取模型列表', {'provider': provider.name});
+      logger.debug('从缓存获取模型列表', {
+        'provider': provider.name,
+        'cacheKey': cacheKey,
+        'baseUrl': provider.baseUrl,
+        'cachedModelsCount': _modelCache[cacheKey]?.length ?? 0,
+      });
       return _modelCache[cacheKey]!;
     }
 
@@ -147,14 +164,25 @@ class ModelService extends AiServiceBase {
         'friendlyError': friendlyError,
       });
 
-      // 返回缓存的模型（如果有）
-      if (_modelCache.containsKey(cacheKey)) {
-        logger.info('API 调用失败，返回缓存的模型列表', {'provider': provider.name});
-        return _modelCache[cacheKey]!;
+      // 如果没有缓存，抛出友好的异常让用户知道发生了什么
+      if (!_modelCache.containsKey(cacheKey)) {
+        throw Exception(friendlyError);
       }
 
-      // 如果没有缓存，抛出友好的异常让用户知道发生了什么
-      throw Exception(friendlyError);
+      // 如果有缓存，返回缓存但创建一个特殊的异常让用户知道发生了错误
+      logger.info('API 调用失败，返回缓存的模型列表', {
+        'provider': provider.name,
+        'cacheKey': cacheKey,
+        'currentBaseUrl': provider.baseUrl,
+        'cachedModelsCount': _modelCache[cacheKey]?.length ?? 0,
+        'cacheTimestamp': _cacheTimestamps[cacheKey]?.toIso8601String(),
+      });
+
+      // 创建一个特殊的异常，包含缓存的模型数据
+      throw ModelServiceException(
+        friendlyError,
+        cachedModels: _modelCache[cacheKey]!,
+      );
     }
   }
 
@@ -335,6 +363,20 @@ class ModelService extends AiServiceBase {
     filtered.sort((a, b) => a.name.compareTo(b.name));
 
     return filtered;
+  }
+
+  /// 生成缓存键，包含影响API调用的关键配置
+  String _generateCacheKey(models.AiProvider provider) {
+    // 包含影响模型列表API调用的关键参数
+    final keyComponents = [
+      provider.id,
+      provider.type.toString(),
+      provider.baseUrl ?? 'default',
+      // 注意：不包含完整的API密钥，只包含前几位作为标识
+      provider.apiKey.isNotEmpty ? provider.apiKey.substring(0, 8.clamp(0, provider.apiKey.length)) : 'no-key',
+    ];
+
+    return keyComponents.join('|');
   }
 
   /// 获取友好的错误信息

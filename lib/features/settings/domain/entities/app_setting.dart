@@ -274,6 +274,36 @@ class SettingKeys {
   static const String mcpEnabled = 'mcp.enabled';
   static const String mcpServers = 'mcp.servers';
 
+  // 多媒体功能设置
+  static const String multimediaEnabled = 'multimedia.enabled';
+  static const String imageGenerationEnabled = 'multimedia.image_generation_enabled';
+  static const String ttsEnabled = 'multimedia.tts_enabled';
+  static const String sttEnabled = 'multimedia.stt_enabled';
+  static const String webSearchEnabled = 'multimedia.web_search_enabled';
+  static const String imageAnalysisEnabled = 'multimedia.image_analysis_enabled';
+  static const String autoDetectMultimedia = 'multimedia.auto_detect_enabled';
+
+  // 多媒体网络设置
+  static const String httpProxyUrl = 'multimedia.http_proxy_url';
+  static const String connectionTimeout = 'multimedia.connection_timeout';
+  static const String receiveTimeout = 'multimedia.receive_timeout';
+  static const String sendTimeout = 'multimedia.send_timeout';
+  static const String enableHttpLogging = 'multimedia.enable_http_logging';
+  static const String bypassSSLVerification = 'multimedia.bypass_ssl_verification';
+
+  // 多媒体资源限制设置
+  static const String maxImageSize = 'multimedia.max_image_size';
+  static const String maxAudioDuration = 'multimedia.max_audio_duration';
+  static const String maxSearchResults = 'multimedia.max_search_results';
+  static const String cacheExpiry = 'multimedia.cache_expiry';
+
+  // 多媒体质量设置
+  static const String defaultImageSize = 'multimedia.default_image_size';
+  static const String defaultImageQuality = 'multimedia.default_image_quality';
+  static const String defaultTtsVoice = 'multimedia.default_tts_voice';
+  static const String defaultSttLanguage = 'multimedia.default_stt_language';
+  static const String defaultSearchLanguage = 'multimedia.default_search_language';
+
   // 最后使用的配置
   static const String lastUsedAssistantId = 'last_used.assistant_id';
   static const String lastUsedProviderId = 'last_used.provider_id';

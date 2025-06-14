@@ -147,6 +147,9 @@ class Messages extends Table {
   // AI响应元数据（JSON格式）
   TextColumn get metadata => text().nullable()(); // 存储AI响应的详细信息
 
+  // 多媒体内容元数据（JSON格式）
+  TextColumn get mediaMetadata => text().nullable()(); // 存储多媒体文件的元数据信息
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -179,7 +182,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -248,8 +251,15 @@ class AppDatabase extends _$AppDatabase {
       );
     }
 
+    // 版本4到版本5：为消息表添加多媒体元数据字段
+    if (from < 5) {
+      await m.database.customStatement(
+        'ALTER TABLE messages ADD COLUMN media_metadata TEXT;',
+      );
+    }
+
     // 未来版本升级时在此处添加迁移逻辑
-    // if (from < 5) {
+    // if (from < 6) {
     //   await m.createTable(newTable);
     // }
   }

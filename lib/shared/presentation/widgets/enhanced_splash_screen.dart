@@ -129,6 +129,23 @@ class _EnhancedSplashScreenState extends ConsumerState<EnhancedSplashScreen>
     super.dispose();
   }
 
+  /// 获取自适应间距
+  /// 根据屏幕高度调整间距，避免小屏设备overflow
+  double _getAdaptiveSpacing(BuildContext context, double baseSpacing) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // 小屏设备 (高度 < 700px) - 减少50%间距
+    if (screenHeight < 700) {
+      return baseSpacing * 0.5;
+    }
+    // 中等屏幕 (高度 < 800px) - 减少25%间距
+    else if (screenHeight < 800) {
+      return baseSpacing * 0.75;
+    }
+    // 大屏设备 - 保持原间距
+    return baseSpacing;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -157,36 +174,49 @@ class _EnhancedSplashScreenState extends ConsumerState<EnhancedSplashScreen>
             colors: gradientColors,
           ),
         ),
-        child: Stack(
-          children: [
-            // 背景粒子效果
-            _buildParticleBackground(colorScheme),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              // 背景粒子效果
+              _buildParticleBackground(colorScheme),
 
-            // 主要内容
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo区域
-                  _buildAnimatedLogo(colorScheme),
-                  SizedBox(
-                      height: DesignConstants.spaceXXXL * 2), // 60px -> 64px
+              // 主要内容 - 添加滚动支持
+              SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.top -
+                        MediaQuery.of(context).padding.bottom,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Logo区域
+                        _buildAnimatedLogo(colorScheme),
+                        SizedBox(
+                            height: _getAdaptiveSpacing(context, DesignConstants.spaceXXXL * 2)),
 
-                  // 进度区域
-                  _buildProgressSection(colorScheme),
-                  SizedBox(
-                      height: DesignConstants.spaceXXXL +
-                          DesignConstants.spaceS), // 40px -> 40px
+                        // 进度区域
+                        _buildProgressSection(colorScheme),
+                        SizedBox(
+                            height: _getAdaptiveSpacing(context, DesignConstants.spaceXXXL + DesignConstants.spaceS)),
 
-                  // 状态详情
-                  _buildStatusDetails(colorScheme),
-                ],
+                        // 状态详情
+                        _buildStatusDetails(colorScheme),
+
+                        // 底部留白，为底部信息预留空间
+                        SizedBox(height: DesignConstants.spaceXXXL * 3),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
 
-            // 底部信息
-            _buildBottomInfo(colorScheme),
-          ],
+              // 底部信息
+              _buildBottomInfo(colorScheme),
+            ],
+          ),
         ),
       ),
     );

@@ -25,15 +25,17 @@
 //
 // 🔄 **状态处理**:
 // - 加载状态：显示加载指示器
-// - 错误状态：显示错误信息和重试按钮
 // - 正常状态：显示聊天界面
 // - 空状态：显示初始化提示
+// - 错误处理：通过 SnackBar 和聊天气泡显示，不阻塞界面
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/presentation/widgets/app_drawer.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
-import '../../shared/presentation/providers/conversation_notifier.dart';
+import '../../features/chat/presentation/providers/unified_chat_notifier.dart';
+import '../../features/chat/domain/entities/conversation_ui_state.dart';
+import '../../features/chat/domain/entities/chat_state.dart';
 import '../../shared/infrastructure/services/logger_service.dart';
 
 /// 主导航界面组件
@@ -102,20 +104,18 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         'conversationId': widget.initialConversationId,
         'messageId': widget.initialMessageId,
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (mounted && !_hasInitialized) {
           _logger.info('开始加载初始对话', {
             'conversationId': widget.initialConversationId,
           });
-          final conversationNotifier = ref.read(
-            currentConversationProvider.notifier,
-          );
-          conversationNotifier.switchToConversation(
-            widget.initialConversationId!,
-          );
-          setState(() {
-            _hasInitialized = true;
-          });
+          final chatNotifier = ref.read(unifiedChatProvider.notifier);
+          await chatNotifier.loadConversation(widget.initialConversationId!);
+          if (mounted) {
+            setState(() {
+              _hasInitialized = true;
+            });
+          }
         }
       });
     } else {
@@ -142,10 +142,10 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   /// - 使用异步操作，需要检查 context.mounted
   /// - 使用 pushReplacement 而不是 setState，确保状态完全重置
   void _createNewChatWithAnimation(BuildContext context, WidgetRef ref) async {
-    final notifier = ref.read(currentConversationProvider.notifier);
+    final chatNotifier = ref.read(unifiedChatProvider.notifier);
 
     // 先创建新对话
-    await notifier.createNewConversation();
+    await chatNotifier.createNewConversation();
 
     // 检查 context 是否仍然有效
     if (!context.mounted) return;
@@ -159,12 +159,13 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final conversationState = ref.watch(currentConversationProvider);
-    final conversationNotifier = ref.read(currentConversationProvider.notifier);
+    final conversation = ref.watch(currentConversationProvider);
+    final chatState = ref.watch(unifiedChatProvider);
+    final chatNotifier = ref.read(unifiedChatProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getAppBarTitle(conversationState)),
+        title: Text(_getAppBarTitle(conversation)),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -176,18 +177,22 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         ],
       ),
       drawer: AppDrawer(
-        selectedMenu: conversationState.selectedMenu,
+        selectedMenu: conversation?.id ?? 'new_chat',
         onChatClicked: (chatId) {
           _logger.info('MainNavigation 收到聊天点击事件', {
             'chatId': chatId,
-            'currentConversationId': conversationState.conversation?.id,
-            'isLoading': conversationState.isLoading,
+            'currentConversationId': conversation?.id,
+            'isLoading': chatState.isLoading,
           });
 
           // 防止在加载状态时重复点击
-          if (!conversationState.isLoading) {
+          if (!chatState.isLoading) {
             _logger.info('开始切换对话', {'targetChatId': chatId});
-            conversationNotifier.switchToConversation(chatId);
+            if (chatId == "new_chat") {
+              chatNotifier.createNewConversation();
+            } else {
+              chatNotifier.loadConversation(chatId);
+            }
             Navigator.of(context).pop(); // Close drawer
           } else {
             _logger.warning('对话正在加载中，忽略点击事件');
@@ -195,7 +200,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         },
         onProfileClicked: (String userId) {}, // 移除profile功能，保留空实现避免错误
       ),
-      body: _getCurrentScreen(conversationState, conversationNotifier),
+      body: _getCurrentScreen(conversation, chatState, chatNotifier),
     );
   }
 
@@ -212,9 +217,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   ///
   /// **返回值**:
   /// - 返回要显示在 AppBar 中的标题字符串
-  String _getAppBarTitle(CurrentConversationState state) {
-    if (state.conversation != null) {
-      return state.conversation!.channelName;
+  String _getAppBarTitle(ConversationUiState? conversation) {
+    if (conversation != null) {
+      return conversation.channelName;
     }
     return "聊天";
   }
@@ -222,13 +227,17 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   /// 获取当前要显示的屏幕内容
   ///
   /// 根据对话状态决定显示哪个界面组件。
-  /// 处理加载、错误、正常和空状态的界面展示。
+  /// 处理加载、正常和空状态的界面展示。
   ///
   /// **状态处理**:
   /// - **加载状态**: 显示加载指示器和提示文本
-  /// - **错误状态**: 显示错误信息和重试按钮
   /// - **正常状态**: 显示聊天界面
   /// - **空状态**: 显示初始化提示
+  ///
+  /// **错误处理**:
+  /// - 错误通过 NotificationService 显示 SnackBar
+  /// - 错误信息在聊天气泡中显示
+  /// - 不会替换整个聊天界面，保持用户可以继续聊天
   ///
   /// **参数说明**:
   /// - [state]: 当前对话状态
@@ -237,19 +246,19 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   /// **返回值**:
   /// - 返回要显示的 Widget 组件
   Widget _getCurrentScreen(
-    CurrentConversationState state,
-    CurrentConversationNotifier notifier,
+    ConversationUiState? conversation,
+    UnifiedChatState chatState,
+    UnifiedChatNotifier chatNotifier,
   ) {
     _logger.debug('MainNavigation 渲染屏幕', {
-      'isLoading': state.isLoading,
-      'hasError': state.error != null,
-      'hasConversation': state.conversation != null,
-      'conversationId': state.conversation?.id,
-      'selectedMenu': state.selectedMenu,
+      'isLoading': chatState.isLoading,
+      'hasError': chatState.hasError,
+      'hasConversation': conversation != null,
+      'conversationId': conversation?.id,
     });
 
     // 如果正在加载
-    if (state.isLoading) {
+    if (chatState.isLoading) {
       _logger.debug('显示加载状态');
       return const Center(
         child: Column(
@@ -263,48 +272,49 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       );
     }
 
-    // 如果有错误
-    if (state.error != null) {
-      _logger.warning('显示错误状态', {'error': state.error});
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error,
-                size: 64, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 16),
-            Text('错误: ${state.error}'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                notifier.clearError();
-                notifier.createNewConversation();
-              },
-              child: const Text('重试'),
-            ),
-          ],
-        ),
-      );
-    }
+    // 注意：错误处理已移除，错误现在通过以下方式处理：
+    // 1. NotificationService 显示 SnackBar 通知
+    // 2. ChatMessageView 在聊天气泡中显示错误信息
+    // 3. 用户可以继续聊天，不会被错误界面阻塞
 
-    // 显示当前对话
-    if (state.conversation != null) {
-      _logger.info('显示聊天界面', {
-        'conversationId': state.conversation!.id,
-        'assistantId': state.conversation!.assistantId,
-        'messageCount': state.conversation!.messages.length,
-      });
-      return ChatScreen(
-        conversationState: state.conversation!,
-        showAppBar: false,
-        onAssistantConfigChanged: notifier.onAssistantConfigChanged,
-        onConversationUpdated: notifier.updateConversation,
-        initialMessageId: widget.initialMessageId,
-      );
-    }
+    // 始终显示聊天界面，无论是否有对话
+    _logger.info('显示聊天界面', {
+      'hasConversation': conversation != null,
+      'conversationId': conversation?.id,
+      'assistantId': conversation?.assistantId,
+      'messageCount': conversation?.messages.length ?? 0,
+    });
 
-    // 没有对话时显示加载状态
-    _logger.warning('没有对话，显示初始化状态');
-    return const Center(child: Text('正在初始化...'));
+    // 创建一个虚拟的对话状态用于显示聊天界面
+    final displayConversation = conversation ?? ConversationUiState(
+      id: '', // 空ID表示还没有真正的对话
+      channelName: "新对话",
+      channelMembers: 1,
+      assistantId: chatState.configuration.selectedAssistant?.id ?? '',
+      selectedProviderId: chatState.configuration.selectedProvider?.id ?? '',
+      selectedModelId: chatState.configuration.selectedModel?.name ?? '',
+      messages: [],
+    );
+
+    return ChatScreen(
+      conversationState: displayConversation,
+      showAppBar: false,
+      onAssistantConfigChanged: (assistantId, providerId, modelName) {
+        // 处理助手配置变更 - 这里可以添加额外的逻辑
+        _logger.info('助手配置已变更', {
+          'assistantId': assistantId,
+          'providerId': providerId,
+          'modelName': modelName,
+        });
+      },
+      onConversationUpdated: (updatedConversation) {
+        // 处理对话更新 - 这里可以添加额外的逻辑
+        _logger.info('对话已更新', {
+          'conversationId': updatedConversation.id,
+          'messageCount': updatedConversation.messages.length,
+        });
+      },
+      initialMessageId: widget.initialMessageId,
+    );
   }
 }

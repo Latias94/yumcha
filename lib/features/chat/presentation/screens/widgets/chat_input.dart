@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/message.dart';
 import '../../../domain/entities/chat_message_content.dart';
@@ -7,8 +8,7 @@ import '../../../../../shared/infrastructure/services/database_service.dart';
 import '../../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../../ai_management/domain/entities/ai_assistant.dart';
-import '../../providers/chat_configuration_notifier.dart';
-import '../../providers/chat_configuration_monitor.dart';
+import '../../providers/unified_chat_notifier.dart';
 import '../../widgets/chat_configuration_status.dart';
 import 'model_selector.dart';
 import 'attachment_panel.dart';
@@ -17,7 +17,16 @@ import 'attachment_chips.dart';
 import 'attachment_preview_dialog.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 import '../../../../../shared/infrastructure/services/image_service.dart';
-import '../../../infrastructure/services/configuration_navigation_service.dart';
+
+/// 发送消息的 Intent
+class SendMessageIntent extends Intent {
+  const SendMessageIntent();
+}
+
+/// 换行的 Intent
+class NewLineIntent extends Intent {
+  const NewLineIntent();
+}
 
 /// 聊天输入组件 - 重构版
 class ChatInput extends ConsumerStatefulWidget {
@@ -112,6 +121,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
   /// 初始化默认助手选择
   Future<void> _initializeDefaultAssistant() async {
     try {
+      final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+
       // 1. 优先使用传入的初始值
       if (widget.initialAssistantId != null &&
           widget.initialAssistantId!.isNotEmpty) {
@@ -119,10 +130,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
           widget.initialAssistantId!,
         );
         if (assistant != null) {
-          // 使用 ChatConfigurationNotifier 选择助手
-          ref
-              .read(chatConfigurationProvider.notifier)
-              .selectAssistant(assistant);
+          // 使用统一聊天状态管理选择助手
+          await unifiedChatNotifier.selectAssistant(assistant);
           return;
         }
       }
@@ -136,9 +145,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
         );
         if (assistant != null && assistant.isEnabled) {
           // 选择助手
-          ref
-              .read(chatConfigurationProvider.notifier)
-              .selectAssistant(assistant);
+          await unifiedChatNotifier.selectAssistant(assistant);
           return;
         }
       }
@@ -165,10 +172,9 @@ class _ChatInputState extends ConsumerState<ChatInput>
       final assistants = await _assistantRepository.getEnabledAssistants();
 
       if (assistants.isNotEmpty) {
-        // 选择助手
-        ref
-            .read(chatConfigurationProvider.notifier)
-            .selectAssistant(assistants.first);
+        // 使用统一聊天状态管理选择助手
+        final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+        await unifiedChatNotifier.selectAssistant(assistants.first);
         return true;
       }
       return false;
@@ -235,6 +241,26 @@ class _ChatInputState extends ConsumerState<ChatInput>
     }
   }
 
+  /// 处理换行
+  void _handleNewLine() {
+    final currentText = _textController.text;
+    final selection = _textController.selection;
+
+    // 在当前光标位置插入换行符
+    final newText = currentText.replaceRange(
+      selection.start,
+      selection.end,
+      '\n',
+    );
+
+    _textController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: selection.start + 1,
+      ),
+    );
+  }
+
   void _handleSend() {
     final text = _textController.text.trim();
     final hasText = text.isNotEmpty;
@@ -242,56 +268,26 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
     if ((hasText || hasAttachments) && widget.onSendMessage != null) {
       // 检查配置状态
-      final canChat = ref.read(canStartChatProvider);
-      if (!canChat) {
-        final issue = ref.read(configurationIssueProvider);
-        final suggestions = ref.read(configurationFixSuggestionsProvider);
-        final chatConfig = ref.read(chatConfigurationProvider);
-
-        // 显示配置问题对话框，提供智能导航
+      final chatConfig = ref.read(chatConfigurationProvider);
+      if (!chatConfig.isComplete) {
+        // 显示配置问题对话框
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('无法发送消息'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(issue ?? '聊天配置不完整，请检查助手和模型设置'),
-                if (suggestions.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text('建议:'),
-                  const SizedBox(height: 8),
-                  ...suggestions.take(3).map((suggestion) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text('• $suggestion'),
-                      )),
-                ],
-              ],
-            ),
+            content: const Text('聊天配置不完整，请检查助手和模型设置'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('取消'),
               ),
               ElevatedButton(
-                onPressed: () async {
+                onPressed: () {
                   Navigator.of(context).pop();
-                  // 使用智能导航服务
-                  await ConfigurationNavigationService.navigateToFix(
-                    context,
-                    config: chatConfig.chatConfiguration,
-                    issue: issue,
-                    suggestions: suggestions,
-                  );
+                  // 导航到设置页面
+                  Navigator.of(context).pushNamed('/settings');
                 },
-                child: Text(
-                  ConfigurationNavigationService.getNavigationButtonText(
-                    config: chatConfig.chatConfiguration,
-                    issue: issue,
-                    suggestions: suggestions,
-                  ),
-                ),
+                child: const Text('去设置'),
               ),
             ],
           ),
@@ -393,9 +389,9 @@ class _ChatInputState extends ConsumerState<ChatInput>
     if (widget.isLoading) {
       return 'AI正在思考中...';
     } else if (isEditing) {
-      return '编辑消息...';
+      return '编辑消息... (Enter发送, Shift+Enter换行)';
     } else {
-      return '输入消息...';
+      return '输入消息... (Enter发送, Shift+Enter换行)';
     }
   }
 
@@ -408,8 +404,10 @@ class _ChatInputState extends ConsumerState<ChatInput>
       selectedProviderId: chatConfig.selectedProvider?.id,
       selectedModelName: chatConfig.selectedModel?.name,
       onModelSelected: (selection) {
-        // 使用 ChatConfigurationNotifier 来选择模型
-        ref.read(chatConfigurationProvider.notifier).selectModel(selection);
+        // 使用统一聊天状态管理来选择模型
+        final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+        // TODO: 实现模型选择功能
+        // unifiedChatNotifier.selectModel(selection.provider, selection.model);
 
         // 通知父组件模型已改变
         final chatConfig = ref.read(chatConfigurationProvider);
@@ -581,10 +579,10 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildConfigurationStatusIndicator(
       BuildContext context, ThemeData theme) {
-    final needsAttention = ref.watch(configurationNeedsAttentionProvider);
+    final chatConfig = ref.watch(chatConfigurationProvider);
 
-    // 只在需要关注时显示
-    if (!needsAttention) {
+    // 只在配置不完整时显示
+    if (chatConfig.isComplete) {
       return const SizedBox.shrink();
     }
 
@@ -598,55 +596,23 @@ class _ChatInputState extends ConsumerState<ChatInput>
         showDetails: false,
         onFixRequested: () {
           // 显示配置问题详情
-          final issue = ref.read(configurationIssueProvider);
-          final suggestions = ref.read(configurationFixSuggestionsProvider);
-          final chatConfig = ref.read(chatConfigurationProvider);
-
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('配置问题'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (issue != null) ...[
-                    Text('问题: $issue'),
-                    const SizedBox(height: 16),
-                  ],
-                  if (suggestions.isNotEmpty) ...[
-                    const Text('建议:'),
-                    const SizedBox(height: 8),
-                    ...suggestions.map((suggestion) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text('• $suggestion'),
-                        )),
-                  ],
-                ],
-              ),
+              content: const Text('聊天配置不完整，请检查助手和模型设置'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('知道了'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: () {
                     Navigator.of(context).pop();
-                    // 使用智能导航服务
-                    await ConfigurationNavigationService.navigateToFix(
-                      context,
-                      config: chatConfig.chatConfiguration,
-                      issue: issue,
-                      suggestions: suggestions,
-                    );
+                    // 导航到设置页面
+                    Navigator.of(context).pushNamed('/settings');
                   },
-                  child: Text(
-                    ConfigurationNavigationService.getNavigationButtonText(
-                      config: chatConfig.chatConfiguration,
-                      issue: issue,
-                      suggestions: suggestions,
-                    ),
-                  ),
+                  child: const Text('去设置'),
                 ),
               ],
             ),
@@ -666,17 +632,40 @@ class _ChatInputState extends ConsumerState<ChatInput>
         decoration: _focusNode.hasFocus
             ? theme.inputFocusDecoration
             : theme.inputDecoration,
-        child: TextField(
-          controller: _textController,
-          focusNode: _focusNode,
-          autofocus: widget.autofocus,
-          onChanged: (text) {
-            setState(() {
-              _isComposing = text.isNotEmpty;
-            });
+        child: Shortcuts(
+          shortcuts: {
+            LogicalKeySet(LogicalKeyboardKey.enter): const SendMessageIntent(),
+            LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.enter): const NewLineIntent(),
           },
-          onSubmitted: _canSend() ? (_) => _handleSend() : null,
-          decoration: InputDecoration(
+          child: Actions(
+            actions: {
+              SendMessageIntent: CallbackAction<SendMessageIntent>(
+                onInvoke: (intent) {
+                  if (_canSend()) {
+                    _handleSend();
+                  }
+                  return null;
+                },
+              ),
+              NewLineIntent: CallbackAction<NewLineIntent>(
+                onInvoke: (intent) {
+                  _handleNewLine();
+                  return null;
+                },
+              ),
+            },
+            child: TextField(
+              controller: _textController,
+              focusNode: _focusNode,
+              autofocus: widget.autofocus,
+              onChanged: (text) {
+                setState(() {
+                  _isComposing = text.isNotEmpty;
+                });
+              },
+              // 移除 onSubmitted，因为我们现在使用快捷键处理
+              onSubmitted: null,
+              decoration: InputDecoration(
             hintText: _getInputHintText(isEditing),
             hintStyle: TextStyle(
               color: widget.isLoading
@@ -713,13 +702,15 @@ class _ChatInputState extends ConsumerState<ChatInput>
               minWidth: 36,
               minHeight: 16,
             ),
-          ),
-          maxLines: DesignConstants.isDesktop(context) ? 5 : 4,
-          minLines: 1,
-          textCapitalization: TextCapitalization.sentences,
-          style: const TextStyle(
-            fontSize: 15,
-            height: 1.4,
+              ),
+              maxLines: DesignConstants.isDesktop(context) ? 5 : 4,
+              minLines: 1,
+              textCapitalization: TextCapitalization.sentences,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.4,
+              ),
+            ),
           ),
         ),
       ),

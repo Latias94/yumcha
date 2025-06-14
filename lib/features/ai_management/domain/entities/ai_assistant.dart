@@ -230,4 +230,66 @@ class AiAssistant {
       isContextLengthValid &&
       isFrequencyPenaltyValid &&
       isPresencePenaltyValid;
+
+  /// 序列化为JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'avatar': avatar,
+      'systemPrompt': systemPrompt,
+      'temperature': temperature,
+      'topP': topP,
+      'maxTokens': maxTokens,
+      'contextLength': contextLength,
+      'streamOutput': streamOutput,
+      'frequencyPenalty': frequencyPenalty,
+      'presencePenalty': presencePenalty,
+      'customHeaders': customHeaders,
+      'customBody': customBody,
+      'stopSequences': stopSequences,
+      'enableCodeExecution': enableCodeExecution,
+      'enableImageGeneration': enableImageGeneration,
+      'enableTools': enableTools,
+      'enableReasoning': enableReasoning,
+      'enableVision': enableVision,
+      'enableEmbedding': enableEmbedding,
+      'mcpServerIds': mcpServerIds,
+      'isEnabled': isEnabled,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  /// 从JSON反序列化
+  factory AiAssistant.fromJson(Map<String, dynamic> json) {
+    return AiAssistant(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      avatar: json['avatar'] as String? ?? '🤖',
+      systemPrompt: json['systemPrompt'] as String,
+      temperature: (json['temperature'] as num?)?.toDouble() ?? 0.7,
+      topP: (json['topP'] as num?)?.toDouble() ?? 1.0,
+      maxTokens: json['maxTokens'] as int? ?? 2048,
+      contextLength: json['contextLength'] as int? ?? 10,
+      streamOutput: json['streamOutput'] as bool? ?? true,
+      frequencyPenalty: (json['frequencyPenalty'] as num?)?.toDouble(),
+      presencePenalty: (json['presencePenalty'] as num?)?.toDouble(),
+      customHeaders: Map<String, String>.from(json['customHeaders'] as Map? ?? {}),
+      customBody: Map<String, dynamic>.from(json['customBody'] as Map? ?? {}),
+      stopSequences: List<String>.from(json['stopSequences'] as List? ?? []),
+      enableCodeExecution: json['enableCodeExecution'] as bool? ?? false,
+      enableImageGeneration: json['enableImageGeneration'] as bool? ?? false,
+      enableTools: json['enableTools'] as bool? ?? false,
+      enableReasoning: json['enableReasoning'] as bool? ?? false,
+      enableVision: json['enableVision'] as bool? ?? false,
+      enableEmbedding: json['enableEmbedding'] as bool? ?? false,
+      mcpServerIds: List<String>.from(json['mcpServerIds'] as List? ?? []),
+      isEnabled: json['isEnabled'] as bool? ?? true,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+    );
+  }
 }

@@ -31,7 +31,8 @@ import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../../domain/entities/ai_assistant.dart';
 import '../../domain/entities/ai_provider.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
-import '../providers/ai_assistant_notifier.dart';
+import '../providers/unified_ai_management_providers.dart';
+import '../../../../shared/presentation/providers/dependency_providers.dart';
 import '../../../settings/domain/entities/mcp_server_config.dart';
 import '../../../settings/presentation/providers/settings_notifier.dart';
 import '../../../settings/presentation/providers/mcp_service_provider.dart';
@@ -293,14 +294,15 @@ class _AssistantEditScreenState extends ConsumerState<AssistantEditScreen>
       );
 
       if (_isEditing) {
-        await ref
-            .read(aiAssistantNotifierProvider.notifier)
-            .updateAssistant(assistant);
+        // 更新助手 - 直接使用Repository
+        await ref.read(assistantRepositoryProvider).updateAssistant(assistant);
       } else {
-        await ref
-            .read(aiAssistantNotifierProvider.notifier)
-            .addAssistant(assistant);
+        // 添加助手 - 直接使用Repository
+        await ref.read(assistantRepositoryProvider).insertAssistant(assistant);
       }
+
+      // 刷新统一管理状态
+      ref.invalidate(unifiedAiManagementProvider);
 
       if (mounted) {
         Navigator.pop(context, true);

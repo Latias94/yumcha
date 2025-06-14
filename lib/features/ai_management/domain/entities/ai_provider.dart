@@ -152,6 +152,43 @@ class AiProvider {
     }
   }
 
+  /// 序列化为JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type.id,
+      'apiKey': apiKey,
+      'baseUrl': baseUrl,
+      'models': models.map((model) => model.toJson()).toList(),
+      'customHeaders': customHeaders,
+      'isEnabled': isEnabled,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  /// 从JSON反序列化
+  factory AiProvider.fromJson(Map<String, dynamic> json) {
+    return AiProvider(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      type: ProviderType.values.firstWhere(
+        (type) => type.id == json['type'],
+        orElse: () => ProviderType.custom,
+      ),
+      apiKey: json['apiKey'] as String,
+      baseUrl: json['baseUrl'] as String?,
+      models: (json['models'] as List<dynamic>?)
+          ?.map((modelJson) => AiModel.fromJson(modelJson as Map<String, dynamic>))
+          .toList() ?? [],
+      customHeaders: Map<String, String>.from(json['customHeaders'] as Map? ?? {}),
+      isEnabled: json['isEnabled'] as bool? ?? true,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

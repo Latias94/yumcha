@@ -52,30 +52,58 @@ class AppSplashScreen extends ConsumerWidget {
             colors: gradientColors,
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 应用Logo区域
-              _buildLogoSection(context, colorScheme),
-              SizedBox(height: DesignConstants.spaceXXXL * 2),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 应用Logo区域
+                    _buildLogoSection(context, colorScheme),
+                    SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXXL * 2)),
 
-              // 加载进度区域
-              _buildLoadingSection(context, colorScheme),
-              SizedBox(height: DesignConstants.spaceXXL),
+                    // 加载进度区域
+                    _buildLoadingSection(context, colorScheme),
+                    SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXL)),
 
-              // 初始化状态详情
-              _buildInitializationDetails(context, colorScheme),
+                    // 初始化状态详情
+                    _buildInitializationDetails(context, colorScheme),
 
-              // 底部版本信息
-              const Spacer(),
-              _buildVersionInfo(context, colorScheme),
-              SizedBox(height: DesignConstants.spaceXXL),
-            ],
+                    // 底部版本信息
+                    const Spacer(),
+                    _buildVersionInfo(context, colorScheme),
+                    SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXL)),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
+  }
+
+  /// 获取自适应间距
+  /// 根据屏幕高度调整间距，避免小屏设备overflow
+  double _getAdaptiveSpacing(BuildContext context, double baseSpacing) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // 小屏设备 (高度 < 700px) - 减少50%间距
+    if (screenHeight < 700) {
+      return baseSpacing * 0.5;
+    }
+    // 中等屏幕 (高度 < 800px) - 减少25%间距
+    else if (screenHeight < 800) {
+      return baseSpacing * 0.75;
+    }
+    // 大屏设备 - 保持原间距
+    return baseSpacing;
   }
 
   /// 构建Logo区域
@@ -116,7 +144,7 @@ class AppSplashScreen extends ConsumerWidget {
             );
           },
         ),
-        SizedBox(height: DesignConstants.spaceXXL),
+        SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXL)),
 
         // 应用名称
         TweenAnimationBuilder<double>(
@@ -130,7 +158,7 @@ class AppSplashScreen extends ConsumerWidget {
                 'Yumcha',
                 style: TextStyle(
                   fontSize: DesignConstants.getResponsiveFontSize(context,
-                      mobile: 32.0, tablet: 36.0, desktop: 40.0),
+                      mobile: 28.0, tablet: 32.0, desktop: 36.0), // 小屏减小字体
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                   letterSpacing: 2.0,
@@ -139,7 +167,7 @@ class AppSplashScreen extends ConsumerWidget {
             );
           },
         ),
-        SizedBox(height: DesignConstants.spaceS),
+        SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceS)),
 
         // 副标题
         TweenAnimationBuilder<double>(
@@ -152,7 +180,8 @@ class AppSplashScreen extends ConsumerWidget {
               child: Text(
                 'AI 聊天助手',
                 style: TextStyle(
-                  fontSize: DesignConstants.getResponsiveFontSize(context),
+                  fontSize: DesignConstants.getResponsiveFontSize(context,
+                      mobile: 12.0, tablet: 14.0, desktop: 16.0), // 小屏减小字体
                   color: colorScheme.onSurfaceVariant,
                   letterSpacing: 1.0,
                 ),
@@ -182,7 +211,7 @@ class AppSplashScreen extends ConsumerWidget {
                 .withValues(alpha: DesignConstants.opacityMedium * 0.33), // 0.2
           ),
         ),
-        SizedBox(height: DesignConstants.spaceXL),
+        SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXL)),
 
         // 当前步骤
         AnimatedSwitcher(
@@ -192,7 +221,8 @@ class AppSplashScreen extends ConsumerWidget {
             initState.currentStep,
             key: ValueKey(initState.currentStep),
             style: TextStyle(
-              fontSize: 16, // 保持固定字体大小
+              fontSize: DesignConstants.getResponsiveFontSize(context,
+                  mobile: 14.0, tablet: 15.0, desktop: 16.0), // 响应式字体
               color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
@@ -206,33 +236,41 @@ class AppSplashScreen extends ConsumerWidget {
   /// 构建初始化详情
   Widget _buildInitializationDetails(
       BuildContext context, ColorScheme colorScheme) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: DesignConstants.spaceXXL * 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: _getAdaptiveSpacing(context, DesignConstants.spaceXXL * 2),
+      ),
       child: Column(
         children: [
           _buildStatusItem('数据初始化', initState.isDataInitialized, colorScheme),
-          SizedBox(height: DesignConstants.spaceS),
 
-          // 详细的数据加载状态
-          Padding(
-            padding: EdgeInsets.only(left: DesignConstants.spaceL),
-            child: Column(
-              children: [
-                _buildSubStatusItem('提供商数据', initState.isProvidersLoaded, colorScheme),
-                SizedBox(height: DesignConstants.spaceXS),
-                _buildSubStatusItem('助手数据', initState.isAssistantsLoaded, colorScheme),
-                SizedBox(height: DesignConstants.spaceXS),
-                _buildSubStatusItem('设置数据', initState.isSettingsLoaded, colorScheme),
-                SizedBox(height: DesignConstants.spaceXS),
-                _buildSubStatusItem('收藏模型', initState.isFavoriteModelsLoaded, colorScheme),
-              ],
+          // 在小屏设备上隐藏详细的子状态，节省空间
+          if (!isSmallScreen) ...[
+            SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceS)),
+            // 详细的数据加载状态
+            Padding(
+              padding: EdgeInsets.only(left: DesignConstants.spaceL),
+              child: Column(
+                children: [
+                  _buildSubStatusItem('提供商数据', initState.isProvidersLoaded, colorScheme),
+                  SizedBox(height: DesignConstants.spaceXS),
+                  _buildSubStatusItem('助手数据', initState.isAssistantsLoaded, colorScheme),
+                  SizedBox(height: DesignConstants.spaceXS),
+                  _buildSubStatusItem('设置数据', initState.isSettingsLoaded, colorScheme),
+                  SizedBox(height: DesignConstants.spaceXS),
+                  _buildSubStatusItem('收藏模型', initState.isFavoriteModelsLoaded, colorScheme),
+                ],
+              ),
             ),
-          ),
+          ],
 
-          SizedBox(height: DesignConstants.spaceM),
+          SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceM)),
           _buildStatusItem(
               'AI服务初始化', initState.isAiServicesInitialized, colorScheme),
-          SizedBox(height: DesignConstants.spaceM),
+          SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceM)),
           _buildStatusItem('MCP服务初始化', initState.isMcpInitialized, colorScheme),
         ],
       ),

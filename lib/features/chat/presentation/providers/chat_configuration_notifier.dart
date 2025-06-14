@@ -8,8 +8,7 @@ import '../../../ai_management/data/repositories/assistant_repository.dart';
 import '../../../ai_management/data/repositories/provider_repository.dart';
 import '../../../settings/presentation/providers/settings_notifier.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
-import '../../../ai_management/presentation/providers/ai_provider_notifier.dart';
-import '../../../ai_management/presentation/providers/ai_assistant_notifier.dart';
+import '../../../ai_management/presentation/providers/unified_ai_management_providers.dart';
 
 /// 聊天配置状态数据模型 - 包含助手、提供商、模型的选择状态
 class ChatConfigurationState {
@@ -219,35 +218,35 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
 
   /// 设置监听器 - 监听提供商和助手的变化
   void _setupListeners() {
-    // 监听提供商变化
-    _ref.listen(aiProviderNotifierProvider, (previous, next) {
+    // 监听提供商变化 - 使用新的统一AI管理Provider
+    _ref.listen(aiProvidersProvider, (previous, next) {
       _handleProvidersChanged(previous, next);
     });
 
-    // 监听助手变化
-    _ref.listen(aiAssistantNotifierProvider, (previous, next) {
+    // 监听助手变化 - 使用新的统一AI管理Provider
+    _ref.listen(aiAssistantsProvider, (previous, next) {
       _handleAssistantsChanged(previous, next);
     });
   }
 
   /// 处理提供商变化
   void _handleProvidersChanged(
-    AsyncValue<List<AiProvider>>? previous,
-    AsyncValue<List<AiProvider>> next,
+    List<AiProvider>? previous,
+    List<AiProvider> next,
   ) {
     // 只在数据真正变化时处理
-    if (previous?.valueOrNull != next.valueOrNull) {
+    if (previous != next) {
       _validateCurrentProviderAndModel();
     }
   }
 
   /// 处理助手变化
   void _handleAssistantsChanged(
-    AsyncValue<List<AiAssistant>>? previous,
-    AsyncValue<List<AiAssistant>> next,
+    List<AiAssistant>? previous,
+    List<AiAssistant> next,
   ) {
     // 只在数据真正变化时处理
-    if (previous?.valueOrNull != next.valueOrNull) {
+    if (previous != next) {
       _validateCurrentAssistant();
     }
   }
@@ -259,45 +258,44 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
 
     if (currentProvider == null || currentModel == null) return;
 
-    // 获取最新的提供商列表
-    final providersAsync = _ref.read(aiProviderNotifierProvider);
-    providersAsync.whenData((providers) {
-      // 检查当前提供商是否仍然存在且启用
-      final updatedProvider = providers
-          .where((p) => p.id == currentProvider.id && p.isEnabled)
-          .firstOrNull;
+    // 获取最新的提供商列表 - 使用新的统一AI管理Provider
+    final providers = _ref.read(aiProvidersProvider);
 
-      if (updatedProvider == null) {
-        // 提供商不存在或被禁用，重新选择
+    // 检查当前提供商是否仍然存在且启用
+    final updatedProvider = providers
+        .where((p) => p.id == currentProvider.id && p.isEnabled)
+        .firstOrNull;
+
+    if (updatedProvider == null) {
+      // 提供商不存在或被禁用，重新选择
+      _selectFallbackProviderAndModel(providers);
+      return;
+    }
+
+    // 检查当前模型是否仍然存在
+    final updatedModel = updatedProvider.models
+        .where((m) => m.name == currentModel.name)
+        .firstOrNull;
+
+    if (updatedModel == null) {
+      // 模型不存在，选择该提供商的第一个模型
+      if (updatedProvider.models.isNotEmpty) {
+        state = state.copyWith(
+          selectedProvider: updatedProvider,
+          selectedModel: updatedProvider.models.first,
+        );
+      } else {
+        // 提供商没有模型，重新选择
         _selectFallbackProviderAndModel(providers);
-        return;
       }
+      return;
+    }
 
-      // 检查当前模型是否仍然存在
-      final updatedModel = updatedProvider.models
-          .where((m) => m.name == currentModel.name)
-          .firstOrNull;
-
-      if (updatedModel == null) {
-        // 模型不存在，选择该提供商的第一个模型
-        if (updatedProvider.models.isNotEmpty) {
-          state = state.copyWith(
-            selectedProvider: updatedProvider,
-            selectedModel: updatedProvider.models.first,
-          );
-        } else {
-          // 提供商没有模型，重新选择
-          _selectFallbackProviderAndModel(providers);
-        }
-        return;
-      }
-
-      // 更新为最新的提供商和模型数据
-      state = state.copyWith(
-        selectedProvider: updatedProvider,
-        selectedModel: updatedModel,
-      );
-    });
+    // 更新为最新的提供商和模型数据
+    state = state.copyWith(
+      selectedProvider: updatedProvider,
+      selectedModel: updatedModel,
+    );
   }
 
   /// 验证当前选择的助手是否仍然有效
@@ -305,28 +303,27 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
     final currentAssistant = state.selectedAssistant;
     if (currentAssistant == null) return;
 
-    // 获取最新的助手列表
-    final assistantsAsync = _ref.read(aiAssistantNotifierProvider);
-    assistantsAsync.whenData((assistants) {
-      // 检查当前助手是否仍然存在且启用
-      final updatedAssistant = assistants
-          .where((a) => a.id == currentAssistant.id && a.isEnabled)
-          .firstOrNull;
+    // 获取最新的助手列表 - 使用新的统一AI管理Provider
+    final assistants = _ref.read(aiAssistantsProvider);
 
-      if (updatedAssistant == null) {
-        // 助手不存在或被禁用，选择第一个可用的助手
-        final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
-        if (enabledAssistants.isNotEmpty) {
-          state = state.copyWith(selectedAssistant: enabledAssistants.first);
-        } else {
-          state = state.copyWith(selectedAssistant: null);
-        }
-        return;
+    // 检查当前助手是否仍然存在且启用
+    final updatedAssistant = assistants
+        .where((a) => a.id == currentAssistant.id && a.isEnabled)
+        .firstOrNull;
+
+    if (updatedAssistant == null) {
+      // 助手不存在或被禁用，选择第一个可用的助手
+      final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
+      if (enabledAssistants.isNotEmpty) {
+        state = state.copyWith(selectedAssistant: enabledAssistants.first);
+      } else {
+        state = state.copyWith(selectedAssistant: null);
       }
+      return;
+    }
 
-      // 更新为最新的助手数据
-      state = state.copyWith(selectedAssistant: updatedAssistant);
-    });
+    // 更新为最新的助手数据
+    state = state.copyWith(selectedAssistant: updatedAssistant);
   }
 
   /// 选择备用的提供商和模型

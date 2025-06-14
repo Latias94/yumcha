@@ -75,9 +75,10 @@ class ConversationCoordinator {
   /// 通知对话列表刷新
   void _notifyConversationListRefresh() {
     try {
-      // 这里可以添加对话列表刷新的逻辑
-      // 由于架构限制，暂时通过日志记录
-      _logger.debug('协调器：通知对话列表刷新');
+      // 触发对话列表刷新通知
+      final refreshNotifier = _ref.read(conversationListRefreshProvider.notifier);
+      refreshNotifier.notifyRefresh();
+      _logger.debug('协调器：对话列表刷新通知已发送');
     } catch (e) {
       _logger.error('通知对话列表刷新失败', {'error': e.toString()});
     }
@@ -184,17 +185,20 @@ final conversationCoordinatorProvider =
   return ConversationCoordinator(ref);
 });
 
-/// 兼容性Provider - 保持与原有代码的兼容性
+/// 兼容性Provider - 保持与原有代码的兼容性 (已弃用)
 ///
+/// ⚠️ **已弃用**: 请使用 unified_chat_notifier.dart 中的新版本
 /// 这个Provider提供与原来CurrentConversationNotifier相同的接口，
 /// 但内部使用新的拆分架构。这样可以在不破坏现有代码的情况下进行重构。
-final currentConversationProvider = Provider<ConversationUiState?>((ref) {
+@Deprecated('使用 unified_chat_notifier.dart 中的 currentConversationProvider')
+final coordinatorCurrentConversationProvider = Provider<ConversationUiState?>((ref) {
   final state = ref.watch(conversationStateNotifierProvider);
   return state.currentConversation;
 });
 
-/// 兼容性状态Provider
-final currentConversationStateProvider = Provider<ConversationState>((ref) {
+/// 兼容性状态Provider (已弃用)
+@Deprecated('使用 unified_chat_notifier.dart 中的对应Provider')
+final coordinatorCurrentConversationStateProvider = Provider<ConversationState>((ref) {
   return ref.watch(conversationStateNotifierProvider);
 });
 

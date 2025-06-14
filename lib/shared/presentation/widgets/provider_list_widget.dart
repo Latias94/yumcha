@@ -11,27 +11,9 @@ class ProviderListWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final providersAsync = ref.watch(aiProviderNotifierProvider);
+    final providers = ref.watch(aiProvidersProvider);
 
-    return providersAsync.when(
-      data: (providers) => _buildProviderList(context, ref, providers),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error, color: Theme.of(context).colorScheme.error),
-            SizedBox(height: DesignConstants.spaceL),
-            Text('加载失败: $error'),
-            SizedBox(height: DesignConstants.spaceL),
-            ElevatedButton(
-              onPressed: () => ref.refresh(aiProviderNotifierProvider),
-              child: const Text('重试'),
-            ),
-          ],
-        ),
-      ),
-    );
+    return _buildProviderList(context, ref, providers);
   }
 
   Widget _buildProviderList(
@@ -59,7 +41,7 @@ class ProviderListWidget extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
-        ref.invalidate(aiProviderNotifierProvider);
+        ref.invalidate(unifiedAiManagementProvider);
       },
       child: ListView.builder(
         itemCount: providers.length,
@@ -104,7 +86,7 @@ class ProviderListWidget extends ConsumerWidget {
               value: provider.isEnabled,
               onChanged: (value) async {
                 await ref
-                    .read(aiProviderNotifierProvider.notifier)
+                    .read(aiManagementActionsProvider)
                     .toggleProviderEnabled(provider.id);
               },
             ),
@@ -218,7 +200,7 @@ class ProviderListWidget extends ConsumerWidget {
               Navigator.of(context).pop();
               try {
                 await ref
-                    .read(aiProviderNotifierProvider.notifier)
+                    .read(aiManagementActionsProvider)
                     .deleteProvider(provider.id);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

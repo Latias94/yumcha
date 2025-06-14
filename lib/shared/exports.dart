@@ -14,7 +14,7 @@ export 'infrastructure/services/logger_service.dart';
 // AI 服务
 export 'infrastructure/services/ai/ai_service_manager.dart';
 export 'infrastructure/services/ai/providers/ai_service_provider.dart'
-    hide aiChatServiceStatsProvider;
+    hide aiChatServiceStatsProvider, modelCapabilitiesProvider;
 export 'infrastructure/services/ai/core/ai_response_models.dart';
 export 'infrastructure/services/ai/core/ai_service_base.dart';
 

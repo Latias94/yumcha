@@ -3,9 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import '../../../domain/entities/message.dart';
+import '../../../domain/entities/enhanced_message.dart';
 import '../../../domain/entities/chat_bubble_style.dart';
 import '../../providers/chat_style_provider.dart';
 import 'thinking_process_widget.dart';
+import 'media/media_content_widget.dart';
+import 'media/image_display_widget.dart';
+import '../../../../../shared/infrastructure/services/media/media_storage_service.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 聊天消息显示组件
@@ -334,6 +338,17 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     content: thinkingResult.actualContent,
                   ),
 
+                  // 多媒体内容显示
+                  if (widget.message is EnhancedMessage) ...[
+                    SizedBox(height: DesignConstants.spaceM),
+                    MediaContentWidget(
+                      message: widget.message as EnhancedMessage,
+                      compact: false,
+                      onImageTap: _handleImageTap,
+                      onAudioTap: _handleAudioTap,
+                    ),
+                  ],
+
                   // 错误信息显示
                   if (widget.message.isError && widget.message.errorInfo != null)
                     _buildErrorInfo(context, theme),
@@ -341,6 +356,14 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                   // 流式状态指示器
                   if (widget.message.status == MessageStatus.streaming)
                     _buildStreamingIndicator(context, theme),
+
+                  // Token使用信息显示（仅AI消息）
+                  if (!widget.message.isFromUser && widget.message.metadata?.tokenUsage != null)
+                    _buildTokenInfo(context, theme),
+
+                  // Token使用信息显示（仅AI消息）
+                  if (!widget.message.isFromUser && widget.message.metadata?.tokenUsage != null)
+                    _buildTokenInfo(context, theme),
                 ],
               ),
             ],
@@ -414,6 +437,22 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 maxWidth: maxWidth,
               ),
 
+              // 多媒体内容显示（在气泡下方）
+              if (widget.message is EnhancedMessage) ...[
+                SizedBox(height: DesignConstants.spaceS),
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                  ),
+                  child: MediaContentWidget(
+                    message: widget.message as EnhancedMessage,
+                    compact: true,
+                    onImageTap: _handleImageTap,
+                    onAudioTap: _handleAudioTap,
+                  ),
+                ),
+              ],
+
               // 错误信息显示（在气泡下方）
               if (widget.message.isError && widget.message.errorInfo != null)
                 Container(
@@ -430,6 +469,15 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     maxWidth: MediaQuery.of(context).size.width * maxWidth,
                   ),
                   child: _buildStreamingIndicator(context, theme),
+                ),
+
+              // Token使用信息显示（仅AI消息，在气泡内部）
+              if (!widget.message.isFromUser && widget.message.metadata?.tokenUsage != null)
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                  ),
+                  child: _buildTokenInfo(context, theme),
                 ),
             ],
           ),
@@ -596,6 +644,73 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
         });
       }
     });
+  }
+
+  /// 处理图片点击事件
+  void _handleImageTap(MediaMetadata metadata, int index) {
+    // 可以在这里实现图片预览功能
+    // 例如：打开全屏图片查看器
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 关闭按钮
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+              // 图片显示
+              Flexible(
+                child: ImageDisplayWidget(
+                  mediaMetadata: metadata,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              // 图片信息
+              Container(
+                margin: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  metadata.fileName,
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 处理音频点击事件
+  void _handleAudioTap(MediaMetadata metadata) {
+    // 可以在这里实现音频相关操作
+    // 例如：显示音频详情、下载等
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('音频文件: ${metadata.fileName}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   /// 构建支持markdown的气泡组件
@@ -796,18 +911,25 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
   /// 格式化时间戳
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
-    final difference = now.difference(timestamp);
+    final isToday = now.year == timestamp.year &&
+                   now.month == timestamp.month &&
+                   now.day == timestamp.day;
 
-    if (difference.inMinutes < 1) {
-      return '刚刚';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}分钟前';
-    } else if (difference.inDays < 1) {
-      return '${difference.inHours}小时前';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}天前';
+    final isThisYear = now.year == timestamp.year;
+
+    // 格式化时间部分
+    final timeStr = '${timestamp.hour.toString().padLeft(2, '0')}:'
+                   '${timestamp.minute.toString().padLeft(2, '0')}';
+
+    if (isToday) {
+      return timeStr;
+    } else if (isThisYear) {
+      return '${timestamp.month.toString().padLeft(2, '0')}/'
+             '${timestamp.day.toString().padLeft(2, '0')} $timeStr';
     } else {
-      return '${timestamp.month}/${timestamp.day}';
+      return '${timestamp.year}/'
+             '${timestamp.month.toString().padLeft(2, '0')}/'
+             '${timestamp.day.toString().padLeft(2, '0')} $timeStr';
     }
   }
 
@@ -943,6 +1065,60 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建Token使用信息显示
+  Widget _buildTokenInfo(BuildContext context, ThemeData theme) {
+    final tokenUsage = widget.message.metadata?.tokenUsage;
+    if (tokenUsage == null) return const SizedBox.shrink();
+
+    // 构建Token信息文本
+    final List<String> tokenParts = [];
+
+    // 总Token数
+    if (tokenUsage.totalTokens != null) {
+      tokenParts.add('Tokens:${tokenUsage.totalTokens}');
+    }
+
+    // 输入Token数（用上箭头表示）
+    if (tokenUsage.promptTokens != null) {
+      tokenParts.add('↑${tokenUsage.promptTokens}');
+    }
+
+    // 输出Token数（用下箭头表示）
+    if (tokenUsage.completionTokens != null) {
+      tokenParts.add('↓${tokenUsage.completionTokens}');
+    }
+
+    // 推理Token数（如果有）
+    if (tokenUsage.reasoningTokens != null && tokenUsage.reasoningTokens! > 0) {
+      tokenParts.add('🧠${tokenUsage.reasoningTokens}');
+    }
+
+    if (tokenParts.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: EdgeInsets.only(top: DesignConstants.spaceS),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.analytics_outlined,
+            size: 12,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
+          SizedBox(width: DesignConstants.spaceXS),
+          Text(
+            tokenParts.join(' '),
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              fontSize: 11,
+              fontFamily: 'monospace',
             ),
           ),
         ],

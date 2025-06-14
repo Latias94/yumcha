@@ -161,35 +161,41 @@ final conversationListRefreshProvider =
   (ref) => ConversationListRefreshNotifier(),
 );
 
-/// 当前对话状态Provider - 兼容性接口
+/// 当前对话状态Provider - 兼容性接口 (已弃用)
 ///
+/// ⚠️ **已弃用**: 请使用 unified_chat_notifier.dart 中的新版本
 /// 这个Provider保持与原有代码的完全兼容性，
 /// 但内部使用新的拆分架构。
-final currentConversationProvider = StateNotifierProvider<
+@Deprecated('使用 unified_chat_notifier.dart 中的 currentConversationProvider')
+final legacyCurrentConversationProvider = StateNotifierProvider<
     CurrentConversationNotifier, CurrentConversationState>(
   (ref) => CurrentConversationNotifier(ref),
 );
 
-/// 便捷访问当前对话的Provider
+/// 便捷访问当前对话的Provider (已弃用)
+@Deprecated('使用 unified_chat_notifier.dart 中的对应Provider')
 final currentConversationDataProvider = Provider<ConversationUiState?>((ref) {
-  final state = ref.watch(currentConversationProvider);
+  final state = ref.watch(legacyCurrentConversationProvider);
   return state.currentConversation;
 });
 
-/// 检查当前对话是否正在加载
+/// 检查当前对话是否正在加载 (已弃用)
+@Deprecated('使用 unified_chat_notifier.dart 中的对应Provider')
 final isConversationLoadingProvider = Provider<bool>((ref) {
-  final state = ref.watch(currentConversationProvider);
+  final state = ref.watch(legacyCurrentConversationProvider);
   return state.isLoading;
 });
 
-/// 获取当前对话的错误信息
+/// 获取当前对话的错误信息 (已弃用)
+@Deprecated('使用 unified_chat_notifier.dart 中的对应Provider')
 final conversationErrorProvider = Provider<String?>((ref) {
-  final state = ref.watch(currentConversationProvider);
+  final state = ref.watch(legacyCurrentConversationProvider);
   return state.error;
 });
 
-/// 获取当前选中的菜单
+/// 获取当前选中的菜单 (已弃用)
+@Deprecated('使用 unified_chat_notifier.dart 中的对应Provider')
 final selectedMenuProvider = Provider<String>((ref) {
-  final state = ref.watch(currentConversationProvider);
+  final state = ref.watch(legacyCurrentConversationProvider);
   return state.selectedMenu;
 });

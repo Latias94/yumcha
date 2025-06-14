@@ -38,7 +38,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ai_provider.dart';
 import '../../domain/entities/ai_model.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
-import '../providers/ai_provider_notifier.dart';
+
+import '../providers/unified_ai_management_providers.dart';
 import '../../../../shared/presentation/widgets/model_list_widget.dart';
 
 class ProviderEditScreen extends ConsumerStatefulWidget {
@@ -119,11 +120,11 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
 
       if (_isEditing) {
         await ref
-            .read(aiProviderNotifierProvider.notifier)
+            .read(aiManagementActionsProvider)
             .updateProvider(provider);
       } else {
         await ref
-            .read(aiProviderNotifierProvider.notifier)
+            .read(aiManagementActionsProvider)
             .addProvider(provider);
       }
 
