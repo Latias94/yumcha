@@ -16,8 +16,8 @@ library;
 export '../../../features/ai_management/presentation/providers/unified_ai_management_notifier.dart';
 export '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 
-// ⚠️ 旧的聊天Provider - 保留兼容性
-export 'conversation_notifier.dart';
+// ✅ 兼容性Provider已清理 - 请使用统一聊天系统
+// 所有聊天功能现在通过 unified_chat_notifier.dart 提供
 
 // ⚠️ 过时的聊天状态Provider - 不导出，避免冲突
 // export '../../../features/chat/presentation/providers/unified_chat_state_notifier.dart';

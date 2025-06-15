@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/message.dart';
-import '../../../domain/entities/chat_state.dart';
+import '../../../domain/entities/message_status.dart' as msg_status;
 import '../../providers/unified_chat_notifier.dart';
-import 'chat_message_view.dart';
+import '../../providers/chat_providers.dart';
+import '../../widgets/message_view_adapter.dart';
 import 'chat_suggestions_view.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
@@ -119,11 +120,11 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
     // 添加欢迎消息（如果有）
     if (widget.welcomeMessage != null && messages.isEmpty) {
       displayMessages.add(
-        Message(
-          content: widget.welcomeMessage!,
-          timestamp: DateTime.now(),
-          isFromUser: false,
-          author: 'AI助手',
+        Message.assistant(
+          id: 'welcome_message',
+          conversationId: widget.conversationId,
+          assistantId: 'system',
+          createdAt: DateTime.now(),
         ),
       );
     }
@@ -205,16 +206,24 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
                             right: DesignConstants.spaceS,
                             bottom: DesignConstants.spaceS,
                           ),
-                          child: ChatMessageView(
-                            message: message,
-                            isWelcomeMessage: isWelcomeMessage,
-                            onEdit: canEdit
-                                ? () => widget.onEditMessage?.call(message)
-                                : null,
-                            onRegenerate: canRegenerate
-                                ? () =>
-                                    widget.onRegenerateMessage?.call(message)
-                                : null,
+                          child: Consumer(
+                            builder: (context, ref, child) {
+                              // 获取聊天设置以决定使用哪种视图
+                              final chatSettings = ref.watch(chatSettingsProvider);
+
+                              // 使用适配器组件来渲染消息
+                              return MessageViewAdapter(
+                                message: message,
+                                useBlockView: chatSettings.enableBlockView,
+                                isWelcomeMessage: isWelcomeMessage,
+                                onEdit: canEdit
+                                    ? () => widget.onEditMessage?.call(message)
+                                    : null,
+                                onRegenerate: canRegenerate
+                                    ? () => widget.onRegenerateMessage?.call(message)
+                                    : null,
+                              );
+                            },
                           ),
                         );
                       },
@@ -358,10 +367,10 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
     // 检查是否有新消息
     final hasNewMessage = displayMessages.length > _previousMessageCount;
 
-    // 获取所有流式消息
+    // 获取所有处理中的消息
     final streamingMessages =
-        messages.where((m) => m.status == MessageStatus.streaming).toList();
-    final currentStreamingIds = streamingMessages.map((m) => m.id!).toSet();
+        messages.where((m) => m.status == msg_status.MessageStatus.aiProcessing).toList();
+    final currentStreamingIds = streamingMessages.map((m) => m.id).toSet();
 
     // 检查是否有新的流式消息或流式消息更新
     final hasNewStreamingMessage =

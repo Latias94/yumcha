@@ -322,4 +322,17 @@ class MessageValidator {
       StringLengthRule(minLength: 1, maxLength: 100),
     ]).validate(author);
   }
+
+  static ValidationResult validateRole(String? role) {
+    if (role == null || role.isEmpty) {
+      return ValidationResult.invalid(['消息角色: 不能为空']);
+    }
+
+    const validRoles = ['user', 'assistant', 'system'];
+    if (!validRoles.contains(role)) {
+      return ValidationResult.invalid(['消息角色: 必须是 user、assistant 或 system 之一']);
+    }
+
+    return ValidationResult.valid();
+  }
 }

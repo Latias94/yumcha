@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../chat/domain/entities/message.dart';
-import '../../../chat/domain/entities/message_metadata.dart';
-import '../../../chat/presentation/screens/widgets/chat_message_view.dart';
+import '../../../chat/presentation/widgets/message_view_adapter.dart';
 
 /// 思考过程功能演示页面
 class ThinkingProcessDemo extends StatelessWidget {
@@ -41,21 +39,23 @@ class ThinkingProcessDemo extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 用户消息
-          ChatMessageView(
-            message: Message(
-              author: '用户',
-              content: '请帮我分析一下Flutter和React Native的优缺点，并给出选择建议。',
-              timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+          MessageViewAdapter(
+            message: MessageTestUtils.createTestBlockMessage(
+              id: 'demo_user_1',
+              conversationId: 'demo_conversation',
               isFromUser: true,
+              textContent: '请帮我分析一下Flutter和React Native的优缺点，并给出选择建议。',
             ),
           ),
           const SizedBox(height: 8),
 
           // 包含思考过程的AI回复（带耗时信息）
-          ChatMessageView(
-            message: Message(
-              author: 'AI助手',
-              content: '''<think>
+          MessageViewAdapter(
+            message: MessageTestUtils.createTestBlockMessage(
+              id: 'demo_ai_1',
+              conversationId: 'demo_conversation',
+              isFromUser: false,
+              thinkingContent: '''
 这是一个关于移动开发框架选择的问题，我需要从多个角度来分析：
 
 1. 技术架构对比：
@@ -78,10 +78,8 @@ class ThinkingProcessDemo extends StatelessWidget {
    - Flutter：需要学习Dart，但概念相对简单
    - React Native：前端开发者容易上手
 
-基于这些分析，我需要给出平衡的建议，考虑不同场景的适用性。
-</think>
-
-关于Flutter和React Native的选择，我来为你详细分析一下：
+基于这些分析，我需要给出平衡的建议，考虑不同场景的适用性。''',
+              textContent: '''关于Flutter和React Native的选择，我来为你详细分析一下：
 
 ## 技术架构对比
 
@@ -134,42 +132,28 @@ class ThinkingProcessDemo extends StatelessWidget {
 - 对第三方生态依赖较重
 
 总的来说，如果你是新项目且追求性能，我更推荐Flutter；如果团队有React经验且希望快速开发，React Native是不错的选择。''',
-              timestamp: DateTime.now(),
-              isFromUser: false,
-              duration: const Duration(seconds: 3, milliseconds: 250), // 3.25秒
-              metadata: MessageMetadata(
-                totalDurationMs: 3250,
-                thinkingDurationMs: 2100, // 思考过程耗时2.1秒
-                contentDurationMs: 1150, // 内容生成耗时1.15秒
-                hasThinking: true,
-                modelName: 'gpt-4o',
-                providerId: 'openai',
-                tokenUsage: TokenUsage(
-                  promptTokens: 150,
-                  completionTokens: 580,
-                  totalTokens: 730,
-                ),
-              ),
             ),
           ),
           const SizedBox(height: 16),
 
           // 用户消息
-          ChatMessageView(
-            message: Message(
-              author: '用户',
-              content: '那学习Flutter需要多长时间？',
-              timestamp: DateTime.now().subtract(const Duration(minutes: 1)),
+          MessageViewAdapter(
+            message: MessageTestUtils.createTestBlockMessage(
+              id: 'demo_user_2',
+              conversationId: 'demo_conversation',
               isFromUser: true,
+              textContent: '那学习Flutter需要多长时间？',
             ),
           ),
           const SizedBox(height: 8),
 
           // 简单的AI回复（无思考过程）
-          ChatMessageView(
-            message: Message(
-              author: 'AI助手',
-              content: '''学习Flutter的时间因人而异，大致可以分为几个阶段：
+          MessageViewAdapter(
+            message: MessageTestUtils.createTestBlockMessage(
+              id: 'demo_ai_2',
+              conversationId: 'demo_conversation',
+              isFromUser: false,
+              textContent: '''学习Flutter的时间因人而异，大致可以分为几个阶段：
 
 **基础入门（1-2周）**
 - Dart语言基础
@@ -187,18 +171,17 @@ class ThinkingProcessDemo extends StatelessWidget {
 - 原生插件集成
 
 如果你有编程基础，特别是移动开发经验，学习会更快一些。建议从官方文档和实际项目开始！''',
-              timestamp: DateTime.now(),
-              isFromUser: false,
-              duration: const Duration(milliseconds: 850), // 0.85秒
             ),
           ),
           const SizedBox(height: 16),
 
           // 另一个包含思考过程的例子
-          ChatMessageView(
-            message: Message(
-              author: 'AI助手',
-              content: '''<think>
+          MessageViewAdapter(
+            message: MessageTestUtils.createTestBlockMessage(
+              id: 'demo_ai_3',
+              conversationId: 'demo_conversation',
+              isFromUser: false,
+              thinkingContent: '''
 用户问的是一个技术实现问题，我需要考虑：
 
 1. 状态管理的复杂度
@@ -246,22 +229,6 @@ Riverpod的主要优势：
 - **类型安全**：编译时检查
 - **依赖注入**：清晰的依赖关系
 - **测试友好**：容易mock和测试''',
-              timestamp: DateTime.now(),
-              isFromUser: false,
-              duration: const Duration(seconds: 2, milliseconds: 100), // 2.1秒
-              metadata: MessageMetadata(
-                totalDurationMs: 2100,
-                thinkingDurationMs: 1200, // 思考过程耗时1.2秒
-                contentDurationMs: 900, // 内容生成耗时0.9秒
-                hasThinking: true,
-                modelName: 'claude-3.5-sonnet',
-                providerId: 'anthropic',
-                tokenUsage: TokenUsage(
-                  promptTokens: 120,
-                  completionTokens: 420,
-                  totalTokens: 540,
-                ),
-              ),
             ),
           ),
           const SizedBox(height: 32),

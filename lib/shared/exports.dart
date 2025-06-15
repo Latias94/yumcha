@@ -20,4 +20,4 @@ export 'infrastructure/services/ai/core/ai_service_base.dart';
 
 // 表现层
 export 'presentation/providers/providers.dart';
-export 'presentation/providers/conversation_notifier.dart';
+// 兼容性Provider已清理，请使用统一聊天系统

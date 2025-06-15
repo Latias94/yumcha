@@ -4,13 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import '../design_system/design_constants.dart';
 import '../../../features/chat/domain/entities/conversation_ui_state.dart';
-import '../providers/providers.dart';
-import '../providers/conversation_coordinator.dart' hide conversationListRefreshProvider;
+import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/chat/presentation/providers/unified_chat_notifier.dart';
-import '../../../features/chat/data/repositories/conversation_repository.dart';
-import '../../infrastructure/services/database_service.dart';
+import '../providers/conversation_title_notifier.dart';
+import '../../../features/chat/domain/entities/message.dart';
+import '../../../features/chat/domain/entities/message_block.dart';
+import '../../../features/chat/domain/entities/message_status.dart';
 import '../../infrastructure/services/notification_service.dart';
 import '../../infrastructure/services/logger_service.dart';
+import '../providers/dependency_providers.dart';
 import '../../../features/settings/presentation/screens/settings_screen.dart';
 import 'package:yumcha/features/search/presentation/screens/chat_search_screen.dart';
 
@@ -40,8 +42,7 @@ class AppDrawer extends ConsumerStatefulWidget {
 
 class _AppDrawerState extends ConsumerState<AppDrawer> {
   final TextEditingController _searchController = TextEditingController();
-  late final ConversationRepository _conversationRepository;
-  late final DrawerSearchService _searchService;
+  DrawerSearchService? _searchService;
   final LoggerService _logger = LoggerService();
 
   String _selectedAssistant = "ai";
@@ -56,7 +57,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   final ValueNotifier<bool> _isSearching = ValueNotifier<bool>(false);
 
   // 使用 infinite_scroll_pagination 5.0.0 正确的 API
-  late final PagingController<int, ConversationUiState> _pagingController;
+  PagingController<int, ConversationUiState>? _pagingController;
 
   // 分页配置
   static const int _pageSize = DrawerConstants.pageSize;
@@ -64,13 +65,22 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   @override
   void initState() {
     super.initState();
-    _conversationRepository = ConversationRepository(
-      DatabaseService.instance.database,
-    );
+    // 延迟初始化，在第一次 build 时通过 ref.watch 获取依赖
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeServices();
+    });
+  }
+
+  /// 初始化服务 - 使用响应式的方式获取依赖
+  void _initializeServices() {
+    if (!mounted) return;
+
+    // ✅ 正确：通过 ref.watch 获取 Repository，确保响应式更新
+    final conversationRepository = ref.read(conversationRepositoryProvider);
 
     // 初始化搜索服务
     _searchService = DrawerSearchService(
-      conversationRepository: _conversationRepository,
+      conversationRepository: conversationRepository,
       ref: ref,
     );
 
@@ -86,20 +96,18 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         }
         return 0; // 第一页
       },
-      fetchPage: (pageKey) => _searchService.fetchPage(pageKey),
+      fetchPage: (pageKey) => _searchService?.fetchPage(pageKey) ?? Future.value([]),
     );
 
     // 监听助手状态变化
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _initializeSelectedAssistant();
-    });
+    _initializeSelectedAssistant();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _pagingController.dispose();
-    _searchService.dispose();
+    _pagingController?.dispose();
+    _searchService?.dispose();
     _showClearButton.dispose();
     _searchQueryNotifier.dispose();
     _isSearching.dispose();
@@ -108,11 +116,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   // 初始化选中的助手
   Future<void> _initializeSelectedAssistant() async {
+    final searchService = _searchService;
+    if (searchService == null) return;
+
     try {
-      await _searchService.initializeSelectedAssistant(() {
+      await searchService.initializeSelectedAssistant(() {
         if (mounted) {
           setState(() {
-            _selectedAssistant = _searchService.selectedAssistant;
+            _selectedAssistant = searchService.selectedAssistant;
           });
           // 只有在助手ID有效时才刷新对话列表
           if (_selectedAssistant.isNotEmpty && _selectedAssistant != "ai") {
@@ -135,14 +146,18 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   // 处理搜索变化
   void _onSearchChanged(String value) {
-    _searchService.performDebouncedSearch(
+    final searchService = _searchService;
+    final pagingController = _pagingController;
+    if (searchService == null || pagingController == null) return;
+
+    searchService.performDebouncedSearch(
       query: value,
       onSearchStart: () {
         _isSearching.value = true;
       },
       onSearchComplete: () {
         _isSearching.value = false;
-        _pagingController.refresh();
+        pagingController.refresh();
       },
     );
 
@@ -160,7 +175,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
       _logger.info('删除对话: $conversationId, 是否为当前对话: $isCurrentConversation');
 
-      await _conversationRepository.deleteConversation(conversationId);
+      // ✅ 正确：通过 Provider 获取 Repository
+      final conversationRepository = ref.read(conversationRepositoryProvider);
+      await conversationRepository.deleteConversation(conversationId);
 
       // 如果删除的是当前对话，创建新对话
       if (isCurrentConversation) {
@@ -170,7 +187,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       }
 
       // 刷新分页列表
-      _pagingController.refresh();
+      _pagingController?.refresh();
       if (mounted) {
         NotificationService().showSuccess('对话已删除');
       }
@@ -198,11 +215,36 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       // 显示加载提示
       NotificationService().showInfo('正在重新生成标题...');
 
-      // 通过协调器重新生成标题
-      final coordinator = ref.read(conversationCoordinatorProvider);
-      await coordinator.regenerateTitle(conversation.id);
+      // 使用标题管理器重新生成标题
+      final titleNotifier = ref.read(conversationTitleNotifierProvider.notifier);
+
+      // 将ConversationUiState的消息转换为Message格式
+      final messages = conversation.messages.map((legacyMsg) {
+        return Message(
+          id: legacyMsg.id ?? '',
+          conversationId: conversation.id,
+          role: legacyMsg.isFromUser ? 'user' : 'assistant',
+          assistantId: '', // 这里可以从conversation获取
+          blockIds: ['${legacyMsg.id}_text_block'],
+          status: legacyMsg.isFromUser ? MessageStatus.userSuccess : MessageStatus.aiSuccess,
+          createdAt: legacyMsg.timestamp,
+          updatedAt: legacyMsg.timestamp,
+          blocks: [
+            MessageBlock.text(
+              id: '${legacyMsg.id}_text_block',
+              messageId: legacyMsg.id ?? '',
+              content: legacyMsg.content,
+            ),
+          ],
+        );
+      }).toList();
+
+      await titleNotifier.regenerateTitle(conversation.id, messages);
 
       NotificationService().showSuccess('标题重新生成成功');
+
+      // 刷新对话列表以显示新标题
+      _refreshConversations();
     } catch (e) {
       _logger.error('重新生成标题失败', {
         'conversationId': conversation.id,
@@ -241,7 +283,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   // 刷新对话列表
   void _refreshConversations() {
-    _pagingController.refresh();
+    _pagingController?.refresh();
   }
 
   // 处理助手变化
@@ -249,7 +291,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     setState(() {
       _selectedAssistant = assistantId;
     });
-    await _searchService.setSelectedAssistant(assistantId);
+    await _searchService?.setSelectedAssistant(assistantId);
     _refreshConversations();
   }
 
@@ -257,11 +299,11 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   Widget build(BuildContext context) {
     return Consumer(
       builder: (context, ref, child) {
-        // 监听对话列表刷新通知
-        ref.listen<int>(conversationListRefreshProvider, (previous, next) {
-          // 当刷新通知发生变化时，刷新对话列表
+        // 监听统一聊天状态变化，当对话列表需要刷新时自动刷新
+        ref.listen(unifiedChatProvider.select((state) => state.conversationState.recentConversations.length), (previous, next) {
+          // 当对话数量发生变化时，刷新对话列表
           if (mounted && previous != next) {
-            _logger.debug('收到对话列表刷新通知，刷新分页控制器');
+            _logger.debug('对话数量变化，刷新分页控制器: $previous -> $next');
             _refreshConversations();
           }
         });
@@ -291,16 +333,18 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
                 // 聊天记录列表
                 Expanded(
-                  child: DrawerConversationList(
-                    pagingController: _pagingController,
-                    searchQuery: _searchService.searchQuery,
-                    isSearching: _isSearching,
-                    searchQueryNotifier: _searchQueryNotifier,
-                    onConversationTap: (conversation) =>
-                        widget.onChatClicked(conversation.id),
-                    onDeleteConversation: _showDeleteConfirmDialog,
-                    onRegenerateTitle: _regenerateTitle,
-                  ),
+                  child: _pagingController != null && _searchService != null
+                      ? DrawerConversationList(
+                          pagingController: _pagingController!,
+                          searchQuery: _searchService!.searchQuery,
+                          isSearching: _isSearching,
+                          searchQueryNotifier: _searchQueryNotifier,
+                          onConversationTap: (conversation) =>
+                              widget.onChatClicked(conversation.id),
+                          onDeleteConversation: _showDeleteConfirmDialog,
+                          onRegenerateTitle: _regenerateTitle,
+                        )
+                      : const Center(child: CircularProgressIndicator()),
                 ),
 
                 // 助手选择下拉框

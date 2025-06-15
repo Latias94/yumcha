@@ -84,15 +84,22 @@ class ValidationService {
 
   /// 验证消息
   void validateMessage(Message message) {
-    _logger.debug('开始验证消息，长度: ${message.content.length}');
+    _logger.debug('开始验证消息，块数量: ${message.blocks.length}');
 
     final errors = <String>[];
 
-    final contentResult = MessageValidator.validateContent(message.content);
+    // 验证消息内容（从主文本块中提取）
+    final mainTextContent = message.blocks
+        .where((block) => block.type.name == 'mainText')
+        .map((block) => block.content ?? '')
+        .join('\n');
+
+    final contentResult = MessageValidator.validateContent(mainTextContent);
     if (!contentResult.isValid) errors.addAll(contentResult.errors);
 
-    final authorResult = MessageValidator.validateAuthor(message.author);
-    if (!authorResult.isValid) errors.addAll(authorResult.errors);
+    // 验证角色（替代author验证）
+    final roleResult = MessageValidator.validateRole(message.role);
+    if (!roleResult.isValid) errors.addAll(roleResult.errors);
 
     if (errors.isNotEmpty) {
       _logger.warning('消息验证失败: $errors');

@@ -105,25 +105,26 @@ YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面
 
 **重要原则：所有数据库访问必须通过 Riverpod Notifiers 进行，禁止直接访问 DatabaseService.instance.database 或直接创建 Repository 实例。**
 
-#### 1. AI 提供商管理
-- `AiProviderNotifier`: 管理提供商列表的增删改查
-- `aiProviderNotifierProvider`: 提供商列表状态
-- `aiProviderProvider`: 获取特定提供商
+#### 1. 统一AI管理（新架构）
+- `UnifiedAiManagementNotifier`: 统一管理所有AI相关配置
+- `unifiedAiManagementProvider`: 统一AI管理状态
+- `aiProvidersProvider`: 获取AI提供商列表
+- `aiAssistantsProvider`: 获取AI助手列表
 - `enabledAiProvidersProvider`: 获取启用的提供商列表
-
-#### 2. AI 助手管理
-- `AiAssistantNotifier`: 管理助手列表的增删改查
-- `aiAssistantNotifierProvider`: 助手列表状态
-- `aiAssistantProvider`: 获取特定助手
 - `enabledAiAssistantsProvider`: 获取启用的助手列表
 
-#### 3. 聊天状态管理
-- `ChatNotifier`: 管理聊天消息和配置
-- `ChatConfigurationNotifier`: 管理聊天配置（助手、提供商、模型选择）
-- `CurrentConversationNotifier`: 管理当前对话状态
+#### 2. 聊天状态管理（重构后）
+- `UnifiedChatNotifier`: 统一聊天状态管理
+- `BlockMessageNotifier`: 块化消息管理
+- `ChatOrchestratorService`: 聊天编排服务
 
-#### 4. 收藏模型管理
-- `FavoriteModelNotifier`: 管理模型收藏功能
+#### 3. 配置管理
+- `ChatConfigurationNotifier`: 管理聊天配置（助手、提供商、模型选择）
+- `SettingsNotifier`: 管理应用设置
+
+#### 4. 消息和对话管理
+- `MessageRepository`: 消息数据访问
+- `ConversationRepository`: 对话数据访问
 
 ### 数据库访问规范
 
@@ -155,21 +156,21 @@ final providers = await providerRepo.getAllProviders();
 3. **Repository 层**：数据访问层，只能在 Notifier 中使用
 4. **Database 层**：SQLite 数据库，只能在 Repository 中访问
 
-### 必须使用的 Notifiers
+### 必须使用的 Notifiers（更新后）
 
 当需要访问数据库时，必须使用以下对应的 Notifier：
 
-#### 提供商数据访问
-- 使用 `AiProviderNotifier` (通过 `aiProviderNotifierProvider`)
-- 提供方法：`getAllProviders()`, `addProvider()`, `updateProvider()`, `deleteProvider()`
+#### 统一AI管理
+- 使用 `UnifiedAiManagementNotifier` (通过 `unifiedAiManagementProvider`)
+- 提供方法：`addCustomProvider()`, `createCustomAssistant()`, `selectAssistant()`, `selectProvider()`
 
-#### 助手数据访问
-- 使用 `AiAssistantNotifier` (通过 `aiAssistantNotifierProvider`)
-- 提供方法：`getAllAssistants()`, `addAssistant()`, `updateAssistant()`, `deleteAssistant()`
+#### 聊天状态管理
+- 使用 `UnifiedChatNotifier` (通过 `unifiedChatProvider`)
+- 提供方法：`sendMessage()`, `clearError()`, `initializeConversation()`
 
-#### 对话数据访问
-- 使用 `ConversationNotifier` (通过 `conversationNotifierProvider`)
-- 提供方法：对话创建、更新、删除和消息管理
+#### 块化消息管理
+- 使用 `BlockMessageNotifier` (通过 `blockMessageProvider`)
+- 提供方法：`loadConversationMessages()`, `sendMessage()`, `regenerateMessage()`
 
 #### 收藏模型数据访问
 - 使用 `FavoriteModelNotifier` (通过 `favoriteModelNotifierProvider`)

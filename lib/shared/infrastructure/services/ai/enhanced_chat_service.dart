@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import '../../../../features/chat/domain/entities/message.dart';
 import '../../../../features/chat/domain/entities/enhanced_message.dart';
+import '../../../../features/chat/domain/entities/legacy_message.dart';
 import '../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
 import '../media/media_storage_service.dart';
@@ -100,7 +101,7 @@ class EnhancedChatService {
           content: chatResponse.error ?? '聊天请求失败',
           timestamp: DateTime.now(),
           isFromUser: false,
-          status: MessageStatus.error,
+          status: LegacyMessageStatus.error,
           errorInfo: chatResponse.error,
         );
       }
@@ -177,7 +178,7 @@ class EnhancedChatService {
         content: '抱歉，处理您的请求时出现了错误。',
         timestamp: DateTime.now(),
         isFromUser: false,
-        status: MessageStatus.error,
+        status: LegacyMessageStatus.error,
         errorInfo: e.toString(),
       );
     }
@@ -213,7 +214,7 @@ class EnhancedChatService {
         content: '',
         timestamp: DateTime.now(),
         isFromUser: false,
-        status: MessageStatus.streaming,
+        status: LegacyMessageStatus.streaming,
       );
 
       // 发送流式聊天请求
@@ -274,7 +275,7 @@ class EnhancedChatService {
 
           // 发送最终的增强消息
           finalMessage = finalMessage.copyWith(
-            status: MessageStatus.normal,
+            status: LegacyMessageStatus.normal,
             mediaFiles: mediaFiles,
             duration: DateTime.now().difference(startTime),
           );
@@ -282,7 +283,7 @@ class EnhancedChatService {
           yield finalMessage;
         } else if (event.isError) {
           yield finalMessage.copyWith(
-            status: MessageStatus.error,
+            status: LegacyMessageStatus.error,
             errorInfo: event.error,
           );
         }
@@ -299,7 +300,7 @@ class EnhancedChatService {
         content: '抱歉，处理您的请求时出现了错误。',
         timestamp: DateTime.now(),
         isFromUser: false,
-        status: MessageStatus.error,
+        status: LegacyMessageStatus.error,
         errorInfo: e.toString(),
       );
     }
@@ -351,7 +352,7 @@ class EnhancedChatService {
           content: '图片分析失败: ${analysisResponse.error}',
           timestamp: DateTime.now(),
           isFromUser: false,
-          status: MessageStatus.error,
+          status: LegacyMessageStatus.error,
           errorInfo: analysisResponse.error,
           mediaFiles: [imageMetadata],
         );
@@ -406,7 +407,7 @@ class EnhancedChatService {
         content: '抱歉，图片分析时出现了错误。',
         timestamp: DateTime.now(),
         isFromUser: false,
-        status: MessageStatus.error,
+        status: LegacyMessageStatus.error,
         errorInfo: e.toString(),
       );
     }

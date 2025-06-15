@@ -16,14 +16,16 @@ import '../../infrastructure/services/logger_service.dart';
 import '../../infrastructure/services/data_initialization_service.dart';
 import '../../infrastructure/services/ai/ai_service_manager.dart';
 import '../../infrastructure/services/mcp/mcp_service_manager.dart';
-import '../../../features/settings/presentation/providers/mcp_service_provider.dart';
 import '../../../app/config/splash_config.dart';
 
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
 import '../../../features/settings/presentation/providers/mcp_service_provider.dart';
-import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
+import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart' as chat_config;
+import '../../../features/chat/presentation/providers/unified_chat_notifier.dart' as unified_chat; // 新增：统一聊天Provider
 import 'favorite_model_notifier.dart';
+import 'configuration_persistence_notifier.dart';
+import '../../../app/theme/theme_provider.dart';
 
 /// 应用初始化状态
 class AppInitializationState {
@@ -234,9 +236,17 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         _waitForFavoriteModelsData(),
       ]);
 
+      // 触发其他重要Provider的初始化
+      state = state.copyWith(currentStep: '正在初始化其他核心服务...');
+      await _initializeOtherCoreProviders();
+
       // 触发聊天配置Provider的初始化
       state = state.copyWith(currentStep: '正在初始化聊天配置...');
       await _initializeChatConfiguration();
+
+      // 触发新的统一聊天系统初始化
+      state = state.copyWith(currentStep: '正在初始化统一聊天系统...');
+      await _initializeUnifiedChatSystem();
 
       state = state.copyWith(
         isDataInitialized: true,
@@ -553,13 +563,36 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     _logger.warning('⏱️ 等待统一AI管理器初始化超时，继续初始化');
   }
 
+  /// 初始化其他核心Provider
+  Future<void> _initializeOtherCoreProviders() async {
+    try {
+      _logger.info('🔧 开始初始化其他核心Provider...');
+
+      // 1. 初始化主题Provider - 确保主题设置可用
+      _ref.read(themeProvider);
+      _logger.debug('主题Provider已触发初始化');
+
+      // 2. 初始化配置持久化Provider - 确保配置保存功能可用
+      _ref.read(configurationPersistenceNotifierProvider);
+      _logger.debug('配置持久化Provider已触发初始化');
+
+      // 等待一小段时间让Provider完成初始化
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      _logger.info('✅ 其他核心Provider初始化完成');
+    } catch (error) {
+      _logger.error('❌ 其他核心Provider初始化失败: $error');
+      // 这些Provider初始化失败不应阻塞应用启动
+    }
+  }
+
   /// 初始化聊天配置
   Future<void> _initializeChatConfiguration() async {
     try {
       _logger.info('🔧 开始初始化聊天配置...');
 
       // 触发聊天配置Provider的初始化
-      _ref.read(chatConfigurationProvider);
+      _ref.read(chat_config.chatConfigurationProvider);
 
       // 等待聊天配置初始化完成
       await _waitForChatConfiguration();
@@ -579,7 +612,7 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
 
     while (DateTime.now().difference(startTime) < maxWaitTime) {
       try {
-        final chatConfig = _ref.read(chatConfigurationProvider);
+        final chatConfig = _ref.read(chat_config.chatConfigurationProvider);
 
         if (!chatConfig.isLoading && chatConfig.error == null) {
           _logger.info('✅ 聊天配置加载完成');
@@ -603,6 +636,59 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     }
 
     _logger.warning('⏱️ 等待聊天配置超时，继续初始化');
+  }
+
+  /// 初始化统一聊天系统
+  Future<void> _initializeUnifiedChatSystem() async {
+    try {
+      _logger.info('🔧 开始初始化统一聊天系统...');
+
+      // 触发统一聊天Provider的初始化
+      _ref.read(unified_chat.unifiedChatProvider);
+
+      // 等待统一聊天系统初始化完成
+      await _waitForUnifiedChatSystem();
+
+      _logger.info('✅ 统一聊天系统初始化完成');
+    } catch (error) {
+      _logger.error('❌ 统一聊天系统初始化失败: $error');
+      // 统一聊天系统初始化失败不应阻塞应用启动
+    }
+  }
+
+  /// 等待统一聊天系统初始化完成
+  Future<void> _waitForUnifiedChatSystem() async {
+    const maxWaitTime = Duration(seconds: 10);
+    const checkInterval = Duration(milliseconds: 100);
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < maxWaitTime) {
+      try {
+        final unifiedChatState = _ref.read(unified_chat.unifiedChatProvider);
+
+        // 检查是否初始化完成（不在加载中且没有错误）
+        if (!unifiedChatState.isLoading && !unifiedChatState.hasError) {
+          _logger.info('✅ 统一聊天系统加载完成');
+          return;
+        }
+
+        if (unifiedChatState.hasError) {
+          _logger.warning('⚠️ 统一聊天系统加载失败: ${unifiedChatState.primaryError}');
+          return;
+        }
+
+        _logger.debug('统一聊天系统仍在加载中...');
+
+      } catch (error) {
+        _logger.error('统一聊天系统检查错误: $error');
+        return;
+      }
+
+      // 等待一段时间后重试
+      await Future.delayed(checkInterval);
+    }
+
+    _logger.warning('⏱️ 等待统一聊天系统超时，继续初始化');
   }
 
   /// 等待收藏模型数据加载完成

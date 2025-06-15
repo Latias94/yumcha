@@ -2,10 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/chat/domain/entities/message.dart';
 import '../../infrastructure/services/logger_service.dart';
 import 'dependency_providers.dart';
-import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
+
 import '../../infrastructure/services/ai/providers/ai_service_provider.dart';
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
-import 'conversation_state_notifier.dart';
+import '../../../features/chat/presentation/providers/unified_chat_notifier.dart';
 
 /// 对话标题管理器 - 专门负责对话标题的生成和管理
 ///
@@ -139,16 +139,18 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
   Future<String?> _generateTitleWithSimpleChat(List<Message> messages) async {
     if (messages.isEmpty) return null;
 
-    // 从聊天配置获取默认配置
-    final defaultConfig =
-        _ref.read(chatConfigurationProvider).defaultConfiguration;
-    final providerId = defaultConfig.providerId;
-    final modelName = defaultConfig.modelName;
+    // 从统一聊天配置获取默认配置
+    final chatConfig = _ref.read(chatConfigurationProvider);
+    final selectedProvider = chatConfig.selectedProvider;
+    final selectedModel = chatConfig.selectedModel;
 
-    if (providerId == null || modelName == null) {
+    if (selectedProvider == null || selectedModel == null) {
       _logger.debug('没有可用的提供商和模型配置，无法生成标题');
       return null;
     }
+
+    final providerId = selectedProvider.id;
+    final modelName = selectedModel.name;
 
     // 构建标题生成提示
     final titlePrompt = _buildTitleGenerationPrompt(messages);
@@ -243,10 +245,13 @@ $conversationSummary
         final updatedConversation = conversation.copyWith(channelName: title);
         await repository.saveConversation(updatedConversation);
 
-        // 通知对话状态更新
-        final stateNotifier =
-            _ref.read(conversationStateNotifierProvider.notifier);
-        stateNotifier.updateConversation(updatedConversation);
+        // 通知统一聊天系统更新对话状态
+        final chatNotifier = _ref.read(unifiedChatProvider.notifier);
+        // 如果是当前对话，更新当前对话状态
+        final currentConversation = _ref.read(currentConversationProvider);
+        if (currentConversation?.id == conversationId) {
+          await chatNotifier.loadConversation(conversationId);
+        }
 
         _logger.info('标题保存成功', {
           'conversationId': conversationId,

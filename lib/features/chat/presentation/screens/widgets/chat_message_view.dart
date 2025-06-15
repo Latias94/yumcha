@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import '../../../domain/entities/message.dart';
+import '../../../domain/entities/message_status.dart';
 import '../../../domain/entities/enhanced_message.dart';
 import '../../../domain/entities/chat_bubble_style.dart';
 import '../../providers/chat_style_provider.dart';
@@ -63,7 +64,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     ));
 
     // 如果是流式消息，启动闪烁动画
-    if (widget.message.status == MessageStatus.streaming) {
+    if (widget.message.status == MessageStatus.aiProcessing) {
       _blinkController.repeat(reverse: true);
     }
   }
@@ -73,11 +74,11 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     super.didUpdateWidget(oldWidget);
 
     // 监听消息状态变化
-    if (widget.message.status == MessageStatus.streaming &&
-        oldWidget.message.status != MessageStatus.streaming) {
+    if (widget.message.status == MessageStatus.aiProcessing &&
+        oldWidget.message.status != MessageStatus.aiProcessing) {
       _blinkController.repeat(reverse: true);
-    } else if (widget.message.status != MessageStatus.streaming &&
-        oldWidget.message.status == MessageStatus.streaming) {
+    } else if (widget.message.status != MessageStatus.aiProcessing &&
+        oldWidget.message.status == MessageStatus.aiProcessing) {
       _blinkController.stop();
     }
   }
@@ -144,7 +145,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
               ),
               SizedBox(width: DesignConstants.spaceS),
               Text(
-                _formatTimestamp(widget.message.timestamp),
+                _formatTimestamp(widget.message.createdAt),
                 style: TextStyle(
                   color:
                       theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -196,11 +197,11 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 ),
 
                 // 错误信息显示
-                if (widget.message.isError && widget.message.errorInfo != null)
+                if (widget.message.isError && widget.message.metadata?['errorInfo'] != null)
                   _buildErrorInfo(context, theme),
 
                 // 流式状态指示器
-                if (widget.message.status == MessageStatus.streaming)
+                if (widget.message.status == MessageStatus.aiProcessing)
                   _buildStreamingIndicator(context, theme),
               ],
             ),
@@ -295,7 +296,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                           ),
                         ),
                         Text(
-                          _formatTimestamp(widget.message.timestamp),
+                          _formatTimestamp(widget.message.createdAt),
                           style: TextStyle(
                             color: theme.colorScheme.onSurfaceVariant
                                 .withValues(alpha: 0.7),
@@ -350,19 +351,15 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                   ],
 
                   // 错误信息显示
-                  if (widget.message.isError && widget.message.errorInfo != null)
+                  if (widget.message.isError && widget.message.metadata?['errorInfo'] != null)
                     _buildErrorInfo(context, theme),
 
                   // 流式状态指示器
-                  if (widget.message.status == MessageStatus.streaming)
+                  if (widget.message.status == MessageStatus.aiProcessing)
                     _buildStreamingIndicator(context, theme),
 
                   // Token使用信息显示（仅AI消息）
-                  if (!widget.message.isFromUser && widget.message.metadata?.tokenUsage != null)
-                    _buildTokenInfo(context, theme),
-
-                  // Token使用信息显示（仅AI消息）
-                  if (!widget.message.isFromUser && widget.message.metadata?.tokenUsage != null)
+                  if (!widget.message.isFromUser && widget.message.metadata?['tokenUsage'] != null)
                     _buildTokenInfo(context, theme),
                 ],
               ),
@@ -414,7 +411,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
             Padding(
               padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
               child: Text(
-                _formatTimestamp(widget.message.timestamp),
+                _formatTimestamp(widget.message.createdAt),
                 style: TextStyle(
                   color:
                       theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
@@ -454,7 +451,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
               ],
 
               // 错误信息显示（在气泡下方）
-              if (widget.message.isError && widget.message.errorInfo != null)
+              if (widget.message.isError && widget.message.metadata?['errorInfo'] != null)
                 Container(
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * maxWidth,
@@ -463,7 +460,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 ),
 
               // 流式状态指示器（在气泡内部）
-              if (widget.message.status == MessageStatus.streaming)
+              if (widget.message.status == MessageStatus.aiProcessing)
                 Container(
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * maxWidth,
@@ -472,7 +469,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 ),
 
               // Token使用信息显示（仅AI消息，在气泡内部）
-              if (!widget.message.isFromUser && widget.message.metadata?.tokenUsage != null)
+              if (!widget.message.isFromUser && widget.message.metadata?['tokenUsage'] != null)
                 Container(
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * maxWidth,
@@ -955,7 +952,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
           // 状态文本
           Text(
-            widget.message.status.displayText,
+            widget.message.status.displayName,
             style: TextStyle(
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               fontSize: 12,
@@ -1053,7 +1050,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 ),
                 SizedBox(height: DesignConstants.spaceXS / 2),
                 Text(
-                  widget.message.errorInfo!,
+                  widget.message.metadata?['errorInfo'] as String? ?? '未知错误',
                   style: TextStyle(
                     color: theme.colorScheme.onErrorContainer,
                     fontSize: DesignConstants.getResponsiveFontSize(
@@ -1074,30 +1071,34 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
   /// 构建Token使用信息显示
   Widget _buildTokenInfo(BuildContext context, ThemeData theme) {
-    final tokenUsage = widget.message.metadata?.tokenUsage;
-    if (tokenUsage == null) return const SizedBox.shrink();
+    final tokenUsageData = widget.message.metadata?['tokenUsage'] as Map<String, dynamic>?;
+    if (tokenUsageData == null) return const SizedBox.shrink();
 
     // 构建Token信息文本
     final List<String> tokenParts = [];
 
     // 总Token数
-    if (tokenUsage.totalTokens != null) {
-      tokenParts.add('Tokens:${tokenUsage.totalTokens}');
+    final totalTokens = tokenUsageData['totalTokens'] as int?;
+    if (totalTokens != null) {
+      tokenParts.add('Tokens:$totalTokens');
     }
 
     // 输入Token数（用上箭头表示）
-    if (tokenUsage.promptTokens != null) {
-      tokenParts.add('↑${tokenUsage.promptTokens}');
+    final promptTokens = tokenUsageData['promptTokens'] as int?;
+    if (promptTokens != null) {
+      tokenParts.add('↑$promptTokens');
     }
 
     // 输出Token数（用下箭头表示）
-    if (tokenUsage.completionTokens != null) {
-      tokenParts.add('↓${tokenUsage.completionTokens}');
+    final completionTokens = tokenUsageData['completionTokens'] as int?;
+    if (completionTokens != null) {
+      tokenParts.add('↓$completionTokens');
     }
 
     // 推理Token数（如果有）
-    if (tokenUsage.reasoningTokens != null && tokenUsage.reasoningTokens! > 0) {
-      tokenParts.add('🧠${tokenUsage.reasoningTokens}');
+    final reasoningTokens = tokenUsageData['reasoningTokens'] as int?;
+    if (reasoningTokens != null && reasoningTokens > 0) {
+      tokenParts.add('🧠$reasoningTokens');
     }
 
     if (tokenParts.isEmpty) return const SizedBox.shrink();

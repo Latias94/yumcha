@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'message.dart';
+import 'legacy_message.dart';
 import 'message_metadata.dart';
 import '../../../../shared/infrastructure/services/media/media_storage_service.dart';
 
@@ -9,7 +9,7 @@ import '../../../../shared/infrastructure/services/media/media_storage_service.d
 /// 扩展基础Message类，添加多媒体文件支持
 /// 保持向后兼容性，同时提供新的多媒体功能
 @immutable
-class EnhancedMessage extends Message {
+class EnhancedMessage extends LegacyMessage {
   /// 多媒体文件元数据列表
   final List<MediaMetadata> mediaFiles;
 
@@ -26,14 +26,14 @@ class EnhancedMessage extends Message {
     super.parentMessageId,
     super.version = 1,
     super.isActive = true,
-    super.status = MessageStatus.normal,
+    super.status = LegacyMessageStatus.normal,
     super.errorInfo,
     this.mediaFiles = const [],
   });
 
-  /// 从基础Message创建EnhancedMessage
+  /// 从基础LegacyMessage创建EnhancedMessage
   factory EnhancedMessage.fromMessage(
-    Message message, {
+    LegacyMessage message, {
     List<MediaMetadata>? mediaFiles,
   }) {
     return EnhancedMessage(
@@ -69,7 +69,7 @@ class EnhancedMessage extends Message {
     String? parentMessageId,
     int version = 1,
     bool isActive = true,
-    MessageStatus status = MessageStatus.normal,
+    LegacyMessageStatus status = LegacyMessageStatus.normal,
     String? errorInfo,
     required List<MediaMetadata> mediaFiles,
   }) {
@@ -106,7 +106,7 @@ class EnhancedMessage extends Message {
     String? parentMessageId,
     int? version,
     bool? isActive,
-    MessageStatus? status,
+    LegacyMessageStatus? status,
     String? errorInfo,
     List<MediaMetadata>? mediaFiles,
   }) {
@@ -255,9 +255,9 @@ class EnhancedMessage extends Message {
     );
   }
 
-  /// 转换为基础Message（用于向后兼容）
-  Message toBaseMessage() {
-    return Message(
+  /// 转换为基础LegacyMessage（用于向后兼容）
+  LegacyMessage toBaseMessage() {
+    return LegacyMessage(
       id: id,
       author: author,
       content: content,

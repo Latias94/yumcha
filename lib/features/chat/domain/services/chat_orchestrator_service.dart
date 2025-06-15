@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../entities/chat_state.dart';
 import '../entities/message.dart';
+import '../entities/message_status.dart';
+import '../entities/legacy_message.dart';
 import '../../../../shared/infrastructure/services/ai/chat/chat_service.dart';
 import '../../data/repositories/conversation_repository.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
@@ -177,7 +179,7 @@ class ChatOrchestratorService {
       'assistantName': params.assistant.name,
     });
     _notifyStreamingUpdate(StreamingUpdate(
-      messageId: aiMessage.id!,
+      messageId: aiMessage.id,
       fullContent: '', // 空内容，但会创建消息框
       isDone: false,
     ));
@@ -235,7 +237,7 @@ class ChatOrchestratorService {
       );
 
       // 保存订阅以便管理
-      _activeStreams[aiMessage.id!] = subscription;
+      _activeStreams[aiMessage.id] = subscription;
 
       // 设置超时
       Timer(ChatConstants.streamingTimeout, () {
@@ -279,14 +281,18 @@ class ChatOrchestratorService {
 
       if (response.isSuccess) {
         // 创建AI消息
-        final aiMessage = Message(
+        final now = DateTime.now();
+        final aiMessage = Message.assistant(
           id: MessageIdService().generateAiMessageId(),
-          content: response.content,
-          timestamp: DateTime.now(),
-          isFromUser: false,
-          author: params.assistant.name,
-          duration: duration,
-          status: MessageStatus.normal,
+          conversationId: params.conversationId,
+          assistantId: params.assistant.id,
+          status: MessageStatus.aiSuccess,
+          createdAt: now,
+          modelId: params.model.name,
+          metadata: {
+            'duration': duration.inMilliseconds,
+            'content': response.content,
+          },
         );
 
         await _persistMessage(aiMessage, params.conversationId);
@@ -357,7 +363,7 @@ class ChatOrchestratorService {
       //   'fullContentLength': fullContent.length,
       // });
       _notifyStreamingUpdate(StreamingUpdate(
-        messageId: aiMessage.id!,
+        messageId: aiMessage.id,
         contentDelta: event.contentDelta,
         thinkingDelta: event.thinkingDelta,
         fullContent: fullContent,
@@ -396,13 +402,17 @@ class ChatOrchestratorService {
       final fullContent = accumulator.buildFullContent();
 
       final completedMessage = aiMessage.copyWith(
-        content: fullContent,
-        status: MessageStatus.normal,
+        status: MessageStatus.aiSuccess,
+        updatedAt: DateTime.now(),
+        metadata: {
+          ...?aiMessage.metadata,
+          'content': fullContent,
+        },
       );
 
       // 通知UI流式完成
       _notifyStreamingUpdate(StreamingUpdate(
-        messageId: aiMessage.id!,
+        messageId: aiMessage.id,
         fullContent: fullContent,
         isDone: true,
       ));
@@ -427,7 +437,7 @@ class ChatOrchestratorService {
       }
 
       // 清理订阅
-      _activeStreams[aiMessage.id!]?.cancel();
+      _activeStreams[aiMessage.id]?.cancel();
       _activeStreams.remove(aiMessage.id);
 
       _updateStatistics();
@@ -480,7 +490,7 @@ class ChatOrchestratorService {
     });
 
     // 清理订阅
-    _activeStreams[aiMessage.id!]?.cancel();
+    _activeStreams[aiMessage.id]?.cancel();
     _activeStreams.remove(aiMessage.id);
 
     _updateStatistics(failed: true);
@@ -574,26 +584,29 @@ class ChatOrchestratorService {
   }
 
   /// 创建用户消息
-  Message _createUserMessage(String content) {
-    return Message(
+  Message _createUserMessage(String content, {String? conversationId, String? assistantId}) {
+    final now = DateTime.now();
+    return Message.user(
       id: MessageIdService().generateUserMessageId(),
-      content: content,
-      timestamp: DateTime.now(),
-      isFromUser: true,
-      author: "你",
-      status: MessageStatus.normal,
+      conversationId: conversationId ?? '',
+      assistantId: assistantId ?? '',
+      createdAt: now,
+      metadata: {
+        'content': content,
+      },
     );
   }
 
   /// 创建AI消息
-  Message _createAiMessage(String assistantName) {
-    return Message(
+  Message _createAiMessage(String assistantId, {String? conversationId, String? modelId}) {
+    final now = DateTime.now();
+    return Message.assistant(
       id: MessageIdService().generateAiMessageId(),
-      content: '',
-      timestamp: DateTime.now(),
-      isFromUser: false,
-      author: assistantName,
-      status: MessageStatus.streaming,
+      conversationId: conversationId ?? '',
+      assistantId: assistantId,
+      status: MessageStatus.aiProcessing,
+      createdAt: now,
+      modelId: modelId,
     );
   }
 
@@ -602,7 +615,24 @@ class ChatOrchestratorService {
     try {
       final conversation =
           await _conversationRepository.getConversation(conversationId);
-      return conversation?.messages ?? [];
+
+      // 将 LegacyMessage 转换为新的 Message
+      final legacyMessages = conversation?.messages ?? [];
+      final messages = legacyMessages.map((legacyMessage) {
+        return Message.user(
+          id: legacyMessage.id ?? '',
+          conversationId: conversationId,
+          assistantId: '', // 从上下文获取
+          createdAt: legacyMessage.timestamp,
+          metadata: {
+            'content': legacyMessage.content,
+            'author': legacyMessage.author,
+            'isFromUser': legacyMessage.isFromUser,
+          },
+        );
+      }).toList();
+
+      return messages;
     } catch (error) {
       _logger.warning('获取聊天历史失败', {
         'conversationId': conversationId,
@@ -615,7 +645,7 @@ class ChatOrchestratorService {
   /// 持久化消息
   Future<void> _persistMessage(Message message, String conversationId) async {
     // 检查是否已经保存过
-    if (message.id != null && _persistedMessageIds.contains(message.id!)) {
+    if (_persistedMessageIds.contains(message.id)) {
       _logger.warning('消息已存在，跳过重复保存', {
         'messageId': message.id,
         'conversationId': conversationId,
@@ -627,27 +657,27 @@ class ChatOrchestratorService {
       _logger.info('开始持久化消息', {
         'messageId': message.id,
         'conversationId': conversationId,
-        'isFromUser': message.isFromUser,
+        'role': message.role,
         'contentLength': message.content.length,
       });
 
+      // 注意：这里暂时使用旧的ConversationRepository.addMessage方法
+      // 在完整的重构中，应该使用新的MessageRepository
       await _conversationRepository.addMessage(
         id: message.id,
         conversationId: conversationId,
         content: message.content,
-        author: message.author,
+        author: message.role == 'user' ? '你' : message.assistantId,
         isFromUser: message.isFromUser,
-        imageUrl: message.imageUrl,
-        avatarUrl: message.avatarUrl,
-        duration: message.duration,
-        status: message.status,
-        errorInfo: message.errorInfo,
+        imageUrl: null, // 新Message类中没有这个属性
+        avatarUrl: null, // 新Message类中没有这个属性
+        duration: message.totalDuration, // 从元数据获取
+        status: _convertToLegacyStatus(message.status),
+        errorInfo: message.metadata?['errorInfo'] as String?,
       );
 
       // 记录已保存的消息ID
-      if (message.id != null) {
-        _persistedMessageIds.add(message.id!);
-      }
+      _persistedMessageIds.add(message.id);
 
       _logger.info('消息持久化成功', {
         'messageId': message.id,
@@ -666,9 +696,7 @@ class ChatOrchestratorService {
         });
 
         // 将ID添加到已保存集合中，避免后续重复尝试
-        if (message.id != null) {
-          _persistedMessageIds.add(message.id!);
-        }
+        _persistedMessageIds.add(message.id);
 
         // 对于重复ID错误，不重新抛出，因为消息已经存在
         return;
@@ -721,6 +749,26 @@ class ChatOrchestratorService {
 
   /// 获取性能指标
   ChatPerformanceMetrics get performanceMetrics => _performanceMetrics;
+
+  /// 转换新的MessageStatus到旧的LegacyMessageStatus
+  LegacyMessageStatus _convertToLegacyStatus(MessageStatus status) {
+    switch (status) {
+      case MessageStatus.userSuccess:
+      case MessageStatus.aiSuccess:
+      case MessageStatus.system:
+        return LegacyMessageStatus.normal;
+      case MessageStatus.aiProcessing:
+        return LegacyMessageStatus.streaming;
+      case MessageStatus.aiPending:
+        return LegacyMessageStatus.sending;
+      case MessageStatus.aiError:
+        return LegacyMessageStatus.failed;
+      case MessageStatus.aiPaused:
+        return LegacyMessageStatus.sending; // 暂停状态映射为发送中
+      case MessageStatus.temporary:
+        return LegacyMessageStatus.temporary;
+    }
+  }
 
   /// 清理资源
   Future<void> dispose() async {

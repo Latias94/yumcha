@@ -1,8 +1,11 @@
+import 'dart:convert';
 import '../../../../shared/data/database/database.dart';
 import '../../domain/entities/conversation_ui_state.dart';
-import '../../domain/entities/message.dart';
+import '../../domain/entities/legacy_message.dart';
 import '../../domain/entities/enhanced_message.dart';
 import '../../domain/entities/message_metadata.dart';
+import '../../domain/entities/message_status.dart';
+
 import '../../../../shared/infrastructure/services/media/media_storage_service.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -72,7 +75,7 @@ class ConversationRepository {
         );
         final previewMessage = lastMessage != null
             ? [_messageDataToModel(lastMessage)]
-            : <Message>[];
+            : <LegacyMessage>[];
         conversations.add(_dataToModel(conversationData, previewMessage));
       }
     }
@@ -211,7 +214,7 @@ class ConversationRepository {
         );
 
         // 找出新增的消息（基于时间戳和内容比较）
-        final newMessages = <Message>[];
+        final newMessages = <LegacyMessage>[];
         for (final message in conversation.messages) {
           // 跳过空内容的AI消息（流式传输的占位符）
           if (!message.isFromUser && message.content.trim().isEmpty) {
@@ -279,30 +282,62 @@ class ConversationRepository {
     String? avatarUrl,
     DateTime? timestamp,
     Duration? duration,
-    MessageStatus status = MessageStatus.normal,
+    LegacyMessageStatus status = LegacyMessageStatus.normal,
     String? errorInfo,
   }) async {
     final id = _uuid.v4();
     final now = timestamp ?? DateTime.now();
 
-    final companion = MessagesCompanion(
-      id: Value(id),
-      conversationId: Value(conversationId),
-      content: Value(content),
-      author: Value(author),
-      isFromUser: Value(isFromUser),
-      imageUrl: Value(imageUrl),
-      avatarUrl: Value(avatarUrl),
-      timestamp: Value(now),
-      createdAt: Value(DateTime.now()),
-      updatedAt: Value(DateTime.now()),
-      status: Value(status.name),
-      errorInfo: Value(errorInfo),
-      // 暂时不设置元数据，保持向后兼容
+    // 使用新的块化架构
+    final role = isFromUser ? 'user' : 'assistant';
+    final companion = MessagesCompanion.insert(
+      id: id,
+      conversationId: conversationId,
+      role: role,
+      assistantId: '', // 旧数据中没有assistantId，使用空字符串
+      createdAt: now,
+      updatedAt: now,
+      status: Value(_convertLegacyStatusToMessageStatus(status).name),
+      metadata: Value(errorInfo != null ? jsonEncode({'errorInfo': errorInfo}) : null),
     );
 
     await _database.insertMessage(companion);
+
+    // 如果有内容，创建主文本块
+    if (content.isNotEmpty) {
+      await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+        id: '${id}_main',
+        messageId: id,
+        type: 'mainText',
+        createdAt: now,
+        updatedAt: now,
+        content: Value(content),
+        orderIndex: Value(0),
+      ));
+    }
+
     return id;
+  }
+
+  /// 将LegacyMessageStatus转换为MessageStatus
+  MessageStatus _convertLegacyStatusToMessageStatus(LegacyMessageStatus legacyStatus) {
+    switch (legacyStatus) {
+      case LegacyMessageStatus.normal:
+        return MessageStatus.userSuccess; // 默认为用户成功状态
+      case LegacyMessageStatus.sending:
+        return MessageStatus.aiPending;
+      case LegacyMessageStatus.streaming:
+        return MessageStatus.aiProcessing;
+      case LegacyMessageStatus.error:
+      case LegacyMessageStatus.failed:
+        return MessageStatus.aiError;
+      case LegacyMessageStatus.system:
+        return MessageStatus.system;
+      case LegacyMessageStatus.temporary:
+        return MessageStatus.temporary;
+      case LegacyMessageStatus.regenerating:
+        return MessageStatus.aiProcessing;
+    }
   }
 
   // 删除对话
@@ -311,7 +346,7 @@ class ConversationRepository {
   }
 
   // 获取对话的消息
-  Future<List<Message>> getMessagesByConversation(String conversationId) async {
+  Future<List<LegacyMessage>> getMessagesByConversation(String conversationId) async {
     final messageDataList = await _database.getMessagesByConversation(
       conversationId,
     );
@@ -333,50 +368,54 @@ class ConversationRepository {
     String? imageUrl,
     String? avatarUrl,
     Duration? duration,
-    MessageStatus status = MessageStatus.normal,
+    LegacyMessageStatus status = LegacyMessageStatus.normal,
     String? errorInfo,
-    List<MediaMetadata>? mediaFiles, // 新增：多媒体文件列表
+    List<dynamic>? mediaFiles, // 简化类型，避免导入问题
   }) async {
     final messageId = id ?? _uuid.v4(); // 使用传入的ID或生成新ID
     final now = DateTime.now();
 
-    // 序列化多媒体元数据
-    String? mediaMetadataJson;
-    if (mediaFiles != null && mediaFiles.isNotEmpty) {
-      final enhancedMessage = EnhancedMessage.withMedia(
-        id: messageId,
-        author: author,
-        content: content,
-        timestamp: now,
-        imageUrl: imageUrl,
-        avatarUrl: avatarUrl,
-        isFromUser: isFromUser,
-        duration: duration,
-        status: status,
-        errorInfo: errorInfo,
-        mediaFiles: mediaFiles,
-      );
-      mediaMetadataJson = enhancedMessage.mediaMetadataJson;
+    // 使用新的块化架构
+    final role = isFromUser ? 'user' : 'assistant';
+
+    // 构建元数据
+    Map<String, dynamic>? metadata;
+    if (errorInfo != null || duration != null || imageUrl != null || avatarUrl != null) {
+      metadata = <String, dynamic>{};
+      if (errorInfo != null) metadata['errorInfo'] = errorInfo;
+      if (duration != null) metadata['duration'] = duration.inMilliseconds;
+      if (imageUrl != null) metadata['imageUrl'] = imageUrl;
+      if (avatarUrl != null) metadata['avatarUrl'] = avatarUrl;
+      if (mediaFiles != null && mediaFiles.isNotEmpty) {
+        metadata['mediaFiles'] = mediaFiles;
+      }
     }
 
-    final companion = MessagesCompanion(
-      id: Value(messageId),
-      conversationId: Value(conversationId),
-      content: Value(content),
-      author: Value(author),
-      isFromUser: Value(isFromUser),
-      imageUrl: Value(imageUrl),
-      avatarUrl: Value(avatarUrl),
-      timestamp: Value(now),
-      createdAt: Value(now),
-      updatedAt: Value(now),
-      status: Value(status.name),
-      errorInfo: Value(errorInfo),
-      mediaMetadata: Value(mediaMetadataJson), // 新增：多媒体元数据
-      // 暂时不设置元数据，保持向后兼容
+    final companion = MessagesCompanion.insert(
+      id: messageId,
+      conversationId: conversationId,
+      role: role,
+      assistantId: '', // 旧数据中没有assistantId，使用空字符串
+      createdAt: now,
+      updatedAt: now,
+      status: Value(_convertLegacyStatusToMessageStatus(status).name),
+      metadata: Value(metadata != null ? jsonEncode(metadata) : null),
     );
 
     await _database.insertMessage(companion);
+
+    // 如果有内容，创建主文本块
+    if (content.isNotEmpty) {
+      await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+        id: '${messageId}_main',
+        messageId: messageId,
+        type: 'mainText',
+        createdAt: now,
+        updatedAt: now,
+        content: Value(content),
+        orderIndex: Value(0),
+      ));
+    }
 
     // 更新对话的最后消息时间
     await _database.updateConversation(
@@ -416,7 +455,7 @@ class ConversationRepository {
   // 将数据库模型转换为业务模型
   ConversationUiState _dataToModel(
     ConversationData data,
-    List<Message> messages,
+    List<LegacyMessage> messages,
   ) {
     return ConversationUiState(
       id: data.id,
@@ -504,7 +543,7 @@ class ConversationRepository {
         );
         final previewMessage = lastMessage != null
             ? [_messageDataToModel(lastMessage)]
-            : <Message>[];
+            : <LegacyMessage>[];
         conversations.add(_dataToModel(conversationData, previewMessage));
       }
       return conversations;
@@ -515,7 +554,7 @@ class ConversationRepository {
   }
 
   // 将消息数据库模型转换为业务模型
-  Message _messageDataToModel(MessageData data) {
+  LegacyMessage _messageDataToModel(MessageData data) {
     // 解析元数据
     MessageMetadata? metadata;
     if (data.metadata != null) {
@@ -540,14 +579,14 @@ class ConversationRepository {
     }
 
     // 解析消息状态
-    MessageStatus status = MessageStatus.normal;
+    LegacyMessageStatus status = LegacyMessageStatus.normal;
     try {
       // 尝试从数据库字段解析状态，如果字段不存在则使用默认值
       final statusString = data.toJson()['status'] as String?;
       if (statusString != null) {
-        status = MessageStatus.values.firstWhere(
+        status = LegacyMessageStatus.values.firstWhere(
           (s) => s.name == statusString,
-          orElse: () => MessageStatus.normal,
+          orElse: () => LegacyMessageStatus.normal,
         );
       }
     } catch (e) {
@@ -567,17 +606,17 @@ class ConversationRepository {
     // 如果有多媒体文件，返回EnhancedMessage，否则返回普通Message
     if (mediaFiles.isNotEmpty) {
       return EnhancedMessage(
-        id: data.id,
-        author: data.author,
-        content: data.content,
-        timestamp: data.timestamp,
-        imageUrl: data.imageUrl,
-        avatarUrl: data.avatarUrl,
-        isFromUser: data.isFromUser,
+        id: data.toJson()['id'] as String?,
+        author: data.toJson()['author'] as String? ?? 'Unknown',
+        content: data.toJson()['content'] as String? ?? '',
+        timestamp: data.toJson()['timestamp'] as DateTime? ?? DateTime.now(),
+        imageUrl: data.toJson()['imageUrl'] as String?,
+        avatarUrl: data.toJson()['avatarUrl'] as String?,
+        isFromUser: data.toJson()['isFromUser'] as bool? ?? false,
         metadata: metadata,
-        parentMessageId: data.parentMessageId,
-        version: data.version,
-        isActive: data.isActive,
+        parentMessageId: data.toJson()['parentMessageId'] as String?,
+        version: data.toJson()['version'] as int? ?? 1,
+        isActive: data.toJson()['isActive'] as bool? ?? true,
         status: status,
         errorInfo: errorInfo,
         mediaFiles: mediaFiles,
@@ -587,18 +626,18 @@ class ConversationRepository {
             : null,
       );
     } else {
-      return Message(
-        id: data.id,
-        author: data.author,
-        content: data.content,
-        timestamp: data.timestamp,
-        imageUrl: data.imageUrl,
-        avatarUrl: data.avatarUrl,
-        isFromUser: data.isFromUser,
+      return LegacyMessage(
+        id: data.toJson()['id'] as String?,
+        author: data.toJson()['author'] as String? ?? 'Unknown',
+        content: data.toJson()['content'] as String? ?? '',
+        timestamp: data.toJson()['timestamp'] as DateTime? ?? DateTime.now(),
+        imageUrl: data.toJson()['imageUrl'] as String?,
+        avatarUrl: data.toJson()['avatarUrl'] as String?,
+        isFromUser: data.toJson()['isFromUser'] as bool? ?? false,
         metadata: metadata,
-        parentMessageId: data.parentMessageId,
-        version: data.version,
-        isActive: data.isActive,
+        parentMessageId: data.toJson()['parentMessageId'] as String?,
+        version: data.toJson()['version'] as int? ?? 1,
+        isActive: data.toJson()['isActive'] as bool? ?? true,
         status: status,
         errorInfo: errorInfo,
         // 向后兼容：如果没有元数据但有总耗时，使用总耗时
@@ -612,7 +651,7 @@ class ConversationRepository {
 
 // 搜索结果模型
 class MessageSearchResult {
-  final Message message;
+  final LegacyMessage message;
   final String conversationId;
   final String conversationTitle;
   final String assistantId;

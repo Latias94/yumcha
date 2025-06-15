@@ -2152,44 +2152,31 @@ class $MessagesTable extends Messages
   late final GeneratedColumn<String> conversationId = GeneratedColumn<String>(
       'conversation_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _contentMeta =
-      const VerificationMeta('content');
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
   @override
-  late final GeneratedColumn<String> content = GeneratedColumn<String>(
-      'content', aliasedName, false,
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+      'role', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  static const VerificationMeta _assistantIdMeta =
+      const VerificationMeta('assistantId');
   @override
-  late final GeneratedColumn<String> author = GeneratedColumn<String>(
-      'author', aliasedName, false,
+  late final GeneratedColumn<String> assistantId = GeneratedColumn<String>(
+      'assistant_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _isFromUserMeta =
-      const VerificationMeta('isFromUser');
   @override
-  late final GeneratedColumn<bool> isFromUser = GeneratedColumn<bool>(
-      'is_from_user', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: true,
-      defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'CHECK ("is_from_user" IN (0, 1))'));
-  static const VerificationMeta _imageUrlMeta =
-      const VerificationMeta('imageUrl');
+  late final GeneratedColumnWithTypeConverter<List<String>, String> blockIds =
+      GeneratedColumn<String>('block_ids', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant('[]'))
+          .withConverter<List<String>>($MessagesTable.$converterblockIds);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
-  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
-      'image_url', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _avatarUrlMeta =
-      const VerificationMeta('avatarUrl');
-  @override
-  late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
-      'avatar_url', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _timestampMeta =
-      const VerificationMeta('timestamp');
-  @override
-  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
-      'timestamp', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('userSuccess'));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -2202,42 +2189,11 @@ class $MessagesTable extends Messages
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
       'updated_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _parentMessageIdMeta =
-      const VerificationMeta('parentMessageId');
+  static const VerificationMeta _modelIdMeta =
+      const VerificationMeta('modelId');
   @override
-  late final GeneratedColumn<String> parentMessageId = GeneratedColumn<String>(
-      'parent_message_id', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _versionMeta =
-      const VerificationMeta('version');
-  @override
-  late final GeneratedColumn<int> version = GeneratedColumn<int>(
-      'version', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(1));
-  static const VerificationMeta _isActiveMeta =
-      const VerificationMeta('isActive');
-  @override
-  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
-      'is_active', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
-      defaultValue: const Constant(true));
-  static const VerificationMeta _statusMeta = const VerificationMeta('status');
-  @override
-  late final GeneratedColumn<String> status = GeneratedColumn<String>(
-      'status', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant('normal'));
-  static const VerificationMeta _errorInfoMeta =
-      const VerificationMeta('errorInfo');
-  @override
-  late final GeneratedColumn<String> errorInfo = GeneratedColumn<String>(
-      'error_info', aliasedName, true,
+  late final GeneratedColumn<String> modelId = GeneratedColumn<String>(
+      'model_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _metadataMeta =
       const VerificationMeta('metadata');
@@ -2245,31 +2201,18 @@ class $MessagesTable extends Messages
   late final GeneratedColumn<String> metadata = GeneratedColumn<String>(
       'metadata', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _mediaMetadataMeta =
-      const VerificationMeta('mediaMetadata');
-  @override
-  late final GeneratedColumn<String> mediaMetadata = GeneratedColumn<String>(
-      'media_metadata', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
         conversationId,
-        content,
-        author,
-        isFromUser,
-        imageUrl,
-        avatarUrl,
-        timestamp,
+        role,
+        assistantId,
+        blockIds,
+        status,
         createdAt,
         updatedAt,
-        parentMessageId,
-        version,
-        isActive,
-        status,
-        errorInfo,
-        metadata,
-        mediaMetadata
+        modelId,
+        metadata
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2294,39 +2237,23 @@ class $MessagesTable extends Messages
     } else if (isInserting) {
       context.missing(_conversationIdMeta);
     }
-    if (data.containsKey('content')) {
-      context.handle(_contentMeta,
-          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
-    } else if (isInserting) {
-      context.missing(_contentMeta);
-    }
-    if (data.containsKey('author')) {
-      context.handle(_authorMeta,
-          author.isAcceptableOrUnknown(data['author']!, _authorMeta));
-    } else if (isInserting) {
-      context.missing(_authorMeta);
-    }
-    if (data.containsKey('is_from_user')) {
+    if (data.containsKey('role')) {
       context.handle(
-          _isFromUserMeta,
-          isFromUser.isAcceptableOrUnknown(
-              data['is_from_user']!, _isFromUserMeta));
+          _roleMeta, role.isAcceptableOrUnknown(data['role']!, _roleMeta));
     } else if (isInserting) {
-      context.missing(_isFromUserMeta);
+      context.missing(_roleMeta);
     }
-    if (data.containsKey('image_url')) {
-      context.handle(_imageUrlMeta,
-          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
-    }
-    if (data.containsKey('avatar_url')) {
-      context.handle(_avatarUrlMeta,
-          avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta));
-    }
-    if (data.containsKey('timestamp')) {
-      context.handle(_timestampMeta,
-          timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta));
+    if (data.containsKey('assistant_id')) {
+      context.handle(
+          _assistantIdMeta,
+          assistantId.isAcceptableOrUnknown(
+              data['assistant_id']!, _assistantIdMeta));
     } else if (isInserting) {
-      context.missing(_timestampMeta);
+      context.missing(_assistantIdMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
     }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
@@ -2340,37 +2267,13 @@ class $MessagesTable extends Messages
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
-    if (data.containsKey('parent_message_id')) {
-      context.handle(
-          _parentMessageIdMeta,
-          parentMessageId.isAcceptableOrUnknown(
-              data['parent_message_id']!, _parentMessageIdMeta));
-    }
-    if (data.containsKey('version')) {
-      context.handle(_versionMeta,
-          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
-    }
-    if (data.containsKey('is_active')) {
-      context.handle(_isActiveMeta,
-          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
-    }
-    if (data.containsKey('status')) {
-      context.handle(_statusMeta,
-          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
-    }
-    if (data.containsKey('error_info')) {
-      context.handle(_errorInfoMeta,
-          errorInfo.isAcceptableOrUnknown(data['error_info']!, _errorInfoMeta));
+    if (data.containsKey('model_id')) {
+      context.handle(_modelIdMeta,
+          modelId.isAcceptableOrUnknown(data['model_id']!, _modelIdMeta));
     }
     if (data.containsKey('metadata')) {
       context.handle(_metadataMeta,
           metadata.isAcceptableOrUnknown(data['metadata']!, _metadataMeta));
-    }
-    if (data.containsKey('media_metadata')) {
-      context.handle(
-          _mediaMetadataMeta,
-          mediaMetadata.isAcceptableOrUnknown(
-              data['media_metadata']!, _mediaMetadataMeta));
     }
     return context;
   }
@@ -2385,36 +2288,23 @@ class $MessagesTable extends Messages
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       conversationId: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}conversation_id'])!,
-      content: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}content'])!,
-      author: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}author'])!,
-      isFromUser: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_from_user'])!,
-      imageUrl: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
-      avatarUrl: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}avatar_url']),
-      timestamp: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}timestamp'])!,
+      role: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}role'])!,
+      assistantId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}assistant_id'])!,
+      blockIds: $MessagesTable.$converterblockIds.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}block_ids'])!),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
-      parentMessageId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}parent_message_id']),
-      version: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
-      isActive: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
-      status: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
-      errorInfo: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}error_info']),
+      modelId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}model_id']),
       metadata: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}metadata']),
-      mediaMetadata: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}media_metadata']),
     );
   }
 
@@ -2422,75 +2312,52 @@ class $MessagesTable extends Messages
   $MessagesTable createAlias(String alias) {
     return $MessagesTable(attachedDatabase, alias);
   }
+
+  static TypeConverter<List<String>, String> $converterblockIds =
+      const StringListConverter();
 }
 
 class MessageData extends DataClass implements Insertable<MessageData> {
   final String id;
   final String conversationId;
-  final String content;
-  final String author;
-  final bool isFromUser;
-  final String? imageUrl;
-  final String? avatarUrl;
-  final DateTime timestamp;
+  final String role;
+  final String assistantId;
+  final List<String> blockIds;
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String? parentMessageId;
-  final int version;
-  final bool isActive;
-  final String status;
-  final String? errorInfo;
+  final String? modelId;
   final String? metadata;
-  final String? mediaMetadata;
   const MessageData(
       {required this.id,
       required this.conversationId,
-      required this.content,
-      required this.author,
-      required this.isFromUser,
-      this.imageUrl,
-      this.avatarUrl,
-      required this.timestamp,
+      required this.role,
+      required this.assistantId,
+      required this.blockIds,
+      required this.status,
       required this.createdAt,
       required this.updatedAt,
-      this.parentMessageId,
-      required this.version,
-      required this.isActive,
-      required this.status,
-      this.errorInfo,
-      this.metadata,
-      this.mediaMetadata});
+      this.modelId,
+      this.metadata});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['conversation_id'] = Variable<String>(conversationId);
-    map['content'] = Variable<String>(content);
-    map['author'] = Variable<String>(author);
-    map['is_from_user'] = Variable<bool>(isFromUser);
-    if (!nullToAbsent || imageUrl != null) {
-      map['image_url'] = Variable<String>(imageUrl);
+    map['role'] = Variable<String>(role);
+    map['assistant_id'] = Variable<String>(assistantId);
+    {
+      map['block_ids'] =
+          Variable<String>($MessagesTable.$converterblockIds.toSql(blockIds));
     }
-    if (!nullToAbsent || avatarUrl != null) {
-      map['avatar_url'] = Variable<String>(avatarUrl);
-    }
-    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['status'] = Variable<String>(status);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
-    if (!nullToAbsent || parentMessageId != null) {
-      map['parent_message_id'] = Variable<String>(parentMessageId);
-    }
-    map['version'] = Variable<int>(version);
-    map['is_active'] = Variable<bool>(isActive);
-    map['status'] = Variable<String>(status);
-    if (!nullToAbsent || errorInfo != null) {
-      map['error_info'] = Variable<String>(errorInfo);
+    if (!nullToAbsent || modelId != null) {
+      map['model_id'] = Variable<String>(modelId);
     }
     if (!nullToAbsent || metadata != null) {
       map['metadata'] = Variable<String>(metadata);
-    }
-    if (!nullToAbsent || mediaMetadata != null) {
-      map['media_metadata'] = Variable<String>(mediaMetadata);
     }
     return map;
   }
@@ -2499,33 +2366,18 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     return MessagesCompanion(
       id: Value(id),
       conversationId: Value(conversationId),
-      content: Value(content),
-      author: Value(author),
-      isFromUser: Value(isFromUser),
-      imageUrl: imageUrl == null && nullToAbsent
-          ? const Value.absent()
-          : Value(imageUrl),
-      avatarUrl: avatarUrl == null && nullToAbsent
-          ? const Value.absent()
-          : Value(avatarUrl),
-      timestamp: Value(timestamp),
+      role: Value(role),
+      assistantId: Value(assistantId),
+      blockIds: Value(blockIds),
+      status: Value(status),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
-      parentMessageId: parentMessageId == null && nullToAbsent
+      modelId: modelId == null && nullToAbsent
           ? const Value.absent()
-          : Value(parentMessageId),
-      version: Value(version),
-      isActive: Value(isActive),
-      status: Value(status),
-      errorInfo: errorInfo == null && nullToAbsent
-          ? const Value.absent()
-          : Value(errorInfo),
+          : Value(modelId),
       metadata: metadata == null && nullToAbsent
           ? const Value.absent()
           : Value(metadata),
-      mediaMetadata: mediaMetadata == null && nullToAbsent
-          ? const Value.absent()
-          : Value(mediaMetadata),
     );
   }
 
@@ -2535,21 +2387,14 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     return MessageData(
       id: serializer.fromJson<String>(json['id']),
       conversationId: serializer.fromJson<String>(json['conversationId']),
-      content: serializer.fromJson<String>(json['content']),
-      author: serializer.fromJson<String>(json['author']),
-      isFromUser: serializer.fromJson<bool>(json['isFromUser']),
-      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
-      avatarUrl: serializer.fromJson<String?>(json['avatarUrl']),
-      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      role: serializer.fromJson<String>(json['role']),
+      assistantId: serializer.fromJson<String>(json['assistantId']),
+      blockIds: serializer.fromJson<List<String>>(json['blockIds']),
+      status: serializer.fromJson<String>(json['status']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      parentMessageId: serializer.fromJson<String?>(json['parentMessageId']),
-      version: serializer.fromJson<int>(json['version']),
-      isActive: serializer.fromJson<bool>(json['isActive']),
-      status: serializer.fromJson<String>(json['status']),
-      errorInfo: serializer.fromJson<String?>(json['errorInfo']),
+      modelId: serializer.fromJson<String?>(json['modelId']),
       metadata: serializer.fromJson<String?>(json['metadata']),
-      mediaMetadata: serializer.fromJson<String?>(json['mediaMetadata']),
     );
   }
   @override
@@ -2558,63 +2403,39 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'conversationId': serializer.toJson<String>(conversationId),
-      'content': serializer.toJson<String>(content),
-      'author': serializer.toJson<String>(author),
-      'isFromUser': serializer.toJson<bool>(isFromUser),
-      'imageUrl': serializer.toJson<String?>(imageUrl),
-      'avatarUrl': serializer.toJson<String?>(avatarUrl),
-      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'role': serializer.toJson<String>(role),
+      'assistantId': serializer.toJson<String>(assistantId),
+      'blockIds': serializer.toJson<List<String>>(blockIds),
+      'status': serializer.toJson<String>(status),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'parentMessageId': serializer.toJson<String?>(parentMessageId),
-      'version': serializer.toJson<int>(version),
-      'isActive': serializer.toJson<bool>(isActive),
-      'status': serializer.toJson<String>(status),
-      'errorInfo': serializer.toJson<String?>(errorInfo),
+      'modelId': serializer.toJson<String?>(modelId),
       'metadata': serializer.toJson<String?>(metadata),
-      'mediaMetadata': serializer.toJson<String?>(mediaMetadata),
     };
   }
 
   MessageData copyWith(
           {String? id,
           String? conversationId,
-          String? content,
-          String? author,
-          bool? isFromUser,
-          Value<String?> imageUrl = const Value.absent(),
-          Value<String?> avatarUrl = const Value.absent(),
-          DateTime? timestamp,
+          String? role,
+          String? assistantId,
+          List<String>? blockIds,
+          String? status,
           DateTime? createdAt,
           DateTime? updatedAt,
-          Value<String?> parentMessageId = const Value.absent(),
-          int? version,
-          bool? isActive,
-          String? status,
-          Value<String?> errorInfo = const Value.absent(),
-          Value<String?> metadata = const Value.absent(),
-          Value<String?> mediaMetadata = const Value.absent()}) =>
+          Value<String?> modelId = const Value.absent(),
+          Value<String?> metadata = const Value.absent()}) =>
       MessageData(
         id: id ?? this.id,
         conversationId: conversationId ?? this.conversationId,
-        content: content ?? this.content,
-        author: author ?? this.author,
-        isFromUser: isFromUser ?? this.isFromUser,
-        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
-        avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
-        timestamp: timestamp ?? this.timestamp,
+        role: role ?? this.role,
+        assistantId: assistantId ?? this.assistantId,
+        blockIds: blockIds ?? this.blockIds,
+        status: status ?? this.status,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
-        parentMessageId: parentMessageId.present
-            ? parentMessageId.value
-            : this.parentMessageId,
-        version: version ?? this.version,
-        isActive: isActive ?? this.isActive,
-        status: status ?? this.status,
-        errorInfo: errorInfo.present ? errorInfo.value : this.errorInfo,
+        modelId: modelId.present ? modelId.value : this.modelId,
         metadata: metadata.present ? metadata.value : this.metadata,
-        mediaMetadata:
-            mediaMetadata.present ? mediaMetadata.value : this.mediaMetadata,
       );
   MessageData copyWithCompanion(MessagesCompanion data) {
     return MessageData(
@@ -2622,26 +2443,15 @@ class MessageData extends DataClass implements Insertable<MessageData> {
       conversationId: data.conversationId.present
           ? data.conversationId.value
           : this.conversationId,
-      content: data.content.present ? data.content.value : this.content,
-      author: data.author.present ? data.author.value : this.author,
-      isFromUser:
-          data.isFromUser.present ? data.isFromUser.value : this.isFromUser,
-      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
-      avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
-      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      role: data.role.present ? data.role.value : this.role,
+      assistantId:
+          data.assistantId.present ? data.assistantId.value : this.assistantId,
+      blockIds: data.blockIds.present ? data.blockIds.value : this.blockIds,
+      status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      parentMessageId: data.parentMessageId.present
-          ? data.parentMessageId.value
-          : this.parentMessageId,
-      version: data.version.present ? data.version.value : this.version,
-      isActive: data.isActive.present ? data.isActive.value : this.isActive,
-      status: data.status.present ? data.status.value : this.status,
-      errorInfo: data.errorInfo.present ? data.errorInfo.value : this.errorInfo,
+      modelId: data.modelId.present ? data.modelId.value : this.modelId,
       metadata: data.metadata.present ? data.metadata.value : this.metadata,
-      mediaMetadata: data.mediaMetadata.present
-          ? data.mediaMetadata.value
-          : this.mediaMetadata,
     );
   }
 
@@ -2650,171 +2460,104 @@ class MessageData extends DataClass implements Insertable<MessageData> {
     return (StringBuffer('MessageData(')
           ..write('id: $id, ')
           ..write('conversationId: $conversationId, ')
-          ..write('content: $content, ')
-          ..write('author: $author, ')
-          ..write('isFromUser: $isFromUser, ')
-          ..write('imageUrl: $imageUrl, ')
-          ..write('avatarUrl: $avatarUrl, ')
-          ..write('timestamp: $timestamp, ')
+          ..write('role: $role, ')
+          ..write('assistantId: $assistantId, ')
+          ..write('blockIds: $blockIds, ')
+          ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('parentMessageId: $parentMessageId, ')
-          ..write('version: $version, ')
-          ..write('isActive: $isActive, ')
-          ..write('status: $status, ')
-          ..write('errorInfo: $errorInfo, ')
-          ..write('metadata: $metadata, ')
-          ..write('mediaMetadata: $mediaMetadata')
+          ..write('modelId: $modelId, ')
+          ..write('metadata: $metadata')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      conversationId,
-      content,
-      author,
-      isFromUser,
-      imageUrl,
-      avatarUrl,
-      timestamp,
-      createdAt,
-      updatedAt,
-      parentMessageId,
-      version,
-      isActive,
-      status,
-      errorInfo,
-      metadata,
-      mediaMetadata);
+  int get hashCode => Object.hash(id, conversationId, role, assistantId,
+      blockIds, status, createdAt, updatedAt, modelId, metadata);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is MessageData &&
           other.id == this.id &&
           other.conversationId == this.conversationId &&
-          other.content == this.content &&
-          other.author == this.author &&
-          other.isFromUser == this.isFromUser &&
-          other.imageUrl == this.imageUrl &&
-          other.avatarUrl == this.avatarUrl &&
-          other.timestamp == this.timestamp &&
+          other.role == this.role &&
+          other.assistantId == this.assistantId &&
+          other.blockIds == this.blockIds &&
+          other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.parentMessageId == this.parentMessageId &&
-          other.version == this.version &&
-          other.isActive == this.isActive &&
-          other.status == this.status &&
-          other.errorInfo == this.errorInfo &&
-          other.metadata == this.metadata &&
-          other.mediaMetadata == this.mediaMetadata);
+          other.modelId == this.modelId &&
+          other.metadata == this.metadata);
 }
 
 class MessagesCompanion extends UpdateCompanion<MessageData> {
   final Value<String> id;
   final Value<String> conversationId;
-  final Value<String> content;
-  final Value<String> author;
-  final Value<bool> isFromUser;
-  final Value<String?> imageUrl;
-  final Value<String?> avatarUrl;
-  final Value<DateTime> timestamp;
+  final Value<String> role;
+  final Value<String> assistantId;
+  final Value<List<String>> blockIds;
+  final Value<String> status;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
-  final Value<String?> parentMessageId;
-  final Value<int> version;
-  final Value<bool> isActive;
-  final Value<String> status;
-  final Value<String?> errorInfo;
+  final Value<String?> modelId;
   final Value<String?> metadata;
-  final Value<String?> mediaMetadata;
   final Value<int> rowid;
   const MessagesCompanion({
     this.id = const Value.absent(),
     this.conversationId = const Value.absent(),
-    this.content = const Value.absent(),
-    this.author = const Value.absent(),
-    this.isFromUser = const Value.absent(),
-    this.imageUrl = const Value.absent(),
-    this.avatarUrl = const Value.absent(),
-    this.timestamp = const Value.absent(),
+    this.role = const Value.absent(),
+    this.assistantId = const Value.absent(),
+    this.blockIds = const Value.absent(),
+    this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
-    this.parentMessageId = const Value.absent(),
-    this.version = const Value.absent(),
-    this.isActive = const Value.absent(),
-    this.status = const Value.absent(),
-    this.errorInfo = const Value.absent(),
+    this.modelId = const Value.absent(),
     this.metadata = const Value.absent(),
-    this.mediaMetadata = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MessagesCompanion.insert({
     required String id,
     required String conversationId,
-    required String content,
-    required String author,
-    required bool isFromUser,
-    this.imageUrl = const Value.absent(),
-    this.avatarUrl = const Value.absent(),
-    required DateTime timestamp,
+    required String role,
+    required String assistantId,
+    this.blockIds = const Value.absent(),
+    this.status = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
-    this.parentMessageId = const Value.absent(),
-    this.version = const Value.absent(),
-    this.isActive = const Value.absent(),
-    this.status = const Value.absent(),
-    this.errorInfo = const Value.absent(),
+    this.modelId = const Value.absent(),
     this.metadata = const Value.absent(),
-    this.mediaMetadata = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         conversationId = Value(conversationId),
-        content = Value(content),
-        author = Value(author),
-        isFromUser = Value(isFromUser),
-        timestamp = Value(timestamp),
+        role = Value(role),
+        assistantId = Value(assistantId),
         createdAt = Value(createdAt),
         updatedAt = Value(updatedAt);
   static Insertable<MessageData> custom({
     Expression<String>? id,
     Expression<String>? conversationId,
-    Expression<String>? content,
-    Expression<String>? author,
-    Expression<bool>? isFromUser,
-    Expression<String>? imageUrl,
-    Expression<String>? avatarUrl,
-    Expression<DateTime>? timestamp,
+    Expression<String>? role,
+    Expression<String>? assistantId,
+    Expression<String>? blockIds,
+    Expression<String>? status,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
-    Expression<String>? parentMessageId,
-    Expression<int>? version,
-    Expression<bool>? isActive,
-    Expression<String>? status,
-    Expression<String>? errorInfo,
+    Expression<String>? modelId,
     Expression<String>? metadata,
-    Expression<String>? mediaMetadata,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (conversationId != null) 'conversation_id': conversationId,
-      if (content != null) 'content': content,
-      if (author != null) 'author': author,
-      if (isFromUser != null) 'is_from_user': isFromUser,
-      if (imageUrl != null) 'image_url': imageUrl,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
-      if (timestamp != null) 'timestamp': timestamp,
+      if (role != null) 'role': role,
+      if (assistantId != null) 'assistant_id': assistantId,
+      if (blockIds != null) 'block_ids': blockIds,
+      if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
-      if (parentMessageId != null) 'parent_message_id': parentMessageId,
-      if (version != null) 'version': version,
-      if (isActive != null) 'is_active': isActive,
-      if (status != null) 'status': status,
-      if (errorInfo != null) 'error_info': errorInfo,
+      if (modelId != null) 'model_id': modelId,
       if (metadata != null) 'metadata': metadata,
-      if (mediaMetadata != null) 'media_metadata': mediaMetadata,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2822,40 +2565,26 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
   MessagesCompanion copyWith(
       {Value<String>? id,
       Value<String>? conversationId,
-      Value<String>? content,
-      Value<String>? author,
-      Value<bool>? isFromUser,
-      Value<String?>? imageUrl,
-      Value<String?>? avatarUrl,
-      Value<DateTime>? timestamp,
+      Value<String>? role,
+      Value<String>? assistantId,
+      Value<List<String>>? blockIds,
+      Value<String>? status,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
-      Value<String?>? parentMessageId,
-      Value<int>? version,
-      Value<bool>? isActive,
-      Value<String>? status,
-      Value<String?>? errorInfo,
+      Value<String?>? modelId,
       Value<String?>? metadata,
-      Value<String?>? mediaMetadata,
       Value<int>? rowid}) {
     return MessagesCompanion(
       id: id ?? this.id,
       conversationId: conversationId ?? this.conversationId,
-      content: content ?? this.content,
-      author: author ?? this.author,
-      isFromUser: isFromUser ?? this.isFromUser,
-      imageUrl: imageUrl ?? this.imageUrl,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
-      timestamp: timestamp ?? this.timestamp,
+      role: role ?? this.role,
+      assistantId: assistantId ?? this.assistantId,
+      blockIds: blockIds ?? this.blockIds,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      parentMessageId: parentMessageId ?? this.parentMessageId,
-      version: version ?? this.version,
-      isActive: isActive ?? this.isActive,
-      status: status ?? this.status,
-      errorInfo: errorInfo ?? this.errorInfo,
+      modelId: modelId ?? this.modelId,
       metadata: metadata ?? this.metadata,
-      mediaMetadata: mediaMetadata ?? this.mediaMetadata,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2869,23 +2598,18 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     if (conversationId.present) {
       map['conversation_id'] = Variable<String>(conversationId.value);
     }
-    if (content.present) {
-      map['content'] = Variable<String>(content.value);
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
     }
-    if (author.present) {
-      map['author'] = Variable<String>(author.value);
+    if (assistantId.present) {
+      map['assistant_id'] = Variable<String>(assistantId.value);
     }
-    if (isFromUser.present) {
-      map['is_from_user'] = Variable<bool>(isFromUser.value);
+    if (blockIds.present) {
+      map['block_ids'] = Variable<String>(
+          $MessagesTable.$converterblockIds.toSql(blockIds.value));
     }
-    if (imageUrl.present) {
-      map['image_url'] = Variable<String>(imageUrl.value);
-    }
-    if (avatarUrl.present) {
-      map['avatar_url'] = Variable<String>(avatarUrl.value);
-    }
-    if (timestamp.present) {
-      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -2893,26 +2617,11 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
-    if (parentMessageId.present) {
-      map['parent_message_id'] = Variable<String>(parentMessageId.value);
-    }
-    if (version.present) {
-      map['version'] = Variable<int>(version.value);
-    }
-    if (isActive.present) {
-      map['is_active'] = Variable<bool>(isActive.value);
-    }
-    if (status.present) {
-      map['status'] = Variable<String>(status.value);
-    }
-    if (errorInfo.present) {
-      map['error_info'] = Variable<String>(errorInfo.value);
+    if (modelId.present) {
+      map['model_id'] = Variable<String>(modelId.value);
     }
     if (metadata.present) {
       map['metadata'] = Variable<String>(metadata.value);
-    }
-    if (mediaMetadata.present) {
-      map['media_metadata'] = Variable<String>(mediaMetadata.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -2925,21 +2634,483 @@ class MessagesCompanion extends UpdateCompanion<MessageData> {
     return (StringBuffer('MessagesCompanion(')
           ..write('id: $id, ')
           ..write('conversationId: $conversationId, ')
-          ..write('content: $content, ')
-          ..write('author: $author, ')
-          ..write('isFromUser: $isFromUser, ')
-          ..write('imageUrl: $imageUrl, ')
-          ..write('avatarUrl: $avatarUrl, ')
-          ..write('timestamp: $timestamp, ')
+          ..write('role: $role, ')
+          ..write('assistantId: $assistantId, ')
+          ..write('blockIds: $blockIds, ')
+          ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('parentMessageId: $parentMessageId, ')
-          ..write('version: $version, ')
-          ..write('isActive: $isActive, ')
-          ..write('status: $status, ')
-          ..write('errorInfo: $errorInfo, ')
+          ..write('modelId: $modelId, ')
           ..write('metadata: $metadata, ')
-          ..write('mediaMetadata: $mediaMetadata, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MessageBlocksTable extends MessageBlocks
+    with TableInfo<$MessageBlocksTable, MessageBlockData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MessageBlocksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _messageIdMeta =
+      const VerificationMeta('messageId');
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+      'message_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('success'));
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _metadataMeta =
+      const VerificationMeta('metadata');
+  @override
+  late final GeneratedColumn<String> metadata = GeneratedColumn<String>(
+      'metadata', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _orderIndexMeta =
+      const VerificationMeta('orderIndex');
+  @override
+  late final GeneratedColumn<int> orderIndex = GeneratedColumn<int>(
+      'order_index', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        messageId,
+        type,
+        status,
+        content,
+        metadata,
+        orderIndex,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'message_blocks';
+  @override
+  VerificationContext validateIntegrity(Insertable<MessageBlockData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('message_id')) {
+      context.handle(_messageIdMeta,
+          messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta));
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    }
+    if (data.containsKey('metadata')) {
+      context.handle(_metadataMeta,
+          metadata.isAcceptableOrUnknown(data['metadata']!, _metadataMeta));
+    }
+    if (data.containsKey('order_index')) {
+      context.handle(
+          _orderIndexMeta,
+          orderIndex.isAcceptableOrUnknown(
+              data['order_index']!, _orderIndexMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MessageBlockData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MessageBlockData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      messageId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}message_id'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content']),
+      metadata: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}metadata']),
+      orderIndex: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}order_index'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $MessageBlocksTable createAlias(String alias) {
+    return $MessageBlocksTable(attachedDatabase, alias);
+  }
+}
+
+class MessageBlockData extends DataClass
+    implements Insertable<MessageBlockData> {
+  final String id;
+  final String messageId;
+  final String type;
+  final String status;
+  final String? content;
+  final String? metadata;
+  final int orderIndex;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const MessageBlockData(
+      {required this.id,
+      required this.messageId,
+      required this.type,
+      required this.status,
+      this.content,
+      this.metadata,
+      required this.orderIndex,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['message_id'] = Variable<String>(messageId);
+    map['type'] = Variable<String>(type);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || content != null) {
+      map['content'] = Variable<String>(content);
+    }
+    if (!nullToAbsent || metadata != null) {
+      map['metadata'] = Variable<String>(metadata);
+    }
+    map['order_index'] = Variable<int>(orderIndex);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  MessageBlocksCompanion toCompanion(bool nullToAbsent) {
+    return MessageBlocksCompanion(
+      id: Value(id),
+      messageId: Value(messageId),
+      type: Value(type),
+      status: Value(status),
+      content: content == null && nullToAbsent
+          ? const Value.absent()
+          : Value(content),
+      metadata: metadata == null && nullToAbsent
+          ? const Value.absent()
+          : Value(metadata),
+      orderIndex: Value(orderIndex),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory MessageBlockData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MessageBlockData(
+      id: serializer.fromJson<String>(json['id']),
+      messageId: serializer.fromJson<String>(json['messageId']),
+      type: serializer.fromJson<String>(json['type']),
+      status: serializer.fromJson<String>(json['status']),
+      content: serializer.fromJson<String?>(json['content']),
+      metadata: serializer.fromJson<String?>(json['metadata']),
+      orderIndex: serializer.fromJson<int>(json['orderIndex']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'messageId': serializer.toJson<String>(messageId),
+      'type': serializer.toJson<String>(type),
+      'status': serializer.toJson<String>(status),
+      'content': serializer.toJson<String?>(content),
+      'metadata': serializer.toJson<String?>(metadata),
+      'orderIndex': serializer.toJson<int>(orderIndex),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  MessageBlockData copyWith(
+          {String? id,
+          String? messageId,
+          String? type,
+          String? status,
+          Value<String?> content = const Value.absent(),
+          Value<String?> metadata = const Value.absent(),
+          int? orderIndex,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      MessageBlockData(
+        id: id ?? this.id,
+        messageId: messageId ?? this.messageId,
+        type: type ?? this.type,
+        status: status ?? this.status,
+        content: content.present ? content.value : this.content,
+        metadata: metadata.present ? metadata.value : this.metadata,
+        orderIndex: orderIndex ?? this.orderIndex,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  MessageBlockData copyWithCompanion(MessageBlocksCompanion data) {
+    return MessageBlockData(
+      id: data.id.present ? data.id.value : this.id,
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      type: data.type.present ? data.type.value : this.type,
+      status: data.status.present ? data.status.value : this.status,
+      content: data.content.present ? data.content.value : this.content,
+      metadata: data.metadata.present ? data.metadata.value : this.metadata,
+      orderIndex:
+          data.orderIndex.present ? data.orderIndex.value : this.orderIndex,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MessageBlockData(')
+          ..write('id: $id, ')
+          ..write('messageId: $messageId, ')
+          ..write('type: $type, ')
+          ..write('status: $status, ')
+          ..write('content: $content, ')
+          ..write('metadata: $metadata, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, messageId, type, status, content,
+      metadata, orderIndex, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MessageBlockData &&
+          other.id == this.id &&
+          other.messageId == this.messageId &&
+          other.type == this.type &&
+          other.status == this.status &&
+          other.content == this.content &&
+          other.metadata == this.metadata &&
+          other.orderIndex == this.orderIndex &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class MessageBlocksCompanion extends UpdateCompanion<MessageBlockData> {
+  final Value<String> id;
+  final Value<String> messageId;
+  final Value<String> type;
+  final Value<String> status;
+  final Value<String?> content;
+  final Value<String?> metadata;
+  final Value<int> orderIndex;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const MessageBlocksCompanion({
+    this.id = const Value.absent(),
+    this.messageId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.status = const Value.absent(),
+    this.content = const Value.absent(),
+    this.metadata = const Value.absent(),
+    this.orderIndex = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MessageBlocksCompanion.insert({
+    required String id,
+    required String messageId,
+    required String type,
+    this.status = const Value.absent(),
+    this.content = const Value.absent(),
+    this.metadata = const Value.absent(),
+    this.orderIndex = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        messageId = Value(messageId),
+        type = Value(type),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<MessageBlockData> custom({
+    Expression<String>? id,
+    Expression<String>? messageId,
+    Expression<String>? type,
+    Expression<String>? status,
+    Expression<String>? content,
+    Expression<String>? metadata,
+    Expression<int>? orderIndex,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (messageId != null) 'message_id': messageId,
+      if (type != null) 'type': type,
+      if (status != null) 'status': status,
+      if (content != null) 'content': content,
+      if (metadata != null) 'metadata': metadata,
+      if (orderIndex != null) 'order_index': orderIndex,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MessageBlocksCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? messageId,
+      Value<String>? type,
+      Value<String>? status,
+      Value<String?>? content,
+      Value<String?>? metadata,
+      Value<int>? orderIndex,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return MessageBlocksCompanion(
+      id: id ?? this.id,
+      messageId: messageId ?? this.messageId,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      content: content ?? this.content,
+      metadata: metadata ?? this.metadata,
+      orderIndex: orderIndex ?? this.orderIndex,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (metadata.present) {
+      map['metadata'] = Variable<String>(metadata.value);
+    }
+    if (orderIndex.present) {
+      map['order_index'] = Variable<int>(orderIndex.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MessageBlocksCompanion(')
+          ..write('id: $id, ')
+          ..write('messageId: $messageId, ')
+          ..write('type: $type, ')
+          ..write('status: $status, ')
+          ..write('content: $content, ')
+          ..write('metadata: $metadata, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3575,6 +3746,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AssistantsTable assistants = $AssistantsTable(this);
   late final $ConversationsTable conversations = $ConversationsTable(this);
   late final $MessagesTable messages = $MessagesTable(this);
+  late final $MessageBlocksTable messageBlocks = $MessageBlocksTable(this);
   late final $FavoriteModelsTable favoriteModels = $FavoriteModelsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   @override
@@ -3586,6 +3758,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         assistants,
         conversations,
         messages,
+        messageBlocks,
         favoriteModels,
         settings
       ];
@@ -4572,41 +4745,27 @@ typedef $$ConversationsTableProcessedTableManager = ProcessedTableManager<
 typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
   required String id,
   required String conversationId,
-  required String content,
-  required String author,
-  required bool isFromUser,
-  Value<String?> imageUrl,
-  Value<String?> avatarUrl,
-  required DateTime timestamp,
+  required String role,
+  required String assistantId,
+  Value<List<String>> blockIds,
+  Value<String> status,
   required DateTime createdAt,
   required DateTime updatedAt,
-  Value<String?> parentMessageId,
-  Value<int> version,
-  Value<bool> isActive,
-  Value<String> status,
-  Value<String?> errorInfo,
+  Value<String?> modelId,
   Value<String?> metadata,
-  Value<String?> mediaMetadata,
   Value<int> rowid,
 });
 typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
   Value<String> id,
   Value<String> conversationId,
-  Value<String> content,
-  Value<String> author,
-  Value<bool> isFromUser,
-  Value<String?> imageUrl,
-  Value<String?> avatarUrl,
-  Value<DateTime> timestamp,
+  Value<String> role,
+  Value<String> assistantId,
+  Value<List<String>> blockIds,
+  Value<String> status,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
-  Value<String?> parentMessageId,
-  Value<int> version,
-  Value<bool> isActive,
-  Value<String> status,
-  Value<String?> errorInfo,
+  Value<String?> modelId,
   Value<String?> metadata,
-  Value<String?> mediaMetadata,
   Value<int> rowid,
 });
 
@@ -4626,23 +4785,19 @@ class $$MessagesTableFilterComposer
       column: $table.conversationId,
       builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get content => $composableBuilder(
-      column: $table.content, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get role => $composableBuilder(
+      column: $table.role, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get author => $composableBuilder(
-      column: $table.author, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get assistantId => $composableBuilder(
+      column: $table.assistantId, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<bool> get isFromUser => $composableBuilder(
-      column: $table.isFromUser, builder: (column) => ColumnFilters(column));
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+      get blockIds => $composableBuilder(
+          column: $table.blockIds,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
-  ColumnFilters<String> get imageUrl => $composableBuilder(
-      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get avatarUrl => $composableBuilder(
-      column: $table.avatarUrl, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get timestamp => $composableBuilder(
-      column: $table.timestamp, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -4650,27 +4805,11 @@ class $$MessagesTableFilterComposer
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get parentMessageId => $composableBuilder(
-      column: $table.parentMessageId,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get version => $composableBuilder(
-      column: $table.version, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isActive => $composableBuilder(
-      column: $table.isActive, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get status => $composableBuilder(
-      column: $table.status, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get errorInfo => $composableBuilder(
-      column: $table.errorInfo, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get modelId => $composableBuilder(
+      column: $table.modelId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get metadata => $composableBuilder(
       column: $table.metadata, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get mediaMetadata => $composableBuilder(
-      column: $table.mediaMetadata, builder: (column) => ColumnFilters(column));
 }
 
 class $$MessagesTableOrderingComposer
@@ -4689,23 +4828,17 @@ class $$MessagesTableOrderingComposer
       column: $table.conversationId,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get content => $composableBuilder(
-      column: $table.content, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get role => $composableBuilder(
+      column: $table.role, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get author => $composableBuilder(
-      column: $table.author, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get assistantId => $composableBuilder(
+      column: $table.assistantId, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<bool> get isFromUser => $composableBuilder(
-      column: $table.isFromUser, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get blockIds => $composableBuilder(
+      column: $table.blockIds, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get imageUrl => $composableBuilder(
-      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get avatarUrl => $composableBuilder(
-      column: $table.avatarUrl, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
-      column: $table.timestamp, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
@@ -4713,28 +4846,11 @@ class $$MessagesTableOrderingComposer
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get parentMessageId => $composableBuilder(
-      column: $table.parentMessageId,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get version => $composableBuilder(
-      column: $table.version, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isActive => $composableBuilder(
-      column: $table.isActive, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get status => $composableBuilder(
-      column: $table.status, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get errorInfo => $composableBuilder(
-      column: $table.errorInfo, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get modelId => $composableBuilder(
+      column: $table.modelId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get metadata => $composableBuilder(
       column: $table.metadata, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get mediaMetadata => $composableBuilder(
-      column: $table.mediaMetadata,
-      builder: (column) => ColumnOrderings(column));
 }
 
 class $$MessagesTableAnnotationComposer
@@ -4752,23 +4868,17 @@ class $$MessagesTableAnnotationComposer
   GeneratedColumn<String> get conversationId => $composableBuilder(
       column: $table.conversationId, builder: (column) => column);
 
-  GeneratedColumn<String> get content =>
-      $composableBuilder(column: $table.content, builder: (column) => column);
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
 
-  GeneratedColumn<String> get author =>
-      $composableBuilder(column: $table.author, builder: (column) => column);
+  GeneratedColumn<String> get assistantId => $composableBuilder(
+      column: $table.assistantId, builder: (column) => column);
 
-  GeneratedColumn<bool> get isFromUser => $composableBuilder(
-      column: $table.isFromUser, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<List<String>, String> get blockIds =>
+      $composableBuilder(column: $table.blockIds, builder: (column) => column);
 
-  GeneratedColumn<String> get imageUrl =>
-      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
-
-  GeneratedColumn<String> get avatarUrl =>
-      $composableBuilder(column: $table.avatarUrl, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get timestamp =>
-      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4776,26 +4886,11 @@ class $$MessagesTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
-  GeneratedColumn<String> get parentMessageId => $composableBuilder(
-      column: $table.parentMessageId, builder: (column) => column);
-
-  GeneratedColumn<int> get version =>
-      $composableBuilder(column: $table.version, builder: (column) => column);
-
-  GeneratedColumn<bool> get isActive =>
-      $composableBuilder(column: $table.isActive, builder: (column) => column);
-
-  GeneratedColumn<String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => column);
-
-  GeneratedColumn<String> get errorInfo =>
-      $composableBuilder(column: $table.errorInfo, builder: (column) => column);
+  GeneratedColumn<String> get modelId =>
+      $composableBuilder(column: $table.modelId, builder: (column) => column);
 
   GeneratedColumn<String> get metadata =>
       $composableBuilder(column: $table.metadata, builder: (column) => column);
-
-  GeneratedColumn<String> get mediaMetadata => $composableBuilder(
-      column: $table.mediaMetadata, builder: (column) => column);
 }
 
 class $$MessagesTableTableManager extends RootTableManager<
@@ -4823,81 +4918,53 @@ class $$MessagesTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> conversationId = const Value.absent(),
-            Value<String> content = const Value.absent(),
-            Value<String> author = const Value.absent(),
-            Value<bool> isFromUser = const Value.absent(),
-            Value<String?> imageUrl = const Value.absent(),
-            Value<String?> avatarUrl = const Value.absent(),
-            Value<DateTime> timestamp = const Value.absent(),
+            Value<String> role = const Value.absent(),
+            Value<String> assistantId = const Value.absent(),
+            Value<List<String>> blockIds = const Value.absent(),
+            Value<String> status = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
-            Value<String?> parentMessageId = const Value.absent(),
-            Value<int> version = const Value.absent(),
-            Value<bool> isActive = const Value.absent(),
-            Value<String> status = const Value.absent(),
-            Value<String?> errorInfo = const Value.absent(),
+            Value<String?> modelId = const Value.absent(),
             Value<String?> metadata = const Value.absent(),
-            Value<String?> mediaMetadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MessagesCompanion(
             id: id,
             conversationId: conversationId,
-            content: content,
-            author: author,
-            isFromUser: isFromUser,
-            imageUrl: imageUrl,
-            avatarUrl: avatarUrl,
-            timestamp: timestamp,
+            role: role,
+            assistantId: assistantId,
+            blockIds: blockIds,
+            status: status,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            parentMessageId: parentMessageId,
-            version: version,
-            isActive: isActive,
-            status: status,
-            errorInfo: errorInfo,
+            modelId: modelId,
             metadata: metadata,
-            mediaMetadata: mediaMetadata,
             rowid: rowid,
           ),
           createCompanionCallback: ({
             required String id,
             required String conversationId,
-            required String content,
-            required String author,
-            required bool isFromUser,
-            Value<String?> imageUrl = const Value.absent(),
-            Value<String?> avatarUrl = const Value.absent(),
-            required DateTime timestamp,
+            required String role,
+            required String assistantId,
+            Value<List<String>> blockIds = const Value.absent(),
+            Value<String> status = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
-            Value<String?> parentMessageId = const Value.absent(),
-            Value<int> version = const Value.absent(),
-            Value<bool> isActive = const Value.absent(),
-            Value<String> status = const Value.absent(),
-            Value<String?> errorInfo = const Value.absent(),
+            Value<String?> modelId = const Value.absent(),
             Value<String?> metadata = const Value.absent(),
-            Value<String?> mediaMetadata = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MessagesCompanion.insert(
             id: id,
             conversationId: conversationId,
-            content: content,
-            author: author,
-            isFromUser: isFromUser,
-            imageUrl: imageUrl,
-            avatarUrl: avatarUrl,
-            timestamp: timestamp,
+            role: role,
+            assistantId: assistantId,
+            blockIds: blockIds,
+            status: status,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            parentMessageId: parentMessageId,
-            version: version,
-            isActive: isActive,
-            status: status,
-            errorInfo: errorInfo,
+            modelId: modelId,
             metadata: metadata,
-            mediaMetadata: mediaMetadata,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -4918,6 +4985,239 @@ typedef $$MessagesTableProcessedTableManager = ProcessedTableManager<
     $$MessagesTableUpdateCompanionBuilder,
     (MessageData, BaseReferences<_$AppDatabase, $MessagesTable, MessageData>),
     MessageData,
+    PrefetchHooks Function()>;
+typedef $$MessageBlocksTableCreateCompanionBuilder = MessageBlocksCompanion
+    Function({
+  required String id,
+  required String messageId,
+  required String type,
+  Value<String> status,
+  Value<String?> content,
+  Value<String?> metadata,
+  Value<int> orderIndex,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$MessageBlocksTableUpdateCompanionBuilder = MessageBlocksCompanion
+    Function({
+  Value<String> id,
+  Value<String> messageId,
+  Value<String> type,
+  Value<String> status,
+  Value<String?> content,
+  Value<String?> metadata,
+  Value<int> orderIndex,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$MessageBlocksTableFilterComposer
+    extends Composer<_$AppDatabase, $MessageBlocksTable> {
+  $$MessageBlocksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get messageId => $composableBuilder(
+      column: $table.messageId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get metadata => $composableBuilder(
+      column: $table.metadata, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get orderIndex => $composableBuilder(
+      column: $table.orderIndex, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$MessageBlocksTableOrderingComposer
+    extends Composer<_$AppDatabase, $MessageBlocksTable> {
+  $$MessageBlocksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get messageId => $composableBuilder(
+      column: $table.messageId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get metadata => $composableBuilder(
+      column: $table.metadata, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get orderIndex => $composableBuilder(
+      column: $table.orderIndex, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$MessageBlocksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MessageBlocksTable> {
+  $$MessageBlocksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get messageId =>
+      $composableBuilder(column: $table.messageId, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get metadata =>
+      $composableBuilder(column: $table.metadata, builder: (column) => column);
+
+  GeneratedColumn<int> get orderIndex => $composableBuilder(
+      column: $table.orderIndex, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$MessageBlocksTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $MessageBlocksTable,
+    MessageBlockData,
+    $$MessageBlocksTableFilterComposer,
+    $$MessageBlocksTableOrderingComposer,
+    $$MessageBlocksTableAnnotationComposer,
+    $$MessageBlocksTableCreateCompanionBuilder,
+    $$MessageBlocksTableUpdateCompanionBuilder,
+    (
+      MessageBlockData,
+      BaseReferences<_$AppDatabase, $MessageBlocksTable, MessageBlockData>
+    ),
+    MessageBlockData,
+    PrefetchHooks Function()> {
+  $$MessageBlocksTableTableManager(_$AppDatabase db, $MessageBlocksTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MessageBlocksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MessageBlocksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MessageBlocksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> messageId = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> content = const Value.absent(),
+            Value<String?> metadata = const Value.absent(),
+            Value<int> orderIndex = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MessageBlocksCompanion(
+            id: id,
+            messageId: messageId,
+            type: type,
+            status: status,
+            content: content,
+            metadata: metadata,
+            orderIndex: orderIndex,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String messageId,
+            required String type,
+            Value<String> status = const Value.absent(),
+            Value<String?> content = const Value.absent(),
+            Value<String?> metadata = const Value.absent(),
+            Value<int> orderIndex = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MessageBlocksCompanion.insert(
+            id: id,
+            messageId: messageId,
+            type: type,
+            status: status,
+            content: content,
+            metadata: metadata,
+            orderIndex: orderIndex,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$MessageBlocksTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $MessageBlocksTable,
+    MessageBlockData,
+    $$MessageBlocksTableFilterComposer,
+    $$MessageBlocksTableOrderingComposer,
+    $$MessageBlocksTableAnnotationComposer,
+    $$MessageBlocksTableCreateCompanionBuilder,
+    $$MessageBlocksTableUpdateCompanionBuilder,
+    (
+      MessageBlockData,
+      BaseReferences<_$AppDatabase, $MessageBlocksTable, MessageBlockData>
+    ),
+    MessageBlockData,
     PrefetchHooks Function()>;
 typedef $$FavoriteModelsTableCreateCompanionBuilder = FavoriteModelsCompanion
     Function({
@@ -5270,6 +5570,8 @@ class $AppDatabaseManager {
       $$ConversationsTableTableManager(_db, _db.conversations);
   $$MessagesTableTableManager get messages =>
       $$MessagesTableTableManager(_db, _db.messages);
+  $$MessageBlocksTableTableManager get messageBlocks =>
+      $$MessageBlocksTableTableManager(_db, _db.messageBlocks);
   $$FavoriteModelsTableTableManager get favoriteModels =>
       $$FavoriteModelsTableTableManager(_db, _db.favoriteModels);
   $$SettingsTableTableManager get settings =>

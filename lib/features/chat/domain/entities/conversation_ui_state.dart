@@ -1,4 +1,4 @@
-import 'message.dart';
+import 'legacy_message.dart';
 
 /// 对话 UI 状态数据模型
 ///
@@ -34,7 +34,7 @@ class ConversationUiState {
   final int channelMembers;
 
   /// 消息列表（按时间顺序）
-  final List<Message> messages;
+  final List<LegacyMessage> messages;
 
   /// 关联的 AI 助手 ID
   final String? assistantId;
@@ -59,7 +59,7 @@ class ConversationUiState {
     String? id,
     String? channelName,
     int? channelMembers,
-    List<Message>? messages,
+    List<LegacyMessage>? messages,
     String? assistantId,
     String? selectedProviderId,
     String? selectedModelId,
@@ -77,7 +77,7 @@ class ConversationUiState {
 
   /// 添加新消息到对话中
   /// 新消息会被添加到消息列表的末尾（按时间顺序）
-  ConversationUiState addMessage(Message message) {
+  ConversationUiState addMessage(LegacyMessage message) {
     return copyWith(messages: [...messages, message]);
   }
 

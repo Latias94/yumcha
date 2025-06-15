@@ -1,4 +1,7 @@
 import '../../domain/entities/message.dart';
+import '../../domain/entities/message_status.dart';
+import '../../domain/entities/message_block.dart';
+import '../../domain/entities/message_block_type.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 
@@ -45,12 +48,20 @@ class ChatErrorHandler {
     // 显示用户通知
     _showErrorNotification(errorInfo);
 
-    // 创建错误消息
+    // 创建错误消息，将错误信息存储在metadata中
+    final errorMetadata = {
+      ...?originalMessage.metadata,
+      'error': {
+        'type': errorInfo.type.name,
+        'message': errorInfo.userMessage,
+        'canRetry': errorInfo.canRetry,
+        'retryDelay': errorInfo.retryDelay?.inSeconds,
+      },
+    };
+
     return originalMessage.copyWith(
-      status: MessageStatus.error,
-      errorInfo: errorInfo.userMessage,
-      content:
-          originalMessage.content.isEmpty ? '消息发送失败' : originalMessage.content,
+      status: MessageStatus.aiError,
+      metadata: errorMetadata,
     );
   }
 
@@ -71,10 +82,32 @@ class ChatErrorHandler {
 
     _showErrorNotification(errorInfo);
 
+    // 创建错误消息，将错误信息存储在metadata中
+    final errorMetadata = {
+      ...?streamingMessage.metadata,
+      'error': {
+        'type': errorInfo.type.name,
+        'message': errorInfo.userMessage,
+        'canRetry': errorInfo.canRetry,
+        'retryDelay': errorInfo.retryDelay?.inSeconds,
+      },
+    };
+
+    // 如果有部分内容，更新主文本块
+    List<MessageBlock> updatedBlocks = streamingMessage.blocks;
+    if (partialContent != null && partialContent.isNotEmpty) {
+      updatedBlocks = streamingMessage.blocks.map((block) {
+        if (block.type == MessageBlockType.mainText) {
+          return block.copyWith(content: partialContent);
+        }
+        return block;
+      }).toList();
+    }
+
     return streamingMessage.copyWith(
-      status: MessageStatus.error,
-      errorInfo: errorInfo.userMessage,
-      content: partialContent ?? streamingMessage.content,
+      status: MessageStatus.aiError,
+      metadata: errorMetadata,
+      blocks: updatedBlocks,
     );
   }
 
@@ -83,10 +116,16 @@ class ChatErrorHandler {
     required Message failedMessage,
     required String retryReason,
   }) {
+    // 清除错误信息，设置为处理状态
+    final retryMetadata = {
+      ...?failedMessage.metadata,
+    };
+    retryMetadata.remove('error'); // 移除错误信息
+
     return failedMessage.copyWith(
-      status: MessageStatus.sending,
-      errorInfo: null,
-      timestamp: DateTime.now(),
+      status: MessageStatus.aiPending,
+      metadata: retryMetadata,
+      updatedAt: DateTime.now(),
     );
   }
 

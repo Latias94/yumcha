@@ -1,265 +1,191 @@
 import 'package:flutter/foundation.dart';
 import 'message_metadata.dart';
+import 'message_block.dart';
+import 'message_block_type.dart';
+import 'message_status.dart';
 
-/// 消息状态枚举
-enum MessageStatus {
-  /// 正常消息（默认状态）
-  normal,
-
-  /// 发送中
-  sending,
-
-  /// 流式传输中
-  streaming,
-
-  /// 发送失败
-  failed,
-
-  /// 错误消息（显示错误信息，不持久化）
-  error,
-
-  /// 系统消息（如欢迎消息）
-  system,
-
-  /// 临时消息（如加载指示器，不持久化）
-  temporary,
-
-  /// 重新生成中
-  regenerating,
-}
-
-/// 消息状态扩展方法
-extension MessageStatusExtension on MessageStatus {
-  /// 是否应该持久化到数据库
-  bool get shouldPersist {
-    switch (this) {
-      case MessageStatus.normal:
-      case MessageStatus.system:
-        return true;
-      case MessageStatus.sending:
-      case MessageStatus.streaming:
-      case MessageStatus.failed:
-      case MessageStatus.error:
-      case MessageStatus.temporary:
-      case MessageStatus.regenerating:
-        return false;
-    }
-  }
-
-  /// 是否是错误状态
-  bool get isError {
-    return this == MessageStatus.error || this == MessageStatus.failed;
-  }
-
-  /// 是否是临时状态
-  bool get isTemporary {
-    return this == MessageStatus.temporary ||
-        this == MessageStatus.sending ||
-        this == MessageStatus.streaming ||
-        this == MessageStatus.regenerating;
-  }
-
-  /// 获取状态显示文本
-  String get displayText {
-    switch (this) {
-      case MessageStatus.normal:
-        return '';
-      case MessageStatus.sending:
-        return '发送中...';
-      case MessageStatus.streaming:
-        return '正在回复...';
-      case MessageStatus.failed:
-        return '发送失败';
-      case MessageStatus.error:
-        return '错误';
-      case MessageStatus.system:
-        return '系统消息';
-      case MessageStatus.temporary:
-        return '临时消息';
-      case MessageStatus.regenerating:
-        return '重新生成中...';
-    }
-  }
-}
-
-/// 聊天消息数据模型
+/// 块化消息数据模型
 ///
-/// 表示聊天对话中的单条消息，包含消息内容、作者、时间戳等信息。
-/// 支持文本消息、图像消息和多媒体内容，区分用户消息和 AI 回复。
+/// 重构后的消息类，采用块化架构设计。消息作为块的容器，
+/// 具体内容存储在MessageBlock中，支持多模态内容和精细化状态管理。
 ///
 /// 核心特性：
-/// - 💬 **消息内容**: 支持文本、图像和多媒体内容
-/// - 👤 **作者标识**: 区分用户和 AI 助手
-/// - ⏰ **时间戳**: 记录消息的创建时间
-/// - 🖼️ **多媒体支持**: 支持图像 URL、音频 URL 和头像 URL
-/// - 🔄 **不可变性**: 使用 @immutable 确保数据不可变
-/// - 💾 **数据库兼容**: 支持数据库 ID 的可选字段
-/// - 📊 **状态管理**: 支持消息状态和错误处理
-/// - 🔒 **持久化控制**: 支持临时消息和持久化消息
-/// - 📁 **文件管理**: 支持本地文件存储和云端URL引用
+/// - 🧩 **块化架构**: 消息内容分解为独立的块
+/// - 🎭 **角色系统**: 支持user、assistant、system角色
+/// - 📊 **状态管理**: 消息级和块级的独立状态
+/// - 🔄 **流式支持**: 支持实时的流式内容更新
+/// - 🛠️ **多模态**: 原生支持文本、图片、工具调用等
+/// - 🔗 **关联性**: 消息与助手、模型的关联
 ///
-/// 多媒体存储策略：
-/// - 小文件（<1MB）：直接存储在数据库中（Base64编码）
-/// - 大文件（>=1MB）：存储在本地文件系统，数据库保存文件路径
-/// - 网络资源：保存URL，支持缓存到本地
-/// - 导出兼容：支持将所有多媒体内容打包导出
-///
-/// 业务逻辑：
-/// - 用户发送的消息 isFromUser 为 true
-/// - AI 回复的消息 isFromUser 为 false
-/// - 新创建的消息可能没有数据库 ID（id 为 null）
-/// - 保存到数据库后会分配唯一的 ID
-/// - 错误消息不会被持久化到数据库
-/// - 临时消息（如加载状态）不会被保存
-/// - 多媒体文件自动管理生命周期
+/// 架构设计：
+/// - Message: 消息元数据容器
+/// - MessageBlock: 具体内容单元
+/// - 一对多关系: 一个消息包含多个块
+/// - 有序管理: 块按orderIndex排序
 ///
 /// 使用场景：
 /// - 聊天界面的消息显示
-/// - 消息历史的存储和加载
-/// - AI 服务的上下文传递
-/// - 错误状态展示
-/// - 多媒体内容的展示和播放
+/// - 流式消息的实时更新
+/// - 多模态内容的组织
+/// - 消息状态的精细管理
 @immutable
 class Message {
-  /// 数据库 ID（可选，新创建的消息可能还没有 ID）
-  final String? id;
+  /// 消息ID
+  final String id;
 
-  /// 消息作者（用户名或 AI 助手名）
-  final String author;
+  /// 所属对话ID
+  final String conversationId;
 
-  /// 消息内容（文本内容）
-  final String content;
+  /// 消息角色 ('user' | 'assistant' | 'system')
+  final String role;
 
-  /// 消息时间戳
-  final DateTime timestamp;
+  /// 关联的助手ID
+  final String assistantId;
 
-  /// 图像 URL（可选，用于图像消息）
-  final String? imageUrl;
-
-  /// 头像 URL（可选，用于显示作者头像）
-  final String? avatarUrl;
-
-  /// 是否为用户发送的消息（true: 用户消息，false: AI 回复）
-  final bool isFromUser;
-
-  /// AI 响应耗时（仅对 AI 消息有效）- 保留向后兼容
-  final Duration? duration;
-
-  /// 消息元数据（AI响应的详细信息）
-  final MessageMetadata? metadata;
-
-  /// 父消息ID（用于重新生成的消息）
-  final String? parentMessageId;
-
-  /// 消息版本号
-  final int version;
-
-  /// 是否为当前活跃版本
-  final bool isActive;
+  /// 消息块ID列表（有序）
+  final List<String> blockIds;
 
   /// 消息状态
   final MessageStatus status;
 
-  /// 错误信息（仅当状态为error或failed时有值）
-  final String? errorInfo;
+  /// 创建时间
+  final DateTime createdAt;
+
+  /// 更新时间
+  final DateTime updatedAt;
+
+  /// 使用的模型ID
+  final String? modelId;
+
+  /// 消息元数据
+  final Map<String, dynamic>? metadata;
+
+  /// 关联的消息块列表（运行时加载）
+  final List<MessageBlock> blocks;
 
   const Message({
-    this.id,
-    required this.author,
-    required this.content,
-    required this.timestamp,
-    this.imageUrl,
-    this.avatarUrl,
-    required this.isFromUser,
-    this.duration,
+    required this.id,
+    required this.conversationId,
+    required this.role,
+    required this.assistantId,
+    this.blockIds = const [],
+    this.status = MessageStatus.userSuccess,
+    required this.createdAt,
+    required this.updatedAt,
+    this.modelId,
     this.metadata,
-    this.parentMessageId,
-    this.version = 1,
-    this.isActive = true,
-    this.status = MessageStatus.normal,
-    this.errorInfo,
+    this.blocks = const [],
   });
 
+  /// 复制并修改部分属性
   Message copyWith({
     String? id,
-    String? author,
-    String? content,
-    DateTime? timestamp,
-    String? imageUrl,
-    String? avatarUrl,
-    bool? isFromUser,
-    Duration? duration,
-    MessageMetadata? metadata,
-    String? parentMessageId,
-    int? version,
-    bool? isActive,
+    String? conversationId,
+    String? role,
+    String? assistantId,
+    List<String>? blockIds,
     MessageStatus? status,
-    String? errorInfo,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? modelId,
+    Map<String, dynamic>? metadata,
+    List<MessageBlock>? blocks,
   }) {
     return Message(
       id: id ?? this.id,
-      author: author ?? this.author,
-      content: content ?? this.content,
-      timestamp: timestamp ?? this.timestamp,
-      imageUrl: imageUrl ?? this.imageUrl,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
-      isFromUser: isFromUser ?? this.isFromUser,
-      duration: duration ?? this.duration,
-      metadata: metadata ?? this.metadata,
-      parentMessageId: parentMessageId ?? this.parentMessageId,
-      version: version ?? this.version,
-      isActive: isActive ?? this.isActive,
+      conversationId: conversationId ?? this.conversationId,
+      role: role ?? this.role,
+      assistantId: assistantId ?? this.assistantId,
+      blockIds: blockIds ?? this.blockIds,
       status: status ?? this.status,
-      errorInfo: errorInfo ?? this.errorInfo,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      modelId: modelId ?? this.modelId,
+      metadata: metadata ?? this.metadata,
+      blocks: blocks ?? this.blocks,
     );
   }
 
-  /// 创建错误消息
-  factory Message.error({
-    required String author,
-    required String errorMessage,
-    String? originalContent,
-    DateTime? timestamp,
-    String? errorInfo,
+  /// 创建用户消息
+  factory Message.user({
+    required String id,
+    required String conversationId,
+    required String assistantId,
+    List<String> blockIds = const [],
+    DateTime? createdAt,
+    Map<String, dynamic>? metadata,
   }) {
+    final now = createdAt ?? DateTime.now();
     return Message(
-      author: author,
-      content: originalContent ?? '',
-      timestamp: timestamp ?? DateTime.now(),
-      isFromUser: false,
-      status: MessageStatus.error,
-      errorInfo: errorInfo ?? errorMessage,
+      id: id,
+      conversationId: conversationId,
+      role: 'user',
+      assistantId: assistantId,
+      blockIds: blockIds,
+      status: MessageStatus.userSuccess,
+      createdAt: now,
+      updatedAt: now,
+      metadata: metadata,
     );
   }
 
-  /// 创建临时消息（如加载指示器）
-  factory Message.temporary({
-    required String author,
-    required String content,
-    DateTime? timestamp,
+  /// 创建AI消息
+  factory Message.assistant({
+    required String id,
+    required String conversationId,
+    required String assistantId,
+    List<String> blockIds = const [],
+    MessageStatus status = MessageStatus.aiProcessing,
+    DateTime? createdAt,
+    String? modelId,
+    Map<String, dynamic>? metadata,
   }) {
+    final now = createdAt ?? DateTime.now();
     return Message(
-      author: author,
-      content: content,
-      timestamp: timestamp ?? DateTime.now(),
-      isFromUser: false,
-      status: MessageStatus.temporary,
+      id: id,
+      conversationId: conversationId,
+      role: 'assistant',
+      assistantId: assistantId,
+      blockIds: blockIds,
+      status: status,
+      createdAt: now,
+      updatedAt: now,
+      modelId: modelId,
+      metadata: metadata,
     );
   }
 
   /// 创建系统消息
   factory Message.system({
-    required String content,
-    DateTime? timestamp,
+    required String id,
+    required String conversationId,
+    required String assistantId,
+    List<String> blockIds = const [],
+    DateTime? createdAt,
+    Map<String, dynamic>? metadata,
   }) {
+    final now = createdAt ?? DateTime.now();
     return Message(
-      author: 'System',
-      content: content,
-      timestamp: timestamp ?? DateTime.now(),
-      isFromUser: false,
+      id: id,
+      conversationId: conversationId,
+      role: 'system',
+      assistantId: assistantId,
+      blockIds: blockIds,
       status: MessageStatus.system,
+      createdAt: now,
+      updatedAt: now,
+      metadata: metadata,
     );
   }
+
+  /// 是否是用户消息
+  bool get isFromUser => role == 'user';
+
+  /// 是否是AI消息
+  bool get isAiMessage => role == 'assistant';
+
+  /// 是否是系统消息
+  bool get isSystemMessage => role == 'system';
 
   /// 是否应该持久化到数据库
   bool get shouldPersist => status.shouldPersist;
@@ -270,68 +196,114 @@ class Message {
   /// 是否是临时状态
   bool get isTemporary => status.isTemporary;
 
-  /// 获取思考过程耗时
-  Duration? get thinkingDuration {
-    if (metadata?.thinkingDurationMs != null) {
-      return Duration(milliseconds: metadata!.thinkingDurationMs!);
-    }
-    return null;
+  /// 是否有消息块
+  bool get hasBlocks => blockIds.isNotEmpty;
+
+  /// 获取主文本内容（从第一个文本块获取）
+  String get content {
+    final textBlock = blocks.firstWhere(
+      (block) => block.type == MessageBlockType.mainText,
+      orElse: () => MessageBlock.text(
+        id: '',
+        messageId: id,
+        content: '',
+      ),
+    );
+    return textBlock.content ?? '';
   }
 
-  /// 获取总响应耗时（优先使用元数据）
-  Duration? get totalDuration {
-    if (metadata?.totalDurationMs != null) {
-      return Duration(milliseconds: metadata!.totalDurationMs!);
+  /// 获取思考过程内容
+  String? get thinkingContent {
+    try {
+      final thinkingBlock = blocks.firstWhere(
+        (block) => block.type == MessageBlockType.thinking,
+      );
+      return thinkingBlock.content;
+    } catch (e) {
+      return null;
     }
-    return duration; // 向后兼容
-  }
-
-  /// 获取内容生成耗时
-  Duration? get contentDuration {
-    if (metadata?.contentDurationMs != null) {
-      return Duration(milliseconds: metadata!.contentDurationMs!);
-    }
-    return null;
   }
 
   /// 是否包含思考过程
   bool get hasThinking {
-    return metadata?.hasThinking ?? false;
+    return blocks.any((block) => block.type == MessageBlockType.thinking);
   }
 
-  /// 是否使用了工具调用
+  /// 是否包含工具调用
   bool get hasToolCalls {
-    return metadata?.hasToolCalls ?? false;
+    return blocks.any((block) => block.type == MessageBlockType.tool);
+  }
+
+  /// 是否包含图片
+  bool get hasImages {
+    return blocks.any((block) => block.type == MessageBlockType.image);
+  }
+
+  /// 是否包含代码
+  bool get hasCode {
+    return blocks.any((block) => block.type == MessageBlockType.code);
+  }
+
+  /// 获取所有图片块
+  List<MessageBlock> get imageBlocks {
+    return blocks.where((block) => block.type == MessageBlockType.image).toList();
+  }
+
+  /// 获取所有工具调用块
+  List<MessageBlock> get toolBlocks {
+    return blocks.where((block) => block.type == MessageBlockType.tool).toList();
+  }
+
+  /// 获取所有代码块
+  List<MessageBlock> get codeBlocks {
+    return blocks.where((block) => block.type == MessageBlockType.code).toList();
+  }
+
+  /// 获取思考过程耗时（从元数据）
+  Duration? get thinkingDuration {
+    if (metadata != null && metadata!.containsKey('thinkingDurationMs')) {
+      final ms = metadata!['thinkingDurationMs'] as int?;
+      return ms != null ? Duration(milliseconds: ms) : null;
+    }
+    return null;
+  }
+
+  /// 获取总响应耗时（从元数据）
+  Duration? get totalDuration {
+    if (metadata != null && metadata!.containsKey('totalDurationMs')) {
+      final ms = metadata!['totalDurationMs'] as int?;
+      return ms != null ? Duration(milliseconds: ms) : null;
+    }
+    return null;
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Message &&
-        other.id == id &&
-        other.author == author &&
-        other.content == content &&
-        other.timestamp == timestamp &&
-        other.imageUrl == imageUrl &&
-        other.avatarUrl == avatarUrl &&
-        other.isFromUser == isFromUser;
+           other.id == id &&
+           other.conversationId == conversationId &&
+           other.role == role &&
+           other.assistantId == assistantId &&
+           listEquals(other.blockIds, blockIds) &&
+           other.status == status;
   }
 
   @override
   int get hashCode {
     return Object.hash(
       id,
-      author,
-      content,
-      timestamp,
-      imageUrl,
-      avatarUrl,
-      isFromUser,
+      conversationId,
+      role,
+      assistantId,
+      Object.hashAll(blockIds),
+      status,
     );
   }
 
   @override
   String toString() {
-    return 'Message(id: $id, author: $author, content: $content, timestamp: $timestamp, isFromUser: $isFromUser)';
+    return 'Message(id: $id, role: $role, conversationId: $conversationId, '
+           'assistantId: $assistantId, status: $status, blocks: ${blocks.length})';
   }
 }

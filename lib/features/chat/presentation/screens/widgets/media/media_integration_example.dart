@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
-import 'dart:convert';
 import '../../../../domain/entities/enhanced_message.dart';
-import '../../../../domain/entities/message.dart';
+import '../../../../domain/entities/legacy_message.dart';
 import '../../../../../../shared/infrastructure/services/media/media_storage_service.dart';
 
 /// 多媒体集成使用示例
@@ -23,7 +22,7 @@ class MediaIntegrationExample {
       final imageData = _createSampleImageData();
       
       // 存储图片
-      final mediaMetadata = await _mediaService.storeMedia(
+      final mediaMetadata = await _mediaService.storeMedia( // ignore: unused_local_variable
         data: imageData,
         fileName: 'ai_generated_${DateTime.now().millisecondsSinceEpoch}.png',
         mimeType: 'image/png',
@@ -65,7 +64,7 @@ class MediaIntegrationExample {
       final audioData = _createSampleAudioData();
       
       // 存储音频
-      final mediaMetadata = await _mediaService.storeMedia(
+      final mediaMetadata = await _mediaService.storeMedia( // ignore: unused_local_variable
         data: audioData,
         fileName: 'tts_${DateTime.now().millisecondsSinceEpoch}.mp3',
         mimeType: 'audio/mpeg',
@@ -163,9 +162,9 @@ class MediaIntegrationExample {
     );
   }
 
-  /// 示例4：从现有Message创建EnhancedMessage
+  /// 示例4：从现有LegacyMessage创建EnhancedMessage
   static EnhancedMessage enhanceExistingMessage(
-    Message originalMessage, {
+    LegacyMessage originalMessage, {
     List<MediaMetadata>? mediaFiles,
   }) {
     return EnhancedMessage.fromMessage(

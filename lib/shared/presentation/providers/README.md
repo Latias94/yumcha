@@ -166,48 +166,47 @@ graph TD
 
 ## 📋 使用指南
 
-### 1. 在 Widget 中使用 Provider
+### 1. 在 Widget 中使用 Provider（新版本）
 ```dart
 class MyWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final assistants = ref.watch(aiAssistantNotifierProvider);
-    
-    return assistants.when(
-      loading: () => CircularProgressIndicator(),
-      error: (error, stack) => Text('Error: $error'),
-      data: (assistants) => ListView.builder(
-        itemCount: assistants.length,
-        itemBuilder: (context, index) => ListTile(
-          title: Text(assistants[index].name),
-        ),
+    final assistants = ref.watch(aiAssistantsProvider);
+
+    return ListView.builder(
+      itemCount: assistants.length,
+      itemBuilder: (context, index) => ListTile(
+        title: Text(assistants[index].name),
       ),
     );
   }
 }
 ```
 
-### 2. 调用 Notifier 方法
+### 2. 调用统一AI管理方法
 ```dart
 // 添加新助手
-ref.read(aiAssistantNotifierProvider.notifier).addAssistant(assistant);
+ref.read(unifiedAiManagementProvider.notifier).createCustomAssistant(
+  name: 'My Assistant',
+  systemPrompt: 'You are a helpful assistant',
+);
 
-// 切换收藏状态
-ref.read(favoriteModelNotifierProvider.notifier)
-   .toggleFavoriteModel(providerId, modelName);
+// 选择助手
+ref.read(unifiedAiManagementProvider.notifier).selectAssistant(assistant);
 
-// 创建新对话
-ref.read(currentConversationProvider.notifier).createNewConversation();
+// 创建新对话 - 使用统一聊天管理
+ref.read(unifiedChatProvider.notifier).createNewConversation();
 ```
 
 ### 3. 监听状态变化
 ```dart
-ref.listen<AsyncValue<List<AiAssistant>>>(
-  aiAssistantNotifierProvider,
+ref.listen<List<AiAssistant>>(
+  aiAssistantsProvider,
   (previous, next) {
-    next.whenOrNull(
-      error: (error, stack) => showErrorSnackBar(error.toString()),
-    );
+    // 处理助手列表变化
+    if (next.isEmpty) {
+      showInfoSnackBar('暂无可用助手');
+    }
   },
 );
 ```

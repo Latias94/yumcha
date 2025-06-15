@@ -119,36 +119,40 @@ class Conversations extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-// 消息表 - 重构版本，支持版本管理和丰富元数据
+// 消息表 - 块化重构版本，消息作为块的容器
 @DataClassName('MessageData')
 class Messages extends Table {
   TextColumn get id => text()();
   TextColumn get conversationId => text()();
-  TextColumn get content => text()();
-  TextColumn get author => text()();
-  BoolColumn get isFromUser => boolean()();
-  TextColumn get imageUrl => text().nullable()();
-  TextColumn get avatarUrl => text().nullable()();
-  DateTimeColumn get timestamp => dateTime()();
+  TextColumn get role => text()(); // 'user' | 'assistant' | 'system'
+  TextColumn get assistantId => text()(); // 关联的助手ID
+  TextColumn get blockIds => text()
+      .map(const StringListConverter())
+      .withDefault(const Constant('[]'))(); // 消息块ID列表
+  TextColumn get status => text().withDefault(const Constant('userSuccess'))(); // 消息状态
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
-  // 版本管理
-  TextColumn get parentMessageId => text().nullable()(); // 父消息ID（用于重新生成的消息）
-  IntColumn get version => integer().withDefault(const Constant(1))(); // 消息版本号
-  BoolColumn get isActive =>
-      boolean().withDefault(const Constant(true))(); // 是否为当前活跃版本
+  // 元数据
+  TextColumn get modelId => text().nullable()(); // 使用的模型ID
+  TextColumn get metadata => text().nullable()(); // 消息元数据（JSON格式）
 
-  // 消息状态管理
-  TextColumn get status =>
-      text().withDefault(const Constant('normal'))(); // 消息状态
-  TextColumn get errorInfo => text().nullable()(); // 错误信息
+  @override
+  Set<Column> get primaryKey => {id};
+}
 
-  // AI响应元数据（JSON格式）
-  TextColumn get metadata => text().nullable()(); // 存储AI响应的详细信息
-
-  // 多媒体内容元数据（JSON格式）
-  TextColumn get mediaMetadata => text().nullable()(); // 存储多媒体文件的元数据信息
+// 消息块表 - 存储具体的消息内容块
+@DataClassName('MessageBlockData')
+class MessageBlocks extends Table {
+  TextColumn get id => text()();
+  TextColumn get messageId => text()(); // 所属消息ID
+  TextColumn get type => text()(); // 块类型：mainText, thinking, image, code, tool, file, error, citation
+  TextColumn get status => text().withDefault(const Constant('success'))(); // 块状态
+  TextColumn get content => text().nullable()(); // 块内容
+  TextColumn get metadata => text().nullable()(); // 块元数据（JSON格式）
+  IntColumn get orderIndex => integer().withDefault(const Constant(0))(); // 块在消息中的顺序
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -174,6 +178,7 @@ class Settings extends Table {
     Assistants,
     Conversations,
     Messages,
+    MessageBlocks,
     FavoriteModels,
     Settings,
   ],
@@ -182,7 +187,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -191,8 +196,12 @@ class AppDatabase extends _$AppDatabase {
           await _createIndexes(m);
         },
         onUpgrade: (Migrator m, int from, int to) async {
-          // 数据库迁移策略
-          await _performMigration(m, from, to);
+          // 开发阶段：直接删除所有表重新创建
+          for (final table in allTables) {
+            await m.deleteTable(table.actualTableName);
+          }
+          await m.createAll();
+          await _createIndexes(m);
         },
       );
 
@@ -209,60 +218,27 @@ class AppDatabase extends _$AppDatabase {
       'CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);',
     );
     await m.database.customStatement(
-      'CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);',
+      'CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);',
     );
-    // 为消息内容搜索添加索引
     await m.database.customStatement(
-      'CREATE INDEX IF NOT EXISTS idx_messages_content ON messages(content);',
+      'CREATE INDEX IF NOT EXISTS idx_messages_role ON messages(role);',
+    );
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_messages_assistant_id ON messages(assistant_id);',
+    );
+    // 为消息块内容搜索添加索引
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_message_blocks_content ON message_blocks(content);',
+    );
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_message_blocks_message_id ON message_blocks(message_id);',
+    );
+    await m.database.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_message_blocks_type ON message_blocks(type);',
     );
   }
 
-  /// 执行数据库迁移
-  Future<void> _performMigration(Migrator m, int from, int to) async {
-    // 版本1到版本2：添加设置表
-    if (from < 2) {
-      await m.createTable(settings);
-      // 为设置表创建索引
-      await m.database.customStatement(
-        'CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);',
-      );
-    }
 
-    // 版本2到版本3：为助手表添加MCP服务器ID字段
-    if (from < 3) {
-      await m.database.customStatement(
-        'ALTER TABLE assistants ADD COLUMN mcp_server_ids TEXT NOT NULL DEFAULT "[]";',
-      );
-    }
-
-    // 版本3到版本4：修复消息表中status字段的null值
-    if (from < 4) {
-      // 更新所有status为null的记录，设置为默认值'normal'
-      await m.database.customStatement(
-        'UPDATE messages SET status = "normal" WHERE status IS NULL;',
-      );
-      // 更新所有version为null的记录，设置为默认值1
-      await m.database.customStatement(
-        'UPDATE messages SET version = 1 WHERE version IS NULL;',
-      );
-      // 更新所有is_active为null的记录，设置为默认值true
-      await m.database.customStatement(
-        'UPDATE messages SET is_active = 1 WHERE is_active IS NULL;',
-      );
-    }
-
-    // 版本4到版本5：为消息表添加多媒体元数据字段
-    if (from < 5) {
-      await m.database.customStatement(
-        'ALTER TABLE messages ADD COLUMN media_metadata TEXT;',
-      );
-    }
-
-    // 未来版本升级时在此处添加迁移逻辑
-    // if (from < 6) {
-    //   await m.createTable(newTable);
-    // }
-  }
 
   // 提供商相关操作
   Future<List<ProviderData>> getAllProviders() => select(providers).get();
@@ -386,7 +362,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<MessageData>> getMessagesByConversation(String conversationId) =>
       (select(messages)
             ..where((m) => m.conversationId.equals(conversationId))
-            ..orderBy([(m) => OrderingTerm.asc(m.timestamp)]))
+            ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]))
           .get();
 
   Future<MessageData?> getMessage(String id) =>
@@ -403,14 +379,42 @@ class AppDatabase extends _$AppDatabase {
     return result > 0;
   }
 
-  Future<int> deleteMessage(String id) =>
-      (delete(messages)..where((m) => m.id.equals(id))).go();
+  Future<int> deleteMessage(String id) async {
+    // 先删除相关的消息块
+    await (delete(messageBlocks)..where((mb) => mb.messageId.equals(id))).go();
+    // 再删除消息
+    return (delete(messages)..where((m) => m.id.equals(id))).go();
+  }
+
+  // 消息块相关操作
+  Future<List<MessageBlockData>> getMessageBlocks(String messageId) =>
+      (select(messageBlocks)
+            ..where((mb) => mb.messageId.equals(messageId))
+            ..orderBy([(mb) => OrderingTerm.asc(mb.orderIndex)]))
+          .get();
+
+  Future<MessageBlockData?> getMessageBlock(String id) =>
+      (select(messageBlocks)..where((mb) => mb.id.equals(id))).getSingleOrNull();
+
+  Future<int> insertMessageBlock(MessageBlocksCompanion block) =>
+      into(messageBlocks).insert(block);
+
+  Future<bool> updateMessageBlock(String id, MessageBlocksCompanion block) async {
+    final result = await (update(
+      messageBlocks,
+    )..where((mb) => mb.id.equals(id)))
+        .write(block);
+    return result > 0;
+  }
+
+  Future<int> deleteMessageBlock(String id) =>
+      (delete(messageBlocks)..where((mb) => mb.id.equals(id))).go();
 
   // 获取对话的最后一条消息
   Future<MessageData?> getLastMessageByConversation(String conversationId) =>
       (select(messages)
             ..where((m) => m.conversationId.equals(conversationId))
-            ..orderBy([(m) => OrderingTerm.desc(m.timestamp)])
+            ..orderBy([(m) => OrderingTerm.desc(m.createdAt)])
             ..limit(1))
           .getSingleOrNull();
 
@@ -424,7 +428,7 @@ class AppDatabase extends _$AppDatabase {
     return result.read(countExp) ?? 0;
   }
 
-  // 搜索消息内容
+  // 搜索消息内容（基于消息块）
   Future<List<MessageData>> searchMessages(
     String query, {
     String? assistantId,
@@ -435,7 +439,12 @@ class AppDatabase extends _$AppDatabase {
       return [];
     }
 
+    // 搜索消息块内容，然后获取对应的消息
     final searchQuery = select(messages).join([
+      innerJoin(
+        messageBlocks,
+        messageBlocks.messageId.equalsExp(messages.id),
+      ),
       leftOuterJoin(
         conversations,
         conversations.id.equalsExp(messages.conversationId),
@@ -443,7 +452,7 @@ class AppDatabase extends _$AppDatabase {
     ]);
 
     // 添加搜索条件
-    searchQuery.where(messages.content.like('%${query.trim()}%'));
+    searchQuery.where(messageBlocks.content.like('%${query.trim()}%'));
 
     // 如果指定了助手ID，添加助手过滤条件
     if (assistantId != null && assistantId.isNotEmpty) {
@@ -451,7 +460,7 @@ class AppDatabase extends _$AppDatabase {
     }
 
     // 按时间倒序排列
-    searchQuery.orderBy([OrderingTerm.desc(messages.timestamp)]);
+    searchQuery.orderBy([OrderingTerm.desc(messages.createdAt)]);
 
     // 分页
     searchQuery.limit(limit, offset: offset);
@@ -460,13 +469,17 @@ class AppDatabase extends _$AppDatabase {
     return results.map((row) => row.readTable(messages)).toList();
   }
 
-  // 获取搜索结果数量
+  // 获取搜索结果数量（基于消息块）
   Future<int> getSearchResultCount(String query, {String? assistantId}) async {
     if (query.trim().isEmpty) {
       return 0;
     }
 
     final countQuery = selectOnly(messages).join([
+      innerJoin(
+        messageBlocks,
+        messageBlocks.messageId.equalsExp(messages.id),
+      ),
       leftOuterJoin(
         conversations,
         conversations.id.equalsExp(messages.conversationId),
@@ -477,7 +490,7 @@ class AppDatabase extends _$AppDatabase {
     countQuery.addColumns([countExp]);
 
     // 添加搜索条件
-    countQuery.where(messages.content.like('%${query.trim()}%'));
+    countQuery.where(messageBlocks.content.like('%${query.trim()}%'));
 
     // 如果指定了助手ID，添加助手过滤条件
     if (assistantId != null && assistantId.isNotEmpty) {

@@ -31,6 +31,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/conversation_ui_state.dart';
 import '../../domain/entities/message.dart';
+import '../../domain/entities/message_status.dart';
+import '../../domain/entities/message_block.dart';
+import '../../domain/entities/legacy_message.dart';
+import '../../domain/entities/message_metadata.dart';
 import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
@@ -210,7 +214,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 assistantId: _conversationState.assistantId ?? '',
                 selectedProviderId: _conversationState.selectedProviderId,
                 selectedModelName: _conversationState.selectedModelId ?? '',
-                messages: _conversationState.messages,
+                messages: _convertLegacyMessagesToMessages(_conversationState.messages),
                 welcomeMessage: null, // 不显示欢迎消息，让界面开始时为空
                 suggestions: _getDefaultSuggestions(),
                 onMessagesChanged: _onMessagesChanged,
@@ -389,10 +393,118 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _onMessagesChanged(List<Message> messages) {
+    // 将新的Message列表转换为LegacyMessage列表
+    final legacyMessages = messages.map((message) => _convertToLegacyMessage(message)).toList();
     setState(() {
-      _conversationState = _conversationState.copyWith(messages: messages);
+      _conversationState = _conversationState.copyWith(messages: legacyMessages);
     });
     widget.onConversationUpdated?.call(_conversationState);
+  }
+
+  /// 将LegacyMessage列表转换为Message列表
+  List<Message> _convertLegacyMessagesToMessages(List<LegacyMessage> legacyMessages) {
+    return legacyMessages.map((legacyMessage) => _convertLegacyMessageToMessage(legacyMessage)).toList();
+  }
+
+  /// 将LegacyMessage转换为新的Message
+  Message _convertLegacyMessageToMessage(LegacyMessage legacyMessage) {
+    // 转换状态
+    MessageStatus messageStatus;
+    switch (legacyMessage.status) {
+      case LegacyMessageStatus.normal:
+        messageStatus = legacyMessage.isFromUser ? MessageStatus.userSuccess : MessageStatus.aiSuccess;
+        break;
+      case LegacyMessageStatus.sending:
+        messageStatus = MessageStatus.aiPending;
+        break;
+      case LegacyMessageStatus.streaming:
+        messageStatus = MessageStatus.aiProcessing;
+        break;
+      case LegacyMessageStatus.error:
+      case LegacyMessageStatus.failed:
+        messageStatus = MessageStatus.aiError;
+        break;
+      case LegacyMessageStatus.system:
+        messageStatus = MessageStatus.system;
+        break;
+      case LegacyMessageStatus.temporary:
+        messageStatus = MessageStatus.temporary;
+        break;
+      case LegacyMessageStatus.regenerating:
+        messageStatus = MessageStatus.aiProcessing;
+        break;
+    }
+
+    // 创建主文本块
+    final textBlock = MessageBlock.text(
+      id: '${legacyMessage.id}_text_block',
+      messageId: legacyMessage.id ?? '',
+      content: legacyMessage.content,
+    );
+
+    return Message(
+      id: legacyMessage.id ?? '',
+      conversationId: _conversationState.id,
+      role: legacyMessage.isFromUser ? 'user' : 'assistant',
+      assistantId: _conversationState.assistantId ?? '',
+      blockIds: [textBlock.id],
+      status: messageStatus,
+      createdAt: legacyMessage.timestamp,
+      updatedAt: legacyMessage.timestamp,
+      modelId: legacyMessage.metadata?.modelName,
+      metadata: legacyMessage.metadata?.toJson(),
+      blocks: [textBlock],
+    );
+  }
+
+  /// 将新的Message转换为LegacyMessage
+  LegacyMessage _convertToLegacyMessage(Message message) {
+    // 提取主要文本内容
+    final content = message.blocks
+        .where((block) => block.type.name == 'mainText')
+        .map((block) => block.content ?? '')
+        .join('\n');
+
+    // 转换状态
+    LegacyMessageStatus legacyStatus;
+    switch (message.status.name) {
+      case 'userSuccess':
+        legacyStatus = LegacyMessageStatus.normal;
+        break;
+      case 'aiPending':
+        legacyStatus = LegacyMessageStatus.sending;
+        break;
+      case 'aiProcessing':
+        legacyStatus = LegacyMessageStatus.streaming;
+        break;
+      case 'aiSuccess':
+        legacyStatus = LegacyMessageStatus.normal;
+        break;
+      case 'aiError':
+        legacyStatus = LegacyMessageStatus.error;
+        break;
+      case 'aiPaused':
+        legacyStatus = LegacyMessageStatus.failed;
+        break;
+      case 'system':
+        legacyStatus = LegacyMessageStatus.system;
+        break;
+      case 'temporary':
+        legacyStatus = LegacyMessageStatus.temporary;
+        break;
+      default:
+        legacyStatus = LegacyMessageStatus.normal;
+    }
+
+    return LegacyMessage(
+      id: message.id,
+      author: message.isFromUser ? 'User' : 'Assistant',
+      content: content,
+      timestamp: message.createdAt,
+      isFromUser: message.isFromUser,
+      status: legacyStatus,
+      metadata: message.metadata != null ? MessageMetadata.fromJson(message.metadata!) : null,
+    );
   }
 
   void _onProviderModelChanged(String providerId, String modelName) {
