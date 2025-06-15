@@ -4,6 +4,7 @@ import '../../infrastructure/services/logger_service.dart';
 import 'dependency_providers.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
 import '../../infrastructure/services/ai/providers/ai_service_provider.dart';
+import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import 'conversation_state_notifier.dart';
 
 /// 对话标题管理器 - 专门负责对话标题的生成和管理
@@ -107,7 +108,7 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
         'forceRegenerate': forceRegenerate,
       });
 
-      final generatedTitle = await _generateTitleWithSmartChat(messages);
+      final generatedTitle = await _generateTitleWithSimpleChat(messages);
 
       if (generatedTitle != null && generatedTitle.isNotEmpty) {
         // 更新标题状态
@@ -134,8 +135,8 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
     }
   }
 
-  /// 使用智能聊天生成标题
-  Future<String?> _generateTitleWithSmartChat(List<Message> messages) async {
+  /// 使用简单的AI服务生成标题（不使用工具调用）
+  Future<String?> _generateTitleWithSimpleChat(List<Message> messages) async {
     if (messages.isEmpty) return null;
 
     // 从聊天配置获取默认配置
@@ -153,13 +154,26 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
     final titlePrompt = _buildTitleGenerationPrompt(messages);
 
     try {
+      // 使用sendChatMessageProvider，它不包含工具调用功能
+      final providers = _ref.read(aiProvidersProvider);
+      final assistants = _ref.read(aiAssistantsProvider);
+
+      final provider = providers.where((p) => p.id == providerId).firstOrNull;
+      final assistant = assistants.where((a) => a.isEnabled).firstOrNull;
+
+      if (provider == null || assistant == null) {
+        _logger.warning('找不到有效的提供商或助手配置');
+        return null;
+      }
+
       final response = await _ref.read(
-        smartChatProvider(
-          SmartChatParams(
-            chatHistory: [],
-            userMessage: titlePrompt,
-            providerId: providerId,
+        sendChatMessageProvider(
+          SendChatMessageParams(
+            provider: provider,
+            assistant: assistant,
             modelName: modelName,
+            chatHistory: [], // 标题生成不需要历史消息
+            userMessage: titlePrompt,
           ),
         ).future,
       );

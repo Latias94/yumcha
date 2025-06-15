@@ -389,9 +389,9 @@ class _ChatInputState extends ConsumerState<ChatInput>
     if (widget.isLoading) {
       return 'AI正在思考中...';
     } else if (isEditing) {
-      return '编辑消息... (Enter发送, Shift+Enter换行)';
+      return '编辑消息...';
     } else {
-      return '输入消息... (Enter发送, Shift+Enter换行)';
+      return '输入消息...';
     }
   }
 

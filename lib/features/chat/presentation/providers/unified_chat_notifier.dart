@@ -14,6 +14,7 @@ import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 import '../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
+import '../../../../shared/presentation/providers/conversation_title_notifier.dart';
 
 /// 统一聊天状态管理器
 /// 
@@ -330,6 +331,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
           if (!useStreaming) {
             _addMessage(aiMessage);
             _emitEvent(MessageAddedEvent(aiMessage));
+            // 非流式AI消息完成后，检查是否需要生成标题
+            _checkAndTriggerTitleGeneration();
           } else {
             // 流式消息已经完成，只需要发出事件
             _emitEvent(MessageAddedEvent(aiMessage));
@@ -789,6 +792,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
           _emitEvent(StreamingCompletedEvent(update.messageId));
           _logger.debug('流式消息完成', {'messageId': update.messageId});
+
+          // AI消息完成后，检查是否需要生成标题
+          _checkAndTriggerTitleGeneration();
         } else {
           // 对于流式更新，我们不需要发出特殊事件，状态变化会自动通知UI
           // _logger.debug('流式消息更新', {
@@ -837,6 +843,47 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   void _emitEvent(ChatEvent event) {
     state = state.copyWith(lastEvent: event);
     _eventController.add(event);
+  }
+
+  /// 检查并触发标题生成
+  void _checkAndTriggerTitleGeneration() {
+    try {
+      // 检查是否有当前对话
+      final currentConversation = state.conversationState.currentConversation;
+      if (currentConversation == null) {
+        _logger.debug('没有当前对话，跳过标题生成检查');
+        return;
+      }
+
+      // 获取当前消息列表
+      final messages = state.messageState.messages;
+      if (messages.isEmpty) {
+        _logger.debug('没有消息，跳过标题生成检查');
+        return;
+      }
+
+      // 检查最后一条消息是否是AI消息
+      final lastMessage = messages.last;
+      if (lastMessage.isFromUser) {
+        _logger.debug('最后一条消息不是AI消息，跳过标题生成检查');
+        return;
+      }
+
+      _logger.info('AI消息完成，触发标题生成检查', {
+        'conversationId': currentConversation.id,
+        'messageCount': messages.length,
+        'lastMessageId': lastMessage.id,
+      });
+
+      // 调用标题生成器
+      final titleNotifier = _ref.read(conversationTitleNotifierProvider.notifier);
+      titleNotifier.onAiMessageAdded(currentConversation.id, messages);
+
+    } catch (error) {
+      _logger.error('标题生成检查失败', {
+        'error': error.toString(),
+      });
+    }
   }
 
 

@@ -1425,12 +1425,19 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                     ),
                     label: const Text('发送中...'),
                   ),
-                ] else
+                ] else ...[
                   ElevatedButton.icon(
                     onPressed: _sendMessage,
                     icon: const Icon(Icons.send),
                     label: const Text('发送消息'),
                   ),
+                  SizedBox(width: DesignConstants.spaceM),
+                  OutlinedButton.icon(
+                    onPressed: _diagnoseProvider,
+                    icon: const Icon(Icons.health_and_safety),
+                    label: const Text('诊断配置'),
+                  ),
+                ],
               ],
             ),
           ],
@@ -2105,6 +2112,102 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       }
     } catch (e) {
       _updateMcpDebugInfo('❌ 重新连接失败: $e\n');
+    }
+  }
+
+  /// 诊断提供商配置
+  Future<void> _diagnoseProvider() async {
+    if (_apiKeyController.text.trim().isEmpty) {
+      _showError('请先输入API密钥');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _debugInfo = '';
+      _response = '';
+      _thinkingContent = '';
+      _requestBody = '';
+      _responseBody = '';
+    });
+
+    try {
+      _updateDebugInfo('🔍 开始诊断提供商配置...\n\n');
+
+      // 创建提供商配置
+      final provider = _convertToModelsProvider();
+      final modelName = _modelController.text.trim();
+
+      _updateDebugInfo('📋 基本配置检查:\n');
+      _updateDebugInfo('  提供商: ${provider.name}\n');
+      _updateDebugInfo('  模型: $modelName\n');
+      _updateDebugInfo('  API密钥: ${provider.apiKey.isNotEmpty ? "已配置" : "未配置"}\n');
+      _updateDebugInfo('  基础URL: ${provider.baseUrl ?? "使用默认"}\n\n');
+
+      // 使用ChatService的诊断功能
+      final chatService = ref.read(aiChatServiceProvider);
+      final diagnosis = await chatService.diagnoseProvider(
+        provider: provider,
+        modelName: modelName,
+      );
+
+      _updateDebugInfo('🏥 诊断结果:\n');
+      _updateDebugInfo('  整体状态: ${diagnosis['isHealthy'] ? "✅ 健康" : "❌ 有问题"}\n\n');
+
+      // 显示各项检查结果
+      final checks = diagnosis['checks'] as Map<String, dynamic>;
+      _updateDebugInfo('📊 详细检查:\n');
+      checks.forEach((key, value) {
+        final status = value == true ? '✅' : '❌';
+        final keyName = _getCheckDisplayName(key);
+        _updateDebugInfo('  $keyName: $status\n');
+      });
+
+      // 显示问题和建议
+      final issues = diagnosis['issues'] as List<String>;
+      final suggestions = diagnosis['suggestions'] as List<String>;
+
+      if (issues.isNotEmpty) {
+        _updateDebugInfo('\n⚠️ 发现的问题:\n');
+        for (int i = 0; i < issues.length; i++) {
+          _updateDebugInfo('  ${i + 1}. ${issues[i]}\n');
+        }
+      }
+
+      if (suggestions.isNotEmpty) {
+        _updateDebugInfo('\n💡 解决建议:\n');
+        for (int i = 0; i < suggestions.length; i++) {
+          _updateDebugInfo('  ${i + 1}. ${suggestions[i]}\n');
+        }
+      }
+
+      if (diagnosis['isHealthy'] == true) {
+        _updateDebugInfo('\n🎉 配置正常！可以正常发送消息。\n');
+      } else {
+        _updateDebugInfo('\n🔧 请根据上述建议修复配置问题。\n');
+      }
+
+    } catch (e) {
+      _updateDebugInfo('\n❌ 诊断过程出错: $e\n');
+      _showError('诊断失败: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// 获取检查项的显示名称
+  String _getCheckDisplayName(String key) {
+    switch (key) {
+      case 'apiKey':
+        return 'API密钥';
+      case 'baseUrl':
+        return '基础URL';
+      case 'connection':
+        return '网络连接';
+      default:
+        return key;
     }
   }
 

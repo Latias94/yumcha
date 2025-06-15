@@ -214,13 +214,22 @@ class ChatOrchestratorService {
               error, aiMessage, params.conversationId, completer);
         },
         onDone: () async {
+          // 只有在completer未完成时才处理完成逻辑
           if (!completer.isCompleted) {
+            _logger.debug('流式传输onDone回调触发', {
+              'messageId': aiMessage.id,
+              'completerCompleted': completer.isCompleted,
+            });
             await _completeStreamingMessage(
               aiMessage,
               params.conversationId,
               accumulator,
               completer,
             );
+          } else {
+            _logger.debug('流式传输onDone回调跳过（completer已完成）', {
+              'messageId': aiMessage.id,
+            });
           }
         },
       );
@@ -326,15 +335,27 @@ class ChatOrchestratorService {
         accumulator.addThinking(event.thinkingDelta!);
       }
 
+      // 处理工具调用事件 - 记录工具调用但不添加到内容中
+      // 工具调用的处理由ChatService负责，这里只需要记录日志
+      if (event.toolCall != null) {
+        final toolCall = event.toolCall!;
+        _logger.debug('检测到工具调用事件', {
+          'messageId': aiMessage.id,
+          'toolName': toolCall.function.name,
+          'toolCallId': toolCall.id,
+          'arguments': toolCall.function.arguments,
+        });
+      }
+
       // 构建完整内容
       final fullContent = accumulator.buildFullContent();
 
       // 通知UI更新流式消息
-      _logger.debug('流式内容更新', {
-        'messageId': aiMessage.id,
-        'contentDelta': event.contentDelta?.length ?? 0,
-        'fullContentLength': fullContent.length,
-      });
+      // _logger.debug('流式内容更新', {
+      //   'messageId': aiMessage.id,
+      //   'contentDelta': event.contentDelta?.length ?? 0,
+      //   'fullContentLength': fullContent.length,
+      // });
       _notifyStreamingUpdate(StreamingUpdate(
         messageId: aiMessage.id!,
         contentDelta: event.contentDelta,
@@ -343,12 +364,12 @@ class ChatOrchestratorService {
       ));
 
       if (event.isDone) {
-        await _completeStreamingMessage(
-          aiMessage,
-          conversationId,
-          accumulator,
-          completer,
-        );
+        // 标记流式传输完成，但不在这里持久化
+        // 持久化将在 onDone 回调中统一处理
+        _logger.debug('流式事件标记完成', {
+          'messageId': aiMessage.id,
+          'contentLength': fullContent.length,
+        });
       }
     } catch (error) {
       _handleStreamingError(error, aiMessage, conversationId, completer);
@@ -362,6 +383,15 @@ class ChatOrchestratorService {
     _StreamAccumulator accumulator,
     Completer<ChatOperationResult<Message>> completer,
   ) async {
+    // 防止重复完成同一个消息
+    if (completer.isCompleted) {
+      _logger.warning('消息已完成，跳过重复处理', {
+        'messageId': aiMessage.id,
+        'conversationId': conversationId,
+      });
+      return;
+    }
+
     try {
       final fullContent = accumulator.buildFullContent();
 
@@ -381,13 +411,14 @@ class ChatOrchestratorService {
       // 1. 只保存有实际内容的完整消息
       // 2. 确保消息完整性和数据一致性
       // 3. 避免保存空消息或不完整的流式片段
+      // 4. 工具调用已由ChatService处理，最终响应包含工具执行结果
       if (fullContent.trim().isNotEmpty) {
         await _persistMessage(completedMessage, conversationId);
-        // _logger.info('流式消息已持久化', {
-        //   'messageId': aiMessage.id,
-        //   'contentLength': fullContent.length,
-        //   'conversationId': conversationId,
-        // });
+        _logger.info('流式消息已持久化', {
+          'messageId': aiMessage.id,
+          'contentLength': fullContent.length,
+          'conversationId': conversationId,
+        });
       } else {
         _logger.warning('流式消息内容为空，跳过持久化', {
           'messageId': aiMessage.id,
@@ -406,11 +437,20 @@ class ChatOrchestratorService {
         'contentLength': fullContent.length,
       });
 
+      // 确保只完成一次
       if (!completer.isCompleted) {
         completer.complete(ChatOperationSuccess(completedMessage));
       }
     } catch (error) {
-      _handleStreamingError(error, aiMessage, conversationId, completer);
+      // 只有在completer未完成时才处理错误
+      if (!completer.isCompleted) {
+        _handleStreamingError(error, aiMessage, conversationId, completer);
+      } else {
+        _logger.error('流式消息完成时发生错误（但completer已完成）', {
+          'messageId': aiMessage.id,
+          'error': error.toString(),
+        });
+      }
     }
   }
 
@@ -421,9 +461,22 @@ class ChatOrchestratorService {
     String conversationId,
     Completer<ChatOperationResult<Message>> completer,
   ) {
+    // 防止重复处理错误
+    if (completer.isCompleted) {
+      _logger.warning('错误处理时发现completer已完成', {
+        'messageId': aiMessage.id,
+        'error': error.toString(),
+      });
+      return;
+    }
+
+    // 分析错误类型并提供用户友好的错误信息
+    final errorMessage = _getUserFriendlyErrorMessage(error);
+
     _logger.error('流式传输错误', {
       'messageId': aiMessage.id,
       'error': error.toString(),
+      'userMessage': errorMessage,
     });
 
     // 清理订阅
@@ -432,11 +485,53 @@ class ChatOrchestratorService {
 
     _updateStatistics(failed: true);
 
+    // 确保只完成一次
     if (!completer.isCompleted) {
       completer.complete(
-        ChatOperationFailure('流式传输失败: $error'),
+        ChatOperationFailure(errorMessage),
       );
     }
+  }
+
+  /// 获取用户友好的错误信息
+  String _getUserFriendlyErrorMessage(Object error) {
+    final errorString = error.toString().toLowerCase();
+
+    if (errorString.contains('network') ||
+        errorString.contains('connection') ||
+        errorString.contains('timeout')) {
+      return '网络连接失败，请检查网络设置';
+    }
+
+    if (errorString.contains('unauthorized') ||
+        errorString.contains('api key')) {
+      return 'API密钥无效，请检查配置';
+    }
+
+    if (errorString.contains('rate limit') ||
+        errorString.contains('quota')) {
+      return '请求过于频繁，请稍后再试';
+    }
+
+    if (errorString.contains('server') ||
+        errorString.contains('500') ||
+        errorString.contains('502') ||
+        errorString.contains('503')) {
+      return 'AI服务暂时不可用，请稍后重试';
+    }
+
+    if (errorString.contains('model') && errorString.contains('not found')) {
+      return '所选模型不可用，请尝试其他模型';
+    }
+
+    // 对于"Unknown error: null"这类错误
+    if (errorString.contains('unknown') ||
+        errorString.contains('null') ||
+        errorString.trim().isEmpty) {
+      return '连接失败，请检查网络和API配置';
+    }
+
+    return '发送失败，请重试';
   }
 
   /// 取消流式传输
@@ -560,13 +655,32 @@ class ChatOrchestratorService {
         'totalPersistedMessages': _persistedMessageIds.length,
       });
     } catch (error) {
+      // 检查是否是重复ID错误
+      final errorString = error.toString().toLowerCase();
+      if (errorString.contains('unique constraint failed') &&
+          errorString.contains('messages.id')) {
+        _logger.warning('消息ID重复，可能已被其他进程保存', {
+          'messageId': message.id,
+          'conversationId': conversationId,
+          'error': error.toString(),
+        });
+
+        // 将ID添加到已保存集合中，避免后续重复尝试
+        if (message.id != null) {
+          _persistedMessageIds.add(message.id!);
+        }
+
+        // 对于重复ID错误，不重新抛出，因为消息已经存在
+        return;
+      }
+
       _logger.error('消息持久化失败', {
         'messageId': message.id,
         'conversationId': conversationId,
         'error': error.toString(),
       });
 
-      // 重新抛出错误，让调用者知道持久化失败
+      // 对于其他错误，重新抛出
       rethrow;
     }
   }

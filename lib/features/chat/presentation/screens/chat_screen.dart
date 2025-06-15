@@ -34,6 +34,7 @@ import '../../domain/entities/message.dart';
 import '../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
+import '../../../../shared/presentation/providers/conversation_title_notifier.dart';
 import '../providers/unified_chat_notifier.dart';
 import '../widgets/chat_configuration_status.dart';
 import 'chat_view.dart';
@@ -297,18 +298,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   AppBar _buildAppBar(BuildContext context, AiAssistant? assistant) {
     final theme = Theme.of(context);
 
+    // 监听对话标题的变化
+    final conversationTitle = ref.watch(conversationTitleProvider(_conversationState.id));
+    final displayTitle = conversationTitle ?? _conversationState.channelName;
+
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 主标题 - 应用名称
+          // 主标题 - 对话标题
           Text(
-            'YumCha',
+            displayTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
               letterSpacing: -0.5,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
           // 副标题 - 当前助手信息
           if (assistant != null) ...[

@@ -187,18 +187,26 @@ class _ChatViewState extends ConsumerState<ChatView>
           autofocus: widget.suggestions.isEmpty,
           onSendMessage: _onSendMessageRequest,
           onCancelMessage: chatState.messageState.hasStreamingMessages
-              ? () => ref.read(unifiedChatProvider.notifier).cancelStreaming()
+              ? () {
+                  if (mounted) {
+                    ref.read(unifiedChatProvider.notifier).cancelStreaming();
+                  }
+                }
               : null,
           onCancelEdit: _editingMessage != null ? _onCancelEdit : null,
           isLoading: chatState.isLoading,
           onAssistantChanged: (assistant) {
             // 使用统一状态管理选择助手
-            ref.read(unifiedChatProvider.notifier).selectAssistant(assistant);
+            if (mounted) {
+              ref.read(unifiedChatProvider.notifier).selectAssistant(assistant);
+            }
           },
           initialAssistantId: widget.assistantId,
           onStartTyping: () {
             // 当用户开始输入时，清除错误状态
-            ref.read(unifiedChatProvider.notifier).clearError();
+            if (mounted) {
+              ref.read(unifiedChatProvider.notifier).clearError();
+            }
           },
         ),
       ],
@@ -232,6 +240,9 @@ class _ChatViewState extends ConsumerState<ChatView>
       // 处理消息请求
       final result = await processorManager.processRequest(request);
 
+      // 检查Widget是否仍然mounted，避免在异步操作后使用已销毁的Widget
+      if (!mounted) return;
+
       if (result.success) {
         // 根据内容类型显示不同的提示
         String contentInfo = '';
@@ -250,15 +261,19 @@ class _ChatViewState extends ConsumerState<ChatView>
         await _onSendMessage(result.processedText + contentInfo);
 
         // 显示处理结果信息
-        if (result.attachments != null && result.attachments!.isNotEmpty) {
+        if (mounted && result.attachments != null && result.attachments!.isNotEmpty) {
           NotificationService()
               .showInfo('已处理 ${result.attachments!.length} 个附件');
         }
       } else {
-        NotificationService().showError(result.error ?? '消息处理失败');
+        if (mounted) {
+          NotificationService().showError(result.error ?? '消息处理失败');
+        }
       }
     } catch (e) {
-      NotificationService().showError('消息处理异常: $e');
+      if (mounted) {
+        NotificationService().showError('消息处理异常: $e');
+      }
     }
   }
 
@@ -289,10 +304,16 @@ class _ChatViewState extends ConsumerState<ChatView>
           .read(unifiedChatProvider.notifier)
           .sendMessage(content, useStreaming: isStreaming);
 
-      // 通知消息变化（用于回调）
-      _notifyMessagesChanged();
+      // 检查Widget是否仍然mounted，避免在Widget销毁后使用ref
+      if (mounted) {
+        // 通知消息变化（用于回调）
+        _notifyMessagesChanged();
+      }
     } catch (e) {
-      NotificationService().showError('发送消息失败: $e');
+      // 检查Widget是否仍然mounted，避免在Widget销毁后显示错误
+      if (mounted) {
+        NotificationService().showError('发送消息失败: $e');
+      }
     }
   }
 
@@ -381,7 +402,9 @@ class _ChatViewState extends ConsumerState<ChatView>
 
       // 3. 如果没有上下文消息，不能重新生成
       if (contextMessages.isEmpty) {
-        NotificationService().showWarning('没有足够的上下文进行重新生成');
+        if (mounted) {
+          NotificationService().showWarning('没有足够的上下文进行重新生成');
+        }
         return;
       }
 
@@ -391,14 +414,23 @@ class _ChatViewState extends ConsumerState<ChatView>
         useStreaming: isStreaming,
       );
 
-      // 通知消息变化
-      _notifyMessagesChanged();
+      // 检查Widget是否仍然mounted，避免在Widget销毁后使用ref
+      if (mounted) {
+        // 通知消息变化
+        _notifyMessagesChanged();
+      }
     } catch (e) {
-      NotificationService().showError('重新生成失败: $e');
+      // 检查Widget是否仍然mounted，避免在Widget销毁后显示错误
+      if (mounted) {
+        NotificationService().showError('重新生成失败: $e');
+      }
     }
   }
 
   void _notifyMessagesChanged() {
+    // 检查Widget是否仍然mounted，避免在Widget销毁后使用ref
+    if (!mounted) return;
+
     // 获取当前消息状态
     final chatState = ref.read(unifiedChatProvider);
     widget.onMessagesChanged?.call(chatState.messageState.messages);
@@ -409,6 +441,9 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   /// 检查是否有新的 AI 消息并触发标题生成
   void _checkForNewAiMessage() {
+    // 检查Widget是否仍然mounted，避免在Widget销毁后使用ref
+    if (!mounted) return;
+
     final chatState = ref.read(unifiedChatProvider);
     if (chatState.messageState.messages.isEmpty) return;
 

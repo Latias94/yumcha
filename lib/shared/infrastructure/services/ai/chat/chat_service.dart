@@ -92,6 +92,51 @@ import 'package:llm_dart/llm_dart.dart';
 ///   modelName: 'gpt-3.5-turbo',
 /// );
 /// ```
+///
+/// ## 🔧 工具调用处理详解
+///
+/// ### 非流式工具调用 vs 流式工具调用
+///
+/// **非流式工具调用**（传统方式）：
+/// ```dart
+/// final response = await provider.chat(messages, tools: tools);
+/// if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
+///   // ✅ 直接使用response.toolCalls
+///   // 工具调用信息在ChatResponse中完整提供
+/// }
+/// ```
+///
+/// **流式工具调用**（本服务实现）：
+/// ```dart
+/// await for (final event in provider.chatStream(messages, tools: tools)) {
+///   switch (event) {
+///     case ToolCallDeltaEvent(toolCall: final toolCall):
+///       // 🔧 逐步收集工具调用信息
+///       allToolCalls.add(toolCall);
+///       break;
+///     case CompletionEvent(response: final response):
+///       // ⚠️ 不能依赖response.toolCalls（可能为空）
+///       // ✅ 使用收集到的allToolCalls
+///       if (allToolCalls.isNotEmpty) { ... }
+///       break;
+///   }
+/// }
+/// ```
+///
+/// ### 关键差异说明
+/// 1. **数据来源不同**：
+///    - 非流式：`response.toolCalls`（一次性完整获得）
+///    - 流式：通过`ToolCallDeltaEvent`逐步收集
+///
+/// 2. **时机不同**：
+///    - 非流式：在`ChatResponse`中直接获得
+///    - 流式：在`CompletionEvent`时使用收集的数据
+///
+/// 3. **可靠性不同**：
+///    - 非流式：`response.toolCalls`始终可靠
+///    - 流式：`response.toolCalls`可能为空，必须使用收集的数据
+///
+/// 📚 参考：llm_dart_example/06_mcp_integration/http_examples/simple_stream_client.dart
 class ChatService extends AiServiceBase {
   // 单例模式实现 - 确保全局唯一的聊天服务实例
   static final ChatService _instance = ChatService._internal();
@@ -293,13 +338,26 @@ class ChatService extends AiServiceBase {
       final duration = context.elapsed;
       _updateStats(provider.id, false, duration);
 
+      // 增强错误信息处理
+      final errorDetails = _analyzeError(e, provider, modelName);
+
       logger.error('聊天请求失败', {
         'requestId': requestId,
         'error': e.toString(),
+        'errorType': errorDetails['type'],
+        'errorMessage': errorDetails['message'],
+        'suggestion': errorDetails['suggestion'],
         'duration': '${duration.inMilliseconds}ms',
+        'provider': provider.name,
+        'model': modelName,
+        'baseUrl': provider.baseUrl,
+        'hasApiKey': provider.apiKey.isNotEmpty,
       });
 
-      return AiResponse.error(error: '聊天请求失败: $e', duration: duration);
+      return AiResponse.error(
+        error: errorDetails['message']!,
+        duration: duration,
+      );
     }
   }
 
@@ -345,6 +403,13 @@ class ChatService extends AiServiceBase {
           ? await _getMcpTools(assistant.mcpServerIds)
           : <Tool>[];
 
+      logger.info('ChatService: 准备发送流式请求', {
+        'requestId': requestId,
+        'toolCount': tools.length,
+        'hasTools': tools.isNotEmpty,
+        'messageCount': messages.length,
+      });
+
       // 发送流式请求 - 支持工具调用
       final stream = tools.isNotEmpty
           ? chatProvider.chatStream(messages, tools: tools)
@@ -353,43 +418,188 @@ class ChatService extends AiServiceBase {
       String? finalThinking;
       List<ToolCall>? allToolCalls;
 
+      logger.info('ChatService: 开始监听流式事件', {
+        'requestId': requestId,
+        'streamType': stream.runtimeType.toString(),
+      });
+
       await for (final event in stream) {
+        logger.debug('ChatService: 接收到流式事件', {
+          'requestId': requestId,
+          'eventType': event.runtimeType.toString(),
+          'event': event.toString(),
+        });
+
         switch (event) {
           case TextDeltaEvent(delta: final delta):
-            logger.debug('ChatService: 接收到TextDeltaEvent', {
-              'delta': delta,
-              'deltaLength': delta.length,
-              'deltaBytes': delta.codeUnits,
-            });
+            // 📝 处理文本增量事件 - AI逐步生成的文本内容
+            // 这是流式聊天的核心：AI生成的文本会分块传输，每个块都是一个TextDeltaEvent
             yield AiStreamEvent.contentDelta(delta);
             break;
           case ThinkingDeltaEvent(delta: final delta):
+            // 🧠 处理思考增量事件 - AI的推理过程（如果支持）
+            // 某些模型（如Claude、DeepSeek）支持显示推理过程
             yield AiStreamEvent.thinkingDelta(delta);
             break;
           case ToolCallDeltaEvent(toolCall: final toolCall):
+            // 🔧 处理工具调用增量事件 - 这是流式工具调用的关键！
+            //
+            // 📚 重要概念说明：
+            // 在流式聊天中，工具调用信息通过ToolCallDeltaEvent逐步传输，
+            // 而不是像非流式聊天那样在CompletionEvent.response.toolCalls中一次性获得。
+            //
+            // 🔄 流式 vs 非流式的工具调用处理差异：
+            //
+            // 非流式聊天：
+            // ```dart
+            // final response = await provider.chat(messages, tools: tools);
+            // if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
+            //   // 直接使用response.toolCalls处理工具调用
+            // }
+            // ```
+            //
+            // 流式聊天：
+            // ```dart
+            // await for (final event in provider.chatStream(messages, tools: tools)) {
+            //   switch (event) {
+            //     case ToolCallDeltaEvent(toolCall: final toolCall):
+            //       // 逐步收集工具调用 ← 我们在这里！
+            //       toolCallsCollected.add(toolCall);
+            //       break;
+            //     case CompletionEvent():
+            //       // 使用收集到的工具调用，而不是response.toolCalls
+            //       if (toolCallsCollected.isNotEmpty) { ... }
+            //       break;
+            //   }
+            // }
+            // ```
+            //
+            // ⚠️ 为什么不能依赖CompletionEvent.response.toolCalls？
+            // 1. 流式协议特性：工具调用通过ToolCallDeltaEvent传输
+            // 2. 提供商实现差异：不同AI提供商的流式实现可能不同
+            // 3. 协议设计：CompletionEvent主要标志流结束，不保证包含完整工具调用
+            //
+            // 🎯 解决方案：
+            // 我们通过ToolCallDeltaEvent收集工具调用到allToolCalls列表中，
+            // 然后在CompletionEvent中使用这个列表来判断和处理工具调用。
+            // 这与llm_dart官方示例代码的处理方式完全一致。
+
             yield AiStreamEvent.toolCall(toolCall);
             allToolCalls ??= [];
             allToolCalls.add(toolCall);
             break;
           case CompletionEvent(response: final response):
             finalThinking = response.thinking;
-            final duration = context.elapsed;
 
-            _updateStats(provider.id, true, duration);
+            // 🚨 关键判断：检查是否有工具调用需要处理
+            //
+            // ⚠️ 重要：这里使用allToolCalls而不是response.toolCalls！
+            //
+            // 📖 详细说明：
+            // 在流式聊天中，我们不能依赖CompletionEvent.response.toolCalls来判断是否有工具调用，
+            // 因为：
+            // 1. 流式协议设计：工具调用信息通过ToolCallDeltaEvent传输
+            // 2. CompletionEvent.response.toolCalls可能为空或不完整
+            // 3. 不同AI提供商的实现可能有差异
+            //
+            // 🔧 正确做法：
+            // 使用通过ToolCallDeltaEvent收集到的allToolCalls来判断，
+            // 这确保了我们获得完整可靠的工具调用信息。
+            //
+            // 📚 参考llm_dart示例代码：
+            // ```dart
+            // // 示例代码中的处理方式
+            // case CompletionEvent():
+            //   if (hasToolCalls) {  // ← 使用标志位，而不是response.toolCalls
+            //     // 使用收集到的toolCallsCollected
+            //     for (final toolCall in toolCallsCollected) { ... }
+            //   }
+            // ```
+            if (allToolCalls != null && allToolCalls.isNotEmpty) {
+              logger.info('流式聊天中检测到工具调用，开始处理', {
+                'requestId': requestId,
+                'toolCallCount': allToolCalls.length,
+                'toolNames': allToolCalls.map((t) => t.function.name).toList(),
+              });
 
-            logger.info('流式聊天请求完成', {
-              'requestId': requestId,
-              'duration': '${duration.inMilliseconds}ms',
-              'hasThinking': finalThinking != null,
-              'usage': response.usage?.totalTokens,
-            });
+              // 🛠️ 第一步：处理工具调用
+              // 按照llm_dart示例代码的模式，使用收集到的工具调用
+              await _handleToolCallsInStreamWithCollected(
+                chatProvider,
+                messages,
+                allToolCalls,
+                assistant.mcpServerIds,
+                requestId,
+              );
 
-            yield AiStreamEvent.completed(
-              finalThinking: finalThinking,
-              usage: response.usage,
-              duration: duration,
-              allToolCalls: allToolCalls,
-            );
+              // 🔄 第二步：发送包含工具结果的最终流式请求
+              // 这是流式工具调用的核心：执行工具后，需要再次调用LLM获取最终响应
+              logger.info('发送包含工具结果的最终流式请求', {
+                'requestId': requestId,
+                'conversationLength': messages.length,
+              });
+
+              await for (final finalEvent in chatProvider.chatStream(messages)) {
+                switch (finalEvent) {
+                  case TextDeltaEvent(delta: final delta):
+                    yield AiStreamEvent.contentDelta(delta);
+                    break;
+                  case ThinkingDeltaEvent(delta: final delta):
+                    yield AiStreamEvent.thinkingDelta(delta);
+                    break;
+                  case CompletionEvent(response: final finalResponse):
+                    finalThinking = finalResponse.thinking ?? finalThinking;
+
+                    final duration = context.elapsed;
+                    _updateStats(provider.id, true, duration);
+
+                    logger.info('流式聊天请求完成（含工具调用）', {
+                      'requestId': requestId,
+                      'duration': '${duration.inMilliseconds}ms',
+                      'hasThinking': finalThinking != null,
+                      'usage': finalResponse.usage?.totalTokens,
+                      'finalResponseLength': finalResponse.text?.length ?? 0,
+                    });
+
+                    yield AiStreamEvent.completed(
+                      finalThinking: finalThinking,
+                      usage: finalResponse.usage,
+                      duration: duration,
+                      allToolCalls: allToolCalls,
+                    );
+                    return; // 完成工具调用流程
+                  case ErrorEvent(error: final error):
+                    logger.error('工具调用后的流式响应出错', {
+                      'requestId': requestId,
+                      'error': error.toString(),
+                    });
+                    yield AiStreamEvent.error('工具调用后的流式响应出错: $error');
+                    return;
+                  case ToolCallDeltaEvent():
+                    // 工具调用已处理，忽略后续工具调用事件
+                    break;
+                }
+              }
+            } else {
+              // 没有工具调用，正常完成
+              final duration = context.elapsed;
+              _updateStats(provider.id, true, duration);
+
+              logger.info('流式聊天请求完成', {
+                'requestId': requestId,
+                'duration': '${duration.inMilliseconds}ms',
+                'hasThinking': finalThinking != null,
+                'usage': response.usage?.totalTokens,
+                'hadToolCalls': false,
+              });
+
+              yield AiStreamEvent.completed(
+                finalThinking: finalThinking,
+                usage: response.usage,
+                duration: duration,
+                allToolCalls: allToolCalls,
+              );
+            }
             break;
           case ErrorEvent(error: final error):
             final duration = context.elapsed;
@@ -409,13 +619,23 @@ class ChatService extends AiServiceBase {
       final duration = context.elapsed;
       _updateStats(provider.id, false, duration);
 
+      // 增强错误信息处理
+      final errorDetails = _analyzeError(e, provider, modelName);
+
       logger.error('流式聊天请求失败', {
         'requestId': requestId,
         'error': e.toString(),
+        'errorType': errorDetails['type'],
+        'errorMessage': errorDetails['message'],
+        'suggestion': errorDetails['suggestion'],
         'duration': '${duration.inMilliseconds}ms',
+        'provider': provider.name,
+        'model': modelName,
+        'baseUrl': provider.baseUrl,
+        'hasApiKey': provider.apiKey.isNotEmpty,
       });
 
-      yield AiStreamEvent.error('流式聊天请求失败: $e');
+      yield AiStreamEvent.error(errorDetails['message'] as String);
     }
   }
 
@@ -453,12 +673,77 @@ class ChatService extends AiServiceBase {
 
       return response.text?.isNotEmpty == true;
     } catch (e) {
+      final errorDetails = _analyzeError(e, provider, modelName ?? _getDefaultModel(provider));
+
       logger.error('提供商测试失败', {
         'provider': provider.name,
         'error': e.toString(),
+        'errorType': errorDetails['type'],
+        'errorMessage': errorDetails['message'],
+        'suggestion': errorDetails['suggestion'],
       });
       return false;
     }
+  }
+
+  /// 诊断提供商配置
+  Future<Map<String, dynamic>> diagnoseProvider({
+    required models.AiProvider provider,
+    String? modelName,
+  }) async {
+    final diagnosis = <String, dynamic>{
+      'provider': provider.name,
+      'model': modelName ?? _getDefaultModel(provider),
+      'checks': <String, dynamic>{},
+      'issues': <String>[],
+      'suggestions': <String>[],
+    };
+
+    // 检查基本配置
+    if (provider.apiKey.isEmpty) {
+      diagnosis['checks']['apiKey'] = false;
+      diagnosis['issues'].add('API密钥未配置');
+      diagnosis['suggestions'].add('请在提供商设置中配置有效的API密钥');
+    } else {
+      diagnosis['checks']['apiKey'] = true;
+    }
+
+    // 检查基础URL
+    if (provider.baseUrl?.isNotEmpty == true) {
+      try {
+        final uri = Uri.parse(provider.baseUrl!);
+        if (uri.hasScheme && uri.hasAuthority) {
+          diagnosis['checks']['baseUrl'] = true;
+        } else {
+          diagnosis['checks']['baseUrl'] = false;
+          diagnosis['issues'].add('基础URL格式不正确');
+          diagnosis['suggestions'].add('请检查基础URL格式，确保包含协议和域名');
+        }
+      } catch (e) {
+        diagnosis['checks']['baseUrl'] = false;
+        diagnosis['issues'].add('基础URL解析失败');
+        diagnosis['suggestions'].add('请检查基础URL格式是否正确');
+      }
+    } else {
+      diagnosis['checks']['baseUrl'] = true; // 使用默认URL
+    }
+
+    // 检查网络连接
+    try {
+      final testResult = await testProvider(provider: provider, modelName: modelName);
+      diagnosis['checks']['connection'] = testResult;
+      if (!testResult) {
+        diagnosis['issues'].add('无法连接到AI服务');
+        diagnosis['suggestions'].add('请检查网络连接和API配置');
+      }
+    } catch (e) {
+      diagnosis['checks']['connection'] = false;
+      diagnosis['issues'].add('连接测试失败: ${e.toString()}');
+    }
+
+    diagnosis['isHealthy'] = (diagnosis['issues'] as List).isEmpty;
+
+    return diagnosis;
   }
 
   /// 获取服务统计信息
@@ -687,21 +972,141 @@ class ChatService extends AiServiceBase {
     }
   }
 
-  /// 处理工具调用
+  /// 处理流式聊天中的工具调用 - 使用收集到的工具调用（按照llm_dart示例代码的模式）
+  ///
+  /// 🔧 流式工具调用处理流程：
+  ///
+  /// 1️⃣ 第一次流式调用：
+  ///    - 收集ToolCallDeltaEvent → allToolCalls
+  ///    - CompletionEvent触发 → 调用此方法
+  ///
+  /// 2️⃣ 执行工具调用：
+  ///    - 遍历collectedToolCalls
+  ///    - 调用MCP服务器执行每个工具
+  ///    - 收集工具执行结果
+  ///
+  /// 3️⃣ 构建对话历史：
+  ///    - 添加ChatMessage.toolUse（AI的工具调用请求）
+  ///    - 添加ChatMessage.toolResult（工具执行结果）
+  ///
+  /// 4️⃣ 第二次流式调用：
+  ///    - 使用包含工具结果的完整对话历史
+  ///    - 获取AI的最终响应
+  ///
+  /// 📚 参考llm_dart示例：llm_dart/example/06_mcp_integration/http_examples/simple_stream_client.dart
+  Future<void> _handleToolCallsInStreamWithCollected(
+    ChatCapability chatProvider,
+    List<ChatMessage> conversation,
+    List<ToolCall> collectedToolCalls, // ← 通过ToolCallDeltaEvent收集的工具调用
+    List<String> mcpServerIds,
+    String requestId,
+  ) async {
+    logger.info('开始处理流式工具调用', {
+      'requestId': requestId,
+      'toolCallCount': collectedToolCalls.length,
+      'toolNames': collectedToolCalls.map((t) => t.function.name).toList(),
+    });
+
+    // 📝 添加AI的工具调用消息到对话历史
+    // 按照llm_dart示例代码的模式：conversation.addAll([ChatMessage.toolUse(...), ...])
+    conversation.add(ChatMessage.toolUse(
+      toolCalls: collectedToolCalls, // ← 使用收集到的工具调用，而不是response.toolCalls
+      content: '', // 流式响应中初始内容通常为空（与非流式的response.text不同）
+    ));
+
+    // 执行所有工具调用并收集结果
+    final toolResultCalls = <ToolCall>[];
+
+    for (int i = 0; i < collectedToolCalls.length; i++) {
+      final toolCall = collectedToolCalls[i];
+
+      logger.debug('执行流式工具调用 ${i + 1}/${collectedToolCalls.length}', {
+        'requestId': requestId,
+        'toolName': toolCall.function.name,
+        'toolCallId': toolCall.id,
+        'arguments': toolCall.function.arguments,
+      });
+
+      try {
+        // 执行MCP工具并获取结果
+        final mcpResult = await _executeToolCall(toolCall, mcpServerIds);
+
+        // 创建工具结果调用 - 完全按照示例代码的模式
+        toolResultCalls.add(ToolCall(
+          id: toolCall.id,
+          callType: 'function',
+          function: FunctionCall(
+            name: toolCall.function.name,
+            arguments: mcpResult, // 传递MCP工具的执行结果
+          ),
+        ));
+
+        logger.info('流式工具调用成功', {
+          'requestId': requestId,
+          'toolName': toolCall.function.name,
+          'toolCallId': toolCall.id,
+          'resultLength': mcpResult.length,
+        });
+      } catch (e) {
+        // 工具调用失败，创建错误结果 - 按照示例代码的模式
+        final errorMessage = 'Error: $e';
+        toolResultCalls.add(ToolCall(
+          id: toolCall.id,
+          callType: 'function',
+          function: FunctionCall(
+            name: toolCall.function.name,
+            arguments: errorMessage,
+          ),
+        ));
+
+        logger.error('流式工具调用失败', {
+          'requestId': requestId,
+          'toolName': toolCall.function.name,
+          'toolCallId': toolCall.id,
+          'error': e.toString(),
+        });
+      }
+    }
+
+    // 添加工具结果消息 - 完全按照示例代码的模式
+    conversation.add(ChatMessage.toolResult(results: toolResultCalls));
+
+    logger.info('流式工具调用处理完成，准备获取最终响应', {
+      'requestId': requestId,
+      'conversationLength': conversation.length,
+      'toolResultCount': toolResultCalls.length,
+    });
+  }
+
+  /// 处理工具调用（非流式）
+  ///
+  /// 🔄 与流式工具调用的对比：
+  ///
+  /// 非流式工具调用（这个方法）：
+  /// - ✅ 可以直接使用response.toolCalls
+  /// - ✅ 工具调用信息在ChatResponse中完整提供
+  /// - ✅ 一次性获得所有工具调用信息
+  ///
+  /// 流式工具调用（_handleToolCallsInStreamWithCollected方法）：
+  /// - ❌ 不能依赖response.toolCalls（可能为空）
+  /// - ✅ 必须使用通过ToolCallDeltaEvent收集的工具调用
+  /// - ✅ 需要逐步收集工具调用信息
+  ///
+  /// 📚 这种差异是由于流式协议的设计特性造成的。
   Future<ChatResponse> _handleToolCalls(
     ChatCapability chatProvider,
     List<ChatMessage> conversation,
     ChatResponse response,
     List<String> mcpServerIds,
   ) async {
-    logger.info('开始处理工具调用', {
+    logger.info('开始处理工具调用（非流式）', {
       'toolCallCount': response.toolCalls!.length,
       'toolNames': response.toolCalls!.map((t) => t.function.name).toList(),
     });
 
-    // 添加AI的工具调用消息 - 按照示例代码的模式
+    // 添加AI的工具调用消息 - 在非流式中可以直接使用response.toolCalls
     conversation.add(ChatMessage.toolUse(
-      toolCalls: response.toolCalls!,
+      toolCalls: response.toolCalls!, // ← 注意：这里可以安全使用response.toolCalls
       content: response.text ?? '',
     ));
 
@@ -904,6 +1309,88 @@ class ChatService extends AiServiceBase {
       properties: properties,
       required: required,
     );
+  }
+
+  /// 分析错误并提供详细信息
+  Map<String, String> _analyzeError(
+    Object error,
+    models.AiProvider provider,
+    String modelName,
+  ) {
+    final errorString = error.toString().toLowerCase();
+
+    // 网络连接错误
+    if (errorString.contains('socketexception') ||
+        errorString.contains('connection') ||
+        errorString.contains('network') ||
+        errorString.contains('timeout')) {
+      return {
+        'type': 'network',
+        'message': '网络连接失败，请检查网络连接或代理设置',
+        'suggestion': '1. 检查网络连接\n2. 检查代理设置\n3. 确认API服务器地址正确',
+      };
+    }
+
+    // API密钥错误
+    if (errorString.contains('unauthorized') ||
+        errorString.contains('401') ||
+        errorString.contains('invalid api key') ||
+        errorString.contains('authentication')) {
+      return {
+        'type': 'auth',
+        'message': 'API密钥无效或已过期',
+        'suggestion': '请检查并更新API密钥配置',
+      };
+    }
+
+    // 限流错误
+    if (errorString.contains('rate limit') ||
+        errorString.contains('429') ||
+        errorString.contains('quota')) {
+      return {
+        'type': 'rate_limit',
+        'message': '请求频率过高或配额已用完',
+        'suggestion': '请稍后再试或检查账户配额',
+      };
+    }
+
+    // 服务器错误
+    if (errorString.contains('500') ||
+        errorString.contains('502') ||
+        errorString.contains('503') ||
+        errorString.contains('server error')) {
+      return {
+        'type': 'server',
+        'message': 'AI服务器暂时不可用',
+        'suggestion': '服务器正在维护，请稍后重试',
+      };
+    }
+
+    // 模型不存在错误
+    if (errorString.contains('model') &&
+        (errorString.contains('not found') || errorString.contains('404'))) {
+      return {
+        'type': 'model',
+        'message': '模型 "$modelName" 不存在或不可用',
+        'suggestion': '请检查模型名称或选择其他可用模型',
+      };
+    }
+
+    // 空错误或未知错误
+    if (errorString.contains('null') || errorString.trim().isEmpty) {
+      return {
+        'type': 'unknown',
+        'message': '连接失败，可能是网络问题或API服务器不可用',
+        'suggestion': '1. 检查网络连接\n2. 验证API密钥\n3. 确认服务器地址: ${provider.baseUrl ?? "默认地址"}',
+      };
+    }
+
+    // 默认错误处理
+    return {
+      'type': 'general',
+      'message': '请求失败: ${error.toString()}',
+      'suggestion': '请检查网络连接和配置设置',
+    };
   }
 }
 
