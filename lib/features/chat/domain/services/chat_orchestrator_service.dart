@@ -330,11 +330,11 @@ class ChatOrchestratorService {
       final fullContent = accumulator.buildFullContent();
 
       // 通知UI更新流式消息
-      // _logger.debug('流式内容更新', {
-      //   'messageId': aiMessage.id,
-      //   'contentDelta': event.contentDelta?.length ?? 0,
-      //   'fullContentLength': fullContent.length,
-      // });
+      _logger.debug('流式内容更新', {
+        'messageId': aiMessage.id,
+        'contentDelta': event.contentDelta?.length ?? 0,
+        'fullContentLength': fullContent.length,
+      });
       _notifyStreamingUpdate(StreamingUpdate(
         messageId: aiMessage.id!,
         contentDelta: event.contentDelta,

@@ -234,9 +234,7 @@ class ChatService extends AiServiceBase {
           'toolCount': tools.length,
           'toolsPreview': tools.take(3).map((t) => {
             'name': t.function.name,
-            'description': t.function.description.length > 50
-                ? '${t.function.description.substring(0, 50)}...'
-                : t.function.description,
+            'description': t.function.description,
           }).toList(),
         });
       }
@@ -358,11 +356,11 @@ class ChatService extends AiServiceBase {
       await for (final event in stream) {
         switch (event) {
           case TextDeltaEvent(delta: final delta):
-            // logger.debug('ChatService: 接收到TextDeltaEvent', {
-            //   'delta': delta,
-            //   'deltaLength': delta.length,
-            //   'deltaBytes': delta.codeUnits,
-            // });
+            logger.debug('ChatService: 接收到TextDeltaEvent', {
+              'delta': delta,
+              'deltaLength': delta.length,
+              'deltaBytes': delta.codeUnits,
+            });
             yield AiStreamEvent.contentDelta(delta);
             break;
           case ThinkingDeltaEvent(delta: final delta):
@@ -603,10 +601,13 @@ class ChatService extends AiServiceBase {
     }
 
     try {
-      // 获取MCP服务管理器
-      final mcpManager = _ref != null
-          ? _ref!.read(mcpServiceManagerProvider)
-          : McpServiceManager();
+      // 获取MCP服务管理器 - 确保通过Provider获取
+      if (_ref == null) {
+        logger.warning('ChatService: Riverpod引用未设置，无法获取MCP工具');
+        return [];
+      }
+
+      final mcpManager = _ref!.read(mcpServiceManagerProvider);
 
       // 检查MCP服务是否启用
       if (!mcpManager.isEnabled) {
@@ -652,15 +653,15 @@ class ChatService extends AiServiceBase {
         final parameters = _convertMcpSchemaToParametersSchema(mcpTool.inputSchema);
 
         // 调试：记录工具转换详情
-        logger.debug('转换MCP工具到llm_dart格式', {
-          'toolName': mcpTool.name,
-          'originalSchema': mcpTool.inputSchema,
-          'convertedParameters': {
-            'schemaType': parameters.schemaType,
-            'properties': parameters.properties.keys.toList(),
-            'required': parameters.required,
-          },
-        });
+        // logger.debug('转换MCP工具到llm_dart格式', {
+        //   'toolName': mcpTool.name,
+        //   'originalSchema': mcpTool.inputSchema,
+        //   'convertedParameters': {
+        //     'schemaType': parameters.schemaType,
+        //     'properties': parameters.properties.keys.toList(),
+        //     'required': parameters.required,
+        //   },
+        // });
 
         return Tool.function(
           name: mcpTool.name,
@@ -669,12 +670,12 @@ class ChatService extends AiServiceBase {
         );
       }).toList();
 
-      logger.info('MCP工具集成成功', {
-        'requestedServerIds': mcpServerIds,
-        'connectedServerIds': connectedServerIds,
-        'toolCount': tools.length,
-        'tools': mcpTools.map((t) => t.name).toList(),
-      });
+      // logger.info('MCP工具集成成功', {
+      //   'requestedServerIds': mcpServerIds,
+      //   'connectedServerIds': connectedServerIds,
+      //   'toolCount': tools.length,
+      //   'tools': mcpTools.map((t) => t.name).toList(),
+      // });
 
       return tools;
     } catch (e) {
@@ -693,78 +694,171 @@ class ChatService extends AiServiceBase {
     ChatResponse response,
     List<String> mcpServerIds,
   ) async {
-    // 添加AI的工具调用消息
+    logger.info('开始处理工具调用', {
+      'toolCallCount': response.toolCalls!.length,
+      'toolNames': response.toolCalls!.map((t) => t.function.name).toList(),
+    });
+
+    // 添加AI的工具调用消息 - 按照示例代码的模式
     conversation.add(ChatMessage.toolUse(
       toolCalls: response.toolCalls!,
       content: response.text ?? '',
     ));
 
-    // 执行所有工具调用
-    for (final toolCall in response.toolCalls!) {
-      try {
-        final result = await _executeToolCall(toolCall, mcpServerIds);
+    // 执行所有工具调用并收集结果
+    final toolResultCalls = <ToolCall>[];
 
-        // 添加工具结果到对话
-        conversation.add(ChatMessage.toolResult(
-          results: [toolCall],
-          content: result,
+    for (int i = 0; i < response.toolCalls!.length; i++) {
+      final toolCall = response.toolCalls![i];
+
+      logger.debug('执行工具调用 ${i + 1}/${response.toolCalls!.length}', {
+        'toolName': toolCall.function.name,
+        'toolCallId': toolCall.id,
+        'arguments': toolCall.function.arguments,
+      });
+
+      try {
+        // 执行MCP工具并获取结果
+        final mcpResult = await _executeToolCall(toolCall, mcpServerIds);
+
+        // 创建工具结果调用 - 完全按照示例代码的模式
+        toolResultCalls.add(ToolCall(
+          id: toolCall.id,
+          callType: 'function',
+          function: FunctionCall(
+            name: toolCall.function.name,
+            arguments: mcpResult, // 传递MCP工具的执行结果
+          ),
         ));
 
         logger.info('工具调用成功', {
           'toolName': toolCall.function.name,
-          'resultLength': result.length,
+          'toolCallId': toolCall.id,
+          'resultLength': mcpResult.length,
         });
       } catch (e) {
-        // 工具调用失败，添加错误信息
-        final errorMessage = '工具调用失败: $e';
-        conversation.add(ChatMessage.toolResult(
-          results: [toolCall],
-          content: errorMessage,
+        // 工具调用失败，创建错误结果 - 按照示例代码的模式
+        final errorMessage = 'Error: $e';
+        toolResultCalls.add(ToolCall(
+          id: toolCall.id,
+          callType: 'function',
+          function: FunctionCall(
+            name: toolCall.function.name,
+            arguments: errorMessage,
+          ),
         ));
 
         logger.error('工具调用失败', {
           'toolName': toolCall.function.name,
+          'toolCallId': toolCall.id,
           'error': e.toString(),
         });
       }
     }
 
+    // 添加工具结果消息 - 完全按照示例代码的模式
+    conversation.add(ChatMessage.toolResult(results: toolResultCalls));
+
+    logger.debug('发送包含工具结果的最终对话', {
+      'conversationLength': conversation.length,
+      'toolResultCount': toolResultCalls.length,
+      'toolResults': toolResultCalls.map((t) => {
+        'id': t.id,
+        'name': t.function.name,
+        'resultPreview': t.function.arguments.length > 100
+          ? '${t.function.arguments.substring(0, 100)}...'
+          : t.function.arguments,
+      }).toList(),
+    });
+
     // 获取最终响应
-    return await chatProvider.chat(conversation);
+    final finalResponse = await chatProvider.chat(conversation);
+
+    logger.info('工具调用处理完成', {
+      'finalResponseLength': finalResponse.text?.length ?? 0,
+      'hasThinking': finalResponse.thinking != null,
+    });
+
+    return finalResponse;
   }
 
   /// 执行单个工具调用
   Future<String> _executeToolCall(
       ToolCall toolCall, List<String> mcpServerIds) async {
     try {
-      // 解析工具参数
-      final arguments =
-          jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
+      // 解析工具参数 - 按照示例代码的模式
+      Map<String, dynamic> arguments = {};
+      if (toolCall.function.arguments.isNotEmpty && toolCall.function.arguments != '{}') {
+        try {
+          // 使用正确的JSON解析
+          arguments = jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
+        } catch (e) {
+          logger.warning('解析工具参数JSON失败，使用空参数', {
+            'toolName': toolCall.function.name,
+            'rawArguments': toolCall.function.arguments,
+            'error': e.toString(),
+          });
+        }
+      }
 
-      // 通过MCP服务管理器调用工具
-      final mcpManager = _ref != null
-          ? _ref!.read(mcpServiceManagerProvider)
-          : McpServiceManager();
-      final result =
-          await mcpManager.callTool(toolCall.function.name, arguments);
+      logger.debug('执行MCP工具', {
+        'toolName': toolCall.function.name,
+        'arguments': arguments,
+        'toolCallId': toolCall.id,
+      });
 
-      // 处理结果
+      // 通过MCP服务管理器调用工具 - 确保通过Provider获取
+      if (_ref == null) {
+        throw Exception('ChatService: Riverpod引用未设置，无法调用MCP工具');
+      }
+
+      final mcpManager = _ref!.read(mcpServiceManagerProvider);
+      final result = await mcpManager.callTool(toolCall.function.name, arguments);
+
+      // 调试：记录MCP工具返回的原始结果
+      logger.debug('MCP工具返回结果', {
+        'toolName': toolCall.function.name,
+        'rawResult': result,
+        'resultKeys': result.keys.toList(),
+        'hasText': result.containsKey('text'),
+        'hasError': result.containsKey('error'),
+      });
+
+      // 处理结果 - 按照示例代码的模式
       if (result['error'] != null) {
-        return '错误: ${result['error']}';
+        final errorMessage = 'Error: ${result['error']}';
+        logger.warning('MCP工具执行出错', {
+          'toolName': toolCall.function.name,
+          'error': result['error'],
+        });
+        return errorMessage;
       }
 
       if (result['text'] != null) {
-        return result['text'] as String;
+        final resultText = result['text'] as String;
+        logger.info('MCP工具执行成功', {
+          'toolName': toolCall.function.name,
+          'resultLength': resultText.length,
+        });
+        return resultText;
       }
 
       // 如果有其他类型的内容，转换为字符串
-      return result.toString();
+      final resultString = result.toString();
+      logger.info('MCP工具返回非标准格式结果', {
+        'toolName': toolCall.function.name,
+        'resultType': result.runtimeType.toString(),
+        'resultLength': resultString.length,
+      });
+      return resultString;
     } catch (e) {
+      final errorMessage = 'Error: $e';
       logger.error('执行工具调用时出错', {
         'toolName': toolCall.function.name,
+        'toolCallId': toolCall.id,
         'error': e.toString(),
       });
-      rethrow;
+      return errorMessage;
     }
   }
 
@@ -799,11 +893,11 @@ class ChatService extends AiServiceBase {
     final required = (inputSchema['required'] as List?)?.cast<String>() ?? [];
 
     // 调试：记录转换详情
-    logger.debug('MCP Schema转换详情', {
-      'originalRequired': inputSchema['required'],
-      'convertedRequired': required,
-      'propertiesCount': properties.length,
-    });
+    // logger.debug('MCP Schema转换详情', {
+    //   'originalRequired': inputSchema['required'],
+    //   'convertedRequired': required,
+    //   'propertiesCount': properties.length,
+    // });
 
     return ParametersSchema(
       schemaType: inputSchema['type'] as String? ?? 'object',

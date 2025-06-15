@@ -66,7 +66,10 @@ class McpClientService {
       final connection = await _createConnection(config);
       _connections[config.id] = connection;
 
-      // 连接成功
+      // 测试连接是否真正可用 - 尝试获取工具列表
+      await connection.listTools();
+
+      // 连接测试成功，设置为已连接状态
       _setServerStatus(config.id, McpServerStatus.connected);
 
       _logger.info('MCP服务器连接成功', {
@@ -74,9 +77,11 @@ class McpClientService {
         'serverName': config.name,
       });
 
-      // 发现工具
+      // 发现工具（此时连接已确认可用）
       await _discoverTools(config);
     } catch (e) {
+      // 连接失败，清理连接对象
+      _connections.remove(config.id);
       _setServerStatus(config.id, McpServerStatus.error);
       _setServerError(config.id, e.toString());
 
@@ -123,6 +128,40 @@ class McpClientService {
   /// @returns 服务器状态
   McpServerStatus getServerStatus(String serverId) {
     return _serverStatuses[serverId] ?? McpServerStatus.disconnected;
+  }
+
+  /// 检查服务器连接健康状态
+  ///
+  /// @param serverId 服务器ID
+  /// @returns 连接是否健康
+  Future<bool> checkServerHealth(String serverId) async {
+    final connection = _connections[serverId];
+    if (connection == null) {
+      _setServerStatus(serverId, McpServerStatus.disconnected);
+      return false;
+    }
+
+    final currentStatus = getServerStatus(serverId);
+    if (currentStatus != McpServerStatus.connected) {
+      return false;
+    }
+
+    try {
+      // 尝试获取工具列表来验证连接
+      await connection.listTools();
+      return true;
+    } catch (e) {
+      // 连接已断开，更新状态
+      _setServerStatus(serverId, McpServerStatus.error);
+      _setServerError(serverId, '连接健康检查失败: ${e.toString()}');
+
+      _logger.warning('MCP服务器健康检查失败', {
+        'serverId': serverId,
+        'error': e.toString(),
+      });
+
+      return false;
+    }
   }
 
   /// 获取服务器错误信息
@@ -255,6 +294,8 @@ class McpClientService {
         });
       }
     } catch (e) {
+      // 工具发现失败不应该影响连接状态，因为连接已经在connectServer中验证过了
+      // 只记录警告，不更改服务器状态
       _logger.warning('工具发现失败', {
         'serverId': config.id,
         'error': e.toString(),
@@ -574,11 +615,11 @@ class _StreamableHttpConnection extends _McpConnection {
         );
       }).toList();
 
-      logger.info('StreamableHTTP获取工具列表成功', {
-        'serverId': config.id,
-        'toolCount': tools.length,
-        'tools': tools.map((t) => t.name).toList(),
-      });
+      // logger.info('StreamableHTTP获取工具列表成功', {
+      //   'serverId': config.id,
+      //   'toolCount': tools.length,
+      //   'tools': tools.map((t) => t.name).toList(),
+      // });
 
       return tools;
     } catch (e) {
@@ -604,12 +645,29 @@ class _StreamableHttpConnection extends _McpConnection {
         ),
       );
 
+      // 调试：记录原始响应
+      logger.debug('StreamableHTTP工具原始响应', {
+        'serverId': config.id,
+        'toolName': toolName,
+        'contentCount': response.content.length,
+        'isError': response.isError,
+        'contentTypes': response.content.map((c) => c.runtimeType.toString()).toList(),
+      });
+
       // 处理响应内容
       final result = <String, dynamic>{};
       if (response.content.isNotEmpty) {
         final content = response.content.first;
         if (content is TextContent) {
           result['text'] = content.text;
+          logger.debug('StreamableHTTP工具文本内容', {
+            'serverId': config.id,
+            'toolName': toolName,
+            'textLength': content.text.length,
+            'textPreview': content.text.length > 100
+                ? '${content.text.substring(0, 100)}...'
+                : content.text,
+          });
         } else if (content is ImageContent) {
           result['image'] = content.data;
           result['mimeType'] = content.mimeType;

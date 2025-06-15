@@ -15,13 +15,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../infrastructure/services/logger_service.dart';
 import '../../infrastructure/services/data_initialization_service.dart';
 import '../../infrastructure/services/ai/ai_service_manager.dart';
+import '../../infrastructure/services/mcp/mcp_service_manager.dart';
+import '../../../features/settings/presentation/providers/mcp_service_provider.dart';
 import '../../../app/config/splash_config.dart';
 
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
 import '../../../features/settings/presentation/providers/mcp_service_provider.dart';
 import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
-import '../../infrastructure/services/mcp/mcp_service_manager.dart';
 import 'favorite_model_notifier.dart';
 
 /// 应用初始化状态
@@ -276,26 +277,73 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     try {
       _logger.info('🔧 开始初始化MCP服务...');
 
-      // 主动触发MCP服务Provider的创建和初始化
-      // 这确保了MCP服务在应用启动时就被正确初始化
-      _ref.read(mcpServiceProvider.notifier);
-
-      // 同时初始化McpServiceManager，确保ChatService能够正确访问MCP服务
+      // 1. 首先初始化McpServiceManager（核心服务）
       final mcpServiceManager = _ref.read(mcpServiceManagerProvider);
-      _logger.info('McpServiceManager已初始化，状态同步将自动处理服务器连接', {
+      await mcpServiceManager.initialize();
+
+      _logger.info('McpServiceManager初始化完成', {
+        'isInitialized': mcpServiceManager.isInitialized,
         'isEnabled': mcpServiceManager.isEnabled,
       });
 
-      // 等待MCP服务初始化完成
-      // 注意：_loadInitialState 会根据设置自动决定是否启用MCP
-      await Future.delayed(const Duration(milliseconds: 1000)); // 给Provider更多时间完成初始化和连接
+      // 2. 然后创建MCP服务Provider（UI状态管理）
+      // 这会触发_loadInitialState，根据设置决定是否启用MCP并初始化服务器
+      _ref.read(mcpServiceProvider.notifier);
+
+      // 3. 等待MCP服务Provider完成初始化
+      // 使用轮询方式等待，而不是硬编码延迟
+      int attempts = 0;
+      const maxAttempts = 50; // 最多等待5秒
+      bool initializationCompleted = false;
+
+      while (attempts < maxAttempts && !initializationCompleted) {
+        try {
+          final mcpState = _ref.read(mcpServiceProvider);
+
+          // 检查是否完成初始化（不在加载中且没有错误）
+          if (!mcpState.isLoading) {
+            initializationCompleted = true;
+            _logger.info('MCP服务Provider初始化完成', {
+              'attempts': attempts,
+              'isEnabled': mcpState.isEnabled,
+              'serverCount': mcpState.serverStatuses.length,
+            });
+            break;
+          }
+
+          _logger.debug('等待MCP服务Provider初始化完成', {
+            'attempt': attempts + 1,
+            'maxAttempts': maxAttempts,
+            'isLoading': mcpState.isLoading,
+          });
+
+        } catch (e) {
+          _logger.warning('检查MCP服务Provider状态时出错', {
+            'attempt': attempts + 1,
+            'error': e.toString(),
+          });
+        }
+
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
+
+      if (!initializationCompleted && attempts >= maxAttempts) {
+        _logger.warning('MCP服务Provider初始化超时，但继续启动', {
+          'maxAttempts': maxAttempts,
+          'timeoutMs': maxAttempts * 100,
+        });
+      }
 
       state = state.copyWith(
         isMcpInitialized: true,
         currentStep: 'MCP服务初始化完成',
       );
 
-      _logger.info('✅ MCP服务初始化完成');
+      _logger.info('✅ MCP服务初始化完成', {
+        'attempts': attempts,
+        'maxAttempts': maxAttempts,
+      });
     } catch (e) {
       _logger.error('❌ MCP服务初始化失败', {'error': e.toString()});
       // MCP初始化失败不应阻塞应用启动

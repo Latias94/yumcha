@@ -791,10 +791,10 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
           _logger.debug('流式消息完成', {'messageId': update.messageId});
         } else {
           // 对于流式更新，我们不需要发出特殊事件，状态变化会自动通知UI
-          _logger.debug('流式消息更新', {
-            'messageId': update.messageId,
-            'contentLength': update.fullContent?.length ?? 0,
-          });
+          // _logger.debug('流式消息更新', {
+          //   'messageId': update.messageId,
+          //   'contentLength': update.fullContent?.length ?? 0,
+          // });
         }
       }
 

@@ -531,6 +531,7 @@ class DefaultAiProviderAdapter extends AiProviderAdapter {
       final builder = ai()
           .provider(providerId)
           .model(modelName)
+          .http((http) => http.enableLogging(true))
           .temperature(assistant.temperature)
           .topP(assistant.topP)
           .maxTokens(assistant.maxTokens);

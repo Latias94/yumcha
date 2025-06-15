@@ -97,7 +97,10 @@ class _ChatViewState extends ConsumerState<ChatView>
     // 如果对话ID发生变化，重置初始化状态
     if (widget.conversationId != oldWidget.conversationId) {
       _hasInitialized = false;
-      _initializeUnifiedChatState();
+      // 延迟到下一帧执行，避免在Widget构建期间修改Provider状态
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeUnifiedChatState();
+      });
     }
 
     // 如果消息列表发生变化，同步到统一状态

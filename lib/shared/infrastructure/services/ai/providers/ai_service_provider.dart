@@ -86,7 +86,9 @@ final sendChatMessageStreamProvider = StreamProvider.autoDispose
 });
 
 /// 测试AI提供商连接的Provider
-final testAiProviderProvider = FutureProvider.family<bool, TestProviderParams>((
+///
+/// 使用autoDispose避免内存泄漏，因为这是一次性测试操作
+final testAiProviderProvider = FutureProvider.autoDispose.family<bool, TestProviderParams>((
   ref,
   params,
 ) async {
@@ -99,7 +101,9 @@ final testAiProviderProvider = FutureProvider.family<bool, TestProviderParams>((
 });
 
 /// 获取提供商模型列表的Provider
-final providerModelsProvider = FutureProvider.family<List<AiModel>, String>((
+///
+/// 使用autoDispose避免内存泄漏，因为模型列表是临时获取的数据
+final providerModelsProvider = FutureProvider.autoDispose.family<List<AiModel>, String>((
   ref,
   providerId,
 ) async {
@@ -139,7 +143,9 @@ final modelCapabilitiesProvider =
 // ============================================================================
 
 /// 智能聊天Provider - 需要指定providerId和modelName
-final smartChatProvider = FutureProvider.family<AiResponse, SmartChatParams>((
+///
+/// 使用autoDispose避免内存泄漏，因为这是一次性聊天请求
+final smartChatProvider = FutureProvider.autoDispose.family<AiResponse, SmartChatParams>((
   ref,
   params,
 ) async {
@@ -180,8 +186,10 @@ final smartChatProvider = FutureProvider.family<AiResponse, SmartChatParams>((
 });
 
 /// 智能流式聊天Provider - 需要指定providerId和modelName
+///
+/// 使用autoDispose避免内存泄漏，因为这是一次性流式聊天请求
 final smartChatStreamProvider =
-    StreamProvider.family<AiStreamEvent, SmartChatParams>((ref, params) {
+    StreamProvider.autoDispose.family<AiStreamEvent, SmartChatParams>((ref, params) {
   final providerId = params.providerId;
   final modelName = params.modelName;
 
@@ -223,8 +231,10 @@ final smartChatStreamProvider =
 // ============================================================================
 
 /// 对话聊天Provider - 包含标题生成、对话保存等完整业务逻辑
+///
+/// 使用autoDispose避免内存泄漏，因为这是一次性对话请求
 final conversationChatProvider =
-    FutureProvider.family<ConversationChatResponse, ConversationChatParams>((
+    FutureProvider.autoDispose.family<ConversationChatResponse, ConversationChatParams>((
   ref,
   params,
 ) async {
@@ -233,8 +243,10 @@ final conversationChatProvider =
 });
 
 /// 对话流式聊天Provider - 包含完整业务逻辑的流式聊天接口
+///
+/// 使用autoDispose避免内存泄漏，因为这是一次性流式对话请求
 final conversationChatStreamProvider =
-    StreamProvider.family<ConversationChatStreamEvent, ConversationChatParams>((
+    StreamProvider.autoDispose.family<ConversationChatStreamEvent, ConversationChatParams>((
   ref,
   params,
 ) {

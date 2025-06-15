@@ -38,7 +38,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../settings/domain/entities/mcp_server_config.dart';
 import '../../../settings/presentation/providers/settings_notifier.dart';
 import '../../../settings/presentation/providers/mcp_service_provider.dart';
-import '../../../settings/domain/usecases/manage_mcp_server_usecase.dart';
+import '../../../../shared/infrastructure/services/mcp/mcp_service_manager.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import 'dart:convert';
 
@@ -740,9 +740,9 @@ class _McpDebugScreenState extends ConsumerState<McpDebugScreen> {
     _addLogEntry('🔍 正在加载可用工具...');
 
     // 延迟加载，确保provider已经初始化
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final mcpService = ManageMcpServerUseCase();
-      final allTools = mcpService.getAllAvailableTools();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final mcpManager = ref.read(mcpServiceManagerProvider);
+      final allTools = await mcpManager.getAllAvailableTools();
 
       setState(() {
         _availableTools.clear();
@@ -1142,35 +1142,29 @@ class _McpDebugScreenState extends ConsumerState<McpDebugScreen> {
       _addLogEntry('📤 请求参数: ${arguments.toString()}');
 
       // 调用MCP工具
-      final mcpService = ManageMcpServerUseCase();
-      final result = await mcpService.callTool(
-        toolName: _selectedToolName,
-        arguments: arguments,
+      final mcpManager = ref.read(mcpServiceManagerProvider);
+      final result = await mcpManager.callTool(
+        _selectedToolName,
+        arguments,
       );
 
       // 处理响应
       final responseData = {
-        'success': result.isSuccess,
-        'result': result.result,
-        'error': result.error,
-        'duration': '${result.duration.inMilliseconds}ms',
+        'success': true,
+        'result': result,
+        'error': null,
         'timestamp': DateTime.now().toIso8601String(),
       };
 
       final responseBody = encoder.convert(responseData);
 
       setState(() {
-        _toolResponse = result.result;
+        _toolResponse = result.toString();
         _toolResponseBody = responseBody;
       });
 
-      if (result.isSuccess) {
-        _addLogEntry('✅ 工具调用成功');
-        _addLogEntry('⏱️ 耗时: ${result.duration.inMilliseconds}ms');
-        _addLogEntry('📥 响应长度: ${result.result.length} 字符');
-      } else {
-        _addLogEntry('❌ 工具调用失败: ${result.error}');
-      }
+      _addLogEntry('✅ 工具调用成功');
+      _addLogEntry('📥 响应长度: ${result.toString().length} 字符');
     } catch (e) {
       _addLogEntry('❌ 工具测试失败: $e');
 

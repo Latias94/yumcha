@@ -1991,7 +1991,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   /// 获取真实的MCP工具列表
   Future<List<Map<String, dynamic>>> _getRealMcpTools([List<String>? serverIds]) async {
     try {
-      final mcpManager = McpServiceManager();
+      // 🔧 修复：通过Riverpod Provider获取MCP服务管理器，而不是直接创建新实例
+      final mcpManager = ref.read(mcpServiceManagerProvider);
       final targetServerIds = serverIds ?? _selectedMcpServerIds;
 
       // 检查MCP服务是否启用

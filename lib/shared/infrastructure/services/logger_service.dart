@@ -1,4 +1,5 @@
 import 'package:logger/logger.dart';
+import 'package:logging/logging.dart' as logging;
 
 /// 日志记录服务 - 统一的应用日志管理系统
 ///
@@ -103,9 +104,17 @@ class LoggerService {
   /// - **开发环境 (DevelopmentFilter)**: 显示所有日志级别
   /// - **生产环境 (ProductionFilter)**: 只显示Warning及以上级别
   ///
+  /// ### LLM Dart HTTP日志集成
+  /// - 自动配置 `logging` 包监听器，捕获 llm_dart 的 HTTP 日志
+  /// - 将 llm_dart 的日志转发到统一的日志系统
+  /// - 支持过滤和格式化 HTTP 请求/响应日志
+  ///
   /// @param enableInReleaseMode 是否在生产环境启用日志
   ///   - `false` (默认): 生产环境使用ProductionFilter
   ///   - `true`: 生产环境也使用DevelopmentFilter
+  /// @param enableHttpLogging 是否启用 HTTP 日志记录
+  ///   - `true` (默认): 启用 llm_dart HTTP 日志
+  ///   - `false`: 禁用 HTTP 日志
   ///
   /// ## 🚀 使用示例
   /// ```dart
@@ -117,6 +126,9 @@ class LoggerService {
   ///   // 或者启用生产环境日志
   ///   logger.initialize(enableInReleaseMode: true);
   ///
+  ///   // 或者禁用HTTP日志
+  ///   logger.initialize(enableHttpLogging: false);
+  ///
   ///   runApp(MyApp());
   /// }
   /// ```
@@ -125,7 +137,11 @@ class LoggerService {
   /// - 必须在使用其他日志方法前调用
   /// - 只需要调用一次，重复调用会覆盖之前的配置
   /// - 生产环境启用日志可能影响性能
-  void initialize({bool enableInReleaseMode = false}) {
+  /// - HTTP日志可能包含敏感信息，生产环境请谨慎启用
+  void initialize({
+    bool enableInReleaseMode = false,
+    bool enableHttpLogging = true,
+  }) {
     _logger = Logger(
       printer: PrettyPrinter(
         methodCount: 2, // 显示方法调用栈的层数
@@ -137,6 +153,98 @@ class LoggerService {
       ),
       filter: enableInReleaseMode ? ProductionFilter() : DevelopmentFilter(),
     );
+
+    // 配置 llm_dart HTTP 日志集成
+    if (enableHttpLogging) {
+      _setupHttpLogging();
+    }
+  }
+
+  /// 配置 llm_dart HTTP 日志集成
+  ///
+  /// 设置 `logging` 包的监听器来捕获 llm_dart 库的 HTTP 日志。
+  /// 这些日志会被转发到统一的日志系统中。
+  ///
+  /// ## 🔍 捕获的日志类型
+  /// - HTTP 请求详情（URL、方法、头部、请求体）
+  /// - HTTP 响应详情（状态码、头部、响应体）
+  /// - 网络错误和超时信息
+  /// - 连接和SSL相关日志
+  ///
+  /// ## 📊 日志处理
+  /// - 自动过滤敏感信息（API密钥等）
+  /// - 格式化长JSON响应以提高可读性
+  /// - 根据日志级别进行适当的路由
+  void _setupHttpLogging() {
+    // 设置 logging 包的日志级别
+    logging.Logger.root.level = logging.Level.ALL;
+
+    // 监听所有 logging 包的日志记录
+    logging.Logger.root.onRecord.listen((record) {
+      // 过滤出 HTTP 相关的日志
+      if (_isHttpLog(record)) {
+        _handleHttpLog(record);
+      }
+    });
+  }
+
+  /// 检查是否为 HTTP 相关日志
+  bool _isHttpLog(logging.LogRecord record) {
+    final loggerName = record.loggerName.toLowerCase();
+    final message = record.message.toLowerCase();
+
+    // 检查日志来源是否为 HTTP 相关
+    return loggerName.contains('http') ||
+        loggerName.contains('dio') ||
+        loggerName.contains('client') ||
+        message.contains('request') ||
+        message.contains('response') ||
+        message.contains('http');
+  }
+
+  /// 处理 HTTP 日志记录
+  void _handleHttpLog(logging.LogRecord record) {
+    // 过滤敏感信息
+    final sanitizedMessage = _sanitizeHttpMessage(record.message);
+
+    // 根据 logging 包的级别映射到对应的日志方法
+    switch (record.level.name) {
+      case 'SEVERE':
+      case 'SHOUT':
+        error('🌐 HTTP: $sanitizedMessage', record.error, record.stackTrace);
+        break;
+      case 'WARNING':
+        warning('🌐 HTTP: $sanitizedMessage', record.error, record.stackTrace);
+        break;
+      case 'INFO':
+        info('🌐 HTTP: $sanitizedMessage');
+        break;
+      case 'CONFIG':
+      case 'FINE':
+      case 'FINER':
+      case 'FINEST':
+      default:
+        debug('🌐 HTTP: $sanitizedMessage');
+        break;
+    }
+  }
+
+  /// 清理 HTTP 日志消息中的敏感信息
+  String _sanitizeHttpMessage(String message) {
+    String sanitized = message;
+
+    // 清理常见的API密钥模式
+    sanitized = sanitized.replaceAll(RegExp(r'sk-[a-zA-Z0-9]{20,}'), 'sk-***');
+    sanitized = sanitized.replaceAll(RegExp(r'Bearer [a-zA-Z0-9]{20,}'), 'Bearer ***');
+    sanitized = sanitized.replaceAll(RegExp(r'"api[_-]?key":\s*"[^"]*"'), '"api_key": "***"');
+    sanitized = sanitized.replaceAll(RegExp(r'"authorization":\s*"[^"]*"'), '"authorization": "***"');
+
+    // 截断过长的响应体
+    if (sanitized.length > 1000) {
+      sanitized = '${sanitized.substring(0, 1000)}... [截断]';
+    }
+
+    return sanitized;
   }
 
   // ============================================================================

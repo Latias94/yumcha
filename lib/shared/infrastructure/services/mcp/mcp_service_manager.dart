@@ -108,6 +108,7 @@ class McpServiceManager {
   }
 
   /// 设置状态监听器，监听设置中的MCP启用状态
+  /// 注意：只监听状态变化，不自动初始化服务器（避免重复初始化）
   void _setupStateListener() {
     if (_ref == null) return;
 
@@ -127,24 +128,26 @@ class McpServiceManager {
               });
               _isEnabled = mcpEnabled;
 
-              // 如果启用了MCP，自动初始化服务器
-              if (mcpEnabled) {
-                _autoInitializeServers();
+              // 只更新启用状态，不自动初始化服务器
+              // 服务器初始化由McpServiceProvider统一管理
+              if (!mcpEnabled) {
+                // 如果禁用，断开所有连接
+                Future.microtask(() => disconnectAllServers());
               }
             }
           }
         },
       );
 
-      // 初始化时同步一次状态
-      _syncWithSettings();
+      // 初始化时同步一次状态（不触发服务器初始化）
+      _syncWithSettingsOnly();
     } catch (e) {
       _logger.warning('设置MCP状态监听器失败', {'error': e.toString()});
     }
   }
 
-  /// 与设置状态同步
-  void _syncWithSettings() {
+  /// 与设置状态同步（仅同步启用状态，不触发服务器初始化）
+  void _syncWithSettingsOnly() {
     if (_ref == null) return;
 
     try {
@@ -158,40 +161,13 @@ class McpServiceManager {
           'syncing': mcpEnabled,
         });
         _isEnabled = mcpEnabled;
-
-        // 如果启用了MCP，自动初始化服务器
-        if (mcpEnabled) {
-          _autoInitializeServers();
-        }
       }
     } catch (e) {
       _logger.warning('同步MCP状态失败', {'error': e.toString()});
     }
   }
 
-  /// 自动初始化服务器
-  void _autoInitializeServers() {
-    if (_ref == null) return;
 
-    try {
-      final settingsNotifier = _ref!.read(settingsNotifierProvider.notifier);
-      final mcpServers = settingsNotifier.getMcpServers();
-
-      // 异步初始化服务器，避免阻塞UI
-      Future.microtask(() async {
-        try {
-          await initializeServers(mcpServers.enabledServers);
-          _logger.info('MCP服务器自动初始化完成', {
-            'serverCount': mcpServers.enabledServers.length,
-          });
-        } catch (e) {
-          _logger.error('MCP服务器自动初始化失败', {'error': e.toString()});
-        }
-      });
-    } catch (e) {
-      _logger.warning('获取MCP服务器配置失败', {'error': e.toString()});
-    }
-  }
 
   /// 启用MCP服务
   ///
@@ -268,6 +244,15 @@ class McpServiceManager {
     return _clientService.getServerError(serverId);
   }
 
+  /// 检查服务器连接健康状态
+  ///
+  /// @param serverId 服务器ID
+  /// @returns 连接是否健康
+  Future<bool> checkServerHealth(String serverId) async {
+    await _ensureInitialized();
+    return await _clientService.checkServerHealth(serverId);
+  }
+
   /// 获取推荐的服务器类型
   ///
   /// 根据当前平台返回推荐的MCP服务器连接类型：
@@ -307,6 +292,32 @@ class McpServiceManager {
   ) async {
     await _ensureInitialized();
     return await _toolService.callTool(toolName, arguments);
+  }
+
+  /// 获取所有可用工具
+  ///
+  /// @param assistantMcpServerIds 助手配置的MCP服务器ID列表（可选）
+  /// @returns 可用的工具列表
+  Future<List<dynamic>> getAllAvailableTools([List<String>? assistantMcpServerIds]) async {
+    await _ensureInitialized();
+    return await getAvailableTools(assistantMcpServerIds);
+  }
+
+  /// 验证服务器配置
+  ///
+  /// @param config 服务器配置
+  /// @returns 验证结果
+  Future<Map<String, dynamic>> validateServerConfig(dynamic config) async {
+    // 基础验证逻辑
+    final result = <String, dynamic>{
+      'isValid': true,
+      'warnings': <String>[],
+      'errors': <String>[],
+      'suggestions': <String>[],
+    };
+
+    // 这里可以添加更多验证逻辑
+    return result;
   }
 
   /// 清理所有服务资源

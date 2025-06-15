@@ -40,8 +40,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/mcp_server_config.dart';
 import '../providers/settings_notifier.dart';
 import '../providers/mcp_service_provider.dart';
-import '../../domain/usecases/manage_mcp_server_usecase.dart';
+
 import '../../../../shared/infrastructure/services/notification_service.dart';
+import '../../../../shared/infrastructure/services/mcp/mcp_service_manager.dart';
 import '../../../debug/presentation/screens/mcp_debug_screen.dart';
 
 class McpSettingsScreen extends ConsumerStatefulWidget {
@@ -553,17 +554,17 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
 }
 
 // MCP 服务器编辑页面
-class McpServerEditScreen extends StatefulWidget {
+class McpServerEditScreen extends ConsumerStatefulWidget {
   final McpServerConfig? server;
   final Function(McpServerConfig) onSave;
 
   const McpServerEditScreen({super.key, this.server, required this.onSave});
 
   @override
-  State<McpServerEditScreen> createState() => _McpServerEditScreenState();
+  ConsumerState<McpServerEditScreen> createState() => _McpServerEditScreenState();
 }
 
-class _McpServerEditScreenState extends State<McpServerEditScreen> {
+class _McpServerEditScreenState extends ConsumerState<McpServerEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -800,26 +801,7 @@ class _McpServerEditScreenState extends State<McpServerEditScreen> {
   }
 
   String _getExampleText() {
-    final mcpService = ManageMcpServerUseCase();
-    final examples = mcpService.getPlatformSpecificExamples(_selectedType);
-
-    if (examples.isNotEmpty) {
-      switch (_selectedType) {
-        case McpServerType.stdio:
-          return '''名称：${examples['description'] ?? '文件系统工具'}
-命令：${examples['command'] ?? '/usr/local/bin/filesystem-mcp'}
-参数：${examples['args'] ?? '--root /home/user/documents'}
-环境变量：
-LOG_LEVEL=info
-MAX_FILE_SIZE=10MB''';
-        case McpServerType.streamableHttp:
-          return '''名称：远程API工具
-URL：${examples['command'] ?? 'http://localhost:8080/mcp'}
-描述：${examples['description'] ?? '远程 StreamableHTTP MCP 服务器（支持HTTP和SSE）'}''';
-      }
-    }
-
-    // 默认示例
+    // 直接提供示例，不依赖已删除的服务
     switch (_selectedType) {
       case McpServerType.stdio:
         return '''名称：文件系统工具
@@ -837,12 +819,14 @@ URL：http://localhost:8080/mcp
 
   /// 获取可用的服务器类型（基于平台）
   List<McpServerType> _getAvailableServerTypes() {
-    return ManageMcpServerUseCase().getRecommendedServerTypes();
+    final mcpManager = ref.read(mcpServiceManagerProvider);
+    return mcpManager.getRecommendedServerTypes();
   }
 
   /// 检查类型是否推荐
   bool _isTypeRecommended(McpServerType type) {
-    final recommended = ManageMcpServerUseCase().getRecommendedServerTypes();
+    final mcpManager = ref.read(mcpServiceManagerProvider);
+    final recommended = mcpManager.getRecommendedServerTypes();
     return recommended.contains(type);
   }
 
@@ -898,8 +882,8 @@ URL：http://localhost:8080/mcp
         );
 
     // 验证配置
-    final mcpService = ManageMcpServerUseCase();
-    final validation = await mcpService.validateServerConfig(server);
+    final mcpManager = ref.read(mcpServiceManagerProvider);
+    final validation = await mcpManager.validateServerConfig(server);
 
     if (!validation['isValid']) {
       // 显示错误对话框

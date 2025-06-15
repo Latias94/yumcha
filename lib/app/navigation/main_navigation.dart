@@ -259,12 +259,12 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     UnifiedChatState chatState,
     UnifiedChatNotifier chatNotifier,
   ) {
-    _logger.debug('MainNavigation 渲染屏幕', {
-      'isLoading': chatState.isLoading,
-      'hasError': chatState.hasError,
-      'hasConversation': conversation != null,
-      'conversationId': conversation?.id,
-    });
+    // _logger.debug('MainNavigation 渲染屏幕', {
+    //   'isLoading': chatState.isLoading,
+    //   'hasError': chatState.hasError,
+    //   'hasConversation': conversation != null,
+    //   'conversationId': conversation?.id,
+    // });
 
     // 如果正在加载
     if (chatState.isLoading) {

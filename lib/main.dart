@@ -25,8 +25,8 @@ void main() async {
 /// - 日志服务（用于记录初始化过程）
 /// - 偏好设置服务（某些Provider可能需要）
 Future<void> _initializeBasicServices() async {
-  // 1. 初始化日志服务
-  LoggerService().initialize();
+  // 1. 初始化日志服务（启用HTTP日志记录）
+  LoggerService().initialize(enableHttpLogging: true);
   LoggerService().info('🚀 开始应用启动');
 
   // 2. 初始化偏好设置服务

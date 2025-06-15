@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/mcp_server_config.dart';
-import '../../domain/usecases/manage_mcp_server_usecase.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
+import '../../../../shared/infrastructure/services/mcp/mcp_service_manager.dart';
 import 'settings_notifier.dart';
 
 /// MCP 服务状态
@@ -62,7 +62,10 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
   /// 获取SettingsNotifier实例
   SettingsNotifier get _settingsNotifier =>
       _ref.read(settingsNotifierProvider.notifier);
-  final ManageMcpServerUseCase _mcpService = ManageMcpServerUseCase();
+
+  /// 获取MCP服务管理器实例
+  McpServiceManager get _mcpService => _ref.read(mcpServiceManagerProvider);
+
   final LoggerService _logger = LoggerService();
   Timer? _statusUpdateTimer;
 
@@ -82,35 +85,56 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
       Future.microtask(() => _loadInitialState());
     }
 
-    // 启动定时器，定期更新服务器状态
+    // 启动定时器，定期检查服务器连接健康状态
+    // 降低频率到10秒，减少不必要的调用
     _statusUpdateTimer = Timer.periodic(
-      const Duration(seconds: 2),
-      (_) => _updateServerStatuses(),
+      const Duration(seconds: 10),
+      (_) => _checkServerHealth(),
     );
   }
 
   /// 加载初始状态
   Future<void> _loadInitialState() async {
+    state = state.copyWith(isLoading: true);
+
     try {
       final mcpEnabled = _settingsNotifier.getMcpEnabled();
       final mcpServers = _settingsNotifier.getMcpServers();
 
+      // 更新启用状态
       state = state.copyWith(isEnabled: mcpEnabled);
 
       if (mcpEnabled) {
-        // 异步初始化服务器
+        _logger.info('MCP已启用，开始初始化服务器', {
+          'serverCount': mcpServers.enabledServers.length,
+        });
+
+        // 设置MCP服务启用状态
         await _mcpService.setEnabled(true);
-        await _mcpService.initializeServers(mcpServers.enabledServers);
+
+        // 初始化启用的服务器
+        if (mcpServers.enabledServers.isNotEmpty) {
+          await _mcpService.initializeServers(mcpServers.enabledServers);
+        }
+
         // 更新服务器状态
         await _updateServerStatuses();
+      } else {
+        _logger.info('MCP未启用，跳过服务器初始化');
+        // 确保MCP服务处于禁用状态
+        await _mcpService.setEnabled(false);
       }
+
+      state = state.copyWith(isLoading: false);
 
       _logger.info('MCP初始状态加载完成', {
         'enabled': mcpEnabled,
-        'serverCount': mcpServers.servers.length,
+        'totalServers': mcpServers.servers.length,
+        'enabledServers': mcpServers.enabledServers.length,
       });
     } catch (e) {
       _logger.error('MCP初始状态加载失败', {'error': e.toString()});
+      state = state.copyWith(isLoading: false);
     }
   }
 
@@ -129,7 +153,7 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
       await _settingsNotifier.setMcpEnabled(enabled);
 
       // 更新MCP服务
-      _mcpService.setEnabled(enabled);
+      await _mcpService.setEnabled(enabled);
 
       if (!enabled) {
         // 禁用时清空所有状态
@@ -244,38 +268,101 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
   }
 
   /// 获取所有可用工具
-  List<dynamic> getAllAvailableTools() {
-    return _mcpService.getAllAvailableTools();
+  Future<List<dynamic>> getAllAvailableTools() async {
+    return await _mcpService.getAllAvailableTools();
   }
 
   /// 调用工具
-  Future<McpToolResult> callTool({
+  Future<Map<String, dynamic>> callTool({
     required String toolName,
     required Map<String, dynamic> arguments,
   }) async {
-    return await _mcpService.callTool(
-      toolName: toolName,
-      arguments: arguments,
-    );
+    return await _mcpService.callTool(toolName, arguments);
   }
 
-  /// 更新服务器状态
+  /// 检查服务器健康状态（定期调用）
+  Future<void> _checkServerHealth() async {
+    if (!state.isEnabled) return;
+
+    try {
+      // 从设置中获取服务器配置
+      final mcpServers = _settingsNotifier.getMcpServers();
+      final statuses = <String, McpServerStatus>{};
+      final errors = <String, String?>{};
+
+      // 只检查状态，不获取工具列表（减少频繁调用）
+      for (final server in mcpServers.servers) {
+        final serverId = server.id;
+        final currentStatus = _mcpService.getServerStatus(serverId);
+
+        // 如果状态显示已连接，进行健康检查
+        if (currentStatus == McpServerStatus.connected) {
+          final isHealthy = await _mcpService.checkServerHealth(serverId);
+          if (isHealthy) {
+            statuses[serverId] = McpServerStatus.connected;
+            errors[serverId] = _mcpService.getServerError(serverId);
+          } else {
+            // 连接实际已断开，从服务管理器获取最新状态
+            statuses[serverId] = _mcpService.getServerStatus(serverId);
+            errors[serverId] = _mcpService.getServerError(serverId);
+          }
+        } else {
+          statuses[serverId] = currentStatus;
+          errors[serverId] = _mcpService.getServerError(serverId);
+        }
+      }
+
+      // 只有状态真正改变时才更新（不包含工具列表）
+      if (_hasStatusChanged(statuses, errors, state.serverTools)) {
+        state = state.copyWith(
+          serverStatuses: statuses,
+          serverErrors: errors,
+          isLoading: false,
+        );
+      }
+    } catch (e) {
+      _logger.error('检查MCP服务器健康状态失败', {'error': e.toString()});
+    }
+  }
+
+  /// 更新服务器状态（包含工具列表）
   Future<void> _updateServerStatuses() async {
     if (!state.isEnabled) return;
 
     try {
-      final servers = _mcpService.servers;
+      // 从设置中获取服务器配置
+      final mcpServers = _settingsNotifier.getMcpServers();
       final statuses = <String, McpServerStatus>{};
       final errors = <String, String?>{};
       final tools = <String, List<dynamic>>{};
 
-      for (final entry in servers.entries) {
-        final serverId = entry.key;
-        final instance = entry.value;
+      // 更新每个服务器的状态
+      for (final server in mcpServers.servers) {
+        final serverId = server.id;
+        final currentStatus = _mcpService.getServerStatus(serverId);
 
-        statuses[serverId] = instance.status;
-        errors[serverId] = instance.errorMessage;
-        tools[serverId] = instance.availableTools;
+        // 如果状态显示已连接，验证连接并获取工具
+        if (currentStatus == McpServerStatus.connected) {
+          try {
+            final availableTools = await _mcpService.getAvailableTools([serverId]);
+            statuses[serverId] = McpServerStatus.connected;
+            errors[serverId] = _mcpService.getServerError(serverId);
+            tools[serverId] = availableTools;
+          } catch (e) {
+            // 连接实际已断开
+            statuses[serverId] = McpServerStatus.error;
+            errors[serverId] = '连接已断开: ${e.toString()}';
+            tools[serverId] = [];
+            _logger.warning('检测到MCP服务器连接断开', {
+              'serverId': serverId,
+              'error': e.toString(),
+            });
+          }
+        } else {
+          statuses[serverId] = currentStatus;
+          errors[serverId] = _mcpService.getServerError(serverId);
+          tools[serverId] = [];
+        }
       }
 
       // 只有状态真正改变时才更新
@@ -353,7 +440,7 @@ final mcpServerToolsProvider =
 });
 
 /// 获取所有可用工具的 Provider
-final mcpAllToolsProvider = Provider.autoDispose<List<dynamic>>((ref) {
+final mcpAllToolsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   final notifier = ref.read(mcpServiceProvider.notifier);
-  return notifier.getAllAvailableTools();
+  return await notifier.getAllAvailableTools();
 });
