@@ -37,6 +37,10 @@ import 'theme_settings_screen.dart';
 import '../../../../app/theme/theme_provider.dart';
 import '../../../debug/presentation/screens/thinking_process_demo.dart';
 import '../../../chat/presentation/screens/chat_display_settings_screen.dart';
+import 'search_service_settings_screen.dart';
+import 'about_screen.dart';
+import 'chat_storage_screen.dart';
+import 'share_screen.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -86,8 +90,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // 关于
               _buildSectionHeader("关于"),
               _buildAboutAppItem(),
-              _buildChatStorageItem(),
-              _buildShareItem(),
+              // _buildChatStorageItem(),
+              // _buildShareItem(),
 
               SizedBox(height: DesignConstants.spaceXXL),
 
@@ -374,7 +378,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text("设置搜索服务"),
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
-        // TODO: 跳转到搜索服务设置页面
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SearchServiceSettingsScreen()),
+        );
       },
     );
   }
@@ -401,7 +408,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text("关于本APP"),
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
-        // TODO: 跳转到关于页面
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AboutScreen()),
+        );
       },
     );
   }
@@ -413,7 +423,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text("0 个文件，0.00 MB"),
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
-        // TODO: 跳转到聊天记录管理页面
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ChatStorageScreen()),
+        );
       },
     );
   }
@@ -425,7 +438,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text("分享本APP给朋友"),
       trailing: const Icon(Icons.keyboard_arrow_right),
       onTap: () {
-        // TODO: 实现分享功能
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ShareScreen()),
+        );
       },
     );
   }

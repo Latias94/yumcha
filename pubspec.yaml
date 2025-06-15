@@ -72,6 +72,12 @@ dependencies:
   cached_network_image: ^3.4.1
   just_audio: ^0.9.40
   crypto: ^3.0.5
+  # 应用信息和分享功能
+  package_info_plus: ^8.0.2
+  url_launcher: ^6.3.1
+  share_plus: ^10.0.2
+  qr_flutter: ^4.1.0
+  file_picker: ^8.1.2
 
 dev_dependencies:
   flutter_test:
