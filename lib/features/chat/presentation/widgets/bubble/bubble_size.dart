@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'bubble_style.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 气泡尺寸计算工具类
 /// 
@@ -11,23 +12,21 @@ class BubbleSize {
   /// 计算气泡最大宽度
   static double calculateMaxWidth(BuildContext context, BubbleStyle style) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 768;
-    final isTablet = screenWidth > 480 && screenWidth <= 768;
 
     switch (style.type) {
       case BubbleType.bubble:
-        if (isDesktop) {
+        if (DesignConstants.isDesktop(context)) {
           return screenWidth * 0.6;
-        } else if (isTablet) {
+        } else if (DesignConstants.isTablet(context)) {
           return screenWidth * 0.75;
         } else {
           return screenWidth * 0.85;
         }
 
       case BubbleType.card:
-        if (isDesktop) {
+        if (DesignConstants.isDesktop(context)) {
           return screenWidth * 0.8;
-        } else if (isTablet) {
+        } else if (DesignConstants.isTablet(context)) {
           return screenWidth * 0.9;
         } else {
           return screenWidth * 0.95;
@@ -72,18 +71,14 @@ class BubbleSize {
 
   /// 计算响应式外边距
   static EdgeInsets calculateMargin(BuildContext context, BubbleStyle style) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 768;
-    final isTablet = screenWidth > 480 && screenWidth <= 768;
-
     final baseMargin = style.layout.margin;
-    
-    if (isDesktop) {
+
+    if (DesignConstants.isDesktop(context)) {
       return EdgeInsets.symmetric(
         horizontal: baseMargin.horizontal * 1.5,
         vertical: baseMargin.vertical * 1.2,
       );
-    } else if (isTablet) {
+    } else if (DesignConstants.isTablet(context)) {
       return baseMargin;
     } else {
       return EdgeInsets.symmetric(
@@ -143,60 +138,7 @@ class BubbleSize {
     );
   }
 
-  /// 获取设备类型
-  static DeviceType getDeviceType(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    if (screenWidth > 768) {
-      return DeviceType.desktop;
-    } else if (screenWidth > 480) {
-      return DeviceType.tablet;
-    } else {
-      return DeviceType.mobile;
-    }
-  }
-
-  /// 获取响应式字体大小
-  static double getResponsiveFontSize(BuildContext context, double baseFontSize) {
-    final deviceType = getDeviceType(context);
-    
-    switch (deviceType) {
-      case DeviceType.desktop:
-        return baseFontSize * 1.1;
-      case DeviceType.tablet:
-        return baseFontSize;
-      case DeviceType.mobile:
-        return baseFontSize * 0.95;
-    }
-  }
-
-  /// 获取响应式图标大小
-  static double getResponsiveIconSize(BuildContext context, double baseIconSize) {
-    final deviceType = getDeviceType(context);
-    
-    switch (deviceType) {
-      case DeviceType.desktop:
-        return baseIconSize * 1.2;
-      case DeviceType.tablet:
-        return baseIconSize;
-      case DeviceType.mobile:
-        return baseIconSize * 0.9;
-    }
-  }
-
-  /// 获取响应式间距
-  static double getResponsiveSpacing(BuildContext context, double baseSpacing) {
-    final deviceType = getDeviceType(context);
-    
-    switch (deviceType) {
-      case DeviceType.desktop:
-        return baseSpacing * 1.3;
-      case DeviceType.tablet:
-        return baseSpacing;
-      case DeviceType.mobile:
-        return baseSpacing * 0.8;
-    }
-  }
+  // 删除重复的方法，使用 DesignConstants 中的统一方法
 
   /// 计算气泡阴影
   static List<BoxShadow> calculateShadows(
@@ -211,20 +153,15 @@ class BubbleSize {
       return [];
     }
 
-    final deviceType = getDeviceType(context);
     double multiplier = 1.0;
 
     // 根据设备类型调整阴影
-    switch (deviceType) {
-      case DeviceType.desktop:
-        multiplier = 1.2;
-        break;
-      case DeviceType.tablet:
-        multiplier = 1.0;
-        break;
-      case DeviceType.mobile:
-        multiplier = 0.8;
-        break;
+    if (DesignConstants.isDesktop(context)) {
+      multiplier = 1.2;
+    } else if (DesignConstants.isTablet(context)) {
+      multiplier = 1.0;
+    } else {
+      multiplier = 0.8;
     }
 
     // 根据状态调整阴影
@@ -238,22 +175,14 @@ class BubbleSize {
       return BoxShadow(
         color: shadow.color,
         blurRadius: shadow.blurRadius * multiplier,
-        spreadRadius: (shadow.spreadRadius ?? 0) * multiplier,
+        spreadRadius: shadow.spreadRadius * multiplier,
         offset: shadow.offset * multiplier,
       );
     }).toList();
   }
 }
 
-/// 设备类型枚举
-enum DeviceType {
-  /// 桌面端
-  desktop,
-  /// 平板
-  tablet,
-  /// 移动端
-  mobile,
-}
+// 删除重复的DeviceType枚举，使用DesignConstants中的统一定义
 
 /// 气泡尺寸扩展方法
 extension BubbleSizeExtensions on BuildContext {
@@ -283,14 +212,14 @@ extension BubbleSizeExtensions on BuildContext {
   }
 
   /// 获取设备类型
-  DeviceType get deviceType => BubbleSize.getDeviceType(this);
+  DeviceType get deviceType => DesignConstants.getDeviceType(this);
 
   /// 是否为桌面端
-  bool get isDesktop => deviceType == DeviceType.desktop;
+  bool get isDesktop => DesignConstants.isDesktop(this);
 
   /// 是否为平板
-  bool get isTablet => deviceType == DeviceType.tablet;
+  bool get isTablet => DesignConstants.isTablet(this);
 
   /// 是否为移动端
-  bool get isMobile => deviceType == DeviceType.mobile;
+  bool get isMobile => DesignConstants.isMobile(this);
 }

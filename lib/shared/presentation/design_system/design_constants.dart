@@ -53,14 +53,12 @@ class DesignConstants {
 
   /// 📱 响应式边距
   static EdgeInsets responsivePadding(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 768;
-    return EdgeInsets.all(isDesktop ? spaceXXL : spaceL);
+    return EdgeInsets.all(isDesktop(context) ? spaceXXL : spaceL);
   }
 
   /// 📱 响应式水平边距
   static EdgeInsets responsiveHorizontalPadding(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 768;
-    return EdgeInsets.symmetric(horizontal: isDesktop ? spaceXXL : spaceL);
+    return EdgeInsets.symmetric(horizontal: isDesktop(context) ? spaceXXL : spaceL);
   }
 
   /// 🌊 阴影层次规范

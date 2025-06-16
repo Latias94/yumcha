@@ -21,3 +21,6 @@ export 'infrastructure/services/ai/core/ai_service_base.dart';
 // 表现层
 export 'presentation/providers/providers.dart';
 // 兼容性Provider已清理，请使用统一聊天系统
+
+// 设计系统
+export 'presentation/design_system/design_system.dart';

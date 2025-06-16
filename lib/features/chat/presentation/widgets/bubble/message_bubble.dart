@@ -7,6 +7,7 @@ import 'bubble_context.dart';
 import 'bubble_content.dart';
 import 'bubble_decoration.dart';
 import 'bubble_size.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 统一的消息气泡组件
 /// 
@@ -133,34 +134,44 @@ class MessageBubble extends ConsumerWidget {
         : bubbleContext.theme.colorScheme.secondaryContainer.withValues(alpha: 0.3);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 4,
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignConstants.spaceS,
+              vertical: DesignConstants.spaceXS,
             ),
             decoration: BoxDecoration(
               color: backgroundColor,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: DesignConstants.radiusS,
             ),
             child: Text(
               roleText,
               style: TextStyle(
                 color: roleColor,
-                fontSize: 12,
+                fontSize: DesignConstants.getResponsiveFontSize(
+                  context,
+                  mobile: 11,
+                  tablet: 12,
+                  desktop: 12,
+                ),
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: DesignConstants.spaceS),
           Text(
             _formatTimestamp(message.createdAt),
             style: TextStyle(
               color: bubbleContext.theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              fontSize: 10,
+              fontSize: DesignConstants.getResponsiveFontSize(
+                context,
+                mobile: 9,
+                tablet: 10,
+                desktop: 10,
+              ),
             ),
           ),
         ],

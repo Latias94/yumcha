@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/entities/message.dart';
 import '../../../domain/entities/message_status.dart';
 import 'bubble_style.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 气泡上下文类
 /// 
@@ -73,13 +74,14 @@ class BubbleContext {
   double get screenHeight => constraints.maxHeight;
 
   /// 是否为桌面端
-  bool get isDesktop => screenWidth > 768;
+  bool get isDesktop => screenWidth >= DesignConstants.breakpointDesktop;
 
   /// 是否为平板
-  bool get isTablet => screenWidth > 480 && screenWidth <= 768;
+  bool get isTablet => screenWidth >= DesignConstants.breakpointTablet &&
+                      screenWidth < DesignConstants.breakpointDesktop;
 
   /// 是否为移动端
-  bool get isMobile => screenWidth <= 480;
+  bool get isMobile => screenWidth < DesignConstants.breakpointTablet;
 
   /// 是否为用户消息
   bool get isFromUser => message.isFromUser;

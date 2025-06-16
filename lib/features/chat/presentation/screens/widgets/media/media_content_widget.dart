@@ -278,7 +278,12 @@ class MediaContentWidget extends StatelessWidget {
                   fileName,
                   style: TextStyle(
                     color: theme.colorScheme.onSurface,
-                    fontSize: 14,
+                    fontSize: DesignConstants.getResponsiveFontSize(
+                      context,
+                      mobile: 13,
+                      tablet: 14,
+                      desktop: 14,
+                    ),
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -290,7 +295,12 @@ class MediaContentWidget extends StatelessWidget {
                     _formatFileSize(fileSize),
                     style: TextStyle(
                       color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 12,
+                      fontSize: DesignConstants.getResponsiveFontSize(
+                        context,
+                        mobile: 11,
+                        tablet: 12,
+                        desktop: 12,
+                      ),
                     ),
                   ),
                 ],

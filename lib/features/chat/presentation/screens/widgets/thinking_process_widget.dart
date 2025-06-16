@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 
+import '../../../../../shared/presentation/design_system/design_constants.dart';
+
 /// 思考过程显示组件
 /// 用于显示AI推理模型的思考过程，支持折叠/展开
 class ThinkingProcessWidget extends StatefulWidget {
@@ -197,21 +199,36 @@ class _ThinkingProcessWidgetState extends State<ThinkingProcessWidget>
           PConfig(
             textStyle: TextStyle(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-              fontSize: 14,
-              height: 1.4,
+              fontSize: DesignConstants.getResponsiveFontSize(
+                context,
+                mobile: 13,
+                tablet: 14,
+                desktop: 14,
+              ),
+              height: DesignConstants.getResponsiveLineHeight(context),
             ),
           ),
           H1Config(
             style: TextStyle(
               color: theme.colorScheme.onSurface,
-              fontSize: 18,
+              fontSize: DesignConstants.getResponsiveFontSize(
+                context,
+                mobile: 17,
+                tablet: 18,
+                desktop: 18,
+              ),
               fontWeight: FontWeight.bold,
             ),
           ),
           H2Config(
             style: TextStyle(
               color: theme.colorScheme.onSurface,
-              fontSize: 16,
+              fontSize: DesignConstants.getResponsiveFontSize(
+                context,
+                mobile: 15,
+                tablet: 16,
+                desktop: 16,
+              ),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -219,7 +236,12 @@ class _ThinkingProcessWidgetState extends State<ThinkingProcessWidget>
             style: TextStyle(
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
               color: theme.colorScheme.onSurface,
-              fontSize: 13,
+              fontSize: DesignConstants.getResponsiveFontSize(
+                context,
+                mobile: 12,
+                tablet: 13,
+                desktop: 13,
+              ),
             ),
           ),
         ],
