@@ -5,6 +5,7 @@ import '../../domain/entities/chat_state.dart';
 import '../../domain/entities/chat_configuration.dart' as config_entity;
 import '../../infrastructure/services/chat_configuration_validator.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
+import '../../../ai_management/presentation/providers/unified_ai_management_providers.dart';
 
 /// 聊天配置状态显示组件 - 简化版
 ///
@@ -36,8 +37,12 @@ class ChatConfigurationStatus extends ConsumerWidget {
     final chatConfig = ref.watch(chatConfigurationProvider);
     final theme = Theme.of(context);
 
+    // 同时监听提供商数据变化，确保配置状态能实时更新
+    ref.watch(aiProvidersProvider);
+    ref.watch(aiAssistantsProvider);
+
     // 转换为验证器期望的配置类型
-    final validatorConfig = _convertToValidatorConfig(chatConfig);
+    final validatorConfig = _convertToValidatorConfig(chatConfig, ref);
 
     // 检查配置是否有问题
     final configurationIssue = ChatConfigurationValidator.getConfigurationIssue(validatorConfig);
@@ -56,14 +61,26 @@ class ChatConfigurationStatus extends ConsumerWidget {
   }
 
   /// 转换为验证器期望的配置类型
-  config_entity.ChatConfiguration? _convertToValidatorConfig(ChatConfiguration chatConfig) {
+  config_entity.ChatConfiguration? _convertToValidatorConfig(
+    ChatConfiguration chatConfig,
+    WidgetRef ref,
+  ) {
     if (!chatConfig.isComplete) {
       return null;
     }
 
+    // 获取最新的提供商数据，确保API密钥等信息是最新的
+    final providers = ref.read(aiProvidersProvider);
+    final latestProvider = providers
+        .where((p) => p.id == chatConfig.selectedProvider!.id)
+        .firstOrNull;
+
+    // 如果找不到最新的提供商数据，使用原始数据
+    final providerToUse = latestProvider ?? chatConfig.selectedProvider!;
+
     return config_entity.ChatConfiguration(
       assistant: chatConfig.selectedAssistant!,
-      provider: chatConfig.selectedProvider!,
+      provider: providerToUse,
       model: chatConfig.selectedModel!,
     );
   }

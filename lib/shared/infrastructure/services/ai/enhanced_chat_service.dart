@@ -9,29 +9,45 @@ import 'ai_service_manager.dart';
 import '../logger_service.dart';
 
 /// 增强聊天服务 - 集成多媒体功能的AI聊天服务
-/// 
-/// 这个服务在基础聊天功能之上添加了：
-/// - 🎨 自动图片生成检测和处理
-/// - 🎵 自动TTS音频生成
-/// - 🖼️ 图片内容分析和理解
-/// - 📱 多媒体消息创建和管理
-/// 
-/// ## 核心功能
-/// 
-/// ### 1. 智能内容检测
+///
+/// ⚠️ **已弃用 (DEPRECATED)** ⚠️
+///
+/// 这个服务已被 `BlockBasedChatService` 替代，请使用新的块化消息系统。
+/// 新系统提供了更好的架构和更强大的功能：
+///
+/// - 🧩 **块化消息架构** - 更灵活的内容组织
+/// - 🎨 **多媒体块支持** - 独立的多媒体内容管理
+/// - 🔄 **流式块更新** - 更好的实时体验
+/// - 📊 **精细化状态管理** - 每个块独立的状态跟踪
+///
+/// ## 迁移指南
+///
+/// 请参考 `docs/enhanced_to_block_migration_guide.md` 了解如何迁移到新系统。
+///
+/// ### 替代方案
+/// - 使用 `BlockBasedChatService` 替代此服务
+/// - 使用 `blockChatProvider` 替代 `enhancedChatProvider`
+/// - 使用 `Message` 和 `MessageBlock` 替代 `EnhancedMessage`
+///
+/// ## 原有功能（已迁移到新系统）
+///
+/// ### 1. 智能内容检测 ➜ 块化内容识别
 /// - 检测用户请求中的图片生成意图
 /// - 识别需要TTS的文本内容
 /// - 分析上传的图片内容
-/// 
-/// ### 2. 自动多媒体生成
+///
+/// ### 2. 自动多媒体生成 ➜ 多媒体块生成
 /// - AI回复包含图片时自动生成
 /// - 长文本自动生成TTS音频
 /// - 多媒体内容智能存储
-/// 
-/// ### 3. 增强消息处理
-/// - 创建包含多媒体的EnhancedMessage
+///
+/// ### 3. 增强消息处理 ➜ 块化消息处理
+/// - 创建包含多媒体的块化消息
 /// - 自动管理多媒体文件生命周期
 /// - 支持多媒体内容的导入导出
+///
+/// @deprecated 使用 BlockBasedChatService 替代
+@Deprecated('使用 BlockBasedChatService 替代。参考 docs/enhanced_to_block_migration_guide.md')
 class EnhancedChatService {
   final AiServiceManager _serviceManager;
   final MediaStorageService _mediaService;

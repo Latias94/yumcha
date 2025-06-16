@@ -275,21 +275,21 @@ class BlockMessageNotifier extends StateNotifier<BlockMessageState> {
 final blockMessageProvider = StateNotifierProvider.family<BlockMessageNotifier, BlockMessageState, String>(
   (ref, conversationId) {
     final messageRepository = ref.watch(messageRepositoryProvider);
-    final chatService = ref.watch(blockChatServiceProvider);
-    
+    final chatService = ref.watch(domainBlockChatServiceProvider);
+
     final notifier = BlockMessageNotifier(
       messageRepository: messageRepository,
       chatService: chatService,
     );
-    
+
     // 自动加载对话消息
     Future.microtask(() => notifier.loadConversationMessages(conversationId));
-    
+
     return notifier;
   },
 );
 
-// 注意：messageRepositoryProvider 和 blockChatServiceProvider
+// 注意：messageRepositoryProvider 和 domainBlockChatServiceProvider
 // 已在 chat_providers.dart 中定义，这里不再重复定义
 // 如需使用，请导入：import '../providers/chat_providers.dart';
 

@@ -1,7 +1,38 @@
 import 'dart:collection';
+import 'package:flutter/material.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/message_block.dart';
 import 'chat_logger_service.dart';
+
+/// 缓存的渲染结果
+class _CachedRenderResult {
+  final Widget widget;
+  final String contentHash;
+  final DateTime createdAt;
+  final DateTime lastAccessed;
+
+  _CachedRenderResult({
+    required this.widget,
+    required this.contentHash,
+    required this.createdAt,
+    required this.lastAccessed,
+  });
+
+  /// 创建更新访问时间的副本
+  _CachedRenderResult withUpdatedAccess() {
+    return _CachedRenderResult(
+      widget: widget,
+      contentHash: contentHash,
+      createdAt: createdAt,
+      lastAccessed: DateTime.now(),
+    );
+  }
+
+  /// 检查是否过期（超过5分钟）
+  bool get isExpired {
+    return DateTime.now().difference(createdAt).inMinutes > 5;
+  }
+}
 
 /// 消息缓存服务
 /// 
@@ -23,7 +54,13 @@ class MessageCacheService {
   
   /// 对话消息列表缓存
   final LRUCache<String, List<Message>> _conversationCache;
-  
+
+  /// 内容哈希缓存 - 用于快速检测内容变化
+  final LRUCache<String, String> _contentHashCache;
+
+  /// 渲染缓存 - 缓存已渲染的Widget
+  final LRUCache<String, _CachedRenderResult> _renderCache;
+
   /// 缓存统计
   final CacheStatistics _statistics = CacheStatistics();
   
@@ -34,9 +71,13 @@ class MessageCacheService {
     int maxMessageCacheSize = 1000,
     int maxBlockCacheSize = 5000,
     int maxConversationCacheSize = 50,
+    int maxContentHashCacheSize = 2000,
+    int maxRenderCacheSize = 500,
   }) : _messageCache = LRUCache(maxMessageCacheSize),
        _blockCache = LRUCache(maxBlockCacheSize),
-       _conversationCache = LRUCache(maxConversationCacheSize);
+       _conversationCache = LRUCache(maxConversationCacheSize),
+       _contentHashCache = LRUCache(maxContentHashCacheSize),
+       _renderCache = LRUCache(maxRenderCacheSize);
 
   /// 获取单例实例
   factory MessageCacheService.instance({
@@ -207,6 +248,87 @@ class MessageCacheService {
     return _statistics.copy();
   }
 
+  /// 生成内容哈希
+  String generateContentHash(Message message) {
+    final hashComponents = [
+      message.id,
+      message.content,
+      message.role,
+      message.status.name,
+      message.blocks.length.toString(),
+      message.updatedAt?.millisecondsSinceEpoch.toString() ?? '',
+      // 包含所有块的内容
+      ...message.blocks.map((block) => '${block.type.name}:${block.content ?? ''}'),
+    ];
+    return hashComponents.join('|').hashCode.toString();
+  }
+
+  /// 检查内容是否已更改
+  bool hasContentChanged(String key, String currentHash) {
+    final cachedHash = _contentHashCache.get(key);
+    return cachedHash != currentHash;
+  }
+
+  /// 更新内容哈希
+  void updateContentHash(String key, String hash) {
+    _contentHashCache.put(key, hash);
+    _statistics.recordCacheOperation('hash_update');
+  }
+
+  /// 缓存渲染结果
+  void cacheRenderResult(String key, Widget widget, String contentHash) {
+    final result = _CachedRenderResult(
+      widget: widget,
+      contentHash: contentHash,
+      createdAt: DateTime.now(),
+      lastAccessed: DateTime.now(),
+    );
+    _renderCache.put(key, result);
+    _statistics.recordCacheOperation('render_put');
+    ChatLoggerService.logCacheOperation('put', 'render:$key');
+  }
+
+  /// 获取缓存的渲染结果
+  Widget? getCachedRenderResult(String key, String currentContentHash) {
+    final cached = _renderCache.get(key);
+
+    if (cached != null) {
+      // 检查内容哈希是否匹配且未过期
+      if (cached.contentHash == currentContentHash && !cached.isExpired) {
+        // 更新访问时间
+        _renderCache.put(key, cached.withUpdatedAccess());
+        _statistics.recordCacheHit('render');
+        ChatLoggerService.logCacheOperation('get', 'render:$key', hit: true);
+        return cached.widget;
+      } else {
+        // 内容已变化或已过期，移除缓存
+        _renderCache.remove(key);
+        _statistics.recordCacheOperation('render_invalidate');
+      }
+    }
+
+    _statistics.recordCacheMiss('render');
+    ChatLoggerService.logCacheOperation('get', 'render:$key', hit: false);
+    return null;
+  }
+
+  /// 清理过期的渲染缓存
+  void cleanupExpiredRenderCache() {
+    final keysToRemove = <String>[];
+
+    // 这里需要遍历缓存，但LRUCache没有提供遍历方法
+    // 在实际实现中，可能需要扩展LRUCache类来支持这个功能
+
+    for (final key in keysToRemove) {
+      _renderCache.remove(key);
+      _statistics.recordCacheOperation('render_cleanup');
+    }
+
+    if (keysToRemove.isNotEmpty) {
+      ChatLoggerService.logDebug('Cleaned up ${keysToRemove.length} expired render cache items');
+    }
+  }
+
   /// 获取缓存状态
   Map<String, dynamic> getCacheStatus() {
     return {
@@ -224,6 +346,16 @@ class MessageCacheService {
         'size': _conversationCache.length,
         'maxSize': _conversationCache.maxSize,
         'hitRate': _statistics.getHitRate('conversation'),
+      },
+      'contentHashCache': {
+        'size': _contentHashCache.length,
+        'maxSize': _contentHashCache.maxSize,
+        'hitRate': _statistics.getHitRate('hash'),
+      },
+      'renderCache': {
+        'size': _renderCache.length,
+        'maxSize': _renderCache.maxSize,
+        'hitRate': _statistics.getHitRate('render'),
       },
       'totalOperations': _statistics.totalOperations,
       'overallHitRate': _statistics.overallHitRate,

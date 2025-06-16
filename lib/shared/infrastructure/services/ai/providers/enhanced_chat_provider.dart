@@ -1,3 +1,19 @@
+/// 增强聊天Provider - 提供增强聊天功能的Riverpod Provider
+///
+/// ⚠️ **已弃用 (DEPRECATED)** ⚠️
+///
+/// 这个文件中的Provider已被新的块化聊天系统替代，请使用：
+/// - `blockChatProvider` 替代 `enhancedChatProvider`
+/// - `blockBasedChatServiceProvider` 替代 `enhancedChatServiceProvider`
+/// - `BlockBasedChatService` 替代 `EnhancedChatService`
+///
+/// ## 迁移指南
+///
+/// 参考 `docs/enhanced_to_block_migration_guide.md` 了解详细的迁移步骤。
+///
+/// @deprecated 使用块化聊天系统替代
+library;
+
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../features/chat/domain/entities/message.dart';
@@ -9,14 +25,16 @@ import '../enhanced_chat_service.dart';
 import '../ai_service_manager.dart';
 
 // ============================================================================
-// 增强聊天服务Providers
+// 增强聊天服务Providers (已弃用)
 // ============================================================================
 
 /// 增强聊天服务Provider
+/// @deprecated 使用 blockBasedChatServiceProvider 替代
+@Deprecated('使用 blockBasedChatServiceProvider 替代')
 final enhancedChatServiceProvider = Provider<EnhancedChatService>((ref) {
   final serviceManager = ref.read(aiServiceManagerProvider);
   final mediaService = MediaStorageService();
-  
+
   return EnhancedChatService(
     serviceManager: serviceManager,
     mediaService: mediaService,
@@ -24,6 +42,8 @@ final enhancedChatServiceProvider = Provider<EnhancedChatService>((ref) {
 });
 
 /// 增强聊天参数
+/// @deprecated 使用块化聊天系统的参数替代
+@Deprecated('使用块化聊天系统的参数替代')
 class EnhancedChatParams {
   final models.AiProvider provider;
   final AiAssistant assistant;
@@ -75,6 +95,8 @@ class EnhancedChatParams {
 }
 
 /// 增强聊天Provider - 单次请求
+/// @deprecated 使用 blockChatProvider 替代
+@Deprecated('使用 blockChatProvider 替代')
 final enhancedChatProvider = FutureProvider.autoDispose.family<EnhancedMessage, EnhancedChatParams>((
   ref,
   params,
@@ -94,6 +116,8 @@ final enhancedChatProvider = FutureProvider.autoDispose.family<EnhancedMessage, 
 });
 
 /// 增强聊天流式Provider
+/// @deprecated 使用 blockChatStreamProvider 替代
+@Deprecated('使用 blockChatStreamProvider 替代')
 final enhancedChatStreamProvider = StreamProvider.autoDispose.family<EnhancedMessage, EnhancedChatParams>((
   ref,
   params,

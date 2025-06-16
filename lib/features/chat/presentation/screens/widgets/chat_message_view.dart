@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import '../../../domain/entities/message.dart';
 import '../../../domain/entities/message_status.dart';
+import '../../../domain/entities/message_block.dart';
+import '../../../domain/entities/message_block_type.dart';
 import '../../../domain/entities/enhanced_message.dart';
 import '../../../domain/entities/chat_bubble_style.dart';
 import '../../providers/chat_style_provider.dart';
@@ -339,7 +341,19 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     content: thinkingResult.actualContent,
                   ),
 
-                  // 多媒体内容显示
+                  // 多媒体内容显示（块化消息）
+                  if (widget.message.hasImages) ...[
+                    SizedBox(height: DesignConstants.spaceM),
+                    _buildImageBlocks(context, theme, compact: false),
+                  ],
+
+                  // 文件内容显示（块化消息）
+                  if (_hasFileBlocks()) ...[
+                    SizedBox(height: DesignConstants.spaceM),
+                    _buildFileBlocks(context, theme),
+                  ],
+
+                  // 兼容性：多媒体内容显示（EnhancedMessage）
                   if (widget.message is EnhancedMessage) ...[
                     SizedBox(height: DesignConstants.spaceM),
                     MediaContentWidget(
@@ -434,7 +448,29 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 maxWidth: maxWidth,
               ),
 
-              // 多媒体内容显示（在气泡下方）
+              // 多媒体内容显示（在气泡下方）- 块化消息
+              if (widget.message.hasImages) ...[
+                SizedBox(height: DesignConstants.spaceS),
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                  ),
+                  child: _buildImageBlocks(context, theme, compact: true),
+                ),
+              ],
+
+              // 文件内容显示（在气泡下方）- 块化消息
+              if (_hasFileBlocks()) ...[
+                SizedBox(height: DesignConstants.spaceS),
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                  ),
+                  child: _buildFileBlocks(context, theme),
+                ),
+              ],
+
+              // 兼容性：多媒体内容显示（在气泡下方）- EnhancedMessage
               if (widget.message is EnhancedMessage) ...[
                 SizedBox(height: DesignConstants.spaceS),
                 Container(
@@ -1125,5 +1161,188 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
         ],
       ),
     );
+  }
+
+  /// 检查是否有文件块
+  bool _hasFileBlocks() {
+    return widget.message.blocks.any((block) => block.type == MessageBlockType.file);
+  }
+
+  /// 构建图片块
+  Widget _buildImageBlocks(BuildContext context, ThemeData theme, {required bool compact}) {
+    final imageBlocks = widget.message.imageBlocks;
+    if (imageBlocks.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: imageBlocks.map((block) {
+        return Container(
+          margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
+          child: _buildImageBlock(context, theme, block, compact: compact),
+        );
+      }).toList(),
+    );
+  }
+
+  /// 构建单个图片块
+  Widget _buildImageBlock(BuildContext context, ThemeData theme, MessageBlock block, {required bool compact}) {
+    if (block.url == null) return const SizedBox.shrink();
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxWidth = compact ? screenWidth * 0.5 : screenWidth * 0.7;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: maxWidth,
+        maxHeight: compact ? 150 : 200,
+      ),
+      child: ClipRRect(
+        borderRadius: DesignConstants.radiusM,
+        child: Image.network(
+          block.url!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer,
+                borderRadius: DesignConstants.radiusM,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.broken_image_outlined,
+                      color: theme.colorScheme.onErrorContainer,
+                      size: DesignConstants.iconSizeM,
+                    ),
+                    SizedBox(height: DesignConstants.spaceXS),
+                    Text(
+                      '图片加载失败',
+                      style: TextStyle(
+                        color: theme.colorScheme.onErrorContainer,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// 构建文件块
+  Widget _buildFileBlocks(BuildContext context, ThemeData theme) {
+    final fileBlocks = widget.message.blocks.where((block) => block.type == MessageBlockType.file).toList();
+    if (fileBlocks.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: fileBlocks.map((block) {
+        return Container(
+          margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
+          child: _buildFileBlock(context, theme, block),
+        );
+      }).toList(),
+    );
+  }
+
+  /// 构建单个文件块
+  Widget _buildFileBlock(BuildContext context, ThemeData theme, MessageBlock block) {
+    final fileName = block.metadata?['fileName'] as String? ?? '未知文件';
+    final fileSize = block.metadata?['sizeBytes'] as int?;
+    final mimeType = block.metadata?['mimeType'] as String?;
+
+    return Container(
+      padding: DesignConstants.paddingM,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: DesignConstants.radiusM,
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+          width: DesignConstants.borderWidthThin,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _getFileIcon(mimeType),
+            color: theme.colorScheme.primary,
+            size: DesignConstants.iconSizeM,
+          ),
+          SizedBox(width: DesignConstants.spaceM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fileName,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (fileSize != null) ...[
+                  SizedBox(height: DesignConstants.spaceXS),
+                  Text(
+                    _formatFileSize(fileSize),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (block.url != null)
+            IconButton(
+              onPressed: () => _handleFileTap(block),
+              icon: Icon(
+                Icons.download_rounded,
+                color: theme.colorScheme.primary,
+                size: DesignConstants.iconSizeS,
+              ),
+              tooltip: '下载文件',
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 获取文件图标
+  IconData _getFileIcon(String? mimeType) {
+    if (mimeType == null) return Icons.insert_drive_file_outlined;
+
+    if (mimeType.startsWith('image/')) return Icons.image_outlined;
+    if (mimeType.startsWith('audio/')) return Icons.audio_file_outlined;
+    if (mimeType.startsWith('video/')) return Icons.video_file_outlined;
+    if (mimeType.contains('pdf')) return Icons.picture_as_pdf_outlined;
+    if (mimeType.contains('text/')) return Icons.text_snippet_outlined;
+
+    return Icons.insert_drive_file_outlined;
+  }
+
+  /// 格式化文件大小
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  /// 处理文件点击
+  void _handleFileTap(MessageBlock block) {
+    // TODO: 实现文件下载或打开逻辑
+    if (block.url != null) {
+      // 可以使用 url_launcher 打开文件
+      debugPrint('打开文件: ${block.url}');
+    }
   }
 }

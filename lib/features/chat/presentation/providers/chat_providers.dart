@@ -13,9 +13,9 @@ final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   return MessageRepositoryImpl(database);
 });
 
-/// 块化聊天服务Provider
-/// 提供核心的聊天功能服务
-final blockChatServiceProvider = Provider<BlockChatService>((ref) {
+/// 域层块化聊天服务Provider
+/// 提供核心的聊天功能服务（域层服务，不同于基础设施层的BlockBasedChatService）
+final domainBlockChatServiceProvider = Provider<BlockChatService>((ref) {
   final messageRepository = ref.watch(messageRepositoryProvider);
   final chatService = ref.watch(aiChatServiceProvider);
 

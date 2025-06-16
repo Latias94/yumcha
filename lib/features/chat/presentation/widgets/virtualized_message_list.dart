@@ -4,6 +4,28 @@ import '../../domain/entities/message.dart';
 import '../providers/chat_providers.dart';
 import 'message_view_adapter.dart';
 
+/// 缓存的消息组件包装器
+class _CachedMessageWidget {
+  final Widget widget;
+  final String contentHash;
+  final DateTime lastAccessed;
+
+  _CachedMessageWidget({
+    required this.widget,
+    required this.contentHash,
+    required this.lastAccessed,
+  });
+
+  /// 创建更新的访问时间版本
+  _CachedMessageWidget withUpdatedAccess() {
+    return _CachedMessageWidget(
+      widget: widget,
+      contentHash: contentHash,
+      lastAccessed: DateTime.now(),
+    );
+  }
+}
+
 /// 虚拟化消息列表
 /// 
 /// 使用虚拟化技术优化大量消息的渲染性能，
@@ -60,25 +82,38 @@ class VirtualizedMessageList extends ConsumerStatefulWidget {
   ConsumerState<VirtualizedMessageList> createState() => _VirtualizedMessageListState();
 }
 
-class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList> {
+class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
+    with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
   final Map<String, double> _itemHeights = {};
   final GlobalKey _listKey = GlobalKey();
-  
+
   /// 预估的消息高度
   static const double estimatedItemHeight = 120.0;
-  
+
   /// 加载更多的触发距离
   static const double loadMoreThreshold = 200.0;
-  
-  /// 缓存的消息组件
-  final Map<String, Widget> _cachedWidgets = {};
-  
+
+  /// 缓存的消息组件 - 增强版本，支持LRU清理
+  final Map<String, _CachedMessageWidget> _cachedWidgets = {};
+
+  /// 最大缓存大小
+  static const int maxCacheSize = 100;
+
   /// 是否应该自动滚动到底部
   bool _shouldAutoScroll = true;
-  
+
   /// 上次的消息数量
   int _lastMessageCount = 0;
+
+  /// 性能监控
+  final Map<String, DateTime> _renderTimes = {};
+
+  /// 内容哈希缓存
+  final Map<String, String> _contentHashes = {};
+
+  @override
+  bool get wantKeepAlive => true; // 保持列表状态
 
   @override
   void initState() {
@@ -112,6 +147,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // 必须调用，用于AutomaticKeepAliveClientMixin
     final chatSettings = ref.watch(chatSettingsProvider);
     
     if (widget.messages.isEmpty && widget.welcomeMessage != null) {
@@ -180,13 +216,21 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
     );
   }
 
-  /// 构建消息项
+  /// 构建消息项 - 增强版本，支持内容哈希缓存和LRU清理
   Widget _buildMessageItem(Message message, ChatSettings chatSettings) {
-    // 使用缓存的组件（如果存在且设置未改变）
     final cacheKey = '${message.id}_${chatSettings.enableBlockView}';
-    if (_cachedWidgets.containsKey(cacheKey)) {
-      return _cachedWidgets[cacheKey]!;
+    final contentHash = _generateMessageContentHash(message, chatSettings);
+
+    // 检查缓存
+    final cachedWidget = _cachedWidgets[cacheKey];
+    if (cachedWidget != null && cachedWidget.contentHash == contentHash) {
+      // 更新访问时间
+      _cachedWidgets[cacheKey] = cachedWidget.withUpdatedAccess();
+      return cachedWidget.widget;
     }
+
+    // 记录渲染开始时间
+    _renderTimes[message.id] = DateTime.now();
 
     final widget = RepaintBoundary(
       key: ValueKey(message.id),
@@ -195,7 +239,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
         child: MessageViewAdapter(
           message: message,
           useBlockView: chatSettings.enableBlockView,
-          onEdit: this.widget.onEditMessage != null 
+          onEdit: this.widget.onEditMessage != null
             ? () => this.widget.onEditMessage!(message)
             : null,
           onRegenerate: this.widget.onRegenerateMessage != null
@@ -208,13 +252,57 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
       ),
     );
 
-    // 缓存组件（限制缓存大小）
-    if (_cachedWidgets.length > 50) {
-      _cachedWidgets.clear();
-    }
-    _cachedWidgets[cacheKey] = widget;
+    // 缓存组件（使用LRU策略）
+    _cacheWidget(cacheKey, widget, contentHash);
 
     return widget;
+  }
+
+  /// 生成消息内容哈希
+  String _generateMessageContentHash(Message message, ChatSettings chatSettings) {
+    final hashComponents = [
+      message.id,
+      message.content,
+      message.role,
+      message.status.name,
+      message.blocks.length.toString(),
+      chatSettings.enableBlockView.toString(),
+      message.updatedAt?.millisecondsSinceEpoch.toString() ?? '',
+    ];
+    return hashComponents.join('|').hashCode.toString();
+  }
+
+  /// 缓存组件（LRU策略）
+  void _cacheWidget(String key, Widget widget, String contentHash) {
+    // 如果缓存已满，移除最久未访问的项
+    if (_cachedWidgets.length >= maxCacheSize) {
+      _evictLeastRecentlyUsed();
+    }
+
+    _cachedWidgets[key] = _CachedMessageWidget(
+      widget: widget,
+      contentHash: contentHash,
+      lastAccessed: DateTime.now(),
+    );
+  }
+
+  /// 移除最久未访问的缓存项
+  void _evictLeastRecentlyUsed() {
+    if (_cachedWidgets.isEmpty) return;
+
+    String? oldestKey;
+    DateTime? oldestTime;
+
+    _cachedWidgets.forEach((key, cached) {
+      if (oldestTime == null || cached.lastAccessed.isBefore(oldestTime!)) {
+        oldestKey = key;
+        oldestTime = cached.lastAccessed;
+      }
+    });
+
+    if (oldestKey != null) {
+      _cachedWidgets.remove(oldestKey);
+    }
   }
 
   /// 构建欢迎消息
@@ -228,13 +316,13 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
             Icon(
               Icons.chat_bubble_outline,
               size: 64,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
               widget.welcomeMessage!,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),

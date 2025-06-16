@@ -40,10 +40,17 @@ class MessageBlockWidget extends ConsumerStatefulWidget {
 }
 
 class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   bool _isCopied = false;
   late AnimationController _streamingController;
   late Animation<double> _streamingAnimation;
+
+  // 缓存构建的内容，避免重复构建
+  Widget? _cachedContent;
+  String? _lastContentHash;
+
+  @override
+  bool get wantKeepAlive => true; // 保持状态，避免重建
 
   @override
   void initState() {
@@ -81,6 +88,14 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
         oldWidget.block.status == MessageBlockStatus.streaming) {
       _streamingController.stop();
     }
+
+    // 检查是否需要清理缓存
+    if (widget.block.id != oldWidget.block.id ||
+        widget.block.content != oldWidget.block.content ||
+        widget.block.status != oldWidget.block.status ||
+        widget.isEditable != oldWidget.isEditable) {
+      _clearCache();
+    }
   }
 
   @override
@@ -91,25 +106,39 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // 必须调用，用于AutomaticKeepAliveClientMixin
+
     final theme = Theme.of(context);
 
-    return Container(
+    // 检查是否可以使用缓存的内容
+    final currentContentHash = _generateContentHash();
+    if (_cachedContent != null && _lastContentHash == currentContentHash) {
+      return _cachedContent!;
+    }
+
+    final builtWidget = Container(
       margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 块类型标识（仅在调试模式或特定类型时显示）
           if (_shouldShowBlockHeader()) _buildBlockHeader(theme),
-          
+
           // 块内容
           _buildBlockContent(theme),
-          
+
           // 块状态指示器
           if (widget.block.status != MessageBlockStatus.success)
             _buildStatusIndicator(theme),
         ],
       ),
     );
+
+    // 缓存构建的内容
+    _cachedContent = builtWidget;
+    _lastContentHash = currentContentHash;
+
+    return builtWidget;
   }
 
   /// 是否显示块头部
@@ -449,13 +478,12 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
             ),
           ),
           IconButton(
-            onPressed: () {
-              // TODO: 实现文件下载
-            },
+            onPressed: () => _downloadFile(),
             icon: Icon(
               Icons.download_rounded,
               color: theme.colorScheme.secondary,
             ),
+            tooltip: '下载文件',
           ),
         ],
       ),
@@ -752,6 +780,11 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // 复制按钮（对于可复制的块类型）
+        if (widget.block.type.isCopyable)
+          _buildCopyButton(theme),
+
+        // 编辑按钮（对于可编辑的块类型）
         if (widget.block.type.isEditable && widget.onEdit != null)
           IconButton(
             onPressed: widget.onEdit,
@@ -761,15 +794,20 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
             ),
             tooltip: '编辑',
           ),
+
+        // 删除按钮（对于可删除的块类型）
         if (widget.block.type.isDeletable && widget.onDelete != null)
           IconButton(
             onPressed: widget.onDelete,
             icon: Icon(
               Icons.delete_rounded,
               size: DesignConstants.iconSizeS,
+              color: theme.colorScheme.error,
             ),
             tooltip: '删除',
           ),
+
+        // 重新生成按钮
         if (widget.onRegenerate != null)
           IconButton(
             onPressed: widget.onRegenerate,
@@ -779,6 +817,9 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
             ),
             tooltip: '重新生成',
           ),
+
+        // 更多操作按钮
+        _buildMoreActionsButton(theme),
       ],
     );
   }
@@ -793,6 +834,71 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
         color: _isCopied ? theme.colorScheme.primary : theme.colorScheme.onSurface,
       ),
       tooltip: _isCopied ? '已复制' : '复制',
+    );
+  }
+
+  /// 构建更多操作按钮
+  Widget _buildMoreActionsButton(ThemeData theme) {
+    return PopupMenuButton<String>(
+      icon: Icon(
+        Icons.more_vert_rounded,
+        size: DesignConstants.iconSizeS,
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      ),
+      tooltip: '更多操作',
+      onSelected: (value) => _handleMoreAction(value),
+      itemBuilder: (context) => [
+        // 分享操作
+        if (widget.block.type.isCopyable)
+          const PopupMenuItem(
+            value: 'share',
+            child: Row(
+              children: [
+                Icon(Icons.share_rounded, size: 16),
+                SizedBox(width: 8),
+                Text('分享'),
+              ],
+            ),
+          ),
+
+        // 收藏操作
+        const PopupMenuItem(
+          value: 'favorite',
+          child: Row(
+            children: [
+              Icon(Icons.star_border_rounded, size: 16),
+              SizedBox(width: 8),
+              Text('收藏'),
+            ],
+          ),
+        ),
+
+        // 导出操作（对于代码块和文本块）
+        if (widget.block.type == MessageBlockType.code ||
+            widget.block.type == MessageBlockType.mainText)
+          const PopupMenuItem(
+            value: 'export',
+            child: Row(
+              children: [
+                Icon(Icons.file_download_rounded, size: 16),
+                SizedBox(width: 8),
+                Text('导出'),
+              ],
+            ),
+          ),
+
+        // 查看原始数据（调试用）
+        const PopupMenuItem(
+          value: 'raw',
+          child: Row(
+            children: [
+              Icon(Icons.code_rounded, size: 16),
+              SizedBox(width: 8),
+              Text('查看原始数据'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -811,6 +917,167 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
         });
       }
     });
+  }
+
+  /// 处理更多操作
+  void _handleMoreAction(String action) {
+    switch (action) {
+      case 'share':
+        _shareBlock();
+        break;
+      case 'favorite':
+        _favoriteBlock();
+        break;
+      case 'export':
+        _exportBlock();
+        break;
+      case 'raw':
+        _showRawData();
+        break;
+    }
+  }
+
+  /// 分享块内容
+  void _shareBlock() {
+    final content = widget.block.content ?? '';
+    if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('没有可分享的内容')),
+      );
+      return;
+    }
+
+    // 复制到剪贴板作为分享的简单实现
+    _copyToClipboard(content);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('内容已复制到剪贴板，可以分享给他人')),
+    );
+  }
+
+  /// 收藏块
+  void _favoriteBlock() {
+    // TODO: 实现收藏功能
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('收藏功能正在开发中'),
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+      ),
+    );
+  }
+
+  /// 导出块内容
+  void _exportBlock() {
+    final content = widget.block.content ?? '';
+    if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('没有可导出的内容')),
+      );
+      return;
+    }
+
+    // 显示导出选项对话框
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('导出内容'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('复制到剪贴板'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _copyToClipboard(content);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.file_download_rounded),
+              title: const Text('保存为文件'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _saveAsFile(content);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 保存为文件
+  void _saveAsFile(String content) {
+    // TODO: 实现文件保存功能
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('文件保存功能正在开发中'),
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+      ),
+    );
+  }
+
+  /// 显示原始数据
+  void _showRawData() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('原始数据'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              '''
+ID: ${widget.block.id}
+类型: ${widget.block.type.name}
+状态: ${widget.block.status.name}
+创建时间: ${widget.block.createdAt}
+更新时间: ${widget.block.updatedAt}
+内容长度: ${widget.block.content?.length ?? 0}
+语言: ${widget.block.language ?? 'N/A'}
+工具名称: ${widget.block.toolName ?? 'N/A'}
+URL: ${widget.block.url ?? 'N/A'}
+元数据: ${widget.block.metadata?.toString() ?? 'N/A'}
+              ''',
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+          TextButton(
+            onPressed: () {
+              final rawData = '''
+ID: ${widget.block.id}
+类型: ${widget.block.type.name}
+状态: ${widget.block.status.name}
+创建时间: ${widget.block.createdAt}
+更新时间: ${widget.block.updatedAt}
+内容长度: ${widget.block.content?.length ?? 0}
+语言: ${widget.block.language ?? 'N/A'}
+工具名称: ${widget.block.toolName ?? 'N/A'}
+URL: ${widget.block.url ?? 'N/A'}
+元数据: ${widget.block.metadata?.toString() ?? 'N/A'}
+              ''';
+              Clipboard.setData(ClipboardData(text: rawData));
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('原始数据已复制到剪贴板')),
+              );
+            },
+            child: const Text('复制'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 获取块图标
@@ -899,5 +1166,126 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
       case MessageBlockStatus.paused:
         return theme.colorScheme.onSurface.withValues(alpha: 0.6);
     }
+  }
+
+  /// 下载文件
+  void _downloadFile() {
+    final url = widget.block.url;
+    final fileName = widget.block.metadata?['fileName'] as String? ??
+                    widget.block.content ??
+                    'download_file';
+
+    if (url == null || url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('文件URL不可用'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    // 显示下载开始提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Text('正在下载 $fileName...'),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // TODO: 实现实际的文件下载逻辑
+    // 这里可以集成 url_launcher 或其他下载库
+    // 暂时使用浏览器打开链接
+    try {
+      // 使用 url_launcher 打开链接
+      // await launchUrl(Uri.parse(url));
+
+      // 暂时显示URL，让用户手动下载
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('文件下载'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('文件名: $fileName'),
+              const SizedBox(height: 8),
+              const Text('文件链接:'),
+              const SizedBox(height: 4),
+              SelectableText(
+                url,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('关闭'),
+            ),
+            TextButton(
+              onPressed: () {
+                // 复制链接到剪贴板
+                Clipboard.setData(ClipboardData(text: url));
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('链接已复制到剪贴板')),
+                );
+              },
+              child: const Text('复制链接'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('下载失败: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  /// 生成内容哈希，用于缓存判断
+  String _generateContentHash() {
+    // 组合所有影响渲染的属性
+    final hashComponents = [
+      widget.block.id,
+      widget.block.type.name,
+      widget.block.content ?? '',
+      widget.block.language ?? '',
+      widget.block.toolName ?? '',
+      widget.block.toolArguments?.toString() ?? '',
+      widget.block.status.name,
+      widget.block.error?.toString() ?? '',
+      widget.isEditable.toString(),
+      // 添加主题相关的哈希（简化版）
+      Theme.of(context).brightness.name,
+    ];
+
+    // 使用简单的字符串连接和哈希
+    final combined = hashComponents.join('|');
+    return combined.hashCode.toString();
+  }
+
+  /// 清理缓存（在内容发生重大变化时调用）
+  void _clearCache() {
+    _cachedContent = null;
+    _lastContentHash = null;
   }
 }

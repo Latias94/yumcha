@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 import '../../../../../features/settings/presentation/providers/multimedia_settings_notifier.dart';
-import '../../providers/chat_configuration_notifier.dart';
+import '../../providers/unified_chat_notifier.dart';
 
 /// 增强聊天输入适配器
 /// 
@@ -52,8 +52,6 @@ class _EnhancedChatInputAdapterState extends ConsumerState<EnhancedChatInputAdap
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final multimediaEnabled = ref.watch(isMultimediaEnabledProvider);
-    final autoDetect = ref.watch(multimediaSettingsProvider).autoDetectEnabled;
-    final chatConfig = ref.watch(chatConfigurationProvider);
 
     return Container(
       padding: DesignConstants.paddingM,
@@ -90,7 +88,7 @@ class _EnhancedChatInputAdapterState extends ConsumerState<EnhancedChatInputAdap
               SizedBox(width: DesignConstants.spaceS),
 
               // 发送按钮
-              _buildSendButton(theme, chatConfig),
+              _buildSendButton(theme),
             ],
           ),
         ],
@@ -243,7 +241,7 @@ class _EnhancedChatInputAdapterState extends ConsumerState<EnhancedChatInputAdap
     );
   }
 
-  Widget _buildSendButton(ThemeData theme, ChatConfigurationState chatConfig) {
+  Widget _buildSendButton(ThemeData theme) {
     final canSend = _isComposing && widget.enabled;
     final multimediaEnabled = ref.watch(isMultimediaEnabledProvider);
 
@@ -284,8 +282,7 @@ class _EnhancedChatInputAdapterState extends ConsumerState<EnhancedChatInputAdap
     
     if (multimediaEnabled) {
       if (autoDetect) {
-        // 自动检测是否需要多媒体功能
-        // TODO: 实现智能检测逻辑
+        // 智能检测是否需要多媒体功能
         useEnhanced = _shouldUseEnhancedFeatures(content);
       } else {
         // 强制使用增强功能
@@ -299,12 +296,12 @@ class _EnhancedChatInputAdapterState extends ConsumerState<EnhancedChatInputAdap
       _isComposing = false;
     });
 
-    if (useEnhanced && 
-        chatConfig.selectedProvider != null && 
+    if (useEnhanced &&
+        chatConfig.selectedProvider != null &&
         chatConfig.selectedAssistant != null &&
         chatConfig.selectedModel != null) {
       // 使用增强聊天功能
-      _sendEnhancedMessage(content, chatConfig);
+      _sendEnhancedMessage(content);
     } else {
       // 使用现有的聊天功能
       widget.onSendMessage?.call(content);
@@ -329,19 +326,61 @@ class _EnhancedChatInputAdapterState extends ConsumerState<EnhancedChatInputAdap
     return hasImageKeywords || hasVoiceKeywords || isLongText;
   }
 
-  void _sendEnhancedMessage(String content, ChatConfigurationState chatConfig) {
-    // TODO: 实现增强聊天功能
-    // 暂时降级到普通聊天
+  void _sendEnhancedMessage(String content) async {
+    try {
+      final chatNotifier = ref.read(unifiedChatProvider.notifier);
+      final chatConfig = ref.read(chatConfigurationProvider);
+
+      // 检查配置是否完整
+      if (chatConfig.selectedProvider == null ||
+          chatConfig.selectedAssistant == null ||
+          chatConfig.selectedModel == null) {
+        _showError('聊天配置不完整，请检查AI提供商、助手和模型设置');
+        return;
+      }
+
+      // 显示多媒体功能启用提示
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome,
+                  color: Theme.of(context).colorScheme.onSecondary,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                const Text('🎨 使用多媒体增强功能发送消息'),
+              ],
+            ),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // 使用统一聊天系统发送消息，启用流式传输
+      await chatNotifier.sendMessage(
+        content,
+        useStreaming: true, // 启用流式传输以获得更好的体验
+      );
+
+    } catch (e) {
+      _showError('发送增强消息失败: $e');
+      // 降级到普通聊天
+      widget.onSendMessage?.call(content);
+    }
+  }
+
+  void _showError(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('多媒体功能正在开发中，已切换到普通模式'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
-
-      // 降级到普通聊天
-      widget.onSendMessage?.call(content);
     }
   }
 }

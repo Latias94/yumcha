@@ -1,12 +1,14 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../domain/entities/chat_state.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/message_status.dart';
 import '../../domain/entities/message_block.dart';
+import '../../domain/entities/message_block_type.dart';
 import '../../domain/entities/legacy_message.dart';
-import '../../domain/entities/message_metadata.dart';
+
 import '../../domain/services/chat_orchestrator_service.dart';
 import '../../domain/entities/conversation_ui_state.dart';
 import '../../../ai_management/domain/entities/ai_assistant.dart';
@@ -37,10 +39,11 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   final LoggerService _logger = LoggerService();
   final NotificationService _notificationService = NotificationService();
 
-  /// 获取聊天编排服务实例 - 使用getter避免late final重复初始化问题
+  /// 聊天编排服务实例 - 使用getter避免late final重复初始化问题
+  ChatOrchestratorService? _orchestratorInstance;
   ChatOrchestratorService get _orchestrator {
-    // 通过Provider获取服务实例，确保依赖注入
-    return ChatOrchestratorService(_ref);
+    _orchestratorInstance ??= ChatOrchestratorService(_ref);
+    return _orchestratorInstance!;
   }
   
   /// 事件流控制器
@@ -66,7 +69,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     _eventController.close();
     _configSaveTimer?.cancel();
     _performanceTimer?.cancel();
-    // 编排服务通过getter获取，不需要手动dispose
+    // 清理编排服务
+    _orchestratorInstance?.dispose();
     super.dispose();
   }
 
@@ -80,19 +84,22 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     try {
       state = state.copyWith(isInitializing: true);
 
-      // 编排服务已在构造函数中初始化，这里只需要设置其他监听器
+      // 1. 初始化编排服务
+      _initializeOrchestrator();
+
+      // 2. 设置监听器
       _setupListeners();
 
-      // 2. 等待基础数据加载
+      // 3. 等待基础数据加载
       await _waitForBasicData();
 
-      // 3. 加载配置
+      // 4. 加载配置
       await _loadConfiguration();
 
-      // 4. 初始化对话
+      // 5. 初始化对话
       await _initializeConversation();
 
-      // 5. 启动性能监控
+      // 6. 启动性能监控
       _startPerformanceMonitoring();
 
       state = state.copyWith(
@@ -123,6 +130,15 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     }
   }
 
+  /// 初始化编排服务
+  void _initializeOrchestrator() {
+    // 通过getter初始化编排服务，确保依赖注入正确
+    final orchestrator = _orchestrator;
+    _logger.info('编排服务初始化完成', {
+      'orchestratorHashCode': orchestrator.hashCode,
+    });
+  }
+
   /// 设置监听器
   void _setupListeners() {
     // 监听助手变化 - 使用新的统一AI管理Provider
@@ -135,7 +151,21 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       _handleProvidersChanged(previous, next);
     });
 
+    // 设置ChatOrchestratorService的回调
+    _setupChatOrchestratorCallbacks();
+
     _logger.debug('统一AI管理监听器设置完成');
+  }
+
+  /// 设置ChatOrchestratorService的回调
+  void _setupChatOrchestratorCallbacks() {
+    // 设置流式更新回调
+    _orchestrator.setStreamingUpdateCallback(_handleStreamingUpdate);
+
+    // 设置用户消息创建回调
+    _orchestrator.setUserMessageCreatedCallback(_handleUserMessageCreated);
+
+    _logger.info('ChatOrchestratorService回调设置完成');
   }
 
   /// 等待基础数据加载
@@ -723,12 +753,28 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     final updatedMessages = state.messageState.messages.map((message) {
       if (message.id == messageId) {
         // 对于块化消息，我们需要更新主文本块的内容
-        // 这是一个临时解决方案，完整的实现需要通过MessageRepository来更新块
+        final updatedBlocks = message.blocks.map((block) {
+          // 更新第一个文本块的内容，或者如果没有文本块则创建一个
+          if (block.type == MessageBlockType.mainText) {
+            return block.copyWith(content: content);
+          }
+          return block;
+        }).toList();
+
+        // 如果没有文本块，创建一个新的
+        if (updatedBlocks.isEmpty || !updatedBlocks.any((b) => b.type == MessageBlockType.mainText)) {
+          updatedBlocks.insert(0, MessageBlock.text(
+            id: '${messageId}_text_block',
+            messageId: messageId,
+            content: content,
+          ));
+        }
+
         return message.copyWith(
           status: status,
-          metadata: metadata,
-          // 注意：这里不能直接设置content，因为新的Message类没有content参数
-          // 实际的内容更新需要通过更新MessageBlock来实现
+          metadata: metadata != null ? {...?message.metadata, ...metadata} : message.metadata,
+          blocks: updatedBlocks,
+          updatedAt: DateTime.now(),
         );
       }
       return message;
@@ -739,8 +785,75 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     );
   }
 
-  // 注意：原有的 _handleUserMessageCreated 和 _handleStreamingUpdate 方法已删除
-  // 因为新的架构中，这些回调不再需要，流式更新通过其他方式处理
+  /// 处理用户消息创建
+  void _handleUserMessageCreated(Message userMessage) {
+    _logger.debug('用户消息创建', {
+      'messageId': userMessage.id,
+      'content': userMessage.content.substring(0, math.min(50, userMessage.content.length)),
+    });
+
+    // 添加用户消息到状态
+    _addMessage(userMessage);
+    _emitEvent(MessageAddedEvent(userMessage));
+  }
+
+  /// 处理流式更新
+  void _handleStreamingUpdate(StreamingUpdate update) {
+    _logger.debug('处理流式更新', {
+      'messageId': update.messageId,
+      'contentLength': update.fullContent?.length ?? 0,
+      'isDone': update.isDone,
+    });
+
+    try {
+      // 查找或创建AI消息
+      final existingMessageIndex = state.messageState.messages.indexWhere(
+        (msg) => msg.id == update.messageId,
+      );
+
+      if (existingMessageIndex >= 0) {
+        // 更新现有消息
+        _updateMessageContent(
+          update.messageId,
+          update.fullContent ?? '',
+          update.isDone ? MessageStatus.aiSuccess : MessageStatus.aiProcessing,
+        );
+      } else {
+        // 创建新的AI消息
+        final aiMessage = Message(
+          id: update.messageId,
+          conversationId: state.conversationState.currentConversation?.id ?? '',
+          role: 'assistant',
+          assistantId: state.configuration.selectedAssistant?.id ?? '',
+          blockIds: ['${update.messageId}_text_block'],
+          status: update.isDone ? MessageStatus.aiSuccess : MessageStatus.aiProcessing,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          blocks: [
+            MessageBlock.text(
+              id: '${update.messageId}_text_block',
+              messageId: update.messageId,
+              content: update.fullContent ?? '',
+            ),
+          ],
+        );
+
+        _addMessage(aiMessage);
+        _emitEvent(MessageAddedEvent(aiMessage));
+      }
+
+      // 如果流式更新完成，检查是否需要生成标题
+      if (update.isDone) {
+        _checkAndTriggerTitleGeneration();
+      }
+
+    } catch (error) {
+      _logger.error('处理流式更新失败', {
+        'error': error.toString(),
+        'messageId': update.messageId,
+      });
+    }
+  }
 
   /// 清除错误
   void _clearError() {
@@ -935,6 +1048,14 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
             'oldModel': currentModel.name,
             'newModel': updatedProvider.models.first.name,
           });
+        } else if (updatedModel != null) {
+          // 提供商和模型都存在，但需要更新为最新数据（包括API密钥等）
+          state = state.copyWith(
+            configuration: state.configuration.copyWith(
+              selectedProvider: updatedProvider,
+              selectedModel: updatedModel,
+            ),
+          );
         }
       }
     }

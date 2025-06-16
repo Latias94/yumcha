@@ -291,7 +291,7 @@ class ChatConfigurationNotifier extends StateNotifier<ChatConfigurationState> {
       return;
     }
 
-    // 更新为最新的提供商和模型数据
+    // 始终更新为最新的提供商和模型数据，确保API密钥等信息是最新的
     state = state.copyWith(
       selectedProvider: updatedProvider,
       selectedModel: updatedModel,

@@ -3,10 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/message.dart';
 import '../../../domain/entities/chat_message_content.dart';
-import '../../../../ai_management/data/repositories/assistant_repository.dart';
-import '../../../../../shared/infrastructure/services/database_service.dart';
 import '../../../../../shared/infrastructure/services/notification_service.dart';
-import '../../../../../shared/infrastructure/services/preference_service.dart';
+import '../../../../../shared/presentation/providers/dependency_providers.dart';
 import '../../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../providers/unified_chat_notifier.dart';
 import '../../widgets/chat_configuration_status.dart';
@@ -88,17 +86,9 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   late AnimationController _animationController;
 
-  // 数据仓库
-  late final AssistantRepository _assistantRepository;
-  late final PreferenceService _preferenceService;
-
   @override
   void initState() {
     super.initState();
-    _assistantRepository = AssistantRepository(
-      DatabaseService.instance.database,
-    );
-    _preferenceService = PreferenceService();
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -122,11 +112,13 @@ class _ChatInputState extends ConsumerState<ChatInput>
   Future<void> _initializeDefaultAssistant() async {
     try {
       final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+      final assistantRepository = ref.read(assistantRepositoryProvider);
+      final preferenceService = ref.read(preferenceServiceProvider);
 
       // 1. 优先使用传入的初始值
       if (widget.initialAssistantId != null &&
           widget.initialAssistantId!.isNotEmpty) {
-        final assistant = await _assistantRepository.getAssistant(
+        final assistant = await assistantRepository.getAssistant(
           widget.initialAssistantId!,
         );
         if (assistant != null) {
@@ -138,9 +130,9 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
       // 2. 尝试获取最后使用的助手ID
       final lastUsedAssistantId =
-          await _preferenceService.getLastUsedAssistantId();
+          await preferenceService.getLastUsedAssistantId();
       if (lastUsedAssistantId != null) {
-        final assistant = await _assistantRepository.getAssistant(
+        final assistant = await assistantRepository.getAssistant(
           lastUsedAssistantId,
         );
         if (assistant != null && assistant.isEnabled) {
@@ -169,7 +161,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
   /// 选择第一个可用的助手
   Future<bool> _selectFirstAvailableAssistant() async {
     try {
-      final assistants = await _assistantRepository.getEnabledAssistants();
+      final assistantRepository = ref.read(assistantRepositoryProvider);
+      final assistants = await assistantRepository.getEnabledAssistants();
 
       if (assistants.isNotEmpty) {
         // 使用统一聊天状态管理选择助手
@@ -397,16 +390,17 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   void _showModelSelector() async {
     final chatConfig = ref.read(chatConfigurationProvider);
+    final preferenceService = ref.read(preferenceServiceProvider);
 
     await showModelSelector(
       context: context,
-      preferenceService: _preferenceService,
+      preferenceService: preferenceService,
       selectedProviderId: chatConfig.selectedProvider?.id,
       selectedModelName: chatConfig.selectedModel?.name,
       onModelSelected: (selection) {
         // 使用统一聊天状态管理来选择模型
-        final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
         // TODO: 实现模型选择功能
+        // final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
         // unifiedChatNotifier.selectModel(selection.provider, selection.model);
 
         // 通知父组件模型已改变

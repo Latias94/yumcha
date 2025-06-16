@@ -1,10 +1,15 @@
 import 'dart:convert';
 import '../../../../shared/data/database/database.dart';
 import '../../domain/entities/conversation_ui_state.dart';
+import '../../domain/entities/message.dart';
+import '../../domain/entities/message_block.dart';
+import '../../domain/entities/message_status.dart';
+import '../../domain/entities/message_block_status.dart';
+import '../../domain/entities/message_block_type.dart';
 import '../../domain/entities/legacy_message.dart';
 import '../../domain/entities/enhanced_message.dart';
 import '../../domain/entities/message_metadata.dart';
-import '../../domain/entities/message_status.dart';
+import '../../infrastructure/services/enhanced_message_migration_service.dart';
 
 import '../../../../shared/infrastructure/services/media/media_storage_service.dart';
 import 'package:drift/drift.dart';
@@ -15,6 +20,7 @@ class ConversationRepository {
   final AppDatabase _database;
   final _uuid = Uuid();
   final LoggerService _logger = LoggerService();
+  final EnhancedMessageMigrationService _migrationService = EnhancedMessageMigrationService();
 
   ConversationRepository(this._database);
 
@@ -24,7 +30,7 @@ class ConversationRepository {
     final conversations = <ConversationUiState>[];
 
     for (final conversationData in conversationDataList) {
-      final messages = await getMessagesByConversation(conversationData.id);
+      final messages = await getMessagesByConversationLegacy(conversationData.id);
       conversations.add(_dataToModel(conversationData, messages));
     }
 
@@ -41,7 +47,7 @@ class ConversationRepository {
     final conversations = <ConversationUiState>[];
 
     for (final conversationData in conversationDataList) {
-      final messages = await getMessagesByConversation(conversationData.id);
+      final messages = await getMessagesByConversationLegacy(conversationData.id);
       conversations.add(_dataToModel(conversationData, messages));
     }
 
@@ -66,7 +72,7 @@ class ConversationRepository {
     for (final conversationData in conversationDataList) {
       if (includeMessages) {
         // 包含完整消息
-        final messages = await getMessagesByConversation(conversationData.id);
+        final messages = await getMessagesByConversationLegacy(conversationData.id);
         conversations.add(_dataToModel(conversationData, messages));
       } else {
         // 只获取最后一条消息作为预览
@@ -93,7 +99,7 @@ class ConversationRepository {
     final conversationData = await _database.getConversation(id);
     if (conversationData == null) return null;
 
-    final messages = await getMessagesByConversation(id);
+    final messages = await getMessagesByConversationLegacy(id);
     return _dataToModel(conversationData, messages);
   }
 
@@ -209,7 +215,7 @@ class ConversationRepository {
         await _database.updateConversation(conversation.id, companion);
 
         // 获取数据库中现有的消息
-        final existingMessages = await getMessagesByConversation(
+        final existingMessages = await getMessagesByConversationLegacy(
           conversation.id,
         );
 
@@ -345,8 +351,22 @@ class ConversationRepository {
     return await _database.deleteConversation(id);
   }
 
-  // 获取对话的消息
-  Future<List<LegacyMessage>> getMessagesByConversation(String conversationId) async {
+  // 获取对话的消息（返回新的块化消息）
+  Future<List<Message>> getMessagesByConversation(String conversationId) async {
+    final messageDataList = await _database.getMessagesByConversation(conversationId);
+    final messages = <Message>[];
+
+    for (final messageData in messageDataList) {
+      final blocks = await _database.getMessageBlocks(messageData.id);
+      final message = _dataToMessage(messageData, blocks);
+      messages.add(message);
+    }
+
+    return messages;
+  }
+
+  // 获取对话的消息（兼容性方法，返回LegacyMessage）
+  Future<List<LegacyMessage>> getMessagesByConversationLegacy(String conversationId) async {
     final messageDataList = await _database.getMessagesByConversation(
       conversationId,
     );
@@ -426,25 +446,175 @@ class ConversationRepository {
     return messageId;
   }
 
-  // 添加增强消息（包含多媒体内容）
+  // 添加增强消息（包含多媒体内容）- 使用迁移服务转换为块化消息
   Future<String> addEnhancedMessage({
     String? id,
     required String conversationId,
     required EnhancedMessage message,
   }) async {
-    return await addMessage(
+    // 使用迁移服务将 EnhancedMessage 转换为块化消息
+    final blockMessage = _migrationService.convertToBlockMessage(message);
+
+    // 添加块化消息
+    return await addBlockMessage(
       id: id ?? message.id,
       conversationId: conversationId,
-      content: message.content,
-      author: message.author,
-      isFromUser: message.isFromUser,
-      imageUrl: message.imageUrl,
-      avatarUrl: message.avatarUrl,
-      duration: message.duration,
-      status: message.status,
-      errorInfo: message.errorInfo,
-      mediaFiles: message.mediaFiles,
+      message: blockMessage,
     );
+  }
+
+  // 添加块化消息
+  Future<String> addBlockMessage({
+    String? id,
+    required String conversationId,
+    required Message message,
+  }) async {
+    final messageId = id ?? message.id;
+    final now = DateTime.now();
+
+    // 插入消息记录
+    final companion = MessagesCompanion.insert(
+      id: messageId,
+      conversationId: conversationId,
+      role: message.role,
+      assistantId: message.assistantId,
+      createdAt: now,
+      updatedAt: now,
+      status: Value(message.status.name),
+      modelId: Value(message.modelId),
+      metadata: Value(message.metadata != null ? jsonEncode(message.metadata) : null),
+    );
+
+    await _database.insertMessage(companion);
+
+    // 插入消息块
+    for (int i = 0; i < message.blocks.length; i++) {
+      final block = message.blocks[i];
+      await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+        id: block.id,
+        messageId: messageId,
+        type: block.type.name,
+        createdAt: block.createdAt,
+        updatedAt: block.updatedAt ?? block.createdAt,
+        content: Value(block.content),
+        status: Value(block.status.name),
+        orderIndex: Value(i),
+        metadata: Value(block.metadata != null ? jsonEncode(block.metadata) : null),
+      ));
+    }
+
+    // 更新对话的最后消息时间
+    await _database.updateConversation(
+      conversationId,
+      ConversationsCompanion(lastMessageAt: Value(now), updatedAt: Value(now)),
+    );
+
+    return messageId;
+  }
+
+  // 更新块化消息
+  Future<bool> updateBlockMessage({
+    required String messageId,
+    required Message updatedMessage,
+  }) async {
+    try {
+      final now = DateTime.now();
+
+      // 更新消息记录
+      final messageCompanion = MessagesCompanion(
+        status: Value(updatedMessage.status.name),
+        updatedAt: Value(now),
+        metadata: Value(updatedMessage.metadata != null ? jsonEncode(updatedMessage.metadata) : null),
+      );
+
+      await _database.updateMessage(messageId, messageCompanion);
+
+      // 删除旧的消息块
+      final existingBlocks = await _database.getMessageBlocks(messageId);
+      for (final block in existingBlocks) {
+        await _database.deleteMessageBlock(block.id);
+      }
+
+      // 插入新的消息块
+      for (int i = 0; i < updatedMessage.blocks.length; i++) {
+        final block = updatedMessage.blocks[i];
+        await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+          id: block.id,
+          messageId: messageId,
+          type: block.type.name,
+          createdAt: block.createdAt,
+          updatedAt: block.updatedAt ?? now,
+          content: Value(block.content),
+          status: Value(block.status.name),
+          orderIndex: Value(i),
+          metadata: Value(block.metadata != null ? jsonEncode(block.metadata) : null),
+        ));
+      }
+
+      _logger.info('更新块化消息成功', {
+        'messageId': messageId,
+        'blocksCount': updatedMessage.blocks.length,
+      });
+
+      return true;
+    } catch (e) {
+      _logger.error('更新块化消息失败: $e');
+      return false;
+    }
+  }
+
+  // 更新单个消息块
+  Future<bool> updateMessageBlock({
+    required String blockId,
+    required MessageBlock updatedBlock,
+  }) async {
+    try {
+      final companion = MessageBlocksCompanion(
+        type: Value(updatedBlock.type.name),
+        status: Value(updatedBlock.status.name),
+        content: Value(updatedBlock.content),
+        updatedAt: Value(DateTime.now()),
+        metadata: Value(updatedBlock.metadata != null ? jsonEncode(updatedBlock.metadata) : null),
+      );
+
+      await _database.updateMessageBlock(blockId, companion);
+
+      _logger.info('更新消息块成功', {
+        'blockId': blockId,
+        'type': updatedBlock.type.name,
+      });
+
+      return true;
+    } catch (e) {
+      _logger.error('更新消息块失败: $e');
+      return false;
+    }
+  }
+
+  // 删除消息块
+  Future<bool> deleteMessageBlock(String blockId) async {
+    try {
+      await _database.deleteMessageBlock(blockId);
+      _logger.info('删除消息块成功', {'blockId': blockId});
+      return true;
+    } catch (e) {
+      _logger.error('删除消息块失败: $e');
+      return false;
+    }
+  }
+
+  // 获取单个消息块
+  Future<MessageBlock?> getMessageBlock(String blockId) async {
+    try {
+      final blockData = await _database.getMessageBlock(blockId);
+      if (blockData != null) {
+        return _blockDataToBlock(blockData);
+      }
+      return null;
+    } catch (e) {
+      _logger.error('获取消息块失败: $e');
+      return null;
+    }
   }
 
   // 删除消息
@@ -465,6 +635,92 @@ class ConversationRepository {
       assistantId: data.assistantId,
       selectedProviderId: data.providerId,
       selectedModelId: data.modelId,
+    );
+  }
+
+  // 将数据库数据转换为新的块化消息
+  Message _dataToMessage(MessageData messageData, List<MessageBlockData> blockDataList) {
+    final blocks = blockDataList.map((blockData) => _blockDataToBlock(blockData)).toList();
+
+    // 解析消息状态
+    MessageStatus status;
+    try {
+      status = MessageStatus.values.firstWhere(
+        (s) => s.name == messageData.status,
+        orElse: () => MessageStatus.userSuccess,
+      );
+    } catch (e) {
+      status = MessageStatus.userSuccess;
+    }
+
+    // 解析元数据
+    Map<String, dynamic>? metadata;
+    if (messageData.metadata != null) {
+      try {
+        metadata = jsonDecode(messageData.metadata!);
+      } catch (e) {
+        _logger.warning('解析消息元数据失败: $e');
+      }
+    }
+
+    return Message(
+      id: messageData.id,
+      conversationId: messageData.conversationId,
+      role: messageData.role,
+      assistantId: messageData.assistantId,
+      blockIds: blocks.map((block) => block.id).toList(),
+      blocks: blocks,
+      status: status,
+      createdAt: messageData.createdAt,
+      updatedAt: messageData.updatedAt,
+      modelId: messageData.modelId,
+      metadata: metadata,
+    );
+  }
+
+  // 将数据库块数据转换为消息块
+  MessageBlock _blockDataToBlock(MessageBlockData blockData) {
+    // 解析块类型
+    MessageBlockType type;
+    try {
+      type = MessageBlockType.values.firstWhere(
+        (t) => t.name == blockData.type,
+        orElse: () => MessageBlockType.unknown,
+      );
+    } catch (e) {
+      type = MessageBlockType.unknown;
+    }
+
+    // 解析块状态
+    MessageBlockStatus status;
+    try {
+      status = MessageBlockStatus.values.firstWhere(
+        (s) => s.name == blockData.status,
+        orElse: () => MessageBlockStatus.success,
+      );
+    } catch (e) {
+      status = MessageBlockStatus.success;
+    }
+
+    // 解析元数据
+    Map<String, dynamic>? metadata;
+    if (blockData.metadata != null) {
+      try {
+        metadata = jsonDecode(blockData.metadata!);
+      } catch (e) {
+        _logger.warning('解析消息块元数据失败: $e');
+      }
+    }
+
+    return MessageBlock(
+      id: blockData.id,
+      messageId: blockData.messageId,
+      type: type,
+      status: status,
+      createdAt: blockData.createdAt,
+      updatedAt: blockData.updatedAt,
+      content: blockData.content,
+      metadata: metadata,
     );
   }
 

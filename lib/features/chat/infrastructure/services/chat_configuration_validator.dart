@@ -90,7 +90,7 @@ class ChatConfigurationValidator {
 
     // 检查API配置
     if (!_hasValidApiConfiguration(config.provider)) {
-      return '提供商API配置无效，请检查API密钥和连接设置';
+      return 'API密钥未配置或格式不正确';
     }
 
     return null; // 没有问题
@@ -138,8 +138,7 @@ class ChatConfigurationValidator {
     // API配置建议
     if (!_hasValidApiConfiguration(config.provider)) {
       suggestions.add('检查提供商的API密钥是否正确');
-      suggestions.add('验证网络连接和API服务可用性');
-      suggestions.add('确认API配额和权限设置');
+      suggestions.add('确认API密钥格式符合要求');
     }
 
     return suggestions;

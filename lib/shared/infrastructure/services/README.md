@@ -366,9 +366,8 @@ final response = await ref.read(smartChatProvider(
 
 #### 2. 数据操作
 ```dart
-// 使用Repository进行数据操作
-final dbService = DatabaseService.instance;
-final providerRepo = ProviderRepository(dbService.database);
+// ✅ 正确：使用Provider进行数据操作
+final providerRepo = ref.read(providerRepositoryProvider);
 
 // 获取所有提供商
 final providers = await providerRepo.getAllProviders();
