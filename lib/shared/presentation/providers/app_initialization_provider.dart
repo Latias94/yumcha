@@ -13,10 +13,12 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../infrastructure/services/logger_service.dart';
+import '../../infrastructure/services/preference_service.dart';
 import '../../infrastructure/services/data_initialization_service.dart';
 import '../../infrastructure/services/ai/ai_service_manager.dart';
 import '../../infrastructure/services/mcp/mcp_service_manager.dart';
 import '../../../app/config/splash_config.dart';
+import '../../../features/chat/presentation/widgets/bubble/bubble_system.dart';
 
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
@@ -143,6 +145,9 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     try {
       _logger.info('🚀 开始应用初始化流程');
 
+      // 步骤0: 初始化基础服务（在Riverpod之外必须初始化的服务）
+      await _initializeBasicServices();
+
       // 步骤1: 初始化默认数据
       await _initializeData();
 
@@ -166,6 +171,39 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         error: '初始化失败: $e',
         currentStep: '初始化失败',
       );
+    }
+  }
+
+  /// 初始化基础服务
+  ///
+  /// 只初始化在 Riverpod 之外必须初始化的服务：
+  /// - 日志服务（用于记录初始化过程）
+  /// - 偏好设置服务（某些Provider可能需要）
+  /// - 气泡系统（消息显示组件）
+  Future<void> _initializeBasicServices() async {
+    state = state.copyWith(currentStep: '正在初始化基础服务...');
+
+    try {
+      // 1. 初始化日志服务（启用HTTP日志记录）
+      _logger.info('⚙️ 初始化日志服务');
+      LoggerService().initialize(enableHttpLogging: true);
+      _logger.info('✅ 日志服务初始化完成');
+
+      // 2. 初始化偏好设置服务
+      _logger.info('⚙️ 初始化偏好设置服务');
+      await PreferenceService().init();
+      _logger.info('✅ 偏好设置服务初始化完成');
+
+      // 3. 初始化气泡系统
+      _logger.info('💬 初始化气泡系统');
+      BubbleSystem.initialize();
+      _logger.info('✅ 气泡系统初始化完成');
+
+      state = state.copyWith(currentStep: '基础服务初始化完成');
+      _logger.info('🎉 基础服务初始化完成');
+    } catch (e) {
+      _logger.error('❌ 基础服务初始化失败', {'error': e.toString()});
+      rethrow;
     }
   }
 
