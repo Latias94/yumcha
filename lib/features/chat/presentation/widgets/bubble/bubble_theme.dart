@@ -39,7 +39,8 @@ class BubbleTheme {
   /// 阴影高度
   final double elevation;
 
-  /// 创建默认气泡主题
+  /// 创建默认气泡主题（已废弃，请使用fromColorScheme）
+  @Deprecated('使用 BubbleTheme.fromColorScheme 以确保主题适配')
   factory BubbleTheme.defaultBubble() {
     return const BubbleTheme(
       userBubbleColor: Color(0xFF007AFF),
@@ -58,7 +59,8 @@ class BubbleTheme {
     );
   }
 
-  /// 创建默认卡片主题
+  /// 创建默认卡片主题（已废弃，请使用fromColorScheme）
+  @Deprecated('使用 BubbleTheme.fromColorScheme 以确保主题适配')
   factory BubbleTheme.defaultCard() {
     return const BubbleTheme(
       userBubbleColor: Color(0xFFF8F9FA),
@@ -78,7 +80,8 @@ class BubbleTheme {
     );
   }
 
-  /// 创建默认列表主题
+  /// 创建默认列表主题（已废弃，请使用fromColorScheme）
+  @Deprecated('使用 BubbleTheme.fromColorScheme 以确保主题适配')
   factory BubbleTheme.defaultList() {
     return const BubbleTheme(
       userBubbleColor: Colors.transparent,
@@ -108,6 +111,60 @@ class BubbleTheme {
         ),
       ],
       elevation: 1.0,
+    );
+  }
+
+  /// 从颜色方案创建气泡主题
+  factory BubbleTheme.bubbleFromColorScheme(ColorScheme colorScheme) {
+    return BubbleTheme(
+      userBubbleColor: colorScheme.primary,
+      aiBubbleColor: colorScheme.surfaceContainerHighest,
+      userTextColor: colorScheme.onPrimary,
+      aiTextColor: colorScheme.onSurface,
+      borderColor: colorScheme.outline.withValues(alpha: 0.2),
+      borderWidth: 0.0, // 气泡模式通常无边框
+      shadows: [
+        BoxShadow(
+          color: colorScheme.shadow.withValues(alpha: 0.1),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+      elevation: 1.0,
+    );
+  }
+
+  /// 从颜色方案创建卡片主题
+  factory BubbleTheme.cardFromColorScheme(ColorScheme colorScheme) {
+    return BubbleTheme(
+      userBubbleColor: colorScheme.surfaceContainerHigh,
+      aiBubbleColor: colorScheme.surfaceContainerHigh,
+      userTextColor: colorScheme.onSurface,
+      aiTextColor: colorScheme.onSurface,
+      borderColor: colorScheme.outline.withValues(alpha: 0.2),
+      borderWidth: 1.0, // 卡片模式有边框
+      shadows: [
+        BoxShadow(
+          color: colorScheme.shadow.withValues(alpha: 0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+      elevation: 2.0,
+    );
+  }
+
+  /// 从颜色方案创建列表主题
+  factory BubbleTheme.listFromColorScheme(ColorScheme colorScheme) {
+    return BubbleTheme(
+      userBubbleColor: Colors.transparent,
+      aiBubbleColor: Colors.transparent,
+      userTextColor: colorScheme.onSurface,
+      aiTextColor: colorScheme.onSurface,
+      borderColor: Colors.transparent,
+      borderWidth: 0.0, // 列表模式无边框
+      shadows: [], // 列表模式无阴影
+      elevation: 0.0,
     );
   }
 

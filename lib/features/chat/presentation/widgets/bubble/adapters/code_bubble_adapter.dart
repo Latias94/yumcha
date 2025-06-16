@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../domain/entities/message_block.dart';
 import '../../../../domain/entities/message_block_type.dart';
+import '../../../../../../shared/presentation/design_system/design_constants.dart';
 import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
@@ -79,9 +80,9 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
       ),
       decoration: BoxDecoration(
         color: context.theme.colorScheme.surfaceContainerHigh,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(getResponsiveSpacing(context, 8.0)),
+          topRight: Radius.circular(getResponsiveSpacing(context, 8.0)),
         ),
       ),
       child: Row(
@@ -133,7 +134,7 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _copyToClipboard(content, context),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(getResponsiveSpacing(context, 4.0)),
         child: Padding(
           padding: const EdgeInsets.all(4),
           child: Row(

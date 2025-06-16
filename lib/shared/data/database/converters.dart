@@ -14,10 +14,12 @@ ProviderType modelToDbProviderType(models.ProviderType type) {
       return ProviderType.anthropic;
     case models.ProviderType.google:
       return ProviderType.google;
+    case models.ProviderType.deepseek:
+      return ProviderType.deepseek;
+    case models.ProviderType.groq:
+      return ProviderType.groq;
     case models.ProviderType.ollama:
       return ProviderType.ollama;
-    case models.ProviderType.custom:
-      return ProviderType.custom;
   }
 }
 
@@ -30,10 +32,12 @@ models.ProviderType dbToModelProviderType(ProviderType type) {
       return models.ProviderType.anthropic;
     case ProviderType.google:
       return models.ProviderType.google;
+    case ProviderType.deepseek:
+      return models.ProviderType.deepseek;
+    case ProviderType.groq:
+      return models.ProviderType.groq;
     case ProviderType.ollama:
       return models.ProviderType.ollama;
-    case ProviderType.custom:
-      return models.ProviderType.custom;
   }
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/message.dart';
+import '../../../../../shared/presentation/design_system/design_constants.dart';
 import 'bubble_context.dart';
 import 'bubble_style.dart';
 import 'bubble_block_renderer.dart';
@@ -264,13 +265,14 @@ class BubbleContent extends StatelessWidget {
 
   /// 获取块之间的间距
   double _getBlockSpacing() {
+    // 使用设计系统常量，确保一致性
     switch (context.style.type) {
       case BubbleType.bubble:
-        return 8.0;
+        return DesignConstants.spaceS; // 8.0
       case BubbleType.card:
-        return 12.0;
+        return DesignConstants.spaceM; // 12.0
       case BubbleType.list:
-        return 6.0;
+        return DesignConstants.spaceXS; // 4.0 - 减少列表模式的块间距
     }
   }
 

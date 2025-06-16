@@ -168,10 +168,13 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
 
   /// 构建气泡布局
   Widget _buildBubbleLayout(BuildContext context, ThemeData theme) {
-    // 使用新的MessageBubble组件
+    // 使用新的MessageBubble组件，传递主题颜色方案
     return MessageBubble(
       message: widget.message,
-      style: BubbleStyle.fromChatStyle(ChatBubbleStyle.bubble),
+      style: BubbleStyle.fromChatStyle(
+        ChatBubbleStyle.bubble,
+        colorScheme: theme.colorScheme, // 传递主题颜色方案
+      ),
       onEdit: widget.onEdit,
       onRegenerate: widget.onRegenerate,
     );

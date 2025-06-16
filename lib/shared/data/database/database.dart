@@ -11,7 +11,7 @@ import '../../../features/ai_management/domain/entities/ai_model.dart';
 part 'database.g.dart';
 
 // 定义数据库中的枚举类型
-enum ProviderType { openai, anthropic, google, ollama, custom }
+enum ProviderType { openai, anthropic, google, deepseek, groq, ollama }
 
 // 提供商表
 @DataClassName('ProviderData')

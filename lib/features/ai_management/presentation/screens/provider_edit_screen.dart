@@ -151,18 +151,21 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
         return 'Anthropic';
       case ProviderType.google:
         return 'Google';
+      case ProviderType.deepseek:
+        return 'DeepSeek';
+      case ProviderType.groq:
+        return 'Groq';
       case ProviderType.ollama:
         return 'Ollama';
-      case ProviderType.custom:
-        return '自定义';
     }
   }
 
   bool _supportsCustomBaseUrl(ProviderType type) {
     switch (type) {
       case ProviderType.openai:
+      case ProviderType.deepseek:
+      case ProviderType.groq:
       case ProviderType.ollama:
-      case ProviderType.custom:
         return true;
       case ProviderType.anthropic:
       case ProviderType.google:
@@ -177,11 +180,13 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
       case ProviderType.anthropic:
         return 'https://api.anthropic.com';
       case ProviderType.google:
-        return 'https://generativelanguage.googleapis.com/v1';
+        return 'https://generativelanguage.googleapis.com/v1beta';
+      case ProviderType.deepseek:
+        return 'https://api.deepseek.com/v1';
+      case ProviderType.groq:
+        return 'https://api.groq.com/openai/v1';
       case ProviderType.ollama:
         return 'http://localhost:11434';
-      case ProviderType.custom:
-        return null;
     }
   }
 

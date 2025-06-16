@@ -43,10 +43,13 @@ class BubbleStyle {
     BubbleTheme? theme,
     BubbleLayout? layout,
     BubbleAnimation? animation,
+    ColorScheme? colorScheme,
   }) {
     return BubbleStyle(
       type: BubbleType.bubble,
-      theme: theme ?? BubbleTheme.defaultBubble(),
+      theme: theme ?? (colorScheme != null
+          ? BubbleTheme.bubbleFromColorScheme(colorScheme)
+          : BubbleTheme.fromColorScheme(const ColorScheme.light())),
       layout: layout ?? BubbleLayout.bubble(),
       animation: animation ?? BubbleAnimation.standard(),
     );
@@ -57,10 +60,13 @@ class BubbleStyle {
     BubbleTheme? theme,
     BubbleLayout? layout,
     BubbleAnimation? animation,
+    ColorScheme? colorScheme,
   }) {
     return BubbleStyle(
       type: BubbleType.card,
-      theme: theme ?? BubbleTheme.defaultCard(),
+      theme: theme ?? (colorScheme != null
+          ? BubbleTheme.cardFromColorScheme(colorScheme)
+          : BubbleTheme.fromColorScheme(const ColorScheme.light())),
       layout: layout ?? BubbleLayout.card(),
       animation: animation ?? BubbleAnimation.standard(),
     );
@@ -71,10 +77,13 @@ class BubbleStyle {
     BubbleTheme? theme,
     BubbleLayout? layout,
     BubbleAnimation? animation,
+    ColorScheme? colorScheme,
   }) {
     return BubbleStyle(
       type: BubbleType.list,
-      theme: theme ?? BubbleTheme.defaultList(),
+      theme: theme ?? (colorScheme != null
+          ? BubbleTheme.listFromColorScheme(colorScheme)
+          : BubbleTheme.fromColorScheme(const ColorScheme.light())),
       layout: layout ?? BubbleLayout.list(),
       animation: animation ?? BubbleAnimation.minimal(),
     );
@@ -85,22 +94,26 @@ class BubbleStyle {
     ChatBubbleStyle chatStyle, {
     BubbleTheme? theme,
     BubbleAnimation? animation,
+    ColorScheme? colorScheme,
   }) {
     switch (chatStyle) {
       case ChatBubbleStyle.bubble:
         return BubbleStyle.bubble(
           theme: theme,
           animation: animation,
+          colorScheme: colorScheme,
         );
       case ChatBubbleStyle.card:
         return BubbleStyle.card(
           theme: theme,
           animation: animation,
+          colorScheme: colorScheme,
         );
       case ChatBubbleStyle.list:
         return BubbleStyle.list(
           theme: theme,
           animation: animation,
+          colorScheme: colorScheme,
         );
     }
   }
@@ -112,26 +125,27 @@ class BubbleStyle {
     BubbleLayout? layout,
     BubbleAnimation? animation,
   }) {
-    final theme = BubbleTheme.fromColorScheme(colorScheme);
-    
     switch (type) {
       case BubbleType.bubble:
         return BubbleStyle.bubble(
-          theme: theme,
+          theme: BubbleTheme.bubbleFromColorScheme(colorScheme),
           layout: layout,
           animation: animation,
+          colorScheme: colorScheme,
         );
       case BubbleType.card:
         return BubbleStyle.card(
-          theme: theme,
+          theme: BubbleTheme.cardFromColorScheme(colorScheme),
           layout: layout,
           animation: animation,
+          colorScheme: colorScheme,
         );
       case BubbleType.list:
         return BubbleStyle.list(
-          theme: theme,
+          theme: BubbleTheme.listFromColorScheme(colorScheme),
           layout: layout,
           animation: animation,
+          colorScheme: colorScheme,
         );
     }
   }

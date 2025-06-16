@@ -133,10 +133,12 @@ class ProviderListWidget extends ConsumerWidget {
         return Icons.auto_awesome;
       case ProviderType.google:
         return Icons.diamond;
+      case ProviderType.deepseek:
+        return Icons.psychology_alt;
+      case ProviderType.groq:
+        return Icons.speed;
       case ProviderType.ollama:
         return Icons.computer;
-      case ProviderType.custom:
-        return Icons.settings;
     }
   }
 
@@ -148,10 +150,12 @@ class ProviderListWidget extends ConsumerWidget {
         return 'Claude';
       case ProviderType.google:
         return 'Gemini';
+      case ProviderType.deepseek:
+        return 'DeepSeek';
+      case ProviderType.groq:
+        return 'Groq';
       case ProviderType.ollama:
         return 'Ollama';
-      case ProviderType.custom:
-        return '自定义';
     }
   }
 

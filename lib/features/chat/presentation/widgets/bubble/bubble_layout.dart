@@ -39,7 +39,7 @@ class BubbleLayout {
       padding: DesignConstants.paddingM,
       margin: EdgeInsets.symmetric(
         horizontal: DesignConstants.spaceS,
-        vertical: DesignConstants.spaceXS,
+        vertical: DesignConstants.spaceXS / 2, // 减少垂直间距，避免与列表项间距叠加
       ),
       borderRadius: DesignConstants.radiusL.topLeft.x,
       maxWidthRatio: 0.75,
@@ -53,7 +53,7 @@ class BubbleLayout {
       padding: DesignConstants.paddingL,
       margin: EdgeInsets.symmetric(
         horizontal: DesignConstants.spaceM,
-        vertical: DesignConstants.spaceS,
+        vertical: DesignConstants.spaceXS, // 减少垂直间距，保持一致性
       ),
       borderRadius: DesignConstants.radiusM.topLeft.x,
       maxWidthRatio: 0.9,
@@ -67,7 +67,7 @@ class BubbleLayout {
       padding: DesignConstants.paddingM,
       margin: EdgeInsets.symmetric(
         horizontal: DesignConstants.spaceM,
-        vertical: DesignConstants.spaceXS,
+        vertical: DesignConstants.spaceXS / 2, // 减少垂直间距，避免双重间距
       ),
       borderRadius: 0.0,
       maxWidthRatio: 1.0,
@@ -108,17 +108,27 @@ class BubbleLayout {
 
   /// 创建响应式布局
   factory BubbleLayout.responsive(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 768;
-    final isTablet = screenWidth > 480 && screenWidth <= 768;
-
-    if (isDesktop) {
+    if (DesignConstants.isDesktop(context)) {
       return BubbleLayout.spacious();
-    } else if (isTablet) {
+    } else if (DesignConstants.isTablet(context)) {
       return BubbleLayout.bubble();
     } else {
       return BubbleLayout.compact();
     }
+  }
+
+  /// 创建优化的响应式布局（减少间距浪费）
+  factory BubbleLayout.optimizedResponsive(BuildContext context) {
+    return BubbleLayout(
+      padding: AdaptiveSpacing.getChatBubblePadding(context),
+      margin: EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceS,
+        vertical: AdaptiveSpacing.getChatMessageSpacing(context) / 2, // 减半避免双重间距
+      ),
+      borderRadius: DesignConstants.radiusL.topLeft.x,
+      maxWidthRatio: DesignConstants.isMobile(context) ? 0.85 : 0.75,
+      minWidth: DesignConstants.isMobile(context) ? 60.0 : 80.0,
+    );
   }
 
   /// 复制并修改布局

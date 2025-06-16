@@ -239,7 +239,8 @@ class DesignConstants {
   // ==================== 语义化间距方法 ====================
 
   /// 📋 语义化间距
-  static double get listItemSpacing => spaceM;
+  static double get listItemSpacing => spaceS; // 减少列表项间距，优化聊天体验
+  static double get chatMessageSpacing => spaceS; // 聊天消息专用间距
   static double get sectionSpacing => spaceXXL;
   static double get cardSpacing => spaceL;
   static double get buttonSpacing => spaceM;
@@ -350,6 +351,37 @@ class AdaptiveSpacing {
     return DesignConstants.isMobile(context)
         ? DesignConstants.buttonHeightL
         : DesignConstants.buttonHeightM;
+  }
+
+  /// 获取聊天消息间距（响应式）
+  static double getChatMessageSpacing(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return DesignConstants.spaceXS; // 4px - 移动端更紧凑
+    } else if (DesignConstants.isTablet(context)) {
+      return DesignConstants.spaceS; // 8px - 平板端适中
+    } else {
+      return DesignConstants.spaceS; // 8px - 桌面端保持适中
+    }
+  }
+
+  /// 获取聊天气泡内边距（响应式）
+  static EdgeInsets getChatBubblePadding(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceM,
+        vertical: DesignConstants.spaceS,
+      );
+    } else if (DesignConstants.isTablet(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,
+        vertical: DesignConstants.spaceM,
+      );
+    } else {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,
+        vertical: DesignConstants.spaceM,
+      );
+    }
   }
 }
 

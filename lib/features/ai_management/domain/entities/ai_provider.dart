@@ -4,7 +4,7 @@ import 'ai_model.dart';
 ///
 /// 定义支持的 AI 提供商类型，每种类型有不同的 API 接口和特性
 enum ProviderType {
-  /// OpenAI 提供商 - 支持 GPT 系列模型
+  /// OpenAI 提供商 - 支持 GPT 系列模型，也支持其他 OpenAI 兼容的提供商
   openai('OpenAI', 'openai'),
 
   /// Anthropic 提供商 - 支持 Claude 系列模型
@@ -13,11 +13,14 @@ enum ProviderType {
   /// Google 提供商 - 支持 Gemini 系列模型
   google('Google (Gemini)', 'google'),
 
-  /// Ollama 本地提供商 - 支持本地部署的开源模型
-  ollama('Ollama', 'ollama'),
+  /// DeepSeek 提供商 - 支持 DeepSeek 系列模型
+  deepseek('DeepSeek', 'deepseek'),
 
-  /// 自定义提供商 - 支持用户自定义的 API 接口
-  custom('自定义', 'custom');
+  /// Groq 提供商 - 支持高速推理模型
+  groq('Groq', 'groq'),
+
+  /// Ollama 本地提供商 - 支持本地部署的开源模型
+  ollama('Ollama', 'ollama');
 
   const ProviderType(this.displayName, this.id);
 
@@ -64,7 +67,7 @@ class AiProvider {
   /// API 密钥
   final String apiKey;
 
-  /// 自定义 Base URL（只有 OpenAI 和 Ollama 支持）
+  /// 自定义 Base URL（OpenAI、DeepSeek、Groq 和 Ollama 支持）
   final String? baseUrl;
 
   /// 模型列表 - 此提供商配置的所有模型
@@ -122,9 +125,13 @@ class AiProvider {
   }
 
   /// 检查是否支持自定义 Base URL
-  /// 目前只有 OpenAI 和 Ollama 类型支持自定义 URL
+  /// OpenAI、Anthropic、DeepSeek、Groq 和 Ollama 类型支持自定义 URL
   bool get supportsCustomUrl =>
-      type == ProviderType.openai || type == ProviderType.ollama;
+      type == ProviderType.openai ||
+      type == ProviderType.anthropic ||
+      type == ProviderType.deepseek ||
+      type == ProviderType.groq ||
+      type == ProviderType.ollama;
 
   /// 获取模型名称列表（向后兼容）
   /// 返回此提供商配置的所有模型名称
@@ -144,11 +151,13 @@ class AiProvider {
       case ProviderType.anthropic:
         return 'https://api.anthropic.com/v1';
       case ProviderType.google:
-        return 'https://generativelanguage.googleapis.com/v1';
+        return 'https://generativelanguage.googleapis.com/v1beta';
+      case ProviderType.deepseek:
+        return 'https://api.deepseek.com/v1';
+      case ProviderType.groq:
+        return 'https://api.groq.com/openai/v1';
       case ProviderType.ollama:
         return 'http://localhost:11434/v1';
-      case ProviderType.custom:
-        return baseUrl ?? '';
     }
   }
 
@@ -175,7 +184,7 @@ class AiProvider {
       name: json['name'] as String,
       type: ProviderType.values.firstWhere(
         (type) => type.id == json['type'],
-        orElse: () => ProviderType.custom,
+        orElse: () => ProviderType.openai,
       ),
       apiKey: json['apiKey'] as String,
       baseUrl: json['baseUrl'] as String?,

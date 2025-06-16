@@ -313,7 +313,8 @@ enum ConfigTemplate {
   openai,         // OpenAI标准配置
   anthropic,      // Anthropic配置
   google,         // Google AI配置
-  custom,         // 自定义配置
+  deepseek,       // DeepSeek配置
+  groq,           // Groq配置
 }
 
 /// 用户配置偏好

@@ -73,9 +73,13 @@ class MessageViewAdapter extends ConsumerWidget {
 
   /// 构建气泡视图（使用MessageBubble组件）
   Widget _buildBubbleView(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return MessageBubble(
       message: message,
-      style: BubbleStyle.fromChatStyle(ChatBubbleStyle.bubble),
+      style: BubbleStyle.fromChatStyle(
+        ChatBubbleStyle.bubble,
+        colorScheme: theme.colorScheme, // 传递主题颜色方案
+      ),
       onEdit: onEdit,
       onRegenerate: onRegenerate,
     );

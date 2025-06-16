@@ -124,7 +124,8 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
         'openai': ConfigTemplate.openai,
         'anthropic': ConfigTemplate.anthropic,
         'google': ConfigTemplate.google,
-        'custom': ConfigTemplate.custom,
+        'deepseek': ConfigTemplate.deepseek,
+        'groq': ConfigTemplate.groq,
       };
       _logger.info('配置模板加载完成', {'count': templates.length});
       return templates;
@@ -134,7 +135,7 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
     }
   }
 
-  /// 添加自定义提供商
+  /// 添加自定义提供商（使用 OpenAI 兼容接口）
   Future<void> addCustomProvider({
     required String name,
     required String apiKey,
@@ -144,11 +145,11 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
     try {
       _logger.info('添加自定义提供商', {'name': name});
 
-      // 创建新的提供商配置
+      // 创建新的提供商配置（使用 OpenAI 类型 + 自定义 baseUrl）
       final provider = AiProvider(
         id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
         name: name,
-        type: ProviderType.custom,
+        type: ProviderType.openai, // 使用 OpenAI 兼容接口
         apiKey: apiKey,
         baseUrl: baseUrl,
         isEnabled: true,
@@ -293,8 +294,64 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
             updatedAt: now,
           ),
         ];
-      case ConfigTemplate.custom:
-        return [];
+      case ConfigTemplate.deepseek:
+        return [
+          AiModel(
+            id: 'deepseek-chat',
+            name: 'deepseek-chat',
+            displayName: 'DeepSeek Chat',
+            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
+            metadata: {
+              'contextLength': 32768,
+              'maxTokens': 4096,
+              'description': 'DeepSeek Chat，通用对话模型',
+            },
+            createdAt: now,
+            updatedAt: now,
+          ),
+          AiModel(
+            id: 'deepseek-reasoner',
+            name: 'deepseek-reasoner',
+            displayName: 'DeepSeek Reasoner',
+            capabilities: [ModelCapability.reasoning, ModelCapability.tools],
+            metadata: {
+              'contextLength': 32768,
+              'maxTokens': 4096,
+              'description': 'DeepSeek Reasoner，推理专用模型',
+            },
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ];
+      case ConfigTemplate.groq:
+        return [
+          AiModel(
+            id: 'llama-3.1-70b-versatile',
+            name: 'llama-3.1-70b-versatile',
+            displayName: 'Llama 3.1 70B',
+            capabilities: [ModelCapability.tools],
+            metadata: {
+              'contextLength': 131072,
+              'maxTokens': 8192,
+              'description': 'Llama 3.1 70B，高性能通用模型',
+            },
+            createdAt: now,
+            updatedAt: now,
+          ),
+          AiModel(
+            id: 'mixtral-8x7b-32768',
+            name: 'mixtral-8x7b-32768',
+            displayName: 'Mixtral 8x7B',
+            capabilities: [ModelCapability.tools],
+            metadata: {
+              'contextLength': 32768,
+              'maxTokens': 32768,
+              'description': 'Mixtral 8x7B，高速推理模型',
+            },
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ];
     }
   }
 

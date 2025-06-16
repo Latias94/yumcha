@@ -136,13 +136,13 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       'baseUrl': 'https://api.openai.com/v1',
     },
     'DeepSeek': {
-      'provider': 'openai', // 使用OpenAI兼容接口
+      'provider': 'deepseek',
       'model': 'deepseek-chat',
       'baseUrl': 'https://api.deepseek.com/v1',
     },
     'DeepSeek R1 (推理)': {
-      'provider': 'openai', // 使用OpenAI兼容接口
-      'model': 'deepseek-r1',
+      'provider': 'deepseek',
+      'model': 'deepseek-reasoner',
       'baseUrl': 'https://api.deepseek.com/v1',
     },
     'Anthropic Claude': {
@@ -153,7 +153,7 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     'Google Gemini': {
       'provider': 'google',
       'model': 'gemini-2.0-flash',
-      'baseUrl': 'https://generativelanguage.googleapis.com/v1',
+      'baseUrl': 'https://generativelanguage.googleapis.com/v1beta',
     },
   };
 

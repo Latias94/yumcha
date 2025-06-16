@@ -201,10 +201,11 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
                             index == displayMessages.length - 1;
 
                         return Padding(
+                          // 使用响应式聊天消息间距，优化不同设备的显示效果
                           padding: EdgeInsets.only(
                             left: DesignConstants.spaceS,
                             right: DesignConstants.spaceS,
-                            bottom: DesignConstants.spaceS,
+                            bottom: AdaptiveSpacing.getChatMessageSpacing(context), // 响应式间距
                           ),
                           child: _OptimizedMessageItem(
                             key: ValueKey(message.id),

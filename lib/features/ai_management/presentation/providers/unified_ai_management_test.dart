@@ -172,7 +172,7 @@ class UnifiedAiManagementTest {
         name: 'Test Provider',
         apiKey: 'test-api-key',
         baseUrl: 'https://api.test.com',
-        template: ConfigTemplate.custom,
+        template: ConfigTemplate.openai, // 使用 OpenAI 兼容模板
       );
 
       _logger.info('✅ 自定义提供商添加测试通过');

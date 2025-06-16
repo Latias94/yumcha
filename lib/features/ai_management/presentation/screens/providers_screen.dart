@@ -99,10 +99,12 @@ class ProvidersScreen extends ConsumerWidget {
         return 'Anthropic';
       case ProviderType.google:
         return 'Google';
+      case ProviderType.deepseek:
+        return 'DeepSeek';
+      case ProviderType.groq:
+        return 'Groq';
       case ProviderType.ollama:
         return 'Ollama';
-      case ProviderType.custom:
-        return '自定义';
     }
   }
 
@@ -114,10 +116,12 @@ class ProvidersScreen extends ConsumerWidget {
         return Icons.ac_unit_outlined;
       case ProviderType.google:
         return Icons.g_mobiledata_outlined;
+      case ProviderType.deepseek:
+        return Icons.psychology_alt_outlined;
+      case ProviderType.groq:
+        return Icons.speed_outlined;
       case ProviderType.ollama:
         return Icons.memory_outlined;
-      case ProviderType.custom:
-        return Icons.settings_input_component_outlined;
     }
   }
 

@@ -373,8 +373,8 @@ class DataInitializationService {
     return ai_provider.AiProvider(
       id: 'deepseek',
       name: 'DeepSeek',
-      type: ai_provider.ProviderType.custom,
-      baseUrl: 'https://api.deepseek.com',
+      type: ai_provider.ProviderType.deepseek,
+      baseUrl: 'https://api.deepseek.com/v1',
       apiKey: '', // 用户需要自己配置
       models: [
         AiModel(
@@ -419,10 +419,12 @@ class DataInitializationService {
         return ProviderType.anthropic;
       case ai_provider.ProviderType.google:
         return ProviderType.google;
+      case ai_provider.ProviderType.deepseek:
+        return ProviderType.deepseek;
+      case ai_provider.ProviderType.groq:
+        return ProviderType.groq;
       case ai_provider.ProviderType.ollama:
         return ProviderType.ollama;
-      case ai_provider.ProviderType.custom:
-        return ProviderType.custom;
     }
   }
 }
