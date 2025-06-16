@@ -5,12 +5,14 @@ import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../entities/chat_state.dart';
 import '../entities/message.dart';
 import '../entities/message_status.dart';
-import '../entities/legacy_message.dart';
+import 'message_factory.dart';
+import 'unified_message_creator.dart';
+
 import '../../../../shared/infrastructure/services/ai/block_based_chat_service.dart';
 import '../../data/repositories/conversation_repository.dart';
+import '../repositories/message_repository.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
 import '../../../../shared/infrastructure/services/ai/providers/block_chat_provider.dart';
-import '../../../../shared/infrastructure/services/message_id_service.dart';
 
 /// 流式传输上下文 - 管理单个流式消息的完整生命周期
 class _StreamingContext {
@@ -39,12 +41,10 @@ class _StreamingContext {
 class _QueuedMessage {
   final SendMessageParams params;
   final DateTime queueTime;
-  final int priority;
 
   _QueuedMessage({
     required this.params,
     required this.queueTime,
-    this.priority = 0,
   });
 
   /// 获取等待时间
@@ -75,6 +75,10 @@ class ChatOrchestratorService {
 
   final Ref _ref;
   final LoggerService _logger = LoggerService();
+  final MessageFactory _messageFactory = MessageFactory();
+
+  /// 统一消息创建器（延迟初始化）
+  UnifiedMessageCreator? _unifiedMessageCreator;
 
   /// 活跃的流式订阅管理 - 优化内存使用
   final Map<String, _StreamingContext> _activeStreams = {};
@@ -97,8 +101,7 @@ class ChatOrchestratorService {
   /// 用户消息创建回调
   void Function(Message)? _onUserMessageCreated;
 
-  /// 已保存的消息ID集合，防止重复保存 - 增加LRU清理
-  final Map<String, DateTime> _persistedMessageIds = {};
+
 
   /// 性能监控定时器
   Timer? _performanceTimer;
@@ -115,6 +118,19 @@ class ChatOrchestratorService {
   /// 获取对话存储库
   ConversationRepository get _conversationRepository =>
       _ref.read(conversationRepositoryProvider);
+
+  /// 获取消息存储库
+  MessageRepository get _messageRepository =>
+      _ref.read(messageRepositoryProvider);
+
+  /// 获取统一消息创建器（延迟初始化）
+  UnifiedMessageCreator get _messageCreator {
+    _unifiedMessageCreator ??= UnifiedMessageCreator(
+      messageFactory: _messageFactory,
+      messageRepository: _messageRepository,
+    );
+    return _unifiedMessageCreator!;
+  }
 
   /// 初始化性能监控
   void _initializePerformanceMonitoring() {
@@ -135,32 +151,13 @@ class ChatOrchestratorService {
       ),
     );
 
-    // 清理过期的持久化消息ID记录
-    _cleanupPersistedMessageIds();
+
 
     // 清理内容缓存
     _cleanupContentCache();
   }
 
-  /// 清理过期的持久化消息ID记录
-  void _cleanupPersistedMessageIds() {
-    if (_persistedMessageIds.length > ChatConstants.maxMessagesInMemory) {
-      final now = DateTime.now();
-      final expiredIds = <String>[];
 
-      _persistedMessageIds.forEach((id, timestamp) {
-        if (now.difference(timestamp).inHours > 24) {
-          expiredIds.add(id);
-        }
-      });
-
-      for (final id in expiredIds) {
-        _persistedMessageIds.remove(id);
-      }
-
-      _logger.debug('清理过期消息ID记录', {'清理数量': expiredIds.length});
-    }
-  }
 
   /// 清理内容缓存
   void _cleanupContentCache() {
@@ -219,11 +216,13 @@ class ChatOrchestratorService {
         'model': params.model.name,
       });
 
-      // 创建用户消息
-      final userMessage = _createUserMessage(params.content);
-
-      // 保存用户消息到数据库
-      await _persistMessage(userMessage, params.conversationId);
+      // 🚀 优化：使用统一消息创建器，自动处理保存
+      final userMessage = await _messageCreator.createUserMessage(
+        content: params.content,
+        conversationId: params.conversationId,
+        assistantId: params.assistant.id,
+        saveToDatabase: true, // 用户消息立即保存
+      );
 
       // 通知UI添加用户消息
       _onUserMessageCreated?.call(userMessage);
@@ -284,68 +283,61 @@ class ChatOrchestratorService {
         userMessage: userMessage.content,
       );
 
-      // 处理流式更新 - BlockBasedChatService返回Message对象
+      // 简化的流式处理 - 直接使用消息ID作为key
       final completer = Completer<ChatOperationResult<Message>>();
       Message? lastMessage;
-      String? streamingMessageId; // 用于跟踪流式消息ID
+      String? messageId; // 流式消息的唯一ID
+      StreamSubscription? subscription;
 
-      final subscription = stream.listen(
+      subscription = stream.listen(
         (message) async {
           lastMessage = message;
-          // 使用实际返回的消息ID，而不是预先创建的占位符ID
-          streamingMessageId ??= message.id;
+          messageId ??= message.id;
+
+          // 首次收到消息时，注册到活跃流管理
+          if (!_activeStreams.containsKey(messageId)) {
+            _activeStreams[messageId!] = _StreamingContext(
+              subscription: subscription!,
+              startTime: DateTime.now(),
+              messageId: messageId!,
+              completer: completer,
+            );
+          }
+
           await _handleStreamingMessage(
             message,
-            message.id, // 使用实际的消息ID
+            messageId!,
             params.conversationId,
             completer,
           );
         },
         onError: (error) {
-          // 如果有流式消息ID，使用它；否则创建一个临时消息用于错误处理
-          final errorMessage = streamingMessageId != null
-              ? lastMessage ?? _createAiMessage(params.assistant.name, conversationId: params.conversationId)
-              : _createAiMessage(params.assistant.name, conversationId: params.conversationId);
-          _handleStreamingError(
-              error, errorMessage, params.conversationId, completer);
+          final errorMessage = lastMessage ?? _messageFactory.createAiMessagePlaceholder(
+            conversationId: params.conversationId,
+            assistantId: params.assistant.id,
+          );
+          _handleStreamingError(error, errorMessage, params.conversationId, completer);
         },
         onDone: () async {
-          // 只有在completer未完成时才处理完成逻辑
           if (!completer.isCompleted && lastMessage != null) {
-            _logger.debug('流式传输onDone回调触发', {
-              'messageId': lastMessage!.id,
-              'completerCompleted': completer.isCompleted,
-            });
+            _logger.debug('流式传输完成', {'messageId': lastMessage!.id});
             await _completeStreamingMessageFromBlock(
               lastMessage!,
               params.conversationId,
               completer,
             );
-          } else {
-            _logger.debug('流式传输onDone回调跳过（completer已完成）', {
-              'messageId': lastMessage?.id ?? 'unknown',
-            });
           }
         },
       );
 
-      // 保存订阅以便管理 - 使用实际的流式消息ID
-      final subscriptionKey = 'streaming_${DateTime.now().millisecondsSinceEpoch}';
-      _activeStreams[subscriptionKey] = _StreamingContext(
-        subscription: subscription,
-        startTime: DateTime.now(),
-        messageId: subscriptionKey,
-        completer: completer,
-      );
-
-      // 设置超时
+      // 设置超时处理
       Timer(ChatConstants.streamingTimeout, () {
         if (!completer.isCompleted) {
-          subscription.cancel();
-          _activeStreams.remove(subscriptionKey);
-          completer.complete(
-            const ChatOperationFailure('流式传输超时'),
-          );
+          subscription?.cancel();
+          if (messageId != null) {
+            _activeStreams.remove(messageId);
+          }
+          completer.complete(const ChatOperationFailure('流式传输超时'));
         }
       });
 
@@ -467,40 +459,23 @@ class ChatOrchestratorService {
         updatedAt: DateTime.now(),
       );
 
-      // 通知UI流式完成
-      _notifyStreamingUpdate(StreamingUpdate(
-        messageId: completedMessage.id,
-        fullContent: fullContent,
-        isDone: true,
-      ));
-
-      // 持久化完成的消息
-      if (fullContent.trim().isNotEmpty || completedMessage.blocks.isNotEmpty) {
-        await _persistMessage(finalMessage, conversationId);
-        _logger.info('块化流式消息已持久化', {
-          'messageId': completedMessage.id,
-          'blocksCount': completedMessage.blocks.length,
-          'contentLength': fullContent.length,
-          'conversationId': conversationId,
-        });
-      } else {
-        _logger.warning('块化流式消息内容为空，跳过持久化', {
-          'messageId': completedMessage.id,
-          'conversationId': conversationId,
-        });
+      // 通知UI流式完成（只有在消息状态不是已成功时才发送，避免重复通知）
+      if (completedMessage.status != MessageStatus.aiSuccess) {
+        _notifyStreamingUpdate(StreamingUpdate(
+          messageId: completedMessage.id,
+          fullContent: fullContent,
+          isDone: true,
+        ));
       }
 
-      // 清理订阅 - 查找并清理相关的订阅
-      final keysToRemove = <String>[];
-      for (final entry in _activeStreams.entries) {
-        if (entry.value.messageId == completedMessage.id ||
-            entry.key.contains('streaming_')) {
-          await entry.value.cancel();
-          keysToRemove.add(entry.key);
-        }
-      }
-      for (final key in keysToRemove) {
-        _activeStreams.remove(key);
+      // 🚀 优化：不再重复保存消息，因为MessageRepository.finishStreamingMessage已经处理了保存
+      // 只需要确保消息状态正确即可
+
+      // 清理订阅 - 直接使用消息ID作为key
+      final streamContext = _activeStreams[completedMessage.id];
+      if (streamContext != null) {
+        await streamContext.cancel();
+        _activeStreams.remove(completedMessage.id);
       }
 
       _updateStatistics();
@@ -509,6 +484,7 @@ class ChatOrchestratorService {
         'messageId': completedMessage.id,
         'blocksCount': completedMessage.blocks.length,
         'contentLength': fullContent.length,
+        'conversationId': conversationId,
       });
 
       // 确保只完成一次
@@ -553,17 +529,11 @@ class ChatOrchestratorService {
       'userMessage': errorMessage,
     });
 
-    // 清理订阅 - 查找并清理相关的订阅
-    final keysToRemove = <String>[];
-    for (final entry in _activeStreams.entries) {
-      if (entry.value.messageId == aiMessage.id ||
-          entry.key.contains('streaming_')) {
-        await entry.value.cancel();
-        keysToRemove.add(entry.key);
-      }
-    }
-    for (final key in keysToRemove) {
-      _activeStreams.remove(key);
+    // 清理订阅 - 直接使用消息ID作为key
+    final streamContext = _activeStreams[aiMessage.id];
+    if (streamContext != null) {
+      await streamContext.cancel();
+      _activeStreams.remove(aiMessage.id);
     }
 
     _updateStatistics(failed: true);
@@ -659,7 +629,6 @@ class ChatOrchestratorService {
         _logger.debug('处理队列消息', {
           'messageId': queuedMessage.params.conversationId,
           'waitTime': waitTime.inMilliseconds,
-          'priority': queuedMessage.priority,
         });
 
         await sendMessage(queuedMessage.params);
@@ -669,32 +638,8 @@ class ChatOrchestratorService {
     }
   }
 
-  /// 创建用户消息
-  Message _createUserMessage(String content, {String? conversationId, String? assistantId}) {
-    final now = DateTime.now();
-    return Message.user(
-      id: MessageIdService().generateUserMessageId(),
-      conversationId: conversationId ?? '',
-      assistantId: assistantId ?? '',
-      createdAt: now,
-      metadata: {
-        'content': content,
-      },
-    );
-  }
-
-  /// 创建AI消息
-  Message _createAiMessage(String assistantId, {String? conversationId, String? modelId}) {
-    final now = DateTime.now();
-    return Message.assistant(
-      id: MessageIdService().generateAiMessageId(),
-      conversationId: conversationId ?? '',
-      assistantId: assistantId,
-      status: MessageStatus.aiProcessing,
-      createdAt: now,
-      modelId: modelId,
-    );
-  }
+  // 注意：_createUserMessage 和 _createAiMessage 方法已被移除
+  // 现在统一使用 UnifiedMessageCreator 来创建消息
 
   /// 获取聊天历史
   Future<List<Message>> _getChatHistory(String conversationId) async {
@@ -702,21 +647,13 @@ class ChatOrchestratorService {
       final conversation =
           await _conversationRepository.getConversation(conversationId);
 
-      // 将 LegacyMessage 转换为新的 Message
-      final legacyMessages = conversation?.messages ?? [];
-      final messages = legacyMessages.map((legacyMessage) {
-        return Message.user(
-          id: legacyMessage.id ?? '',
-          conversationId: conversationId,
-          assistantId: '', // 从上下文获取
-          createdAt: legacyMessage.timestamp,
-          metadata: {
-            'content': legacyMessage.content,
-            'author': legacyMessage.author,
-            'isFromUser': legacyMessage.isFromUser,
-          },
-        );
-      }).toList();
+      // ConversationRepository 现在直接返回新的 Message 对象
+      final messages = conversation?.messages ?? [];
+
+      _logger.info('获取聊天历史成功', {
+        'conversationId': conversationId,
+        'messageCount': messages.length,
+      });
 
       return messages;
     } catch (error) {
@@ -728,17 +665,8 @@ class ChatOrchestratorService {
     }
   }
 
-  /// 持久化消息 - 优化版本，支持重复检测和LRU清理
+  /// 持久化消息 - 简化版本，统一在Repository层处理重复检测
   Future<void> _persistMessage(Message message, String conversationId) async {
-    // 检查是否已经保存过
-    if (_persistedMessageIds.containsKey(message.id)) {
-      _logger.warning('消息已存在，跳过重复保存', {
-        'messageId': message.id,
-        'conversationId': conversationId,
-      });
-      return;
-    }
-
     try {
       _logger.info('开始持久化消息', {
         'messageId': message.id,
@@ -747,54 +675,21 @@ class ChatOrchestratorService {
         'contentLength': message.content.length,
       });
 
-      // 注意：这里暂时使用旧的ConversationRepository.addMessage方法
-      // 在完整的重构中，应该使用新的MessageRepository
-      await _conversationRepository.addMessage(
-        id: message.id,
-        conversationId: conversationId,
-        content: message.content,
-        author: message.role == 'user' ? '你' : message.assistantId,
-        isFromUser: message.isFromUser,
-        imageUrl: null, // 新Message类中没有这个属性
-        avatarUrl: null, // 新Message类中没有这个属性
-        duration: message.totalDuration, // 从元数据获取
-        status: _convertToLegacyStatus(message.status),
-        errorInfo: message.metadata?['errorInfo'] as String?,
-      );
-
-      // 记录已保存的消息ID
-      _persistedMessageIds[message.id] = DateTime.now();
+      // 使用MessageRepository统一保存消息，Repository层会处理重复检测
+      await _messageRepository.saveMessage(message);
 
       _logger.info('消息持久化成功', {
         'messageId': message.id,
         'conversationId': conversationId,
-        'totalPersistedMessages': _persistedMessageIds.length,
       });
     } catch (error) {
-      // 检查是否是重复ID错误
-      final errorString = error.toString().toLowerCase();
-      if (errorString.contains('unique constraint failed') &&
-          errorString.contains('messages.id')) {
-        _logger.warning('消息ID重复，可能已被其他进程保存', {
-          'messageId': message.id,
-          'conversationId': conversationId,
-          'error': error.toString(),
-        });
-
-        // 将ID添加到已保存集合中，避免后续重复尝试
-        _persistedMessageIds[message.id] = DateTime.now();
-
-        // 对于重复ID错误，不重新抛出，因为消息已经存在
-        return;
-      }
-
       _logger.error('消息持久化失败', {
         'messageId': message.id,
         'conversationId': conversationId,
         'error': error.toString(),
       });
 
-      // 对于其他错误，重新抛出
+      // 重新抛出错误，让上层处理
       rethrow;
     }
   }
@@ -836,25 +731,7 @@ class ChatOrchestratorService {
   /// 获取性能指标
   ChatPerformanceMetrics get performanceMetrics => _performanceMetrics;
 
-  /// 转换新的MessageStatus到旧的LegacyMessageStatus
-  LegacyMessageStatus _convertToLegacyStatus(MessageStatus status) {
-    switch (status) {
-      case MessageStatus.userSuccess:
-      case MessageStatus.aiSuccess:
-      case MessageStatus.system:
-        return LegacyMessageStatus.normal;
-      case MessageStatus.aiProcessing:
-        return LegacyMessageStatus.streaming;
-      case MessageStatus.aiPending:
-        return LegacyMessageStatus.sending;
-      case MessageStatus.aiError:
-        return LegacyMessageStatus.failed;
-      case MessageStatus.aiPaused:
-        return LegacyMessageStatus.sending; // 暂停状态映射为发送中
-      case MessageStatus.temporary:
-        return LegacyMessageStatus.temporary;
-    }
-  }
+
 
   /// 清理资源 - 优化版本，完整的资源清理
   Future<void> dispose() async {
@@ -871,7 +748,6 @@ class ChatOrchestratorService {
 
     // 清理缓存
     _contentCache.clear();
-    _persistedMessageIds.clear();
 
     // 重置统计信息
     _statistics = const ChatStatistics();

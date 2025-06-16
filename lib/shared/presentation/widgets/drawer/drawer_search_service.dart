@@ -224,10 +224,10 @@ class DrawerSearchService {
       final sortedResults = uniqueConversations.values.toList();
       sortedResults.sort((a, b) {
         final aTime = a.messages.isNotEmpty
-            ? a.messages.last.timestamp
+            ? a.messages.last.createdAt
             : DateTime.fromMillisecondsSinceEpoch(0);
         final bTime = b.messages.isNotEmpty
-            ? b.messages.last.timestamp
+            ? b.messages.last.createdAt
             : DateTime.fromMillisecondsSinceEpoch(0);
         return bTime.compareTo(aTime); // 降序排列
       });
@@ -254,12 +254,12 @@ class DrawerSearchService {
     // 检查助手数据的加载状态
     try {
       final allAssistants = _ref.read(aiAssistantsProvider);
-      _logger.debug('所有助手数量: ${allAssistants.length}');
+      // _logger.debug('所有助手数量: ${allAssistants.length}');
       final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
-      _logger.debug('启用的助手数量: ${enabledAssistants.length}');
-      for (final assistant in enabledAssistants) {
-        _logger.debug('启用的助手: ${assistant.id} - ${assistant.name}');
-      }
+      // _logger.debug('启用的助手数量: ${enabledAssistants.length}');
+      // for (final assistant in enabledAssistants) {
+        // _logger.debug('启用的助手: ${assistant.id} - ${assistant.name}');
+      // }
 
       if (enabledAssistants.isEmpty) {
         _logger.warning('没有可用助手，等待数据加载...');

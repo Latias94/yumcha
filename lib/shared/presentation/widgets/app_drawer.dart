@@ -7,9 +7,7 @@ import '../../../features/chat/domain/entities/conversation_ui_state.dart';
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/chat/presentation/providers/unified_chat_notifier.dart';
 import '../providers/conversation_title_notifier.dart';
-import '../../../features/chat/domain/entities/message.dart';
-import '../../../features/chat/domain/entities/message_block.dart';
-import '../../../features/chat/domain/entities/message_status.dart';
+
 import '../../infrastructure/services/notification_service.dart';
 import '../../infrastructure/services/logger_service.dart';
 import '../providers/dependency_providers.dart';
@@ -218,28 +216,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       // 使用标题管理器重新生成标题
       final titleNotifier = ref.read(conversationTitleNotifierProvider.notifier);
 
-      // 将ConversationUiState的消息转换为Message格式
-      final messages = conversation.messages.map((legacyMsg) {
-        return Message(
-          id: legacyMsg.id ?? '',
-          conversationId: conversation.id,
-          role: legacyMsg.isFromUser ? 'user' : 'assistant',
-          assistantId: '', // 这里可以从conversation获取
-          blockIds: ['${legacyMsg.id}_text_block'],
-          status: legacyMsg.isFromUser ? MessageStatus.userSuccess : MessageStatus.aiSuccess,
-          createdAt: legacyMsg.timestamp,
-          updatedAt: legacyMsg.timestamp,
-          blocks: [
-            MessageBlock.text(
-              id: '${legacyMsg.id}_text_block',
-              messageId: legacyMsg.id ?? '',
-              content: legacyMsg.content,
-            ),
-          ],
-        );
-      }).toList();
-
-      await titleNotifier.regenerateTitle(conversation.id, messages);
+      // 直接使用conversation.messages，因为现在已经是Message类型
+      await titleNotifier.regenerateTitle(conversation.id, conversation.messages);
 
       NotificationService().showSuccess('标题重新生成成功');
 

@@ -290,9 +290,9 @@ class MultimodalProcessor implements MessageProcessor {
     ChatMessageContent content,
     Map<String, dynamic>? params,
   ) async {
-    // TODO: 实现多模态API调用
-    // 这里应该调用实际的多模态服务
-    return MessageProcessingResult.failure('多模态处理器尚未实现');
+    // 多模态API调用 - 需要根据具体的AI提供商实现
+    // 当前版本暂不支持多模态处理
+    return MessageProcessingResult.failure('多模态处理器暂不支持');
   }
 }
 
@@ -319,9 +319,9 @@ class CloudUploadProcessor implements MessageProcessor {
       return MessageProcessingResult.failure('只支持文件内容');
     }
 
-    // TODO: 实现云上传逻辑
-    // 这里应该调用实际的云上传服务
-    return MessageProcessingResult.failure('云上传处理器尚未实现');
+    // 云上传逻辑 - 需要根据具体的云服务提供商实现
+    // 当前版本暂不支持云上传功能
+    return MessageProcessingResult.failure('云上传处理器暂不支持');
   }
 }
 

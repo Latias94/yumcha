@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/message.dart';
 import '../../../domain/entities/message_status.dart' as msg_status;
 import '../../providers/unified_chat_notifier.dart';
-import '../../providers/chat_providers.dart';
 import '../../widgets/message_view_adapter.dart';
+import '../../providers/chat_providers.dart';
 import 'chat_suggestions_view.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
@@ -206,24 +206,14 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
                             right: DesignConstants.spaceS,
                             bottom: DesignConstants.spaceS,
                           ),
-                          child: Consumer(
-                            builder: (context, ref, child) {
-                              // 获取聊天设置以决定使用哪种视图
-                              final chatSettings = ref.watch(chatSettingsProvider);
-
-                              // 使用适配器组件来渲染消息
-                              return MessageViewAdapter(
-                                message: message,
-                                useBlockView: chatSettings.enableBlockView,
-                                isWelcomeMessage: isWelcomeMessage,
-                                onEdit: canEdit
-                                    ? () => widget.onEditMessage?.call(message)
-                                    : null,
-                                onRegenerate: canRegenerate
-                                    ? () => widget.onRegenerateMessage?.call(message)
-                                    : null,
-                              );
-                            },
+                          child: _OptimizedMessageItem(
+                            key: ValueKey(message.id),
+                            message: message,
+                            isWelcomeMessage: isWelcomeMessage,
+                            canEdit: canEdit,
+                            canRegenerate: canRegenerate,
+                            onEdit: widget.onEditMessage,
+                            onRegenerate: widget.onRegenerateMessage,
                           ),
                         );
                       },
@@ -439,6 +429,44 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
       _scrollController.position.maxScrollExtent,
       duration: duration,
       curve: Curves.easeOut,
+    );
+  }
+}
+
+/// 优化的消息项组件
+///
+/// 减少不必要的Provider监听，提升渲染性能
+class _OptimizedMessageItem extends ConsumerWidget {
+  const _OptimizedMessageItem({
+    super.key,
+    required this.message,
+    required this.isWelcomeMessage,
+    required this.canEdit,
+    required this.canRegenerate,
+    this.onEdit,
+    this.onRegenerate,
+  });
+
+  final Message message;
+  final bool isWelcomeMessage;
+  final bool canEdit;
+  final bool canRegenerate;
+  final Function(Message)? onEdit;
+  final Function(Message)? onRegenerate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 只监听聊天设置，避免监听整个聊天状态
+    final chatSettings = ref.watch(chatSettingsProvider);
+
+    return RepaintBoundary(
+      child: MessageViewAdapter(
+        message: message,
+        useBlockView: chatSettings.enableBlockView,
+        isWelcomeMessage: isWelcomeMessage,
+        onEdit: canEdit ? () => onEdit?.call(message) : null,
+        onRegenerate: canRegenerate ? () => onRegenerate?.call(message) : null,
+      ),
     );
   }
 }

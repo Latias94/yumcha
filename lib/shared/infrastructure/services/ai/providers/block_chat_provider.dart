@@ -167,22 +167,5 @@ BlockChatParams convertFromEnhancedChatParams({
   );
 }
 
-/// 兼容性：支持旧的增强聊天接口，但使用新的块化服务
-@Deprecated('使用 blockChatProvider 替代')
-final legacyEnhancedChatProvider = FutureProvider.autoDispose.family<Message, dynamic>((
-  ref,
-  params,
-) async {
-  // 这里可以添加从旧参数到新参数的转换逻辑
-  throw UnimplementedError('请使用 blockChatProvider 替代');
-});
-
-/// 兼容性：支持旧的增强聊天流式接口，但使用新的块化服务
-@Deprecated('使用 blockChatStreamProvider 替代')
-final legacyEnhancedChatStreamProvider = StreamProvider.autoDispose.family<Message, dynamic>((
-  ref,
-  params,
-) {
-  // 这里可以添加从旧参数到新参数的转换逻辑
-  throw UnimplementedError('请使用 blockChatStreamProvider 替代');
-});
+// 已清理废弃的兼容性Provider - 2025-06-16
+// 这些Provider已不再需要，所有功能已迁移到新的块化架构

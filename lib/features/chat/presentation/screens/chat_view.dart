@@ -142,8 +142,11 @@ class _ChatViewState extends ConsumerState<ChatView>
   Widget build(BuildContext context) {
     super.build(context); // for AutomaticKeepAliveClientMixin
 
-    // 监听统一聊天状态
-    final unifiedChatState = ref.watch(unifiedChatProvider);
+    // 优化：使用细粒度监听，减少不必要的重建
+    final messages = ref.watch(chatMessagesProvider);
+    final isLoading = ref.watch(chatLoadingStateProvider);
+    final hasStreaming = ref.watch(hasStreamingMessagesProvider);
+    final isReady = ref.watch(chatReadyStateProvider);
     final assistants = ref.watch(aiAssistantsProvider);
     final providers = ref.watch(aiProvidersProvider);
 
@@ -156,26 +159,34 @@ class _ChatViewState extends ConsumerState<ChatView>
 
     // 使用 SizedBox.expand 确保在 Scaffold.body 中正确布局
     return SizedBox.expand(
-      child: _buildChatContent(unifiedChatState),
+      child: _buildChatContent(
+        messages: messages,
+        isLoading: isLoading,
+        hasStreaming: hasStreaming,
+        isReady: isReady,
+      ),
     );
   }
 
-  /// 构建聊天内容
-  Widget _buildChatContent(UnifiedChatState chatState) {
+  /// 构建聊天内容（优化版本，使用传入的状态参数）
+  Widget _buildChatContent({
+    required List<Message> messages,
+    required bool isLoading,
+    required bool hasStreaming,
+    required bool isReady,
+  }) {
     return Column(
       children: [
         // 聊天历史
         Expanded(
           child: ChatHistoryView(
             conversationId: widget.conversationId,
-            onEditMessage:
-                !chatState.messageState.hasStreamingMessages ? _onEditMessage : null,
-            onRegenerateMessage:
-                !chatState.messageState.hasStreamingMessages ? _onRegenerateMessage : null,
+            onEditMessage: !hasStreaming ? _onEditMessage : null,
+            onRegenerateMessage: !hasStreaming ? _onRegenerateMessage : null,
             onSelectSuggestion: _onSelectSuggestion,
             initialMessageId: widget.initialMessageId,
-            isLoading: chatState.isLoading,
-            isStreaming: chatState.messageState.hasStreamingMessages,
+            isLoading: isLoading,
+            isStreaming: hasStreaming,
             welcomeMessage: widget.welcomeMessage,
             suggestions: widget.suggestions,
           ),
@@ -186,7 +197,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           initialMessage: _editingMessage,
           autofocus: widget.suggestions.isEmpty,
           onSendMessage: _onSendMessageRequest,
-          onCancelMessage: chatState.messageState.hasStreamingMessages
+          onCancelMessage: hasStreaming
               ? () {
                   if (mounted) {
                     ref.read(unifiedChatProvider.notifier).cancelStreaming();
@@ -194,7 +205,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                 }
               : null,
           onCancelEdit: _editingMessage != null ? _onCancelEdit : null,
-          isLoading: chatState.isLoading,
+          isLoading: isLoading,
           onAssistantChanged: (assistant) {
             // 使用统一状态管理选择助手
             if (mounted) {
@@ -322,12 +333,12 @@ class _ChatViewState extends ConsumerState<ChatView>
     final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
 
     if (_editingMessage != null) {
-      // TODO: 实现删除消息功能
+      // 消息删除功能将在后续版本中实现
       // unifiedChatNotifier.deleteMessage(_editingMessage!.id);
     }
 
     if (_originalAssistantMessage != null) {
-      // TODO: 实现删除消息功能
+      // 消息删除功能将在后续版本中实现
       // unifiedChatNotifier.deleteMessage(_originalAssistantMessage!.id);
     }
 
@@ -392,7 +403,7 @@ class _ChatViewState extends ConsumerState<ChatView>
 
     try {
       // 1. 清除AI消息内容（设为空内容，保持消息结构）
-      // TODO: 实现更新消息内容的功能
+      // 消息内容更新功能将在后续版本中实现
       // unifiedChatNotifier.updateMessageContent(aiMessage.id!, '');
 
       // 2. 获取当前聊天上下文（除去要重新生成的AI消息）

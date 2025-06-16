@@ -46,7 +46,7 @@ class MessageSearchResultItem extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    _formatTime(result.message.timestamp),
+                    _formatTime(result.message.createdAt),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -81,7 +81,7 @@ class MessageSearchResultItem extends StatelessWidget {
                   ),
                   SizedBox(width: DesignConstants.spaceXS),
                   Text(
-                    result.message.isFromUser ? '用户' : result.message.author,
+                    result.message.isFromUser ? '用户' : 'AI助手',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),

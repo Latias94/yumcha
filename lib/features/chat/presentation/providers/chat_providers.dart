@@ -1,9 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/message_repository_impl.dart';
 import '../../domain/repositories/message_repository.dart';
-import '../../domain/services/block_chat_service.dart';
 import '../../../ai_management/presentation/providers/unified_ai_management_providers.dart';
-import '../../../../shared/infrastructure/services/ai/providers/ai_service_provider.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 /// 消息仓库Provider
@@ -13,17 +11,6 @@ final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   return MessageRepositoryImpl(database);
 });
 
-/// 域层块化聊天服务Provider
-/// 提供核心的聊天功能服务（域层服务，不同于基础设施层的BlockBasedChatService）
-final domainBlockChatServiceProvider = Provider<BlockChatService>((ref) {
-  final messageRepository = ref.watch(messageRepositoryProvider);
-  final chatService = ref.watch(aiChatServiceProvider);
-
-  return BlockChatService(
-    messageRepository: messageRepository,
-    chatService: chatService,
-  );
-});
 
 /// 聊天设置Provider
 /// 管理聊天相关的设置选项（区别于聊天配置Provider）

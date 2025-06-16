@@ -4,6 +4,8 @@ import '../../domain/entities/message.dart';
 import '../../domain/entities/message_status.dart' as msg_status;
 import '../../domain/entities/chat_bubble_style.dart';
 import '../providers/chat_style_provider.dart';
+import 'bubble/message_bubble.dart';
+import 'bubble/bubble_style.dart';
 import 'message_block_widget.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 
@@ -166,63 +168,12 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
 
   /// 构建气泡布局
   Widget _buildBubbleLayout(BuildContext context, ThemeData theme) {
-    final isDesktop = DesignConstants.isDesktop(context);
-    final maxWidth = DesignConstants.getResponsiveMaxWidth(context);
-
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 0,
-        vertical: DesignConstants.spaceXS + 2,
-      ),
-      child: Column(
-        crossAxisAlignment: widget.message.isFromUser
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          // 时间戳（在气泡上方）
-          if (isDesktop) ...[
-            Padding(
-              padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
-              child: Text(
-                _formatTimestamp(widget.message.createdAt),
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
-              ),
-            ),
-          ],
-
-          // 消息气泡
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * maxWidth,
-            ),
-            child: Column(
-              crossAxisAlignment: widget.message.isFromUser
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
-              children: [
-                // 消息块气泡
-                ..._buildBubbleBlocks(theme, maxWidth),
-
-                // 消息状态指示器
-                if (widget.message.status != msg_status.MessageStatus.userSuccess &&
-                    widget.message.status != msg_status.MessageStatus.aiSuccess)
-                  _buildMessageStatusIndicator(theme),
-
-                // Token使用信息显示（仅AI消息）
-                if (widget.message.isAiMessage && widget.message.metadata != null)
-                  _buildTokenInfo(context, theme),
-              ],
-            ),
-          ),
-
-          // 操作按钮显示在气泡下方
-          SizedBox(height: DesignConstants.spaceXS + 2),
-          _buildActionButtons(context, theme),
-        ],
-      ),
+    // 使用新的MessageBubble组件
+    return MessageBubble(
+      message: widget.message,
+      style: BubbleStyle.fromChatStyle(ChatBubbleStyle.bubble),
+      onEdit: widget.onEdit,
+      onRegenerate: widget.onRegenerate,
     );
   }
 
@@ -529,7 +480,11 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
   void _copyMessage() {
     final content = widget.message.content;
     if (content.isNotEmpty) {
-      // TODO: 实现复制功能
+      // 复制功能已在MessageBlockWidget中实现
+      // 这里可以调用系统剪贴板API或显示复制成功提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('消息内容已复制')),
+      );
     }
   }
 

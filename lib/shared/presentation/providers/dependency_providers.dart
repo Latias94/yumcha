@@ -10,7 +10,7 @@ import '../../../features/chat/data/repositories/conversation_repository.dart';
 import '../../../features/chat/domain/repositories/message_repository.dart';
 import '../../../features/chat/data/repositories/message_repository_impl.dart';
 import '../../../features/chat/infrastructure/services/chat_error_handler.dart';
-import '../../../features/chat/infrastructure/services/enhanced_message_migration_service.dart';
+
 import '../../data/database/repositories/setting_repository.dart';
 import '../../infrastructure/services/media/media_storage_service.dart';
 
@@ -87,7 +87,8 @@ final favoriteModelRepositoryProvider =
 /// 通过依赖注入获取数据库实例，创建ConversationRepository。
 final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
   final database = ref.watch(databaseProvider);
-  return ConversationRepository(database);
+  final messageRepository = ref.watch(messageRepositoryProvider);
+  return ConversationRepository(database, messageRepository);
 });
 
 /// 设置Repository Provider
@@ -113,12 +114,7 @@ final mediaStorageServiceProvider = Provider<MediaStorageService>((ref) {
   return MediaStorageService();
 });
 
-/// 增强消息迁移服务Provider
-///
-/// 提供EnhancedMessage到块化消息系统的迁移功能。
-final enhancedMessageMigrationServiceProvider = Provider<EnhancedMessageMigrationService>((ref) {
-  return EnhancedMessageMigrationService();
-});
+
 
 // 注意：blockBasedChatServiceProvider 已在
 // lib/shared/infrastructure/services/ai/providers/block_chat_provider.dart 中定义

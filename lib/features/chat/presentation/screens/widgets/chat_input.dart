@@ -115,9 +115,25 @@ class _ChatInputState extends ConsumerState<ChatInput>
       final assistantRepository = ref.read(assistantRepositoryProvider);
       final preferenceService = ref.read(preferenceServiceProvider);
 
+      // 检查当前是否已经有有效的助手配置
+      final currentChatState = ref.read(unifiedChatProvider);
+      final currentAssistant = currentChatState.configuration.selectedAssistant;
+
+      // 如果已经有有效的助手配置，且不是通过initialAssistantId强制指定的，则跳过初始化
+      if (currentAssistant != null &&
+          currentAssistant.isEnabled &&
+          (widget.initialAssistantId == null || widget.initialAssistantId!.isEmpty)) {
+        return;
+      }
+
       // 1. 优先使用传入的初始值
       if (widget.initialAssistantId != null &&
           widget.initialAssistantId!.isNotEmpty) {
+        // 检查是否与当前助手相同，避免重复设置
+        if (currentAssistant?.id == widget.initialAssistantId) {
+          return;
+        }
+
         final assistant = await assistantRepository.getAssistant(
           widget.initialAssistantId!,
         );
@@ -132,6 +148,11 @@ class _ChatInputState extends ConsumerState<ChatInput>
       final lastUsedAssistantId =
           await preferenceService.getLastUsedAssistantId();
       if (lastUsedAssistantId != null) {
+        // 检查是否与当前助手相同，避免重复设置
+        if (currentAssistant?.id == lastUsedAssistantId) {
+          return;
+        }
+
         final assistant = await assistantRepository.getAssistant(
           lastUsedAssistantId,
         );
@@ -142,12 +163,14 @@ class _ChatInputState extends ConsumerState<ChatInput>
         }
       }
 
-      // 3. 选择第一个可用的助手
-      final success = await _selectFirstAvailableAssistant();
-      if (!success) {
-        // 如果没有可用的助手，通知用户
-        if (mounted) {
-          NotificationService().showError('没有可用的AI助手配置，请先在设置中配置助手');
+      // 3. 选择第一个可用的助手（仅在没有当前助手时）
+      if (currentAssistant == null) {
+        final success = await _selectFirstAvailableAssistant();
+        if (!success) {
+          // 如果没有可用的助手，通知用户
+          if (mounted) {
+            NotificationService().showError('没有可用的AI助手配置，请先在设置中配置助手');
+          }
         }
       }
     } catch (e) {
@@ -193,11 +216,17 @@ class _ChatInputState extends ConsumerState<ChatInput>
       _isComposing = _textController.text.trim().isNotEmpty;
     }
 
-    // 当传入的助手改变时更新选择
+    // 当传入的助手改变时更新选择（仅在真正改变时才调用）
     if (widget.initialAssistantId != oldWidget.initialAssistantId) {
       if (widget.initialAssistantId != null &&
-          widget.initialAssistantId!.isNotEmpty) {
-        _initializeDefaultAssistant();
+          widget.initialAssistantId!.isNotEmpty &&
+          widget.initialAssistantId != oldWidget.initialAssistantId) {
+        // 延迟调用，避免在build过程中修改状态
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _initializeDefaultAssistant();
+          }
+        });
       }
     }
   }

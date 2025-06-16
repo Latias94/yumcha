@@ -285,7 +285,7 @@ class SearchResultsNotifier extends AsyncNotifier<SearchResults> {
           assistantId: conversation.assistantId ?? '',
           assistantName: assistantName,
           lastMessageAt: conversation.messages.isNotEmpty
-              ? conversation.messages.first.timestamp
+              ? conversation.messages.first.createdAt
               : DateTime.now(),
           messageCount: conversation.messages.length,
         ),

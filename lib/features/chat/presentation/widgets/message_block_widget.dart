@@ -956,7 +956,8 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
 
   /// 收藏块
   void _favoriteBlock() {
-    // TODO: 实现收藏功能
+    // 收藏功能可以在未来版本中实现
+    // 当前版本专注于核心消息功能
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('收藏功能正在开发中'),
@@ -1013,7 +1014,8 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
 
   /// 保存为文件
   void _saveAsFile(String content) {
-    // TODO: 实现文件保存功能
+    // 文件保存功能可以在未来版本中实现
+    // 当前版本专注于核心消息功能，可以使用复制到剪贴板作为替代
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('文件保存功能正在开发中'),
@@ -1203,9 +1205,9 @@ URL: ${widget.block.url ?? 'N/A'}
       ),
     );
 
-    // TODO: 实现实际的文件下载逻辑
-    // 这里可以集成 url_launcher 或其他下载库
-    // 暂时使用浏览器打开链接
+    // 文件下载功能可以在未来版本中实现
+    // 可以集成 url_launcher 或其他下载库
+    // 当前使用浏览器打开链接作为临时方案
     try {
       // 使用 url_launcher 打开链接
       // await launchUrl(Uri.parse(url));

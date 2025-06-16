@@ -148,8 +148,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
   @override
   Widget build(BuildContext context) {
     super.build(context); // 必须调用，用于AutomaticKeepAliveClientMixin
-    final chatSettings = ref.watch(chatSettingsProvider);
-    
+
     if (widget.messages.isEmpty && widget.welcomeMessage != null) {
       return _buildWelcomeMessage();
     }
@@ -179,7 +178,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
                 final messageIndex = widget.messages.length - 1 - index;
                 final message = widget.messages[messageIndex];
                 
-                return _buildMessageItem(message, chatSettings);
+                return _buildMessageItem(message);
               },
               childCount: widget.messages.length,
               findChildIndexCallback: (Key key) {
@@ -216,61 +215,23 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
     );
   }
 
-  /// 构建消息项 - 增强版本，支持内容哈希缓存和LRU清理
-  Widget _buildMessageItem(Message message, ChatSettings chatSettings) {
-    final cacheKey = '${message.id}_${chatSettings.enableBlockView}';
-    final contentHash = _generateMessageContentHash(message, chatSettings);
-
-    // 检查缓存
-    final cachedWidget = _cachedWidgets[cacheKey];
-    if (cachedWidget != null && cachedWidget.contentHash == contentHash) {
-      // 更新访问时间
-      _cachedWidgets[cacheKey] = cachedWidget.withUpdatedAccess();
-      return cachedWidget.widget;
-    }
-
+  /// 构建消息项 - 优化版本，减少Provider监听
+  Widget _buildMessageItem(Message message) {
     // 记录渲染开始时间
     _renderTimes[message.id] = DateTime.now();
 
-    final widget = RepaintBoundary(
+    return _OptimizedVirtualizedMessageItem(
       key: ValueKey(message.id),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: MessageViewAdapter(
-          message: message,
-          useBlockView: chatSettings.enableBlockView,
-          onEdit: this.widget.onEditMessage != null
-            ? () => this.widget.onEditMessage!(message)
-            : null,
-          onRegenerate: this.widget.onRegenerateMessage != null
-            ? () => this.widget.onRegenerateMessage!(message)
-            : null,
-          onDelete: this.widget.onDeleteMessage != null
-            ? () => this.widget.onDeleteMessage!(message)
-            : null,
-        ),
-      ),
+      message: message,
+      onEdit: widget.onEditMessage,
+      onRegenerate: widget.onRegenerateMessage,
+      onDelete: widget.onDeleteMessage,
+      cachedWidgets: _cachedWidgets,
+      onCacheUpdate: _cacheWidget,
     );
-
-    // 缓存组件（使用LRU策略）
-    _cacheWidget(cacheKey, widget, contentHash);
-
-    return widget;
   }
 
-  /// 生成消息内容哈希
-  String _generateMessageContentHash(Message message, ChatSettings chatSettings) {
-    final hashComponents = [
-      message.id,
-      message.content,
-      message.role,
-      message.status.name,
-      message.blocks.length.toString(),
-      chatSettings.enableBlockView.toString(),
-      message.updatedAt?.millisecondsSinceEpoch.toString() ?? '',
-    ];
-    return hashComponents.join('|').hashCode.toString();
-  }
+
 
   /// 缓存组件（LRU策略）
   void _cacheWidget(String key, Widget widget, String contentHash) {
@@ -436,5 +397,77 @@ class MessageListPerformanceMonitor {
   static void clear() {
     _renderTimes.clear();
     _renderCounts.clear();
+  }
+}
+
+/// 优化的虚拟化消息项组件
+///
+/// 减少Provider监听，提升渲染性能
+class _OptimizedVirtualizedMessageItem extends ConsumerWidget {
+  const _OptimizedVirtualizedMessageItem({
+    super.key,
+    required this.message,
+    required this.cachedWidgets,
+    required this.onCacheUpdate,
+    this.onEdit,
+    this.onRegenerate,
+    this.onDelete,
+  });
+
+  final Message message;
+  final Map<String, _CachedMessageWidget> cachedWidgets;
+  final Function(String, Widget, String) onCacheUpdate;
+  final Function(Message)? onEdit;
+  final Function(Message)? onRegenerate;
+  final Function(Message)? onDelete;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 只监听聊天设置，避免监听整个聊天状态
+    final chatSettings = ref.watch(chatSettingsProvider);
+
+    final cacheKey = '${message.id}_${chatSettings.enableBlockView}';
+    final contentHash = _generateMessageContentHash(message, chatSettings);
+
+    // 检查缓存
+    final cachedWidget = cachedWidgets[cacheKey];
+    if (cachedWidget != null && cachedWidget.contentHash == contentHash) {
+      // 更新访问时间
+      cachedWidgets[cacheKey] = cachedWidget.withUpdatedAccess();
+      return cachedWidget.widget;
+    }
+
+    // 构建新的组件
+    final widget = RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: MessageViewAdapter(
+          message: message,
+          useBlockView: chatSettings.enableBlockView,
+          onEdit: onEdit != null ? () => onEdit!(message) : null,
+          onRegenerate: onRegenerate != null ? () => onRegenerate!(message) : null,
+          onDelete: onDelete != null ? () => onDelete!(message) : null,
+        ),
+      ),
+    );
+
+    // 缓存组件
+    onCacheUpdate(cacheKey, widget, contentHash);
+
+    return widget;
+  }
+
+  /// 生成消息内容哈希
+  String _generateMessageContentHash(Message message, ChatSettings chatSettings) {
+    final hashComponents = [
+      message.id,
+      message.content,
+      message.role,
+      message.status.name,
+      message.blocks.length.toString(),
+      chatSettings.enableBlockView.toString(),
+      message.updatedAt.millisecondsSinceEpoch.toString(),
+    ];
+    return hashComponents.join('|').hashCode.toString();
   }
 }

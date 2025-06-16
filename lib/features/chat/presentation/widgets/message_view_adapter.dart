@@ -1,19 +1,21 @@
+import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/message.dart';
-import '../../domain/entities/legacy_message.dart';
 import '../../domain/entities/message_block.dart';
-import '../../domain/entities/message_block_type.dart';
-import '../../domain/entities/message_status.dart' as new_status;
-import '../../domain/entities/message_metadata.dart';
+import '../../domain/entities/chat_bubble_style.dart';
 import '../providers/chat_providers.dart';
+import '../providers/chat_style_provider.dart';
 import 'block_message_view.dart';
 import '../screens/widgets/chat_message_view.dart';
+import 'bubble/message_bubble.dart';
+import 'bubble/bubble_style.dart';
 
 /// 消息视图适配器
-/// 
-/// 在重构期间提供新旧消息组件之间的兼容性
-/// 根据配置决定使用块化消息组件还是传统消息组件
+///
+/// 统一的消息显示组件，根据配置选择合适的视图样式
+/// 支持块化消息架构和多种显示样式
 class MessageViewAdapter extends ConsumerWidget {
   const MessageViewAdapter({
     super.key,
@@ -25,8 +27,8 @@ class MessageViewAdapter extends ConsumerWidget {
     this.useBlockView = false, // 控制是否使用新的块化视图
   });
 
-  /// 消息对象（可能是新的Message或旧的LegacyMessage）
-  final dynamic message;
+  /// 消息对象（新的Message类）
+  final Message message;
 
   /// 编辑消息回调
   final VoidCallback? onEdit;
@@ -45,177 +47,72 @@ class MessageViewAdapter extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 检查是否启用块化视图
-    if (useBlockView && message is Message) {
-      return _buildBlockView(context, ref);
-    } else {
-      return _buildLegacyView(context, ref);
+    final chatStyle = ref.watch(currentChatStyleProvider);
+
+    // 在调试模式下显示视图类型信息
+    if (kDebugMode) {
+      print('MessageViewAdapter: useBlockView=$useBlockView, chatStyle=$chatStyle');
+      print('Message details: id=${message.id}, role=${message.role}, isFromUser=${message.isFromUser}, blocks=${message.blocks.length}');
+      print('Message content: ${message.content.substring(0, math.min(50, message.content.length))}');
+    }
+
+    // 根据聊天样式选择合适的视图
+    switch (chatStyle) {
+      case ChatBubbleStyle.bubble:
+        return _buildBubbleView(context, ref);
+      case ChatBubbleStyle.card:
+      case ChatBubbleStyle.list:
+        // 检查是否启用块化视图
+        if (useBlockView) {
+          return _buildBlockView(context, ref);
+        } else {
+          return _buildStandardView(context, ref);
+        }
     }
   }
 
-  /// 构建新的块化视图
+  /// 构建气泡视图（使用MessageBubble组件）
+  Widget _buildBubbleView(BuildContext context, WidgetRef ref) {
+    return MessageBubble(
+      message: message,
+      style: BubbleStyle.fromChatStyle(ChatBubbleStyle.bubble),
+      onEdit: onEdit,
+      onRegenerate: onRegenerate,
+    );
+  }
+
+  /// 构建块化视图
   Widget _buildBlockView(BuildContext context, WidgetRef ref) {
-    final blockMessage = message as Message;
-    
     return BlockMessageView(
-      message: blockMessage,
+      message: message,
       onEdit: onEdit,
       onRegenerate: onRegenerate,
       onBlockEdit: (blockId) {
-        // TODO: 实现块编辑功能
+        // 块编辑功能 - 通过消息级别的编辑实现
+        onEdit?.call();
       },
       onBlockDelete: (blockId) {
-        // TODO: 实现块删除功能
+        // 块删除功能 - 通过消息级别的操作实现
+        // 暂时不支持单独删除块
       },
       onBlockRegenerate: (blockId) {
-        // TODO: 实现块重新生成功能
+        // 块重新生成功能 - 通过消息级别的重新生成实现
+        onRegenerate?.call();
       },
       isEditable: false, // 暂时禁用编辑功能
     );
   }
 
-  /// 构建传统视图
-  Widget _buildLegacyView(BuildContext context, WidgetRef ref) {
-    LegacyMessage legacyMessage;
-    
-    if (message is Message) {
-      // 将新的Message转换为LegacyMessage
-      legacyMessage = _convertToLegacyMessage(message as Message);
-    } else if (message is LegacyMessage) {
-      legacyMessage = message as LegacyMessage;
-    } else {
-      // 处理其他类型的消息（向后兼容）
-      legacyMessage = _createFallbackLegacyMessage();
-    }
-
-    // 注意：ChatMessageView期望的是旧版Message类型，但我们传递的是LegacyMessage
-    // 这里需要创建一个兼容的Message对象
-    // 暂时使用dynamic类型来避免类型检查问题
+  /// 构建标准视图（使用ChatMessageView组件）
+  Widget _buildStandardView(BuildContext context, WidgetRef ref) {
     return ChatMessageView(
-      message: legacyMessage as dynamic,
+      message: message,
       onEdit: onEdit,
       onRegenerate: onRegenerate,
       isWelcomeMessage: isWelcomeMessage,
     );
   }
 
-  /// 将新的Message转换为LegacyMessage
-  LegacyMessage _convertToLegacyMessage(Message newMessage) {
-    // 提取主要文本内容
-    String content = '';
-    String? thinkingContent;
-    
-    for (final block in newMessage.blocks) {
-      switch (block.type) {
-        case MessageBlockType.mainText:
-          content = block.content ?? '';
-          break;
-        case MessageBlockType.thinking:
-          thinkingContent = block.content;
-          break;
-        case MessageBlockType.error:
-          content += '\n\n❌ 错误: ${block.content ?? ''}';
-          break;
-        case MessageBlockType.code:
-          final language = block.language ?? '';
-          content += '\n\n```$language\n${block.content ?? ''}\n```';
-          break;
-        case MessageBlockType.tool:
-          final toolName = block.toolName ?? '工具';
-          content += '\n\n🔧 $toolName: ${block.content ?? ''}';
-          break;
-        case MessageBlockType.image:
-          content += '\n\n🖼️ [图片: ${block.content ?? ''}]';
-          break;
-        case MessageBlockType.file:
-          content += '\n\n📎 [文件: ${block.content ?? ''}]';
-          break;
-        case MessageBlockType.citation:
-          content += '\n\n📚 引用: ${block.content ?? ''}';
-          break;
-        case MessageBlockType.translation:
-          content += '\n\n🌐 翻译: ${block.content ?? ''}';
-          break;
-        case MessageBlockType.unknown:
-          content += '\n\n❓ 未知内容: ${block.content ?? ''}';
-          break;
-      }
-    }
-
-    // 如果有思考过程，添加到内容前面
-    if (thinkingContent != null && thinkingContent.isNotEmpty) {
-      content = '<think>$thinkingContent</think>\n\n$content';
-    }
-
-    // 转换状态
-    LegacyMessageStatus legacyStatus;
-    switch (newMessage.status) {
-      case new_status.MessageStatus.userSuccess:
-        legacyStatus = LegacyMessageStatus.normal;
-        break;
-      case new_status.MessageStatus.aiProcessing:
-        legacyStatus = LegacyMessageStatus.streaming;
-        break;
-      case new_status.MessageStatus.aiPending:
-        legacyStatus = LegacyMessageStatus.sending;
-        break;
-      case new_status.MessageStatus.aiSuccess:
-        legacyStatus = LegacyMessageStatus.normal;
-        break;
-      case new_status.MessageStatus.aiError:
-        legacyStatus = LegacyMessageStatus.error;
-        break;
-      case new_status.MessageStatus.aiPaused:
-        legacyStatus = LegacyMessageStatus.failed;
-        break;
-      case new_status.MessageStatus.system:
-        legacyStatus = LegacyMessageStatus.system;
-        break;
-      case new_status.MessageStatus.temporary:
-        legacyStatus = LegacyMessageStatus.temporary;
-        break;
-    }
-
-    return LegacyMessage(
-      id: newMessage.id,
-      author: newMessage.isFromUser ? 'User' : 'Assistant',
-      content: content,
-      timestamp: newMessage.createdAt,
-      isFromUser: newMessage.isFromUser,
-      status: legacyStatus,
-      metadata: _convertMetadata(newMessage.metadata),
-    );
-  }
-
-  /// 转换元数据
-  MessageMetadata? _convertMetadata(Map<String, dynamic>? metadata) {
-    if (metadata == null) return null;
-
-    final usage = metadata['usage'] as Map<String, dynamic>?;
-    final duration = metadata['duration'] as int?;
-
-    return MessageMetadata(
-      totalDurationMs: duration,
-      tokenUsage: usage != null ? TokenUsage(
-        totalTokens: usage['totalTokens'] as int? ?? 0,
-        promptTokens: usage['promptTokens'] as int? ?? 0,
-        completionTokens: usage['completionTokens'] as int? ?? 0,
-      ) : null,
-      hasThinking: metadata['hasThinking'] as bool? ?? false,
-      hasToolCalls: metadata['hasToolCalls'] as bool? ?? false,
-    );
-  }
-
-  /// 创建回退的LegacyMessage
-  LegacyMessage _createFallbackLegacyMessage() {
-    return LegacyMessage(
-      author: 'System',
-      content: '消息格式不兼容',
-      timestamp: DateTime.now(),
-      isFromUser: false,
-      status: LegacyMessageStatus.error,
-    );
-  }
 }
 
 /// 消息视图配置Provider
@@ -254,7 +151,7 @@ class MessageViewConfig {
 }
 
 /// 便捷的消息视图组件
-/// 
+///
 /// 自动根据配置选择合适的视图
 class AdaptiveMessageView extends ConsumerWidget {
   const AdaptiveMessageView({
@@ -266,7 +163,7 @@ class AdaptiveMessageView extends ConsumerWidget {
     this.isWelcomeMessage = false,
   });
 
-  final dynamic message;
+  final Message message;
   final VoidCallback? onEdit;
   final VoidCallback? onRegenerate;
   final VoidCallback? onDelete;

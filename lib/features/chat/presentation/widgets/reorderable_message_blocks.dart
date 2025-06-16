@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/message_block.dart';
 import '../../domain/entities/message_block_type.dart';
-import '../providers/block_message_notifier.dart';
 import 'message_block_widget.dart';
 
 /// 可重排序的消息块列表

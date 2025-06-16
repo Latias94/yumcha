@@ -316,7 +316,7 @@ class DrawerConversationList extends ConsumerWidget {
 
     for (final conversation in conversations) {
       final timestamp = conversation.messages.isNotEmpty
-          ? conversation.messages.first.timestamp
+          ? conversation.messages.first.createdAt
           : DateTime.now();
 
       final groupKey = _getDateGroupTitle(timestamp);
@@ -370,7 +370,7 @@ class DrawerConversationList extends ConsumerWidget {
     Map<String, List<ConversationUiState>> groups,
   ) {
     final timestamp = conversation.messages.isNotEmpty
-        ? conversation.messages.first.timestamp
+        ? conversation.messages.first.createdAt
         : DateTime.now();
     final groupKey = _getDateGroupTitle(timestamp);
 
@@ -381,7 +381,7 @@ class DrawerConversationList extends ConsumerWidget {
     } else {
       final prevConversation = allItems[globalIndex - 1];
       final prevTimestamp = prevConversation.messages.isNotEmpty
-          ? prevConversation.messages.first.timestamp
+          ? prevConversation.messages.first.createdAt
           : DateTime.now();
       final prevGroupKey = _getDateGroupTitle(prevTimestamp);
       isFirstInGroup = groupKey != prevGroupKey;
@@ -526,7 +526,7 @@ class DrawerConversationList extends ConsumerWidget {
                         SizedBox(height: DesignConstants.spaceXS),
                         Text(
                           _getRelativeTime(
-                              conversation.messages.first.timestamp),
+                              conversation.messages.first.createdAt),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 12.0,

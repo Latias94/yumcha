@@ -7,12 +7,14 @@ import '../../domain/entities/message_block.dart';
 import '../../domain/entities/message_block_type.dart';
 import '../../domain/entities/message_status.dart' as msg_status;
 import '../../domain/entities/message_block_status.dart';
+import '../../domain/services/message_factory.dart';
 import '../../../../shared/data/database/database.dart';
 
 /// 消息仓库实现类
 class MessageRepositoryImpl implements MessageRepository {
   final AppDatabase _database;
   final _uuid = Uuid();
+  final _messageFactory = MessageFactory();
 
   MessageRepositoryImpl(this._database);
 
@@ -305,6 +307,182 @@ class MessageRepositoryImpl implements MessageRepository {
     ));
   }
 
+  @override
+  Future<void> saveMessage(Message message) async {
+    // 使用UPSERT操作，避免先查询再插入/更新的模式
+    await _upsertMessageWithBlocks(message);
+  }
+
+  /// 使用优化的保存策略保存或更新消息及其块
+  Future<void> _upsertMessageWithBlocks(Message message) async {
+    try {
+      // 1. 尝试插入消息，如果失败则更新
+      await _upsertMessage(message);
+
+      // 2. 批量处理消息块
+      if (message.blocks.isNotEmpty) {
+        await _batchUpsertMessageBlocks(message.blocks);
+      }
+    } catch (e) {
+      // 如果优化方式失败，回退到传统方式
+      await _fallbackSaveMessage(message);
+    }
+  }
+
+  /// 单个消息的UPSERT操作
+  Future<void> _upsertMessage(Message message) async {
+    try {
+      // 尝试插入
+      await _database.insertMessage(MessagesCompanion.insert(
+        id: message.id,
+        conversationId: message.conversationId,
+        role: message.role,
+        assistantId: message.assistantId,
+        createdAt: message.createdAt,
+        updatedAt: message.updatedAt,
+        status: Value(message.status.name),
+        modelId: Value(message.modelId),
+        metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
+        blockIds: Value(message.blockIds),
+      ));
+    } catch (e) {
+      // 如果插入失败（通常是主键冲突），则更新
+      await _database.updateMessage(message.id, MessagesCompanion(
+        status: Value(message.status.name),
+        updatedAt: Value(message.updatedAt),
+        metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
+        blockIds: Value(message.blockIds),
+      ));
+    }
+  }
+
+  /// 批量UPSERT消息块
+  Future<void> _batchUpsertMessageBlocks(List<MessageBlock> blocks) async {
+    for (final block in blocks) {
+      await _upsertMessageBlock(block);
+    }
+  }
+
+  /// 单个消息块的UPSERT操作
+  Future<void> _upsertMessageBlock(MessageBlock block) async {
+    try {
+      // 尝试插入
+      await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+        id: block.id,
+        messageId: block.messageId,
+        type: block.type.name,
+        createdAt: block.createdAt,
+        updatedAt: block.updatedAt ?? block.createdAt,
+        content: Value(block.content),
+        status: Value(block.status.name),
+        orderIndex: Value(0),
+        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+      ));
+    } catch (e) {
+      // 如果插入失败（通常是主键冲突），则更新
+      await _database.updateMessageBlock(block.id, MessageBlocksCompanion(
+        content: Value(block.content),
+        status: Value(block.status.name),
+        updatedAt: Value(block.updatedAt ?? DateTime.now()),
+        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+      ));
+    }
+  }
+
+  /// 回退保存方式（兼容性保证）
+  Future<void> _fallbackSaveMessage(Message message) async {
+    final existingMessage = await _database.getMessage(message.id);
+    if (existingMessage != null) {
+      await _updateExistingMessage(message);
+    } else {
+      await _saveMessageToDatabase(message);
+    }
+  }
+
+  /// 更新已存在的消息（保留用于兼容性）
+  Future<void> _updateExistingMessage(Message message) async {
+    // 更新消息记录
+    await _database.updateMessage(message.id, MessagesCompanion(
+      status: Value(message.status.name),
+      updatedAt: Value(message.updatedAt),
+      metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
+    ));
+
+    // 使用增量更新替代删除重建
+    await _incrementalUpdateBlocks(message.id, message.blocks);
+  }
+
+  /// 增量更新消息块
+  Future<void> _incrementalUpdateBlocks(String messageId, List<MessageBlock> newBlocks) async {
+    final existingBlocks = await _database.getMessageBlocks(messageId);
+    final existingBlockIds = existingBlocks.map((b) => b.id).toSet();
+    final newBlockIds = newBlocks.map((b) => b.id).toSet();
+
+    // 删除不再存在的块
+    final blocksToDelete = existingBlockIds.difference(newBlockIds);
+    for (final blockId in blocksToDelete) {
+      await _database.deleteMessageBlock(blockId);
+    }
+
+    // 更新或插入新块
+    for (final block in newBlocks) {
+      if (existingBlockIds.contains(block.id)) {
+        // 更新现有块
+        await _database.updateMessageBlock(block.id, MessageBlocksCompanion(
+          content: Value(block.content),
+          status: Value(block.status.name),
+          updatedAt: Value(block.updatedAt ?? DateTime.now()),
+          metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+        ));
+      } else {
+        // 插入新块
+        await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+          id: block.id,
+          messageId: block.messageId,
+          type: block.type.name,
+          createdAt: block.createdAt,
+          updatedAt: block.updatedAt ?? block.createdAt,
+          content: Value(block.content),
+          status: Value(block.status.name),
+          orderIndex: Value(0),
+          metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+        ));
+      }
+    }
+  }
+
+  /// 保存完整消息到数据库（包括消息和所有块）
+  Future<void> _saveMessageToDatabase(Message message) async {
+    // 1. 保存消息
+    await _database.insertMessage(MessagesCompanion.insert(
+      id: message.id,
+      conversationId: message.conversationId,
+      role: message.role,
+      assistantId: message.assistantId,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+      status: Value(message.status.name),
+      modelId: Value(message.modelId),
+      metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
+      blockIds: Value(message.blockIds),
+    ));
+
+    // 2. 保存所有消息块
+    for (final block in message.blocks) {
+      await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+        id: block.id,
+        messageId: block.messageId,
+        type: block.type.name,
+        createdAt: block.createdAt,
+        updatedAt: block.updatedAt ?? block.createdAt,
+        content: Value(block.content),
+        status: Value(block.status.name),
+        orderIndex: Value(0), // MessageBlock没有orderIndex字段，使用默认值
+        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+      ));
+    }
+  }
+
   /// 将数据库数据转换为Message实体
   Message _dataToMessage(MessageData data, List<MessageBlockData> blockDataList) {
     final blocks = blockDataList.map(_dataToMessageBlock).toList();
@@ -388,32 +566,18 @@ class MessageRepositoryImpl implements MessageRepository {
     required String content,
     List<String>? imageUrls,
   }) async {
-    final messageId = await createMessage(
-      conversationId: conversationId,
-      role: 'user',
-      assistantId: assistantId,
-      status: msg_status.MessageStatus.userSuccess,
-    );
-
-    // 添加文本块
-    await addTextBlock(
-      messageId: messageId,
+    // 使用MessageFactory创建完整的用户消息
+    final message = _messageFactory.createUserMessage(
       content: content,
-      orderIndex: 0,
+      conversationId: conversationId,
+      assistantId: assistantId,
+      imageUrls: imageUrls,
     );
 
-    // 添加图片块
-    if (imageUrls != null && imageUrls.isNotEmpty) {
-      for (int i = 0; i < imageUrls.length; i++) {
-        await addImageBlock(
-          messageId: messageId,
-          imageUrl: imageUrls[i],
-          orderIndex: i + 1,
-        );
-      }
-    }
+    // 保存消息到数据库
+    await _saveMessageToDatabase(message);
 
-    return await getMessageWithBlocks(messageId);
+    return message;
   }
 
   @override
@@ -422,15 +586,17 @@ class MessageRepositoryImpl implements MessageRepository {
     required String assistantId,
     String? modelId,
   }) async {
-    final messageId = await createMessage(
+    // 使用MessageFactory创建AI消息占位符
+    final message = _messageFactory.createAiMessagePlaceholder(
       conversationId: conversationId,
-      role: 'assistant',
       assistantId: assistantId,
-      status: msg_status.MessageStatus.aiProcessing,
       modelId: modelId,
     );
 
-    return await getMessageWithBlocks(messageId);
+    // 保存消息到数据库
+    await _saveMessageToDatabase(message);
+
+    return message;
   }
 
   @override
@@ -483,9 +649,18 @@ class MessageRepositoryImpl implements MessageRepository {
 
   // ========== 流式处理支持 ==========
 
+  /// 流式消息块缓存，避免重复查询数据库
+  final Map<String, List<MessageBlock>> _streamingBlocksCache = {};
+
+  /// 流式消息内容缓存，只在内存中更新，不写入数据库
+  final Map<String, Map<String, String>> _streamingContentCache = {};
+
   @override
   Future<void> startStreamingMessage(String messageId) async {
     await updateMessageStatus(messageId, msg_status.MessageStatus.aiProcessing);
+    // 初始化流式消息的块缓存和内容缓存
+    _streamingBlocksCache[messageId] = [];
+    _streamingContentCache[messageId] = {};
   }
 
   @override
@@ -494,58 +669,119 @@ class MessageRepositoryImpl implements MessageRepository {
     required String content,
     String? thinkingContent,
   }) async {
-    // 获取现有的文本块
-    final blocks = await getMessageBlocks(messageId);
-    final textBlock = blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
-    final thinkingBlock = blocks.where((b) => b.type == MessageBlockType.thinking).firstOrNull;
+    // 🚀 优化：流式过程中只更新内存缓存，不写入数据库
+    // 这样可以避免频繁的数据库写入操作
+
+    // 更新内存中的内容缓存
+    final contentCache = _streamingContentCache[messageId] ?? {};
+    contentCache['mainText'] = content;
+    if (thinkingContent != null && thinkingContent.isNotEmpty) {
+      contentCache['thinking'] = thinkingContent;
+    }
+    _streamingContentCache[messageId] = contentCache;
+
+    // 获取或创建块缓存
+    List<MessageBlock> blocks = _streamingBlocksCache[messageId] ?? [];
+    if (blocks.isEmpty) {
+      // 如果缓存为空，从数据库加载一次
+      blocks = await getMessageBlocks(messageId);
+      _streamingBlocksCache[messageId] = blocks;
+    }
+
+    // 更新缓存中的块内容（仅内存操作）
+    final now = DateTime.now();
 
     // 更新或创建文本块
+    var textBlock = blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
     if (textBlock != null) {
-      await updateBlockContent(textBlock.id, content);
+      final index = blocks.indexWhere((b) => b.id == textBlock!.id);
+      if (index != -1) {
+        blocks[index] = textBlock.copyWith(content: content, updatedAt: now);
+      }
     } else {
-      await addTextBlock(
+      // 创建新的文本块（仅在缓存中）
+      textBlock = MessageBlock.text(
+        id: '${messageId}_text',
         messageId: messageId,
         content: content,
-        orderIndex: thinkingContent != null ? 1 : 0,
         status: MessageBlockStatus.streaming,
+        createdAt: now,
       );
+      blocks.add(textBlock);
     }
 
     // 更新或创建思考过程块
     if (thinkingContent != null && thinkingContent.isNotEmpty) {
+      var thinkingBlock = blocks.where((b) => b.type == MessageBlockType.thinking).firstOrNull;
       if (thinkingBlock != null) {
-        await updateBlockContent(thinkingBlock.id, thinkingContent);
+        final index = blocks.indexWhere((b) => b.id == thinkingBlock!.id);
+        if (index != -1) {
+          blocks[index] = thinkingBlock.copyWith(content: thinkingContent, updatedAt: now);
+        }
       } else {
-        await addThinkingBlock(
+        // 创建新的思考块（仅在缓存中）
+        thinkingBlock = MessageBlock.thinking(
+          id: '${messageId}_thinking',
           messageId: messageId,
           content: thinkingContent,
-          orderIndex: 0,
           status: MessageBlockStatus.streaming,
+          createdAt: now,
         );
+        blocks.insert(0, thinkingBlock); // 思考块放在开头
       }
     }
+
+    _streamingBlocksCache[messageId] = blocks;
+
+    // 注意：这里不再写入数据库，只在流式结束时统一写入
   }
+
+
 
   @override
   Future<void> finishStreamingMessage({
     required String messageId,
     Map<String, dynamic>? metadata,
   }) async {
-    // 更新所有块的状态为成功
-    final blocks = await getMessageBlocks(messageId);
-    for (final block in blocks) {
-      if (block.status == MessageBlockStatus.streaming) {
-        await updateBlockStatus(block.id, MessageBlockStatus.success);
+    // 🚀 优化：流式结束时一次性将缓存内容写入数据库
+
+    // 获取缓存的块信息
+    final cachedBlocks = _streamingBlocksCache[messageId];
+    if (cachedBlocks == null || cachedBlocks.isEmpty) {
+      // 如果没有缓存，说明没有流式更新，直接更新状态
+      await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
+      if (metadata != null) {
+        await updateMessageMetadata(messageId, metadata);
       }
+      return;
     }
 
-    // 更新消息状态
-    await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
+    // 使用事务确保数据一致性
+    await _database.transaction(() async {
+      // 1. 批量保存或更新所有消息块
+      for (final block in cachedBlocks) {
+        final finalBlock = block.copyWith(
+          status: MessageBlockStatus.success,
+          updatedAt: DateTime.now(),
+        );
+        await _upsertMessageBlock(finalBlock);
+      }
 
-    // 更新元数据
-    if (metadata != null) {
-      await updateMessageMetadata(messageId, metadata);
-    }
+      // 2. 更新消息状态
+      await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
+
+      // 3. 更新元数据（如果有）
+      if (metadata != null) {
+        await updateMessageMetadata(messageId, metadata);
+      }
+
+      // 4. 更新消息的blockIds字段
+      await _updateMessageBlockIds(messageId);
+    });
+
+    // 清理缓存
+    _streamingBlocksCache.remove(messageId);
+    _streamingContentCache.remove(messageId);
   }
 
   @override
@@ -554,26 +790,36 @@ class MessageRepositoryImpl implements MessageRepository {
     required String errorMessage,
     String? partialContent,
   }) async {
+    final List<Future<void>> operations = [];
+
     // 添加错误块
-    await addErrorBlock(
+    operations.add(addErrorBlock(
       messageId: messageId,
       errorMessage: errorMessage,
       orderIndex: 999, // 错误块放在最后
-    );
+    ));
 
     // 如果有部分内容，保留它
     if (partialContent != null && partialContent.isNotEmpty) {
-      final blocks = await getMessageBlocks(messageId);
+      // 使用缓存的块信息
+      final cachedBlocks = _streamingBlocksCache[messageId];
+      final blocks = cachedBlocks ?? await getMessageBlocks(messageId);
       final textBlock = blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
 
       if (textBlock != null) {
-        await updateBlockContent(textBlock.id, partialContent);
-        await updateBlockStatus(textBlock.id, MessageBlockStatus.success);
+        operations.add(updateBlockContent(textBlock.id, partialContent));
+        operations.add(updateBlockStatus(textBlock.id, MessageBlockStatus.success));
       }
     }
 
     // 更新消息状态为错误
-    await updateMessageStatus(messageId, msg_status.MessageStatus.aiError);
+    operations.add(updateMessageStatus(messageId, msg_status.MessageStatus.aiError));
+
+    // 并行执行所有操作
+    await Future.wait(operations);
+
+    // 清理缓存
+    _streamingBlocksCache.remove(messageId);
   }
 
   // ========== 搜索和查询 ==========

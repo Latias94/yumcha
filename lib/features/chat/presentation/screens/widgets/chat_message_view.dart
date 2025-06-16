@@ -6,11 +6,11 @@ import '../../../domain/entities/message.dart';
 import '../../../domain/entities/message_status.dart';
 import '../../../domain/entities/message_block.dart';
 import '../../../domain/entities/message_block_type.dart';
-import '../../../domain/entities/enhanced_message.dart';
 import '../../../domain/entities/chat_bubble_style.dart';
 import '../../providers/chat_style_provider.dart';
+import '../../widgets/bubble/message_bubble.dart';
+import '../../widgets/bubble/bubble_style.dart';
 import 'thinking_process_widget.dart';
-import 'media/media_content_widget.dart';
 import 'media/image_display_widget.dart';
 import '../../../../../shared/infrastructure/services/media/media_storage_service.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
@@ -341,20 +341,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     content: thinkingResult.actualContent,
                   ),
 
-                  // 多媒体内容显示 - 优先使用块化消息
+                  // 多媒体内容显示 - 使用块化消息
                   if (widget.message.hasImages) ...[
                     SizedBox(height: DesignConstants.spaceM),
                     _buildImageBlocks(context, theme, compact: false),
-                  ] else if (widget.message is EnhancedMessage &&
-                             (widget.message as EnhancedMessage).hasMediaFiles) ...[
-                    // 兼容性：EnhancedMessage的多媒体内容
-                    SizedBox(height: DesignConstants.spaceM),
-                    MediaContentWidget(
-                      message: widget.message as EnhancedMessage,
-                      compact: false,
-                      onImageTap: _handleImageTap,
-                      onAudioTap: _handleAudioTap,
-                    ),
                   ],
 
                   // 文件内容显示（块化消息）
@@ -385,177 +375,12 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
   /// 构建气泡布局
   Widget _buildBubbleLayout(BuildContext context, ThemeData theme) {
-    // 解析思考过程
-    final thinkingResult = ThinkingProcessParser.parseMessage(
-      widget.message.content,
-    );
-
-    final isDesktop = DesignConstants.isDesktop(context);
-    final maxWidth = DesignConstants.getResponsiveMaxWidth(context);
-
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 0, // 移除水平padding，由父组件ChatHistoryView控制
-        vertical: DesignConstants.spaceXS + 2,
-      ),
-      child: Column(
-        crossAxisAlignment: widget.message.isFromUser
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          // 思考过程（仅AI消息且包含思考过程时显示）
-          if (!widget.message.isFromUser &&
-              thinkingResult.hasThinkingProcess) ...[
-            Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * maxWidth,
-              ),
-              child: ThinkingProcessWidget(
-                thinkingContent: thinkingResult.thinkingContent,
-                duration: widget.message.thinkingDuration ??
-                    widget.message.totalDuration,
-              ),
-            ),
-            SizedBox(height: DesignConstants.spaceS),
-          ],
-
-          // 时间戳（在气泡上方）
-          if (isDesktop) ...[
-            Padding(
-              padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
-              child: Text(
-                _formatTimestamp(widget.message.createdAt),
-                style: TextStyle(
-                  color:
-                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
-              ),
-            ),
-          ],
-
-          // 使用自定义的markdown支持气泡组件（显示处理后的实际内容）
-          Column(
-            crossAxisAlignment: widget.message.isFromUser
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              _buildMarkdownBubble(
-                context,
-                theme,
-                content: thinkingResult.actualContent,
-                maxWidth: maxWidth,
-              ),
-
-              // 多媒体内容显示（在气泡下方）- 块化消息
-              if (widget.message.hasImages) ...[
-                SizedBox(height: DesignConstants.spaceS),
-                Align(
-                  alignment: widget.message.isFromUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
-                    ),
-                    child: _buildImageBlocks(context, theme, compact: true),
-                  ),
-                ),
-              ],
-
-              // 文件内容显示（在气泡下方）- 块化消息
-              if (_hasFileBlocks()) ...[
-                SizedBox(height: DesignConstants.spaceS),
-                Align(
-                  alignment: widget.message.isFromUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
-                    ),
-                    child: _buildFileBlocks(context, theme),
-                  ),
-                ),
-              ],
-
-              // 兼容性：EnhancedMessage的多媒体内容（仅在没有块化内容时显示）
-              if (widget.message is EnhancedMessage &&
-                  !widget.message.hasImages &&
-                  !_hasFileBlocks() &&
-                  (widget.message as EnhancedMessage).hasMediaFiles) ...[
-                SizedBox(height: DesignConstants.spaceS),
-                Align(
-                  alignment: widget.message.isFromUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
-                    ),
-                    child: MediaContentWidget(
-                      message: widget.message as EnhancedMessage,
-                      compact: true,
-                      onImageTap: _handleImageTap,
-                      onAudioTap: _handleAudioTap,
-                    ),
-                  ),
-                ),
-              ],
-
-              // 错误信息显示（在气泡下方）
-              if (widget.message.isError && widget.message.metadata?['errorInfo'] != null) ...[
-                SizedBox(height: DesignConstants.spaceS),
-                Align(
-                  alignment: widget.message.isFromUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
-                    ),
-                    child: _buildErrorInfo(context, theme),
-                  ),
-                ),
-              ],
-
-              // 流式状态指示器（在气泡内部）
-              if (widget.message.status == MessageStatus.aiProcessing) ...[
-                SizedBox(height: DesignConstants.spaceS),
-                Align(
-                  alignment: widget.message.isFromUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
-                    ),
-                    child: _buildStreamingIndicator(context, theme),
-                  ),
-                ),
-              ],
-
-              // Token使用信息显示（仅AI消息，在气泡内部）
-              if (!widget.message.isFromUser && widget.message.metadata?['tokenUsage'] != null) ...[
-                SizedBox(height: DesignConstants.spaceS),
-                Align(
-                  alignment: Alignment.centerLeft, // Token信息始终左对齐
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
-                    ),
-                    child: _buildTokenInfo(context, theme),
-                  ),
-                ),
-              ],
-            ],
-          ),
-
-          // 操作按钮显示在气泡下方
-          SizedBox(height: DesignConstants.spaceXS + 2),
-          _buildActionButtons(context),
-        ],
-      ),
+    // 使用新的MessageBubble组件
+    return MessageBubble(
+      message: widget.message,
+      style: BubbleStyle.fromChatStyle(ChatBubbleStyle.bubble),
+      onEdit: widget.onEdit,
+      onRegenerate: widget.onRegenerate,
     );
   }
 

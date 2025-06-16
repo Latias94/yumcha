@@ -11,7 +11,7 @@
 
 ## 🏛️ 架构概览
 
-YumCha应用采用现代化分层架构，经过统一AI管理、聊天系统重构和MCP服务重构后，共8层72个Provider，遵循依赖注入和单一职责原则：
+YumCha应用采用现代化分层架构，经过统一AI管理、聊天系统重构和MCP服务重构后，共8层71个Provider，遵循依赖注入和单一职责原则：
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -21,7 +21,7 @@ YumCha应用采用现代化分层架构，经过统一AI管理、聊天系统重
 │  ┌─────────────┬─────────────┬─────────────┬─────────────┐  │
 │  │ Unified AI  │ Unified     │ MCP Service │ Settings    │  │
 │  │ Management  │ Chat State  │   Layer     │ Management  │  │
-│  │   (17个)    │   (19个)    │    (7个)    │    (8个)    │  │
+│  │   (17个)    │   (18个)    │    (7个)    │    (8个)    │  │
 │  └─────────────┴─────────────┴─────────────┴─────────────┘  │
 │  ┌─────────────┬─────────────┬─────────────┬─────────────┐  │
 │  │   Search    │ App Init    │   Other     │   Legacy    │  │
@@ -119,7 +119,7 @@ graph TD
     PSP --> UCP
     MRP --> UCP
 
-    %% 聊天状态衍生Provider (19个)
+    %% 聊天状态衍生Provider (18个)
     UCP --> CCP[currentConversationProvider]
     UCP --> CMP[chatMessagesProvider]
     UCP --> CCFGP[chatConfigurationProvider]
@@ -140,10 +140,6 @@ graph TD
     %% 聊天编排服务
     UCP --> COP[chatOrchestratorProvider]
     MCPSM --> COP
-
-    %% 块化消息系统
-    MRP --> BCS[blockChatServiceProvider]
-    UCP --> BCS
 
     %% 聊天配置管理
     UAMP --> CCNP[chatConfigurationNotifierProvider]
@@ -200,7 +196,7 @@ graph TD
     class DB,DBP,PS,PSP service
     class PRP,ARP,FRP,CRP,SRP,MRP repository
     class UAMP,AIPP,EAPP,CAPP,FAPP,AIAP,EAAP,DAAP,FAAP,AIMP,CAMP,FAMP,AICP,CVAP,CSAP,AMAP,CAAP unifiedAi
-    class UCP,CCP,CMP,CCFGP,CLSP,CEPV,CRSP,SMP,CEP,CSP,CPP,SAP,SPP,SMDP,HSMP,MCP,CCIP,COP,BCS,CCNP unifiedChat
+    class UCP,CCP,CMP,CCFGP,CLSP,CEPV,CRSP,SMP,CEP,CSP,CPP,SAP,SPP,SMDP,HSMP,MCP,CCIP,COP,CCNP unifiedChat
     class MCPSM,IMCP,MCPSP,MCPSS,MCPSE,MCPST,MCPAT mcpService
     class SN,MSP,SVP,DCMP,DTMP,DTRAP,DSMP,TNP settings
     class SRPV,SQP,STP,CPN,FMN,CSP2,ACSP,AISP,IASP,IDDP derived
@@ -277,7 +273,7 @@ graph TD
 | `aiManagementActionsProvider` | Provider | UnifiedAiManagementNotifier | 管理操作接口 |
 | `configurationActionsProvider` | Provider | ConfigurationActions | 配置操作接口 |
 
-### 🔄 **统一聊天状态层** (19个) ⭐ **事件驱动**
+### 🔄 **统一聊天状态层** (18个) ⭐ **事件驱动**
 
 #### 核心Provider (1个)
 
@@ -311,12 +307,11 @@ graph TD
 | `chatStatisticsProvider` | Provider | ChatStatistics | 聊天统计信息 |
 | `chatPerformanceProvider` | Provider | ChatPerformanceMetrics | 性能指标 |
 
-#### 服务Provider (2个)
+#### 服务Provider (1个)
 
 | Provider | 类型 | 返回类型 | 职责 |
 |----------|------|----------|------|
 | `chatOrchestratorProvider` | Provider | ChatOrchestratorService | 聊天编排服务 |
-| `blockChatServiceProvider` | Provider | BlockChatService | 块化聊天服务 |
 
 ### 🔧 **MCP服务层** (7个) ⭐ **平台适配**
 
@@ -392,13 +387,13 @@ graph TD
 | **基础服务层** | 2个 | 单例模式，依赖注入规范 |
 | **Repository层** | 6个 | 统一依赖注入，错误处理完善 |
 | **统一AI管理层** | 17个 | 新架构，功能完整，性能优化 |
-| **统一聊天状态层** | 19个 | 事件驱动，统一状态管理 |
+| **统一聊天状态层** | 18个 | 事件驱动，统一状态管理 |
 | **MCP服务层** | 7个 | 架构清晰，职责分离 |
 | **设置管理层** | 8个 | 响应式监听，批量操作支持 |
 | **搜索功能层** | 3个 | 防抖处理，分页支持 |
 | **应用初始化层** | 4个 | 分层初始化，依赖协调 |
 | **其他功能** | 6个 | 兼容性支持，功能扩展 |
-| **总计** | **72个** | **架构清晰，功能完整** |
+| **总计** | **71个** | **架构清晰，功能完整** |
 
 ## 🏗️ 分层架构详解
 

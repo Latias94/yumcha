@@ -33,6 +33,9 @@ abstract class MessageRepository {
   
   /// 删除消息（级联删除消息块）
   Future<void> deleteMessage(String messageId);
+
+  /// 保存完整消息（包括消息和所有块）
+  Future<void> saveMessage(Message message);
   
   // ========== 消息块操作 ==========
   
