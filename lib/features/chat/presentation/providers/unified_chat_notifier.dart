@@ -7,7 +7,7 @@ import '../../domain/entities/message.dart';
 import '../../domain/entities/message_status.dart';
 import '../../domain/entities/message_block.dart';
 import '../../domain/entities/message_block_type.dart';
-import '../../domain/entities/chat_error.dart';
+
 
 import '../../infrastructure/utils/state_update_deduplicator.dart';
 import '../../infrastructure/middleware/error_handling_middleware.dart';
@@ -781,6 +781,15 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     _batchUpdater.addUpdate(update);
   }
 
+  /// 立即添加消息（用于流式完成时避免延迟）
+  void _addMessageImmediately(Message message) {
+    // 🚀 修复：流式完成时立即添加消息，确保UI能立即反映状态变化
+    _addMessageInternal(message);
+
+    // 强制刷新批量更新器，确保所有待处理的更新立即生效
+    _batchUpdater.flush();
+  }
+
   /// 内部消息添加逻辑
   void _addMessageInternal(dynamic message) {
     if (message is! Message) return;
@@ -827,6 +836,34 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     );
 
     _batchUpdater.addUpdate(update);
+  }
+
+  /// 立即更新消息内容（用于流式完成时避免延迟）
+  void _updateMessageContentImmediately(String messageId, String content, MessageStatus status, [Map<String, dynamic>? metadata]) {
+    _logger.debug('立即更新消息内容', {
+      'messageId': messageId,
+      'status': status.name,
+      'contentLength': content.length,
+    });
+
+    // 🚀 修复：流式完成时立即更新，确保UI能立即反映状态变化
+    _updateMessageContentInternal(messageId, content, status, metadata);
+
+    // 强制刷新批量更新器，确保所有待处理的更新立即生效
+    _batchUpdater.flush();
+
+    // 验证更新是否成功
+    final updatedMessage = state.messageState.messages.firstWhere(
+      (msg) => msg.id == messageId,
+      orElse: () => throw Exception('消息未找到: $messageId'),
+    );
+
+    _logger.info('消息状态立即更新完成', {
+      'messageId': messageId,
+      'newStatus': updatedMessage.status.name,
+      'expectedStatus': status.name,
+      'statusMatches': updatedMessage.status == status,
+    });
   }
 
   /// 内部消息内容更新逻辑
@@ -907,20 +944,67 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
   /// 实际处理流式更新的逻辑
   void _processStreamingUpdate(StreamingUpdate update) {
+    _logger.debug('处理流式更新', {
+      'messageId': update.messageId,
+      'isDone': update.isDone,
+      'contentLength': update.fullContent?.length ?? 0,
+    });
+
     // 查找或创建AI消息
     final existingMessageIndex = state.messageState.messages.indexWhere(
       (msg) => msg.id == update.messageId,
     );
 
     if (existingMessageIndex >= 0) {
-      // 更新现有消息 - 使用批量更新
-      _updateMessageContentWithBatch(
-        update.messageId,
-        update.fullContent ?? '',
-        update.isDone ? MessageStatus.aiSuccess : MessageStatus.aiProcessing,
-      );
+      // 更新现有消息
+      final existingMessage = state.messageState.messages[existingMessageIndex];
+      _logger.debug('更新现有消息', {
+        'messageId': update.messageId,
+        'currentStatus': existingMessage.status.name,
+        'isDone': update.isDone,
+      });
+
+      if (update.isDone) {
+        // 🚀 修复：流式完成时立即更新状态，不使用批量更新避免延迟
+        _updateMessageContentImmediately(
+          update.messageId,
+          update.fullContent ?? '',
+          MessageStatus.aiSuccess,
+        );
+
+        // 🚀 修复：流式完成时立即从streamingMessageIds中移除
+        _removeFromStreamingIds(update.messageId);
+
+        _logger.info('流式消息完成', {
+          'messageId': update.messageId,
+          'finalStatus': MessageStatus.aiSuccess.name,
+        });
+      } else {
+        // 流式进行中时使用批量更新
+        _updateMessageContentWithBatch(
+          update.messageId,
+          update.fullContent ?? '',
+          MessageStatus.aiProcessing,
+        );
+
+        // 🚀 修复：异步更新流式内容，但不等待完成以避免阻塞UI
+        _orchestrator.updateStreamingContent(update.messageId, update.fullContent ?? '').catchError((error) {
+          _logger.error('更新流式内容失败', {
+            'messageId': update.messageId,
+            'error': error.toString(),
+          });
+        });
+
+        // 确保消息ID在streamingMessageIds中
+        _addToStreamingIds(update.messageId);
+      }
     } else {
       // 创建新的AI消息
+      _logger.debug('创建新的AI消息', {
+        'messageId': update.messageId,
+        'isDone': update.isDone,
+      });
+
       final aiMessage = Message(
         id: update.messageId,
         conversationId: state.conversationState.currentConversation?.id ?? '',
@@ -939,7 +1023,35 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         ],
       );
 
-      _addMessageWithBatch(aiMessage);
+      if (update.isDone) {
+        // 流式完成时立即添加消息
+        _addMessageImmediately(aiMessage);
+        // 不需要添加到streamingMessageIds，因为已经完成
+        _logger.info('立即添加完成的AI消息', {
+          'messageId': update.messageId,
+          'status': aiMessage.status.name,
+        });
+      } else {
+        // 流式进行中时使用批量更新
+        _addMessageWithBatch(aiMessage);
+
+        // 🚀 修复：异步初始化流式消息，但不等待完成以避免阻塞UI
+        _orchestrator.initializeStreamingMessage(
+          update.messageId,
+          update.fullContent ?? '',
+          conversationId: state.conversationState.currentConversation?.id ?? '',
+          assistantId: state.configuration.selectedAssistant?.id ?? '',
+          modelId: state.configuration.selectedModel?.name,
+        ).catchError((error) {
+          _logger.error('初始化流式消息失败', {
+            'messageId': update.messageId,
+            'error': error.toString(),
+          });
+        });
+
+        // 添加到streamingMessageIds
+        _addToStreamingIds(update.messageId);
+      }
       _emitEvent(MessageAddedEvent(aiMessage));
     }
 
@@ -947,8 +1059,59 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     if (update.isDone) {
       _streamingManager.forceComplete(update.messageId);
       _checkAndTriggerTitleGeneration();
+
+      // 🚀 优化：流式消息的保存已经在ChatOrchestratorService的流式处理中完成
+      // 这里不需要重复调用finishStreamingMessage，避免重复保存
+      // _orchestrator.finishStreamingMessage(update.messageId); // 已移除重复调用
+
+      // 验证最终状态
+      final finalMessage = state.messageState.messages.firstWhere(
+        (msg) => msg.id == update.messageId,
+        orElse: () => throw Exception('消息未找到'),
+      );
+      _logger.info('流式更新完成后的最终状态', {
+        'messageId': update.messageId,
+        'finalStatus': finalMessage.status.name,
+        'inStreamingIds': state.messageState.streamingMessageIds.contains(update.messageId),
+        'streamingIdsCount': state.messageState.streamingMessageIds.length,
+      });
     }
   }
+
+  /// 添加消息ID到streamingMessageIds
+  void _addToStreamingIds(String messageId) {
+    if (!state.messageState.streamingMessageIds.contains(messageId)) {
+      final updatedStreamingIds = Set<String>.from(state.messageState.streamingMessageIds);
+      updatedStreamingIds.add(messageId);
+
+      state = state.copyWith(
+        messageState: state.messageState.copyWith(
+          streamingMessageIds: updatedStreamingIds,
+        ),
+      );
+
+      _logger.debug('消息添加到流式集合', {'messageId': messageId});
+    }
+  }
+
+  /// 从streamingMessageIds中移除消息ID
+  void _removeFromStreamingIds(String messageId) {
+    if (state.messageState.streamingMessageIds.contains(messageId)) {
+      final updatedStreamingIds = Set<String>.from(state.messageState.streamingMessageIds);
+      updatedStreamingIds.remove(messageId);
+
+      state = state.copyWith(
+        messageState: state.messageState.copyWith(
+          streamingMessageIds: updatedStreamingIds,
+        ),
+      );
+
+      _logger.info('消息从流式集合中移除', {'messageId': messageId});
+      _emitEvent(StreamingCompletedEvent(messageId));
+    }
+  }
+
+
 
   /// 清除错误
   void _clearError() {

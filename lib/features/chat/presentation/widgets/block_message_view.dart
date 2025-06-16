@@ -532,6 +532,8 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
         return Icons.hourglass_empty_rounded;
       case msg_status.MessageStatus.aiPending:
         return Icons.schedule_rounded;
+      case msg_status.MessageStatus.aiStreaming:
+        return Icons.stream_rounded;
       case msg_status.MessageStatus.aiSuccess:
         return Icons.check_rounded;
       case msg_status.MessageStatus.aiError:
@@ -554,6 +556,8 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
         return theme.colorScheme.primary;
       case msg_status.MessageStatus.aiPending:
         return theme.colorScheme.secondary;
+      case msg_status.MessageStatus.aiStreaming:
+        return theme.colorScheme.primary.withValues(alpha: 0.8);
       case msg_status.MessageStatus.aiSuccess:
         return theme.colorScheme.primary;
       case msg_status.MessageStatus.aiError:

@@ -36,7 +36,7 @@ class UnifiedMessageCreator {
     Map<String, dynamic>? metadata,
     bool saveToDatabase = true,
   }) async {
-    ChatLoggerService.logDebug('创建用户消息', {
+    ChatLoggerService.logDebug('创建用户消息', context: {
       'conversationId': conversationId,
       'assistantId': assistantId,
       'contentLength': content.length,
@@ -56,7 +56,7 @@ class UnifiedMessageCreator {
     // 根据参数决定是否保存到数据库
     if (saveToDatabase) {
       await _messageRepository.saveMessage(message);
-      ChatLoggerService.logMessageCreated(message, 'user');
+      ChatLoggerService.logMessageCreated(message);
     }
 
     return message;
@@ -76,7 +76,7 @@ class UnifiedMessageCreator {
     Map<String, dynamic>? metadata,
     bool saveToDatabase = true,
   }) async {
-    ChatLoggerService.logDebug('创建AI消息占位符', {
+    ChatLoggerService.logDebug('创建AI消息占位符', context: {
       'conversationId': conversationId,
       'assistantId': assistantId,
       'modelId': modelId,
@@ -94,7 +94,7 @@ class UnifiedMessageCreator {
     // 根据参数决定是否保存到数据库
     if (saveToDatabase) {
       await _messageRepository.saveMessage(message);
-      ChatLoggerService.logMessageCreated(message, 'ai_placeholder');
+      ChatLoggerService.logMessageCreated(message);
     }
 
     return message;
@@ -114,7 +114,7 @@ class UnifiedMessageCreator {
     String? modelId,
     Map<String, dynamic>? metadata,
   }) async {
-    ChatLoggerService.logDebug('创建流式消息', {
+    ChatLoggerService.logDebug('创建流式消息', context: {
       'conversationId': conversationId,
       'assistantId': assistantId,
       'modelId': modelId,
@@ -130,11 +130,11 @@ class UnifiedMessageCreator {
 
     // 保存消息基本信息到数据库
     await _messageRepository.saveMessage(message);
-    
+
     // 初始化流式处理
     await _messageRepository.startStreamingMessage(message.id);
 
-    ChatLoggerService.logMessageCreated(message, 'streaming');
+    ChatLoggerService.logMessageCreated(message);
     return message;
   }
 
@@ -158,7 +158,7 @@ class UnifiedMessageCreator {
     Map<String, dynamic>? metadata,
     bool saveToDatabase = true,
   }) async {
-    ChatLoggerService.logDebug('创建完整AI消息', {
+    ChatLoggerService.logDebug('创建完整AI消息', context: {
       'conversationId': conversationId,
       'assistantId': assistantId,
       'contentLength': content.length,
@@ -181,7 +181,7 @@ class UnifiedMessageCreator {
     // 根据参数决定是否保存到数据库
     if (saveToDatabase) {
       await _messageRepository.saveMessage(message);
-      ChatLoggerService.logMessageCreated(message, 'ai_complete');
+      ChatLoggerService.logMessageCreated(message);
     }
 
     return message;
@@ -203,7 +203,7 @@ class UnifiedMessageCreator {
     Map<String, dynamic>? metadata,
     bool saveToDatabase = true,
   }) async {
-    ChatLoggerService.logDebug('创建错误消息', {
+    ChatLoggerService.logDebug('创建错误消息', context: {
       'conversationId': conversationId,
       'assistantId': assistantId,
       'errorMessage': errorMessage.substring(0, errorMessage.length.clamp(0, 100)),
@@ -223,7 +223,7 @@ class UnifiedMessageCreator {
     // 根据参数决定是否保存到数据库
     if (saveToDatabase) {
       await _messageRepository.saveMessage(message);
-      ChatLoggerService.logMessageCreated(message, 'error');
+      ChatLoggerService.logMessageCreated(message);
     }
 
     return message;
@@ -259,7 +259,7 @@ class UnifiedMessageCreator {
       metadata: metadata,
     );
     
-    ChatLoggerService.logDebug('流式消息完成', {
+    ChatLoggerService.logDebug('流式消息完成', context: {
       'messageId': messageId,
     });
   }
@@ -280,7 +280,7 @@ class UnifiedMessageCreator {
       partialContent: partialContent,
     );
     
-    ChatLoggerService.logDebug('流式消息错误处理完成', {
+    ChatLoggerService.logDebug('流式消息错误处理完成', context: {
       'messageId': messageId,
       'errorMessage': errorMessage.substring(0, errorMessage.length.clamp(0, 100)),
     });

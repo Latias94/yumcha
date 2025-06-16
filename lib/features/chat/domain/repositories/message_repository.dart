@@ -145,14 +145,23 @@ abstract class MessageRepository {
   
   /// 开始流式消息处理
   Future<void> startStreamingMessage(String messageId);
-  
+
+  /// 设置流式消息的基本信息
+  void setStreamingMessageInfo({
+    required String messageId,
+    required String conversationId,
+    required String assistantId,
+    String? modelId,
+    Map<String, dynamic>? metadata,
+  });
+
   /// 更新流式消息内容
   Future<void> updateStreamingContent({
     required String messageId,
     required String content,
     String? thinkingContent,
   });
-  
+
   /// 完成流式消息处理
   Future<void> finishStreamingMessage({
     required String messageId,

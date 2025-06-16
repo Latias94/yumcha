@@ -655,12 +655,38 @@ class MessageRepositoryImpl implements MessageRepository {
   /// 流式消息内容缓存，只在内存中更新，不写入数据库
   final Map<String, Map<String, String>> _streamingContentCache = {};
 
+  /// 流式消息的基本信息缓存，用于在完成时创建完整消息
+  final Map<String, Map<String, dynamic>> _streamingMessageInfoCache = {};
+
   @override
   Future<void> startStreamingMessage(String messageId) async {
-    await updateMessageStatus(messageId, msg_status.MessageStatus.aiProcessing);
+    // 🚀 修复：流式消息在开始时不保存到数据库，只初始化内存缓存
+    // 只有在流式结束或错误时才保存到数据库
+
     // 初始化流式消息的块缓存和内容缓存
     _streamingBlocksCache[messageId] = [];
     _streamingContentCache[messageId] = {};
+    _streamingMessageInfoCache[messageId] = {};
+
+    // 注意：这里不再调用updateMessageStatus，避免过早保存到数据库
+  }
+
+  /// 设置流式消息的基本信息（用于在完成时创建完整消息）
+  @override
+  void setStreamingMessageInfo({
+    required String messageId,
+    required String conversationId,
+    required String assistantId,
+    String? modelId,
+    Map<String, dynamic>? metadata,
+  }) {
+    _streamingMessageInfoCache[messageId] = {
+      'conversationId': conversationId,
+      'assistantId': assistantId,
+      'modelId': modelId,
+      'metadata': metadata,
+      'createdAt': DateTime.now().toIso8601String(),
+    };
   }
 
   @override
@@ -743,21 +769,71 @@ class MessageRepositoryImpl implements MessageRepository {
     required String messageId,
     Map<String, dynamic>? metadata,
   }) async {
-    // 🚀 优化：流式结束时一次性将缓存内容写入数据库
+    // 🚀 修复：流式结束时一次性将缓存内容写入数据库
+    // 这是流式消息第一次真正保存到数据库
 
     // 获取缓存的块信息
     final cachedBlocks = _streamingBlocksCache[messageId];
     if (cachedBlocks == null || cachedBlocks.isEmpty) {
-      // 如果没有缓存，说明没有流式更新，直接更新状态
-      await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
-      if (metadata != null) {
-        await updateMessageMetadata(messageId, metadata);
+      // 🚀 修复：如果没有缓存，说明流式消息没有内容，创建空的成功消息
+      try {
+        // 检查消息是否已存在于数据库中
+        final existingMessage = await getMessage(messageId);
+        if (existingMessage != null) {
+          // 如果消息已存在，只更新状态
+          await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
+          if (metadata != null) {
+            await updateMessageMetadata(messageId, metadata);
+          }
+        } else {
+          // 如果消息不存在，说明这是一个异常情况
+          throw Exception('流式消息不存在，无法完成: $messageId');
+        }
+      } catch (error) {
+        rethrow;
       }
       return;
     }
 
     // 使用事务确保数据一致性
     await _database.transaction(() async {
+      // 🚀 修复：首先确保消息本身存在于数据库中
+      // 获取流式消息的基本信息
+      final messageInfo = _streamingMessageInfoCache[messageId];
+      if (messageInfo == null) {
+        throw Exception('流式消息信息缓存不存在: $messageId');
+      }
+
+      // 检查消息是否已存在
+      final existingMessage = await getMessage(messageId);
+      if (existingMessage == null) {
+        // 如果消息不存在，创建完整的消息记录
+        final createdAt = DateTime.parse(messageInfo['createdAt'] as String);
+        final finalMetadata = <String, dynamic>{
+          ...?messageInfo['metadata'] as Map<String, dynamic>?,
+          ...?metadata,
+        };
+
+        await _database.insertMessage(MessagesCompanion.insert(
+          id: messageId,
+          conversationId: messageInfo['conversationId'] as String,
+          role: 'assistant',
+          assistantId: messageInfo['assistantId'] as String,
+          createdAt: createdAt,
+          updatedAt: DateTime.now(),
+          status: Value(msg_status.MessageStatus.aiSuccess.name),
+          modelId: Value(messageInfo['modelId'] as String?),
+          metadata: Value(finalMetadata.isNotEmpty ? _encodeJson(finalMetadata) : null),
+          blockIds: Value(cachedBlocks.map((b) => b.id).toList()),
+        ));
+      } else {
+        // 如果消息已存在，只更新状态和元数据
+        await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
+        if (metadata != null) {
+          await updateMessageMetadata(messageId, metadata);
+        }
+      }
+
       // 1. 批量保存或更新所有消息块
       for (final block in cachedBlocks) {
         final finalBlock = block.copyWith(
@@ -767,21 +843,14 @@ class MessageRepositoryImpl implements MessageRepository {
         await _upsertMessageBlock(finalBlock);
       }
 
-      // 2. 更新消息状态
-      await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
-
-      // 3. 更新元数据（如果有）
-      if (metadata != null) {
-        await updateMessageMetadata(messageId, metadata);
-      }
-
-      // 4. 更新消息的blockIds字段
+      // 2. 更新消息的blockIds字段
       await _updateMessageBlockIds(messageId);
     });
 
     // 清理缓存
     _streamingBlocksCache.remove(messageId);
     _streamingContentCache.remove(messageId);
+    _streamingMessageInfoCache.remove(messageId);
   }
 
   @override
@@ -790,36 +859,63 @@ class MessageRepositoryImpl implements MessageRepository {
     required String errorMessage,
     String? partialContent,
   }) async {
-    final List<Future<void>> operations = [];
+    // 🚀 修复：流式错误时也需要先保存消息到数据库
 
-    // 添加错误块
-    operations.add(addErrorBlock(
-      messageId: messageId,
-      errorMessage: errorMessage,
-      orderIndex: 999, // 错误块放在最后
-    ));
-
-    // 如果有部分内容，保留它
-    if (partialContent != null && partialContent.isNotEmpty) {
-      // 使用缓存的块信息
-      final cachedBlocks = _streamingBlocksCache[messageId];
-      final blocks = cachedBlocks ?? await getMessageBlocks(messageId);
-      final textBlock = blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
-
-      if (textBlock != null) {
-        operations.add(updateBlockContent(textBlock.id, partialContent));
-        operations.add(updateBlockStatus(textBlock.id, MessageBlockStatus.success));
-      }
+    // 获取流式消息的基本信息
+    final messageInfo = _streamingMessageInfoCache[messageId];
+    if (messageInfo == null) {
+      throw Exception('流式消息信息缓存不存在: $messageId');
     }
 
-    // 更新消息状态为错误
-    operations.add(updateMessageStatus(messageId, msg_status.MessageStatus.aiError));
+    await _database.transaction(() async {
+      // 检查消息是否已存在
+      final existingMessage = await getMessage(messageId);
+      if (existingMessage == null) {
+        // 如果消息不存在，创建消息记录
+        final createdAt = DateTime.parse(messageInfo['createdAt'] as String);
 
-    // 并行执行所有操作
-    await Future.wait(operations);
+        await _database.insertMessage(MessagesCompanion.insert(
+          id: messageId,
+          conversationId: messageInfo['conversationId'] as String,
+          role: 'assistant',
+          assistantId: messageInfo['assistantId'] as String,
+          createdAt: createdAt,
+          updatedAt: DateTime.now(),
+          status: Value(msg_status.MessageStatus.aiError.name),
+          modelId: Value(messageInfo['modelId'] as String?),
+          metadata: Value(messageInfo['metadata'] != null ? _encodeJson(messageInfo['metadata'] as Map<String, dynamic>) : null),
+          blockIds: Value(<String>[]),
+        ));
+      } else {
+        // 如果消息已存在，更新状态为错误
+        await updateMessageStatus(messageId, msg_status.MessageStatus.aiError);
+      }
+
+      // 如果有部分内容，保存它
+      if (partialContent != null && partialContent.isNotEmpty) {
+        await addTextBlock(
+          messageId: messageId,
+          content: partialContent,
+          orderIndex: 0,
+          status: MessageBlockStatus.success,
+        );
+      }
+
+      // 添加错误块
+      await addErrorBlock(
+        messageId: messageId,
+        errorMessage: errorMessage,
+        orderIndex: 999, // 错误块放在最后
+      );
+
+      // 更新消息的blockIds字段
+      await _updateMessageBlockIds(messageId);
+    });
 
     // 清理缓存
     _streamingBlocksCache.remove(messageId);
+    _streamingContentCache.remove(messageId);
+    _streamingMessageInfoCache.remove(messageId);
   }
 
   // ========== 搜索和查询 ==========

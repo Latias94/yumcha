@@ -57,24 +57,24 @@ class EventDeduplicator {
   }
   
   /// 延迟发送事件（带去重）
-  void scheduleEmit<T extends ChatEvent>(T event, Function(T) emitCallback) {
+  void scheduleEmit<T extends ChatEvent>(T event, Function(ChatEvent) emitCallback) {
     final eventType = T;
-    
+
     // 取消之前的待处理事件
     _pendingEvents[eventType]?.timer.cancel();
-    
+
     // 检查是否可以立即发送
     if (shouldEmit(event)) {
       emitCallback(event);
       return;
     }
-    
+
     // 计算延迟时间
     final lastEvent = _lastEvents[eventType];
     if (lastEvent != null) {
       final elapsed = DateTime.now().difference(lastEvent);
       final delay = _minInterval - elapsed;
-      
+
       // 调度延迟发送
       final timer = Timer(delay, () {
         _pendingEvents.remove(eventType);
@@ -82,26 +82,26 @@ class EventDeduplicator {
           emitCallback(event);
         }
       });
-      
+
       _pendingEvents[eventType] = _PendingEvent(timer, event, emitCallback);
     }
   }
   
   /// 强制发送事件（忽略去重）
-  void forceEmit<T extends ChatEvent>(T event, Function(T) emitCallback) {
+  void forceEmit<T extends ChatEvent>(T event, Function(ChatEvent) emitCallback) {
     final eventType = T;
-    
+
     // 取消待处理的事件
     _pendingEvents[eventType]?.timer.cancel();
     _pendingEvents.remove(eventType);
-    
+
     // 更新时间戳和哈希
     _lastEvents[eventType] = DateTime.now();
     _lastEventHashes[eventType] = _generateEventHash(event);
-    
+
     // 发送事件
     emitCallback(event);
-    
+
     _cleanupIfNeeded();
   }
   
@@ -132,10 +132,10 @@ class EventDeduplicator {
         return '${e.message.id}_${e.message.content.hashCode}';
       case MessageUpdatedEvent:
         final e = event as MessageUpdatedEvent;
-        return '${e.updatedMessage.id}_${e.updatedMessage.content.hashCode}';
+        return '${e.newMessage.id}_${e.newMessage.content.hashCode}';
       case ErrorOccurredEvent:
         final e = event as ErrorOccurredEvent;
-        return '${e.error}_${e.context}';
+        return '${e.error}_${e.source}';
       case ConfigurationChangedEvent:
         final e = event as ConfigurationChangedEvent;
         return '${e.assistant?.id}_${e.provider?.id}_${e.model?.name}';

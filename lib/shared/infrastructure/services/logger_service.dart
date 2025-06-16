@@ -83,7 +83,19 @@ class LoggerService {
 
   /// 底层日志记录器实例
   /// 使用logger包提供的Logger类，配置了美观的输出格式
-  late final Logger _logger;
+  Logger? _logger;
+
+  /// 获取日志记录器实例，如果未初始化则使用默认配置自动初始化
+  Logger get logger {
+    if (_logger == null) {
+      // 自动初始化为默认配置
+      initialize();
+    }
+    return _logger!;
+  }
+
+  /// 标记是否已经初始化
+  bool _isInitialized = false;
 
   /// 初始化日志服务
   ///
@@ -276,7 +288,7 @@ class LoggerService {
   /// logger.debug('异常捕获', exception, stackTrace);
   /// ```
   void debug(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.d(message, error: error, stackTrace: stackTrace);
+    logger.d(message, error: error, stackTrace: stackTrace);
   }
 
   /// 信息日志 - 记录重要的操作信息
@@ -304,7 +316,7 @@ class LoggerService {
   /// logger.info('文件上传完成', {'fileName': name, 'size': size});
   /// ```
   void info(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.i(message, error: error, stackTrace: stackTrace);
+    logger.i(message, error: error, stackTrace: stackTrace);
   }
 
   /// 警告日志 - 记录需要注意的问题
@@ -332,7 +344,7 @@ class LoggerService {
   /// logger.warning('内存使用率较高', {'usage': '85%'});
   /// ```
   void warning(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.w(message, error: error, stackTrace: stackTrace);
+    logger.w(message, error: error, stackTrace: stackTrace);
   }
 
   /// 错误日志 - 记录功能异常和错误
@@ -360,7 +372,7 @@ class LoggerService {
   /// logger.error('文件读取失败', error, stackTrace);
   /// ```
   void error(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.e(message, error: error, stackTrace: stackTrace);
+    logger.e(message, error: error, stackTrace: stackTrace);
   }
 
   /// 致命错误日志 - 记录严重的系统错误
@@ -388,7 +400,7 @@ class LoggerService {
   /// logger.fatal('内存不足，应用即将崩溃', error, stackTrace);
   /// ```
   void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.f(message, error: error, stackTrace: stackTrace);
+    logger.f(message, error: error, stackTrace: stackTrace);
   }
 
   // ============================================================================
@@ -431,7 +443,7 @@ class LoggerService {
     String model,
     Map<String, dynamic> request,
   ) {
-    _logger.i(
+    logger.i(
       '🤖 AI请求',
       error: {'assistantId': assistantId, 'model': model, 'request': request},
     );
@@ -466,7 +478,7 @@ class LoggerService {
   /// );
   /// ```
   void aiResponse(String assistantId, String response, Duration duration) {
-    _logger.i(
+    logger.i(
       '✅ AI响应成功',
       error: {
         'assistantId': assistantId,
@@ -508,7 +520,7 @@ class LoggerService {
   /// );
   /// ```
   void aiError(String assistantId, String error, Duration? duration) {
-    _logger.e(
+    logger.e(
       '❌ AI请求失败',
       error: {
         'assistantId': assistantId,

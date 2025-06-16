@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
+import '../../../../shared/infrastructure/services/logger_service.dart';
+
 /// 状态更新类型
 enum StateUpdateType {
   messageAdd,
@@ -18,7 +20,7 @@ abstract class StateUpdate {
   final DateTime timestamp;
   final int priority;
   
-  const StateUpdate({
+  StateUpdate({
     required this.type,
     required this.key,
     this.priority = 0,
@@ -51,7 +53,7 @@ class MessageAddUpdate extends StateUpdate {
   final dynamic message;
   final Function(dynamic) addCallback;
   
-  const MessageAddUpdate({
+  MessageAddUpdate({
     required this.message,
     required this.addCallback,
     required String messageId,
@@ -87,7 +89,7 @@ class MessageContentUpdate extends StateUpdate {
   final Map<String, dynamic>? metadata;
   final Function(String, String, dynamic, Map<String, dynamic>?) updateCallback;
   
-  const MessageContentUpdate({
+  MessageContentUpdate({
     required this.messageId,
     required this.content,
     required this.status,
@@ -135,7 +137,7 @@ class StreamingUpdate extends StateUpdate {
   final bool isDone;
   final Function(String, String?, bool) streamingCallback;
   
-  const StreamingUpdate({
+  StreamingUpdate({
     required this.messageId,
     required this.streamingCallback,
     this.fullContent,
@@ -178,26 +180,29 @@ class StreamingUpdate extends StateUpdate {
 class BatchStateUpdater {
   /// 批处理间隔
   final Duration _batchInterval;
-  
+
   /// 最大批处理大小
   final int _maxBatchSize;
-  
+
   /// 待处理的更新队列
   final Queue<StateUpdate> _pendingUpdates = Queue();
-  
+
   /// 更新去重映射
   final Map<String, StateUpdate> _updateMap = {};
-  
+
   /// 批处理定时器
   Timer? _batchTimer;
-  
+
   /// 是否正在处理批次
   bool _isProcessing = false;
-  
+
   /// 统计信息
   int _totalUpdates = 0;
   int _mergedUpdates = 0;
   int _batchesProcessed = 0;
+
+  /// 日志服务
+  final LoggerService _logger = LoggerService();
   
   BatchStateUpdater({
     Duration batchInterval = const Duration(milliseconds: 16), // 60fps
@@ -208,7 +213,13 @@ class BatchStateUpdater {
   /// 添加状态更新
   void addUpdate(StateUpdate update) {
     _totalUpdates++;
-    
+
+    // 🚀 优化：检查是否为高优先级更新（如流式完成），立即处理
+    if (_shouldProcessImmediately(update)) {
+      _processUpdateImmediately(update);
+      return;
+    }
+
     // 检查是否可以与现有更新合并
     final existingUpdate = _updateMap[update.key];
     if (existingUpdate != null && existingUpdate.canMergeWith(update)) {
@@ -221,12 +232,36 @@ class BatchStateUpdater {
       _updateMap[update.key] = update;
       _pendingUpdates.add(update);
     }
-    
+
     _scheduleBatch();
-    
+
     // 如果批次过大，立即处理
     if (_pendingUpdates.length >= _maxBatchSize) {
       _processBatch();
+    }
+  }
+
+  /// 判断是否应该立即处理更新
+  bool _shouldProcessImmediately(StateUpdate update) {
+    // 流式完成的更新应该立即处理
+    if (update is StreamingUpdate && update.isDone) {
+      return true;
+    }
+
+    // 高优先级的消息状态更新（如从processing到success）应该立即处理
+    if (update is MessageContentUpdate && update.priority >= 3) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// 立即处理单个更新
+  void _processUpdateImmediately(StateUpdate update) {
+    try {
+      update.apply();
+    } catch (error) {
+      _logger.error('立即状态更新失败', error);
     }
   }
   
@@ -266,7 +301,7 @@ class BatchStateUpdater {
           update.apply();
         } catch (error) {
           // 记录错误但继续处理其他更新
-          print('Error applying state update: $error');
+          _logger.error('批量状态更新失败', error);
         }
       }
       

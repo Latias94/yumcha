@@ -44,7 +44,7 @@ class ChatError implements Exception {
   /// 错误时间戳
   final DateTime timestamp;
   
-  const ChatError({
+  ChatError({
     required this.type,
     required this.message,
     this.originalError,

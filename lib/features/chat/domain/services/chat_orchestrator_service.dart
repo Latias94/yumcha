@@ -5,8 +5,11 @@ import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../entities/chat_state.dart';
 import '../entities/message.dart';
 import '../entities/message_status.dart';
+import '../entities/message_block_type.dart';
 import 'message_factory.dart';
 import 'unified_message_creator.dart';
+import 'message_state_machine.dart';
+import 'streaming_message_service.dart';
 
 import '../../../../shared/infrastructure/services/ai/block_based_chat_service.dart';
 import '../../data/repositories/conversation_repository.dart';
@@ -70,15 +73,20 @@ class _QueuedMessage {
 /// - 错误隔离：单个消息错误不影响整体服务
 class ChatOrchestratorService {
   ChatOrchestratorService(this._ref) {
+    _initializeServices();
     _initializePerformanceMonitoring();
   }
 
   final Ref _ref;
   final LoggerService _logger = LoggerService();
   final MessageFactory _messageFactory = MessageFactory();
+  final MessageStateMachine _stateMachine = MessageStateMachine();
 
   /// 统一消息创建器（延迟初始化）
   UnifiedMessageCreator? _unifiedMessageCreator;
+
+  /// 流式消息服务（延迟初始化）
+  StreamingMessageService? _streamingService;
 
   /// 活跃的流式订阅管理 - 优化内存使用
   final Map<String, _StreamingContext> _activeStreams = {};
@@ -130,6 +138,21 @@ class ChatOrchestratorService {
       messageRepository: _messageRepository,
     );
     return _unifiedMessageCreator!;
+  }
+
+  /// 获取流式消息服务（延迟初始化）
+  StreamingMessageService get _streamingMessageService {
+    _streamingService ??= StreamingMessageService(_messageRepository);
+    return _streamingService!;
+  }
+
+  /// 初始化服务
+  void _initializeServices() {
+    // 监听流式消息更新
+    _streamingMessageService.updateStream.listen(
+      (update) => _handleStreamingMessageUpdate(update),
+      onError: (error) => _logger.error('流式消息更新错误', {'error': error.toString()}),
+    );
   }
 
   /// 初始化性能监控
@@ -247,15 +270,32 @@ class ChatOrchestratorService {
     }
   }
 
-  /// 处理流式响应
+  /// 处理流式消息更新
+  void _handleStreamingMessageUpdate(StreamingMessageUpdate update) {
+    // 转换为UI层的StreamingUpdate格式
+    final streamingUpdate = StreamingUpdate(
+      messageId: update.messageId,
+      contentDelta: update.contentDelta,
+      thinkingDelta: update.thinkingDelta,
+      fullContent: update.fullContent,
+      isDone: update.isDone,
+      error: update.error,
+      metadata: update.metadata,
+    );
+
+    // 通知UI更新
+    _onStreamingUpdate?.call(streamingUpdate);
+  }
+
+  /// 处理流式响应 - 重构版本，使用新的流式服务
   Future<ChatOperationResult<Message>> _handleStreamingResponse(
     Message userMessage,
     SendMessageParams params,
   ) async {
     // 检查并发流数量限制
-    if (_activeStreams.length >= ChatConstants.maxConcurrentStreams) {
+    if (_streamingMessageService.activeStreamingCount >= ChatConstants.maxConcurrentStreams) {
       _logger.warning('达到最大并发流数量限制', {
-        'activeStreams': _activeStreams.length,
+        'activeStreams': _streamingMessageService.activeStreamingCount,
         'maxConcurrent': ChatConstants.maxConcurrentStreams,
       });
 
@@ -273,6 +313,22 @@ class ChatOrchestratorService {
       // 获取聊天历史
       final chatHistory = await _getChatHistory(params.conversationId);
 
+      // 创建AI消息占位符
+      final aiMessage = _messageFactory.createAiMessagePlaceholder(
+        conversationId: params.conversationId,
+        assistantId: params.assistant.id,
+        modelId: params.model.name,
+      );
+
+      // 初始化流式消息服务
+      await _streamingMessageService.initializeStreaming(
+        messageId: aiMessage.id,
+        conversationId: params.conversationId,
+        assistantId: params.assistant.id,
+        modelId: params.model.name,
+        metadata: params.metadata,
+      );
+
       // 开始流式传输
       final stream = _blockChatService.sendBlockMessageStream(
         conversationId: params.conversationId,
@@ -283,60 +339,47 @@ class ChatOrchestratorService {
         userMessage: userMessage.content,
       );
 
-      // 简化的流式处理 - 直接使用消息ID作为key
       final completer = Completer<ChatOperationResult<Message>>();
       Message? lastMessage;
-      String? messageId; // 流式消息的唯一ID
       StreamSubscription? subscription;
 
       subscription = stream.listen(
         (message) async {
           lastMessage = message;
-          messageId ??= message.id;
-
-          // 首次收到消息时，注册到活跃流管理
-          if (!_activeStreams.containsKey(messageId)) {
-            _activeStreams[messageId!] = _StreamingContext(
-              subscription: subscription!,
-              startTime: DateTime.now(),
-              messageId: messageId!,
-              completer: completer,
-            );
-          }
-
-          await _handleStreamingMessage(
-            message,
-            messageId!,
-            params.conversationId,
-            completer,
-          );
+          // 使用aiMessage.id而不是message.id来保持一致性
+          await _handleStreamingMessageFromBlock(message, aiMessage.id, completer);
         },
-        onError: (error) {
-          final errorMessage = lastMessage ?? _messageFactory.createAiMessagePlaceholder(
-            conversationId: params.conversationId,
-            assistantId: params.assistant.id,
-          );
-          _handleStreamingError(error, errorMessage, params.conversationId, completer);
+        onError: (error) async {
+          await _streamingMessageService.cancelStreaming(aiMessage.id);
+          _handleStreamingError(error, lastMessage ?? aiMessage, params.conversationId, completer);
         },
         onDone: () async {
           if (!completer.isCompleted && lastMessage != null) {
-            _logger.debug('流式传输完成', {'messageId': lastMessage!.id});
-            await _completeStreamingMessageFromBlock(
-              lastMessage!,
-              params.conversationId,
-              completer,
+            await _streamingMessageService.completeStreaming(
+              messageId: aiMessage.id, // 使用aiMessage.id
+              metadata: {
+                'duration': DateTime.now().difference(DateTime.now()).inMilliseconds,
+              },
             );
+            completer.complete(ChatOperationSuccess(lastMessage!));
           }
         },
       );
 
+      // 注册到活跃流管理
+      _activeStreams[aiMessage.id] = _StreamingContext(
+        subscription: subscription,
+        startTime: DateTime.now(),
+        messageId: aiMessage.id,
+        completer: completer,
+      );
+
       // 设置超时处理
-      Timer(ChatConstants.streamingTimeout, () {
+      Timer(ChatConstants.streamingTimeout, () async {
         if (!completer.isCompleted) {
-          subscription?.cancel();
-          if (messageId != null) {
-            _activeStreams.remove(messageId);
-          }
+          await subscription?.cancel();
+          await _streamingMessageService.cancelStreaming(aiMessage.id);
+          _activeStreams.remove(aiMessage.id);
           completer.complete(const ChatOperationFailure('流式传输超时'));
         }
       });
@@ -401,34 +444,43 @@ class ChatOrchestratorService {
     }
   }
 
-  /// 处理流式消息更新
-  Future<void> _handleStreamingMessage(
+  /// 处理来自块化服务的流式消息
+  Future<void> _handleStreamingMessageFromBlock(
     Message message,
-    String originalMessageId,
-    String conversationId,
+    String streamingMessageId,
     Completer<ChatOperationResult<Message>> completer,
   ) async {
     try {
       // 从块化消息中提取内容
       final fullContent = _extractContentFromMessage(message);
+      final thinkingContent = _extractThinkingFromMessage(message);
 
-      // 通知UI更新流式消息
-      _notifyStreamingUpdate(StreamingUpdate(
-        messageId: originalMessageId,
+      // 更新流式消息服务，使用统一的streamingMessageId
+      await _streamingMessageService.updateContent(
+        messageId: streamingMessageId,
         fullContent: fullContent,
-        isDone: message.status == MessageStatus.aiSuccess,
-      ));
+        fullThinking: thinkingContent,
+        metadata: message.metadata,
+      );
+
     } catch (error) {
-      await _handleStreamingError(error, message, conversationId, completer);
+      _logger.error('处理流式消息失败', {
+        'messageId': streamingMessageId,
+        'originalMessageId': message.id,
+        'error': error.toString(),
+      });
+      await _streamingMessageService.cancelStreaming(streamingMessageId);
     }
   }
 
-  /// 从消息中提取内容
+  /// 从消息中提取主要内容
   String _extractContentFromMessage(Message message) {
     final contentParts = <String>[];
 
     for (final block in message.blocks) {
-      if (block.content != null && block.content!.isNotEmpty) {
+      if (block.type == MessageBlockType.mainText &&
+          block.content != null &&
+          block.content!.isNotEmpty) {
         contentParts.add(block.content!);
       }
     }
@@ -436,73 +488,22 @@ class ChatOrchestratorService {
     return contentParts.join('\n\n');
   }
 
-  /// 完成块化流式消息
-  Future<void> _completeStreamingMessageFromBlock(
-    Message completedMessage,
-    String conversationId,
-    Completer<ChatOperationResult<Message>> completer,
-  ) async {
-    // 防止重复完成同一个消息
-    if (completer.isCompleted) {
-      _logger.warning('消息已完成，跳过重复处理', {
-        'messageId': completedMessage.id,
-        'conversationId': conversationId,
-      });
-      return;
-    }
+  /// 从消息中提取思考内容
+  String _extractThinkingFromMessage(Message message) {
+    final thinkingParts = <String>[];
 
-    try {
-      final fullContent = _extractContentFromMessage(completedMessage);
-
-      final finalMessage = completedMessage.copyWith(
-        status: MessageStatus.aiSuccess,
-        updatedAt: DateTime.now(),
-      );
-
-      // 通知UI流式完成（只有在消息状态不是已成功时才发送，避免重复通知）
-      if (completedMessage.status != MessageStatus.aiSuccess) {
-        _notifyStreamingUpdate(StreamingUpdate(
-          messageId: completedMessage.id,
-          fullContent: fullContent,
-          isDone: true,
-        ));
-      }
-
-      // 🚀 优化：不再重复保存消息，因为MessageRepository.finishStreamingMessage已经处理了保存
-      // 只需要确保消息状态正确即可
-
-      // 清理订阅 - 直接使用消息ID作为key
-      final streamContext = _activeStreams[completedMessage.id];
-      if (streamContext != null) {
-        await streamContext.cancel();
-        _activeStreams.remove(completedMessage.id);
-      }
-
-      _updateStatistics();
-
-      _logger.info('块化流式消息完成', {
-        'messageId': completedMessage.id,
-        'blocksCount': completedMessage.blocks.length,
-        'contentLength': fullContent.length,
-        'conversationId': conversationId,
-      });
-
-      // 确保只完成一次
-      if (!completer.isCompleted) {
-        completer.complete(ChatOperationSuccess(finalMessage));
-      }
-    } catch (error) {
-      // 只有在completer未完成时才处理错误
-      if (!completer.isCompleted) {
-        await _handleStreamingError(error, completedMessage, conversationId, completer);
-      } else {
-        _logger.error('块化流式消息完成时发生错误（但completer已完成）', {
-          'messageId': completedMessage.id,
-          'error': error.toString(),
-        });
+    for (final block in message.blocks) {
+      if (block.type == MessageBlockType.thinking &&
+          block.content != null &&
+          block.content!.isNotEmpty) {
+        thinkingParts.add(block.content!);
       }
     }
+
+    return thinkingParts.join('\n\n');
   }
+
+
 
   /// 处理流式错误
   Future<void> _handleStreamingError(
@@ -528,6 +529,24 @@ class ChatOrchestratorService {
       'error': error.toString(),
       'userMessage': errorMessage,
     });
+
+    // 🚀 修复：确保流式错误时消息被正确保存到数据库
+    try {
+      // 提取部分内容（如果有的话）
+      final partialContent = _extractContentFromMessage(aiMessage);
+
+      await _messageRepository.handleStreamingError(
+        messageId: aiMessage.id,
+        errorMessage: errorMessage,
+        partialContent: partialContent.isNotEmpty ? partialContent : null,
+      );
+    } catch (error) {
+      _logger.error('处理流式错误保存失败', {
+        'messageId': aiMessage.id,
+        'error': error.toString(),
+      });
+      // 继续执行，不因保存失败而中断流程
+    }
 
     // 清理订阅 - 直接使用消息ID作为key
     final streamContext = _activeStreams[aiMessage.id];
@@ -731,14 +750,78 @@ class ChatOrchestratorService {
   /// 获取性能指标
   ChatPerformanceMetrics get performanceMetrics => _performanceMetrics;
 
+  /// 使用状态机验证消息状态转换
+  bool _validateStatusTransition(MessageStatus from, MessageStatus to) {
+    return _stateMachine.canTransition(from, to);
+  }
+
+  /// 执行消息状态转换
+  StateTransitionResult _transitionMessageStatus({
+    required MessageStatus currentStatus,
+    required MessageStateEvent event,
+    Map<String, dynamic>? metadata,
+  }) {
+    return _stateMachine.transition(
+      currentStatus: currentStatus,
+      event: event,
+      metadata: metadata,
+    );
+  }
+
+  /// 初始化流式消息 - 代理方法，保持向后兼容
+  Future<void> initializeStreamingMessage(
+    String messageId,
+    String content, {
+    required String conversationId,
+    required String assistantId,
+    String? modelId,
+    Map<String, dynamic>? metadata,
+  }) async {
+    await _streamingMessageService.initializeStreaming(
+      messageId: messageId,
+      conversationId: conversationId,
+      assistantId: assistantId,
+      modelId: modelId,
+      metadata: metadata,
+    );
+
+    // 如果有初始内容，更新缓存
+    if (content.isNotEmpty) {
+      await _streamingMessageService.updateContent(
+        messageId: messageId,
+        fullContent: content,
+      );
+    }
+  }
+
+  /// 更新流式消息内容 - 代理方法，保持向后兼容
+  Future<void> updateStreamingContent(String messageId, String content) async {
+    await _streamingMessageService.updateContent(
+      messageId: messageId,
+      fullContent: content,
+    );
+  }
+
+  /// 完成流式消息 - 代理方法，保持向后兼容
+  Future<void> finishStreamingMessage(String messageId) async {
+    await _streamingMessageService.completeStreaming(
+      messageId: messageId,
+    );
+  }
 
 
-  /// 清理资源 - 优化版本，完整的资源清理
+
+  /// 清理资源 - 重构版本，使用新的服务架构
   Future<void> dispose() async {
     _logger.info('开始清理ChatOrchestratorService资源');
 
     // 取消性能监控
     _performanceTimer?.cancel();
+
+    // 清理流式消息服务
+    if (_streamingService != null) {
+      await _streamingService!.dispose();
+    }
 
     // 取消所有流式传输
     await cancelAllStreaming();
@@ -757,6 +840,7 @@ class ChatOrchestratorService {
       'activeStreams': _activeStreams.length,
       'queueSize': _messageQueue.length,
       'cacheSize': _contentCache.length,
+      'streamingServiceDisposed': _streamingService != null,
     });
   }
 }

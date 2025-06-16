@@ -233,9 +233,9 @@ extension ErrorHandlingExtension on Future {
 }
 
 /// 流式错误处理扩展
-extension StreamErrorHandlingExtension on Stream {
+extension StreamErrorHandlingExtension<T> on Stream<T> {
   /// 为Stream添加统一的错误处理
-  Stream<T> handleChatError<T>({
+  Stream<T> handleChatError({
     String? context,
     Map<String, dynamic>? metadata,
   }) {

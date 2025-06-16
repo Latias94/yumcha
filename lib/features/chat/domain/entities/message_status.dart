@@ -1,31 +1,34 @@
 /// 新的消息状态枚举（块化消息系统）
-/// 
+///
 /// 定义消息级别的状态，与消息块状态分离
 enum MessageStatus {
   // 用户消息状态
   /// 用户消息成功
   userSuccess,
-  
+
   // AI消息状态
   /// AI消息处理中
   aiProcessing,
-  
+
   /// AI消息等待处理
   aiPending,
-  
+
+  /// AI消息流式传输中
+  aiStreaming,
+
   /// AI消息成功
   aiSuccess,
-  
+
   /// AI消息错误
   aiError,
-  
+
   /// AI消息暂停
   aiPaused,
-  
+
   // 系统消息状态
   /// 系统消息
   system,
-  
+
   // 特殊状态
   /// 临时消息（不持久化）
   temporary,
@@ -42,6 +45,8 @@ extension MessageStatusExtension on MessageStatus {
         return '处理中';
       case MessageStatus.aiPending:
         return '等待中';
+      case MessageStatus.aiStreaming:
+        return '流式传输中';
       case MessageStatus.aiSuccess:
         return '完成';
       case MessageStatus.aiError:
@@ -63,10 +68,11 @@ extension MessageStatusExtension on MessageStatus {
   /// 是否是AI消息状态
   bool get isAiStatus {
     return this == MessageStatus.aiProcessing ||
-           this == MessageStatus.aiPending ||
-           this == MessageStatus.aiSuccess ||
-           this == MessageStatus.aiError ||
-           this == MessageStatus.aiPaused;
+        this == MessageStatus.aiPending ||
+        this == MessageStatus.aiStreaming ||
+        this == MessageStatus.aiSuccess ||
+        this == MessageStatus.aiError ||
+        this == MessageStatus.aiPaused;
   }
 
   /// 是否是系统消息状态
@@ -77,14 +83,15 @@ extension MessageStatusExtension on MessageStatus {
   /// 是否是进行中的状态
   bool get isInProgress {
     return this == MessageStatus.aiProcessing ||
-           this == MessageStatus.aiPending;
+        this == MessageStatus.aiPending ||
+        this == MessageStatus.aiStreaming;
   }
 
   /// 是否是完成状态
   bool get isCompleted {
     return this == MessageStatus.userSuccess ||
-           this == MessageStatus.aiSuccess ||
-           this == MessageStatus.system;
+        this == MessageStatus.aiSuccess ||
+        this == MessageStatus.system;
   }
 
   /// 是否是错误状态
@@ -94,8 +101,7 @@ extension MessageStatusExtension on MessageStatus {
 
   /// 是否是成功状态
   bool get isSuccess {
-    return this == MessageStatus.userSuccess ||
-           this == MessageStatus.aiSuccess;
+    return this == MessageStatus.userSuccess || this == MessageStatus.aiSuccess;
   }
 
   /// 是否应该持久化到数据库
@@ -106,19 +112,20 @@ extension MessageStatusExtension on MessageStatus {
   /// 是否是临时状态
   bool get isTemporary {
     return this == MessageStatus.temporary ||
-           this == MessageStatus.aiProcessing ||
-           this == MessageStatus.aiPending;
+        this == MessageStatus.aiProcessing ||
+        this == MessageStatus.aiPending ||
+        this == MessageStatus.aiStreaming;
   }
 
   /// 是否可以重试
   bool get canRetry {
-    return this == MessageStatus.aiError ||
-           this == MessageStatus.aiPaused;
+    return this == MessageStatus.aiError || this == MessageStatus.aiPaused;
   }
 
   /// 是否可以暂停
   bool get canPause {
-    return this == MessageStatus.aiProcessing;
+    return this == MessageStatus.aiProcessing ||
+        this == MessageStatus.aiStreaming;
   }
 
   /// 是否可以继续
@@ -129,7 +136,8 @@ extension MessageStatusExtension on MessageStatus {
   /// 是否显示加载指示器
   bool get showLoadingIndicator {
     return this == MessageStatus.aiProcessing ||
-           this == MessageStatus.aiPending;
+        this == MessageStatus.aiPending ||
+        this == MessageStatus.aiStreaming;
   }
 
   /// 转换为数据库枚举索引（与database.dart中的DbMessageStatus对应）
@@ -141,16 +149,18 @@ extension MessageStatusExtension on MessageStatus {
         return 1;
       case MessageStatus.aiPending:
         return 2;
-      case MessageStatus.aiSuccess:
+      case MessageStatus.aiStreaming:
         return 3;
-      case MessageStatus.aiError:
+      case MessageStatus.aiSuccess:
         return 4;
-      case MessageStatus.aiPaused:
+      case MessageStatus.aiError:
         return 5;
-      case MessageStatus.system:
+      case MessageStatus.aiPaused:
         return 6;
-      case MessageStatus.temporary:
+      case MessageStatus.system:
         return 7;
+      case MessageStatus.temporary:
+        return 8;
     }
   }
 
@@ -164,14 +174,16 @@ extension MessageStatusExtension on MessageStatus {
       case 2:
         return MessageStatus.aiPending;
       case 3:
-        return MessageStatus.aiSuccess;
+        return MessageStatus.aiStreaming;
       case 4:
-        return MessageStatus.aiError;
+        return MessageStatus.aiSuccess;
       case 5:
-        return MessageStatus.aiPaused;
+        return MessageStatus.aiError;
       case 6:
-        return MessageStatus.system;
+        return MessageStatus.aiPaused;
       case 7:
+        return MessageStatus.system;
+      case 8:
         return MessageStatus.temporary;
       default:
         return MessageStatus.userSuccess;
