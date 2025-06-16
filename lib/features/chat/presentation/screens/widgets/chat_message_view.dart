@@ -341,20 +341,13 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     content: thinkingResult.actualContent,
                   ),
 
-                  // 多媒体内容显示（块化消息）
+                  // 多媒体内容显示 - 优先使用块化消息
                   if (widget.message.hasImages) ...[
                     SizedBox(height: DesignConstants.spaceM),
                     _buildImageBlocks(context, theme, compact: false),
-                  ],
-
-                  // 文件内容显示（块化消息）
-                  if (_hasFileBlocks()) ...[
-                    SizedBox(height: DesignConstants.spaceM),
-                    _buildFileBlocks(context, theme),
-                  ],
-
-                  // 兼容性：多媒体内容显示（EnhancedMessage）
-                  if (widget.message is EnhancedMessage) ...[
+                  ] else if (widget.message is EnhancedMessage &&
+                             (widget.message as EnhancedMessage).hasMediaFiles) ...[
+                    // 兼容性：EnhancedMessage的多媒体内容
                     SizedBox(height: DesignConstants.spaceM),
                     MediaContentWidget(
                       message: widget.message as EnhancedMessage,
@@ -362,6 +355,12 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                       onImageTap: _handleImageTap,
                       onAudioTap: _handleAudioTap,
                     ),
+                  ],
+
+                  // 文件内容显示（块化消息）
+                  if (_hasFileBlocks()) ...[
+                    SizedBox(height: DesignConstants.spaceM),
+                    _buildFileBlocks(context, theme),
                   ],
 
                   // 错误信息显示
@@ -451,67 +450,104 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
               // 多媒体内容显示（在气泡下方）- 块化消息
               if (widget.message.hasImages) ...[
                 SizedBox(height: DesignConstants.spaceS),
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                Align(
+                  alignment: widget.message.isFromUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                    ),
+                    child: _buildImageBlocks(context, theme, compact: true),
                   ),
-                  child: _buildImageBlocks(context, theme, compact: true),
                 ),
               ],
 
               // 文件内容显示（在气泡下方）- 块化消息
               if (_hasFileBlocks()) ...[
                 SizedBox(height: DesignConstants.spaceS),
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                Align(
+                  alignment: widget.message.isFromUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                    ),
+                    child: _buildFileBlocks(context, theme),
                   ),
-                  child: _buildFileBlocks(context, theme),
                 ),
               ],
 
-              // 兼容性：多媒体内容显示（在气泡下方）- EnhancedMessage
-              if (widget.message is EnhancedMessage) ...[
+              // 兼容性：EnhancedMessage的多媒体内容（仅在没有块化内容时显示）
+              if (widget.message is EnhancedMessage &&
+                  !widget.message.hasImages &&
+                  !_hasFileBlocks() &&
+                  (widget.message as EnhancedMessage).hasMediaFiles) ...[
                 SizedBox(height: DesignConstants.spaceS),
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
-                  ),
-                  child: MediaContentWidget(
-                    message: widget.message as EnhancedMessage,
-                    compact: true,
-                    onImageTap: _handleImageTap,
-                    onAudioTap: _handleAudioTap,
+                Align(
+                  alignment: widget.message.isFromUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                    ),
+                    child: MediaContentWidget(
+                      message: widget.message as EnhancedMessage,
+                      compact: true,
+                      onImageTap: _handleImageTap,
+                      onAudioTap: _handleAudioTap,
+                    ),
                   ),
                 ),
               ],
 
               // 错误信息显示（在气泡下方）
-              if (widget.message.isError && widget.message.metadata?['errorInfo'] != null)
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+              if (widget.message.isError && widget.message.metadata?['errorInfo'] != null) ...[
+                SizedBox(height: DesignConstants.spaceS),
+                Align(
+                  alignment: widget.message.isFromUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                    ),
+                    child: _buildErrorInfo(context, theme),
                   ),
-                  child: _buildErrorInfo(context, theme),
                 ),
+              ],
 
               // 流式状态指示器（在气泡内部）
-              if (widget.message.status == MessageStatus.aiProcessing)
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+              if (widget.message.status == MessageStatus.aiProcessing) ...[
+                SizedBox(height: DesignConstants.spaceS),
+                Align(
+                  alignment: widget.message.isFromUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                    ),
+                    child: _buildStreamingIndicator(context, theme),
                   ),
-                  child: _buildStreamingIndicator(context, theme),
                 ),
+              ],
 
               // Token使用信息显示（仅AI消息，在气泡内部）
-              if (!widget.message.isFromUser && widget.message.metadata?['tokenUsage'] != null)
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * maxWidth,
+              if (!widget.message.isFromUser && widget.message.metadata?['tokenUsage'] != null) ...[
+                SizedBox(height: DesignConstants.spaceS),
+                Align(
+                  alignment: Alignment.centerLeft, // Token信息始终左对齐
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * maxWidth,
+                    ),
+                    child: _buildTokenInfo(context, theme),
                   ),
-                  child: _buildTokenInfo(context, theme),
                 ),
+              ],
             ],
           ),
 
@@ -1173,8 +1209,14 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     final imageBlocks = widget.message.imageBlocks;
     if (imageBlocks.isEmpty) return const SizedBox.shrink();
 
+    // 根据当前样式调整对齐方式
+    final chatStyle = ref.watch(currentChatStyleProvider);
+    final crossAxisAlignment = chatStyle == ChatBubbleStyle.bubble && widget.message.isFromUser
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: crossAxisAlignment,
       children: imageBlocks.map((block) {
         return Container(
           margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
@@ -1189,47 +1231,76 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     if (block.url == null) return const SizedBox.shrink();
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final maxWidth = compact ? screenWidth * 0.5 : screenWidth * 0.7;
+    final chatStyle = ref.watch(currentChatStyleProvider);
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: maxWidth,
-        maxHeight: compact ? 150 : 200,
-      ),
-      child: ClipRRect(
-        borderRadius: DesignConstants.radiusM,
-        child: Image.network(
-          block.url!,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer,
-                borderRadius: DesignConstants.radiusM,
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.broken_image_outlined,
-                      color: theme.colorScheme.onErrorContainer,
-                      size: DesignConstants.iconSizeM,
-                    ),
-                    SizedBox(height: DesignConstants.spaceXS),
-                    Text(
-                      '图片加载失败',
-                      style: TextStyle(
-                        color: theme.colorScheme.onErrorContainer,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+    // 根据样式调整最大宽度
+    double maxWidth;
+    switch (chatStyle) {
+      case ChatBubbleStyle.bubble:
+        maxWidth = compact ? screenWidth * 0.4 : screenWidth * 0.6;
+        break;
+      case ChatBubbleStyle.card:
+        maxWidth = compact ? screenWidth * 0.5 : screenWidth * 0.7;
+        break;
+      case ChatBubbleStyle.list:
+        maxWidth = compact ? screenWidth * 0.6 : screenWidth * 0.8;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // 创建一个临时的MediaMetadata用于图片预览
+        final metadata = MediaMetadata(
+          id: block.id,
+          fileName: block.metadata?['fileName'] as String? ?? '图片',
+          mimeType: block.metadata?['mimeType'] as String? ?? 'image/jpeg',
+          sizeBytes: block.metadata?['sizeBytes'] as int? ?? 0,
+          strategy: MediaStorageStrategy.networkUrl,
+          networkUrl: block.url!,
+          createdAt: DateTime.now(),
+        );
+        _handleImageTap(metadata, 0);
+      },
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+          maxHeight: compact ? 150 : 200,
+        ),
+        child: ClipRRect(
+          borderRadius: DesignConstants.radiusM,
+          child: Image.network(
+            block.url!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer,
+                  borderRadius: DesignConstants.radiusM,
                 ),
-              ),
-            );
-          },
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.broken_image_outlined,
+                        color: theme.colorScheme.onErrorContainer,
+                        size: DesignConstants.iconSizeM,
+                      ),
+                      SizedBox(height: DesignConstants.spaceXS),
+                      Text(
+                        '图片加载失败',
+                        style: TextStyle(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -1240,8 +1311,14 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     final fileBlocks = widget.message.blocks.where((block) => block.type == MessageBlockType.file).toList();
     if (fileBlocks.isEmpty) return const SizedBox.shrink();
 
+    // 根据当前样式调整对齐方式
+    final chatStyle = ref.watch(currentChatStyleProvider);
+    final crossAxisAlignment = chatStyle == ChatBubbleStyle.bubble && widget.message.isFromUser
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: crossAxisAlignment,
       children: fileBlocks.map((block) {
         return Container(
           margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
@@ -1256,63 +1333,85 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     final fileName = block.metadata?['fileName'] as String? ?? '未知文件';
     final fileSize = block.metadata?['sizeBytes'] as int?;
     final mimeType = block.metadata?['mimeType'] as String?;
+    final chatStyle = ref.watch(currentChatStyleProvider);
 
-    return Container(
-      padding: DesignConstants.paddingM,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: DesignConstants.radiusM,
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant,
-          width: DesignConstants.borderWidthThin,
+    // 根据样式调整文件块的最大宽度
+    final screenWidth = MediaQuery.of(context).size.width;
+    double maxWidth;
+    switch (chatStyle) {
+      case ChatBubbleStyle.bubble:
+        maxWidth = screenWidth * 0.7;
+        break;
+      case ChatBubbleStyle.card:
+        maxWidth = screenWidth * 0.8;
+        break;
+      case ChatBubbleStyle.list:
+        maxWidth = double.infinity;
+        break;
+    }
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Container(
+        padding: DesignConstants.paddingM,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: DesignConstants.radiusM,
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant,
+            width: DesignConstants.borderWidthThin,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _getFileIcon(mimeType),
-            color: theme.colorScheme.primary,
-            size: DesignConstants.iconSizeM,
-          ),
-          SizedBox(width: DesignConstants.spaceM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fileName,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (fileSize != null) ...[
-                  SizedBox(height: DesignConstants.spaceXS),
+        child: Row(
+          mainAxisSize: chatStyle == ChatBubbleStyle.bubble
+              ? MainAxisSize.min
+              : MainAxisSize.max,
+          children: [
+            Icon(
+              _getFileIcon(mimeType),
+              color: theme.colorScheme.primary,
+              size: DesignConstants.iconSizeM,
+            ),
+            SizedBox(width: DesignConstants.spaceM),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    _formatFileSize(fileSize),
+                    fileName,
                     style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 12,
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  if (fileSize != null) ...[
+                    SizedBox(height: DesignConstants.spaceXS),
+                    Text(
+                      _formatFileSize(fileSize),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ),
-          if (block.url != null)
-            IconButton(
-              onPressed: () => _handleFileTap(block),
-              icon: Icon(
-                Icons.download_rounded,
-                color: theme.colorScheme.primary,
-                size: DesignConstants.iconSizeS,
               ),
-              tooltip: '下载文件',
             ),
-        ],
+            if (block.url != null)
+              IconButton(
+                onPressed: () => _handleFileTap(block),
+                icon: Icon(
+                  Icons.download_rounded,
+                  color: theme.colorScheme.primary,
+                  size: DesignConstants.iconSizeS,
+                ),
+                tooltip: '下载文件',
+              ),
+          ],
+        ),
       ),
     );
   }
