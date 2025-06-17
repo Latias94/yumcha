@@ -317,6 +317,14 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
       ];
     }
 
+    // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，显示流式占位符
+    if (widget.message.status.showLoadingIndicator) {
+      final hasAnyContent = widget.message.blocks.any((block) => block.hasContent);
+      if (!hasAnyContent) {
+        return [_buildStreamingPlaceholder()];
+      }
+    }
+
     // 获取聊天设置
     final chatSettings = ref.watch(chatSettingsProvider);
 
@@ -415,6 +423,14 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
       ];
     }
 
+    // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，显示流式占位符
+    if (widget.message.status.showLoadingIndicator) {
+      final hasAnyContent = widget.message.blocks.any((block) => block.hasContent);
+      if (!hasAnyContent) {
+        return [_buildStreamingPlaceholder()];
+      }
+    }
+
     return widget.message.blocks.map((block) {
       return Container(
         margin: EdgeInsets.only(bottom: DesignConstants.spaceXS),
@@ -438,6 +454,15 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
 
   /// 构建消息状态指示器
   Widget _buildMessageStatusIndicator(ThemeData theme) {
+    // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，
+    // 则已经显示了流式占位符，不需要额外的状态指示器
+    if (widget.message.status.showLoadingIndicator) {
+      final hasAnyContent = widget.message.blocks.any((block) => block.hasContent);
+      if (!hasAnyContent) {
+        return const SizedBox.shrink(); // 不显示重复的流式指示器
+      }
+    }
+
     return Padding(
       padding: EdgeInsets.only(top: DesignConstants.spaceS),
       child: Row(
