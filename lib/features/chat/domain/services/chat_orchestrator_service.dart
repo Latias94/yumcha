@@ -385,18 +385,52 @@ class ChatOrchestratorService {
         },
         onDone: () async {
           if (!completer.isCompleted && lastMessage != null) {
-            // 🚀 修复：正确计算流式传输持续时间
+            // 🔍 调试日志：记录流式完成时的状态
             final streamContext = _activeStreams[messageId];
             final duration = streamContext?.duration ?? Duration.zero;
+            final finalContent = _extractContentFromMessage(lastMessage!);
 
+            _logger.info('流式传输onDone触发', {
+              'messageId': messageId,
+              'lastMessageId': lastMessage!.id,
+              'duration': duration.inMilliseconds,
+              'finalContentLength': finalContent.length,
+              'finalContentPreview': finalContent.length > 100
+                  ? '${finalContent.substring(0, 100)}...'
+                  : finalContent,
+              'finalContentEnding': finalContent.length > 30
+                  ? '...${finalContent.substring(finalContent.length - 30)}'
+                  : finalContent,
+              'completerCompleted': completer.isCompleted,
+              'timestamp': DateTime.now().toIso8601String(),
+            });
+
+            // 🚀 修复：正确计算流式传输持续时间
             await _streamingMessageService.completeStreaming(
               messageId: messageId, // 使用统一的messageId
               metadata: {
                 'duration': duration.inMilliseconds,
+                'finalMessageId': lastMessage!.id,
+                'finalContentLength': finalContent.length,
               },
             );
+
             _messageIdManager.completeStreamingMessage(messageId);
+
+            _logger.debug('流式传输完成处理结束', {
+              'messageId': messageId,
+              'operationSuccess': true,
+            });
+
             completer.complete(ChatOperationSuccess(lastMessage!));
+          } else {
+            // 🔍 调试日志：记录未完成的原因
+            _logger.warning('流式传输onDone但未完成', {
+              'messageId': messageId,
+              'completerCompleted': completer.isCompleted,
+              'hasLastMessage': lastMessage != null,
+              'lastMessageId': lastMessage?.id,
+            });
           }
         },
       );
@@ -524,6 +558,23 @@ class ChatOrchestratorService {
       final fullContent = _extractContentFromMessage(message);
       final thinkingContent = _extractThinkingFromMessage(message);
 
+      // 🔍 调试日志：记录每次流式更新
+      _logger.debug('处理流式消息更新', {
+        'streamingMessageId': streamingMessageId,
+        'originalMessageId': message.id,
+        'messageStatus': message.status.name,
+        'fullContentLength': fullContent.length,
+        'contentPreview': fullContent.length > 50
+            ? '${fullContent.substring(0, 50)}...'
+            : fullContent,
+        'contentEnding': fullContent.length > 20
+            ? '...${fullContent.substring(fullContent.length - 20)}'
+            : fullContent,
+        'hasThinking': thinkingContent.isNotEmpty,
+        'thinkingLength': thinkingContent.length,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
       // 更新流式消息服务，使用统一的streamingMessageId
       await _streamingMessageService.updateContent(
         messageId: streamingMessageId,
@@ -532,11 +583,17 @@ class ChatOrchestratorService {
         metadata: message.metadata,
       );
 
+      _logger.debug('流式消息更新完成', {
+        'streamingMessageId': streamingMessageId,
+        'updateSuccess': true,
+      });
+
     } catch (error) {
       _logger.error('处理流式消息失败', {
         'messageId': streamingMessageId,
         'originalMessageId': message.id,
         'error': error.toString(),
+        'contentLength': _extractContentFromMessage(message).length,
       });
       await _streamingMessageService.cancelStreaming(streamingMessageId);
     }

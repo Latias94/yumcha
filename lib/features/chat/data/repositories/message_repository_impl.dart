@@ -961,13 +961,40 @@ class MessageRepositoryImpl implements MessageRepository {
     // 🚀 优化：流式过程中只更新内存缓存，不写入数据库
     // 这样可以避免频繁的数据库写入操作
 
+    // 🔍 调试日志：记录接收到的内容
+    _logger.debug('Repository接收流式内容更新', {
+      'messageId': messageId,
+      'contentLength': content.length,
+      'contentPreview': content.length > 100
+          ? '${content.substring(0, 100)}...'
+          : content,
+      'contentEnding': content.length > 30
+          ? '...${content.substring(content.length - 30)}'
+          : content,
+      'hasThinking': thinkingContent != null && thinkingContent.isNotEmpty,
+      'thinkingLength': thinkingContent?.length ?? 0,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
     // 更新内存中的内容缓存
     final contentCache = _streamingContentCache[messageId] ?? {};
+    final previousContent = contentCache['mainText'] ?? '';
     contentCache['mainText'] = content;
     if (thinkingContent != null && thinkingContent.isNotEmpty) {
       contentCache['thinking'] = thinkingContent;
     }
     _streamingContentCache[messageId] = contentCache;
+
+    // 🔍 调试日志：记录内容变化
+    if (previousContent != content) {
+      _logger.debug('内容缓存已更新', {
+        'messageId': messageId,
+        'previousLength': previousContent.length,
+        'newLength': content.length,
+        'lengthDiff': content.length - previousContent.length,
+        'contentChanged': true,
+      });
+    }
 
     // 获取或创建块缓存
     List<MessageBlock> blocks = _streamingBlocksCache[messageId] ?? [];
@@ -975,6 +1002,10 @@ class MessageRepositoryImpl implements MessageRepository {
       // 如果缓存为空，从数据库加载一次
       blocks = await getMessageBlocks(messageId);
       _streamingBlocksCache[messageId] = blocks;
+      _logger.debug('从数据库加载消息块', {
+        'messageId': messageId,
+        'blocksCount': blocks.length,
+      });
     }
 
     // 更新缓存中的块内容（仅内存操作）
@@ -985,7 +1016,17 @@ class MessageRepositoryImpl implements MessageRepository {
     if (textBlock != null) {
       final index = blocks.indexWhere((b) => b.id == textBlock!.id);
       if (index != -1) {
+        final oldContent = textBlock.content ?? '';
         blocks[index] = textBlock.copyWith(content: content, updatedAt: now);
+
+        // 🔍 调试日志：记录文本块更新
+        _logger.debug('更新现有文本块', {
+          'messageId': messageId,
+          'blockId': textBlock.id,
+          'oldContentLength': oldContent.length,
+          'newContentLength': content.length,
+          'contentLengthDiff': content.length - oldContent.length,
+        });
       }
     } else {
       // 创建新的文本块（仅在缓存中）
@@ -997,6 +1038,13 @@ class MessageRepositoryImpl implements MessageRepository {
         createdAt: now,
       );
       blocks.add(textBlock);
+
+      // 🔍 调试日志：记录新文本块创建
+      _logger.debug('创建新文本块', {
+        'messageId': messageId,
+        'blockId': textBlock.id,
+        'contentLength': content.length,
+      });
     }
 
     // 更新或创建思考过程块
@@ -1022,6 +1070,18 @@ class MessageRepositoryImpl implements MessageRepository {
 
     _streamingBlocksCache[messageId] = blocks;
 
+    // 🔍 调试日志：记录最终缓存状态
+    final finalTextBlock = blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
+    _logger.debug('流式内容缓存更新完成', {
+      'messageId': messageId,
+      'blocksCount': blocks.length,
+      'finalTextBlockLength': finalTextBlock?.content?.length ?? 0,
+      'finalTextBlockEnding': finalTextBlock?.content != null && finalTextBlock!.content!.length > 20
+          ? '...${finalTextBlock.content!.substring(finalTextBlock.content!.length - 20)}'
+          : finalTextBlock?.content ?? '',
+      'cacheContentLength': contentCache['mainText']?.length ?? 0,
+    });
+
     // 注意：这里不再写入数据库，只在流式结束时统一写入
   }
 
@@ -1035,11 +1095,31 @@ class MessageRepositoryImpl implements MessageRepository {
     // 🚀 修复：流式结束时一次性将缓存内容写入数据库
     // 这是流式消息第一次真正保存到数据库
 
-    _logger.debug('开始完成流式消息', {
+    _logger.info('开始完成流式消息', {
       'messageId': messageId,
       'hasCache': _streamingBlocksCache.containsKey(messageId),
       'hasInfoCache': _streamingMessageInfoCache.containsKey(messageId),
+      'hasContentCache': _streamingContentCache.containsKey(messageId),
+      'timestamp': DateTime.now().toIso8601String(),
     });
+
+    // 🔍 调试日志：记录缓存状态
+    final contentCache = _streamingContentCache[messageId];
+    if (contentCache != null) {
+      final mainText = contentCache['mainText'] ?? '';
+      _logger.debug('内容缓存状态', {
+        'messageId': messageId,
+        'mainTextLength': mainText.length,
+        'mainTextPreview': mainText.length > 100
+            ? '${mainText.substring(0, 100)}...'
+            : mainText,
+        'mainTextEnding': mainText.length > 30
+            ? '...${mainText.substring(mainText.length - 30)}'
+            : mainText,
+        'hasThinking': contentCache.containsKey('thinking'),
+        'thinkingLength': contentCache['thinking']?.length ?? 0,
+      });
+    }
 
     // 获取缓存的块信息
     final cachedBlocks = _streamingBlocksCache[messageId];
@@ -1049,6 +1129,7 @@ class MessageRepositoryImpl implements MessageRepository {
         'messageId': messageId,
         'hasInfoCache': _streamingMessageInfoCache.containsKey(messageId),
         'hasContentCache': _streamingContentCache.containsKey(messageId),
+        'contentCacheContent': contentCache?['mainText']?.length ?? 0,
         'reason': '可能是updateStreamingContent没有被正确调用',
       });
 
@@ -1078,6 +1159,28 @@ class MessageRepositoryImpl implements MessageRepository {
       throw Exception('流式消息完成失败：没有缓存的内容且消息不存在于数据库中 (messageId: $messageId)');
     }
 
+    // 🔍 调试日志：记录准备保存到数据库的内容
+    final textBlocks = cachedBlocks.where((b) => b.type == MessageBlockType.mainText).toList();
+    final thinkingBlocks = cachedBlocks.where((b) => b.type == MessageBlockType.thinking).toList();
+
+    _logger.info('准备保存流式消息到数据库', {
+      'messageId': messageId,
+      'totalBlocks': cachedBlocks.length,
+      'textBlocks': textBlocks.length,
+      'thinkingBlocks': thinkingBlocks.length,
+      'textBlockContent': textBlocks.isNotEmpty
+          ? {
+              'length': textBlocks.first.content?.length ?? 0,
+              'preview': textBlocks.first.content != null && textBlocks.first.content!.length > 100
+                  ? '${textBlocks.first.content!.substring(0, 100)}...'
+                  : textBlocks.first.content ?? '',
+              'ending': textBlocks.first.content != null && textBlocks.first.content!.length > 30
+                  ? '...${textBlocks.first.content!.substring(textBlocks.first.content!.length - 30)}'
+                  : textBlocks.first.content ?? '',
+            }
+          : null,
+    });
+
     // 使用事务确保数据一致性
     await _database.transaction(() async {
       // 🚀 修复：首先确保消息本身存在于数据库中
@@ -1097,6 +1200,13 @@ class MessageRepositoryImpl implements MessageRepository {
           ...?metadata,
         };
 
+        _logger.debug('创建新的流式消息记录', {
+          'messageId': messageId,
+          'conversationId': messageInfo['conversationId'],
+          'assistantId': messageInfo['assistantId'],
+          'blockCount': cachedBlocks.length,
+        });
+
         await _database.insertMessage(MessagesCompanion.insert(
           id: messageId,
           conversationId: messageInfo['conversationId'] as String,
@@ -1111,6 +1221,12 @@ class MessageRepositoryImpl implements MessageRepository {
         ));
       } else {
         // 如果消息已存在，只更新状态和元数据
+        _logger.debug('更新现有流式消息状态', {
+          'messageId': messageId,
+          'currentStatus': existingMessage.status.name,
+          'newStatus': msg_status.MessageStatus.aiSuccess.name,
+        });
+
         await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
         if (metadata != null) {
           await updateMessageMetadata(messageId, metadata);
@@ -1118,22 +1234,84 @@ class MessageRepositoryImpl implements MessageRepository {
       }
 
       // 1. 批量保存或更新所有消息块
-      for (final block in cachedBlocks) {
+      _logger.debug('开始保存消息块到数据库', {
+        'messageId': messageId,
+        'blocksToSave': cachedBlocks.length,
+      });
+
+      for (int i = 0; i < cachedBlocks.length; i++) {
+        final block = cachedBlocks[i];
         final finalBlock = block.copyWith(
           status: MessageBlockStatus.success,
           updatedAt: DateTime.now(),
         );
+
+        _logger.debug('保存消息块', {
+          'messageId': messageId,
+          'blockIndex': i,
+          'blockId': finalBlock.id,
+          'blockType': finalBlock.type.name,
+          'contentLength': finalBlock.content?.length ?? 0,
+          'contentEnding': finalBlock.content != null && finalBlock.content!.length > 20
+              ? '...${finalBlock.content!.substring(finalBlock.content!.length - 20)}'
+              : finalBlock.content ?? '',
+        });
+
         await _upsertMessageBlock(finalBlock);
       }
 
       // 2. 更新消息的blockIds字段
       await _updateMessageBlockIds(messageId);
+
+      _logger.debug('消息块保存完成', {
+        'messageId': messageId,
+        'savedBlocks': cachedBlocks.length,
+      });
     });
 
+    // 🔍 调试日志：验证最终保存的内容
+    try {
+      final savedMessage = await getMessage(messageId);
+      if (savedMessage != null) {
+        final textBlock = savedMessage.blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
+        _logger.info('流式消息保存验证', {
+          'messageId': messageId,
+          'savedStatus': savedMessage.status.name,
+          'savedBlocksCount': savedMessage.blocks.length,
+          'savedTextLength': textBlock?.content?.length ?? 0,
+          'savedTextEnding': textBlock?.content != null && textBlock!.content!.length > 30
+              ? '...${textBlock.content!.substring(textBlock.content!.length - 30)}'
+              : textBlock?.content ?? '',
+          'success': true,
+        });
+      } else {
+        _logger.error('流式消息保存验证失败：消息未找到', {
+          'messageId': messageId,
+        });
+      }
+    } catch (error) {
+      _logger.error('流式消息保存验证出错', {
+        'messageId': messageId,
+        'error': error.toString(),
+      });
+    }
+
     // 清理缓存
+    _logger.debug('清理流式消息缓存', {
+      'messageId': messageId,
+      'removedBlocksCache': _streamingBlocksCache.containsKey(messageId),
+      'removedContentCache': _streamingContentCache.containsKey(messageId),
+      'removedInfoCache': _streamingMessageInfoCache.containsKey(messageId),
+    });
+
     _streamingBlocksCache.remove(messageId);
     _streamingContentCache.remove(messageId);
     _streamingMessageInfoCache.remove(messageId);
+
+    _logger.info('流式消息完成处理结束', {
+      'messageId': messageId,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
   }
 
   @override

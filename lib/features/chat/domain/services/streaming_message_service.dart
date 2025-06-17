@@ -8,6 +8,7 @@ import '../entities/message_block_status.dart';
 import '../repositories/message_repository.dart';
 import 'message_state_machine.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
+import '../../infrastructure/debug/streaming_debug_helper.dart';
 
 /// 流式消息更新事件
 @immutable
@@ -198,6 +199,9 @@ class StreamingMessageService {
 
       _activeContexts[messageId] = context;
 
+      // 🔍 开始调试跟踪
+      StreamingDebugHelper.startTracking(messageId);
+
       // 更新状态为开始流式传输
       context.updateStatus(MessageStateEvent.startStreaming);
 
@@ -242,19 +246,74 @@ class StreamingMessageService {
     }
 
     try {
+      // 🔍 调试日志：记录更新前的状态
+      final beforeContent = context.fullContent;
+      final beforeLength = beforeContent.length;
+
       // 更新内容缓冲区
       if (contentDelta != null) {
         context.appendContent(contentDelta);
+        _logger.debug('流式内容增量更新', {
+          'messageId': messageId,
+          'deltaLength': contentDelta.length,
+          'deltaContent': contentDelta.length > 50
+              ? '${contentDelta.substring(0, 50)}...'
+              : contentDelta,
+          'beforeLength': beforeLength,
+          'afterLength': context.fullContent.length,
+          'timestamp': DateTime.now().toIso8601String(),
+        });
       }
       if (thinkingDelta != null) {
         context.appendThinking(thinkingDelta);
+        _logger.debug('流式思考增量更新', {
+          'messageId': messageId,
+          'thinkingDeltaLength': thinkingDelta.length,
+          'thinkingDelta': thinkingDelta.length > 30
+              ? '${thinkingDelta.substring(0, 30)}...'
+              : thinkingDelta,
+        });
       }
       if (fullContent != null) {
         context.setContent(fullContent);
+        _logger.debug('流式内容全量更新', {
+          'messageId': messageId,
+          'fullContentLength': fullContent.length,
+          'contentPreview': fullContent.length > 100
+              ? '${fullContent.substring(0, 100)}...'
+              : fullContent,
+          'contentSuffix': fullContent.length > 50
+              ? '...${fullContent.substring(fullContent.length - 50)}'
+              : fullContent,
+          'beforeLength': beforeLength,
+          'lengthDiff': fullContent.length - beforeLength,
+        });
       }
       if (fullThinking != null) {
         context.setThinking(fullThinking);
       }
+
+      // 🔍 调试日志：记录更新后的完整状态
+      final afterContent = context.fullContent;
+
+      // 🔍 记录到调试跟踪器
+      StreamingDebugHelper.recordContentUpdate(
+        messageId,
+        afterContent,
+        source: 'StreamingMessageService.updateContent'
+      );
+
+      _logger.info('流式内容更新完成', {
+        'messageId': messageId,
+        'finalLength': afterContent.length,
+        'contentEnding': afterContent.length > 20
+            ? '...${afterContent.substring(afterContent.length - 20)}'
+            : afterContent,
+        'hasThinking': context.fullThinking.isNotEmpty,
+        'thinkingLength': context.fullThinking.length,
+        'updateType': contentDelta != null ? 'delta' : 'full',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
 
       // 确保状态为流式传输中
       context.updateStatus(MessageStateEvent.streaming);
@@ -266,6 +325,15 @@ class StreamingMessageService {
         content: context.fullContent,
         thinkingContent: context.fullThinking.isNotEmpty ? context.fullThinking : null,
       );
+
+      // 🔍 调试日志：验证Repository更新
+      _logger.debug('Repository内容更新完成', {
+        'messageId': messageId,
+        'sentContentLength': context.fullContent.length,
+        'sentContentEnding': context.fullContent.length > 15
+            ? '...${context.fullContent.substring(context.fullContent.length - 15)}'
+            : context.fullContent,
+      });
 
       // 发送UI更新事件
       _updateController.add(StreamingMessageUpdate.contentUpdate(
@@ -281,6 +349,7 @@ class StreamingMessageService {
       _logger.error('更新流式内容失败', {
         'messageId': messageId,
         'error': error.toString(),
+        'contentLength': context.fullContent.length,
       });
       await _handleStreamingError(messageId, error.toString());
     }
@@ -316,8 +385,39 @@ class StreamingMessageService {
     }
 
     try {
+      // 🔍 调试日志：记录完成前的最终状态
+      final finalContent = context.fullContent;
+      final finalThinking = context.fullThinking;
+
+      _logger.info('开始完成流式消息', {
+        'messageId': messageId,
+        'finalContentLength': finalContent.length,
+        'finalContentPreview': finalContent.length > 100
+            ? '${finalContent.substring(0, 100)}...'
+            : finalContent,
+        'finalContentEnding': finalContent.length > 30
+            ? '...${finalContent.substring(finalContent.length - 30)}'
+            : finalContent,
+        'hasThinking': finalThinking.isNotEmpty,
+        'thinkingLength': finalThinking.length,
+        'duration': context.duration.inMilliseconds,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
       // 更新状态为完成
       context.updateStatus(MessageStateEvent.complete);
+
+      // 🔍 调试日志：准备发送到Repository的内容
+      _logger.debug('发送到Repository的最终内容', {
+        'messageId': messageId,
+        'contentToSend': finalContent.length > 200
+            ? '${finalContent.substring(0, 100)}...${finalContent.substring(finalContent.length - 100)}'
+            : finalContent,
+        'contentLength': finalContent.length,
+        'lastCharacters': finalContent.length > 10
+            ? finalContent.substring(finalContent.length - 10)
+            : finalContent,
+      });
 
       // 完成Repository层的流式处理
       await _messageRepository.finishStreamingMessage(
@@ -331,6 +431,12 @@ class StreamingMessageService {
         },
       );
 
+      // 🔍 调试日志：Repository完成后验证
+      _logger.debug('Repository完成流式消息处理', {
+        'messageId': messageId,
+        'sentContentLength': finalContent.length,
+      });
+
       // 发送完成事件
       _updateController.add(StreamingMessageUpdate.completed(
         messageId: messageId,
@@ -339,6 +445,18 @@ class StreamingMessageService {
         metadata: metadata,
       ));
 
+      // 🔍 调试日志：发送UI更新事件
+      _logger.debug('发送流式完成事件到UI', {
+        'messageId': messageId,
+        'eventContentLength': context.fullContent.length,
+        'eventContentEnding': context.fullContent.length > 20
+            ? '...${context.fullContent.substring(context.fullContent.length - 20)}'
+            : context.fullContent,
+      });
+
+      // 🔍 生成调试报告
+      final debugReport = StreamingDebugHelper.finishTracking(messageId);
+
       // 清理上下文
       _activeContexts.remove(messageId);
 
@@ -346,12 +464,21 @@ class StreamingMessageService {
         'messageId': messageId,
         'duration': context.duration.inMilliseconds,
         'contentLength': context.fullContent.length,
+        'finalContent': context.fullContent.length > 50
+            ? '...${context.fullContent.substring(context.fullContent.length - 50)}'
+            : context.fullContent,
+        'success': true,
+        'debugReport': debugReport,
       });
 
     } catch (error) {
       _logger.error('完成流式消息失败', {
         'messageId': messageId,
         'error': error.toString(),
+        'contextContentLength': context.fullContent.length,
+        'contextContent': context.fullContent.length > 100
+            ? '...${context.fullContent.substring(context.fullContent.length - 100)}'
+            : context.fullContent,
       });
       await _handleStreamingError(messageId, error.toString());
     }

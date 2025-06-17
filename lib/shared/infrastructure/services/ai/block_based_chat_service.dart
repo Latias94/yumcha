@@ -309,29 +309,59 @@ class BlockBasedChatService {
         userMessage: userMessage,
       )) {
         if (event.isContent) {
+          final previousLength = accumulatedContent.length;
           accumulatedContent += event.contentDelta ?? '';
-          
+
+          // 🔍 调试日志：记录内容增量
+          _logger.debug('块化服务接收内容增量', {
+            'messageId': finalMessageId,
+            'deltaLength': event.contentDelta?.length ?? 0,
+            'deltaContent': event.contentDelta != null && event.contentDelta!.length > 30
+                ? '${event.contentDelta!.substring(0, 30)}...'
+                : event.contentDelta ?? '',
+            'previousLength': previousLength,
+            'newLength': accumulatedContent.length,
+            'accumulatedEnding': accumulatedContent.length > 20
+                ? '...${accumulatedContent.substring(accumulatedContent.length - 20)}'
+                : accumulatedContent,
+            'timestamp': DateTime.now().toIso8601String(),
+          });
+
           // 更新文本块
           textBlock = textBlock.copyWith(
             content: accumulatedContent,
             updatedAt: DateTime.now(),
           );
-          
+
           // 更新消息
           currentMessage = currentMessage.copyWith(
             blocks: [textBlock, ...blocks.skip(1)],
             updatedAt: DateTime.now(),
           );
-          
+
           yield currentMessage;
           
         } else if (event.isCompleted) {
+          // 🔍 调试日志：记录流式完成时的状态
+          _logger.info('块化服务流式完成', {
+            'messageId': finalMessageId,
+            'finalContentLength': accumulatedContent.length,
+            'finalContentPreview': accumulatedContent.length > 100
+                ? '${accumulatedContent.substring(0, 100)}...'
+                : accumulatedContent,
+            'finalContentEnding': accumulatedContent.length > 50
+                ? '...${accumulatedContent.substring(accumulatedContent.length - 50)}'
+                : accumulatedContent,
+            'duration': DateTime.now().difference(startTime).inMilliseconds,
+            'timestamp': DateTime.now().toIso8601String(),
+          });
+
           // 流式完成，更新文本块状态
           textBlock = textBlock.copyWith(
             status: MessageBlockStatus.success,
             updatedAt: DateTime.now(),
           );
-          
+
           final finalBlocks = [textBlock];
 
           // 添加多媒体块（如果需要）
@@ -357,6 +387,16 @@ class BlockBasedChatService {
               metadata: {'fileType': 'audio', 'mimeType': 'audio/mpeg'},
             ));
           }
+
+          // 🔍 调试日志：记录最终消息状态
+          _logger.debug('创建最终消息', {
+            'messageId': finalMessageId,
+            'finalBlocksCount': finalBlocks.length,
+            'textBlockContentLength': textBlock.content?.length ?? 0,
+            'textBlockContentEnding': textBlock.content != null && textBlock.content!.length > 30
+                ? '...${textBlock.content!.substring(textBlock.content!.length - 30)}'
+                : textBlock.content ?? '',
+          });
 
           // 发送最终消息
           currentMessage = currentMessage.copyWith(

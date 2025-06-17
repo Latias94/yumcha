@@ -1437,6 +1437,303 @@ final chatPerformanceProvider = Provider<ChatPerformanceMetrics>((ref) {
 });
 ```
 
+## 🐛 流式消息丢字问题诊断
+
+### 🔍 问题分析：AI流式聊天最后少字的原因
+
+根据代码分析，AI流式聊天出现最后少字的问题可能由以下几个原因导致：
+
+#### 1. **流式完成检测时序问题** ⚠️ **高风险**
+
+<augment_code_snippet path="lib/features/chat/domain/services/chat_orchestrator_service.dart" mode="EXCERPT">
+````dart
+onDone: () async {
+  if (!completer.isCompleted && lastMessage != null) {
+    // 🚀 修复：正确计算流式传输持续时间
+    final streamContext = _activeStreams[messageId];
+    final duration = streamContext?.duration ?? Duration.zero;
+
+    await _streamingMessageService.completeStreaming(
+      messageId: messageId, // 使用统一的messageId
+      metadata: {
+        'duration': duration.inMilliseconds,
+      },
+    );
+    _messageIdManager.completeStreamingMessage(messageId);
+    completer.complete(ChatOperationSuccess(lastMessage!));
+  }
+},
+````
+</augment_code_snippet>
+
+**问题**：`onDone`回调可能在最后一个内容块还未完全处理时就被触发，导致流式消息提前完成。
+
+#### 2. **内容缓存与持久化时序不一致** ⚠️ **高风险**
+
+<augment_code_snippet path="lib/features/chat/data/repositories/message_repository_impl.dart" mode="EXCERPT">
+````dart
+@override
+Future<void> updateStreamingContent({
+  required String messageId,
+  required String content,
+  String? thinkingContent,
+}) async {
+  // 🚀 优化：流式过程中只更新内存缓存，不写入数据库
+  // 这样可以避免频繁的数据库写入操作
+
+  // 更新内存中的内容缓存
+  final contentCache = _streamingContentCache[messageId] ?? {};
+  contentCache['mainText'] = content;
+  if (thinkingContent != null && thinkingContent.isNotEmpty) {
+    contentCache['thinking'] = thinkingContent;
+  }
+  _streamingContentCache[messageId] = contentCache;
+````
+</augment_code_snippet>
+
+**问题**：如果最后一次`updateStreamingContent`调用和`finishStreamingMessage`调用之间存在竞态条件，可能导致最后的内容更新丢失。
+
+#### 3. **StringBuffer内容累积问题** ⚠️ **中风险**
+
+<augment_code_snippet path="lib/features/chat/domain/services/streaming_message_service.dart" mode="EXCERPT">
+````dart
+class _StreamingContext {
+  // 内容累积
+  final StringBuffer _contentBuffer = StringBuffer();
+  final StringBuffer _thinkingBuffer = StringBuffer();
+
+  void appendContent(String delta) {
+    _contentBuffer.write(delta);
+  }
+
+  String get fullContent => _contentBuffer.toString();
+}
+````
+</augment_code_snippet>
+
+**问题**：如果在流式传输过程中发生异常或提前完成，StringBuffer中的最后部分内容可能未被正确提取。
+
+#### 4. **流式事件处理的异步竞态** ⚠️ **高风险**
+
+<augment_code_snippet path="lib/shared/infrastructure/services/ai/block_based_chat_service.dart" mode="EXCERPT">
+````dart
+} else if (event.isCompleted) {
+  // 流式完成，更新文本块状态
+  textBlock = textBlock.copyWith(
+    status: MessageBlockStatus.success,
+    updatedAt: DateTime.now(),
+  );
+
+  // 发送最终消息
+  currentMessage = currentMessage.copyWith(
+    status: MessageStatus.aiSuccess,
+    blocks: finalBlocks,
+    updatedAt: DateTime.now(),
+  );
+
+  yield currentMessage;
+}
+````
+</augment_code_snippet>
+
+**问题**：`event.isCompleted`可能在最后一个`event.isContent`还未处理完成时就被触发。
+
+### 🔧 解决方案
+
+#### 1. **添加流式完成延迟确认机制**
+
+```dart
+// ✅ 建议：在ChatOrchestratorService中添加延迟确认
+class ChatOrchestratorService {
+  static const Duration _streamCompletionDelay = Duration(milliseconds: 100);
+
+  Future<void> _handleStreamCompletion(String messageId) async {
+    // 等待一小段时间确保所有内容都已处理
+    await Future.delayed(_streamCompletionDelay);
+
+    // 再次检查是否有待处理的内容更新
+    final hasUpdates = await _streamingMessageService.hasPendingUpdates(messageId);
+    if (hasUpdates) {
+      // 等待更长时间
+      await Future.delayed(_streamCompletionDelay * 2);
+    }
+
+    await _streamingMessageService.completeStreaming(messageId: messageId);
+  }
+}
+```
+
+#### 2. **改进内容缓存同步机制**
+
+```dart
+// ✅ 建议：在MessageRepository中添加内容同步验证
+@override
+Future<void> finishStreamingMessage({
+  required String messageId,
+  Map<String, dynamic>? metadata,
+}) async {
+  // 🚀 修复：确保所有内容更新都已完成
+  await _ensureContentSynchronized(messageId);
+
+  final cachedBlocks = _streamingBlocksCache[messageId];
+  // ... 现有逻辑
+}
+
+Future<void> _ensureContentSynchronized(String messageId) async {
+  // 等待所有异步内容更新完成
+  await Future.delayed(Duration(milliseconds: 50));
+
+  // 验证内容缓存是否与最新状态一致
+  final contentCache = _streamingContentCache[messageId];
+  final blocksCache = _streamingBlocksCache[messageId];
+
+  if (contentCache != null && blocksCache != null) {
+    // 确保块缓存包含最新的内容缓存
+    final latestContent = contentCache['mainText'] ?? '';
+    final textBlock = blocksCache.firstWhere(
+      (b) => b.type == MessageBlockType.mainText,
+      orElse: () => throw Exception('文本块不存在'),
+    );
+
+    if (textBlock.content != latestContent) {
+      _logger.warning('检测到内容不同步，正在修复', {
+        'messageId': messageId,
+        'blockContent': textBlock.content?.length ?? 0,
+        'cacheContent': latestContent.length,
+      });
+
+      // 强制同步最新内容
+      final index = blocksCache.indexWhere((b) => b.id == textBlock.id);
+      if (index != -1) {
+        blocksCache[index] = textBlock.copyWith(content: latestContent);
+      }
+    }
+  }
+}
+```
+
+#### 3. **增强流式事件处理的原子性**
+
+```dart
+// ✅ 建议：在BlockBasedChatService中改进事件处理
+class BlockBasedChatService {
+  final Map<String, String> _pendingContent = {};
+  final Map<String, bool> _streamCompleted = {};
+
+  Stream<Message> sendMessageStream(...) async* {
+    // ... 现有逻辑
+
+    await for (final event in _serviceManager.sendMessageStream(...)) {
+      if (event.isContent) {
+        accumulatedContent += event.contentDelta ?? '';
+        _pendingContent[finalMessageId] = accumulatedContent;
+
+        // 更新并发送消息
+        yield _updateMessageWithContent(currentMessage, accumulatedContent);
+
+      } else if (event.isCompleted) {
+        // 🚀 修复：确保最后的内容已被处理
+        _streamCompleted[finalMessageId] = true;
+
+        // 等待确保所有内容更新完成
+        await Future.delayed(Duration(milliseconds: 50));
+
+        // 使用最终的累积内容
+        final finalContent = _pendingContent[finalMessageId] ?? accumulatedContent;
+
+        yield _createFinalMessage(currentMessage, finalContent);
+
+        // 清理
+        _pendingContent.remove(finalMessageId);
+        _streamCompleted.remove(finalMessageId);
+      }
+    }
+  }
+}
+```
+
+#### 4. **添加内容完整性验证**
+
+```dart
+// ✅ 建议：在StreamingMessageService中添加验证
+class StreamingMessageService {
+  Future<void> completeStreaming({
+    required String messageId,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final context = _activeContexts[messageId];
+    if (context == null) return;
+
+    // 🚀 新增：验证内容完整性
+    await _validateContentIntegrity(messageId, context);
+
+    // ... 现有完成逻辑
+  }
+
+  Future<void> _validateContentIntegrity(String messageId, _StreamingContext context) async {
+    // 检查Repository缓存中的内容是否与Context中的一致
+    final repositoryContent = await _messageRepository.getStreamingContent(messageId);
+    final contextContent = context.fullContent;
+
+    if (repositoryContent != null && repositoryContent != contextContent) {
+      _logger.warning('检测到流式内容不一致', {
+        'messageId': messageId,
+        'contextLength': contextContent.length,
+        'repositoryLength': repositoryContent.length,
+        'difference': contextContent.length - repositoryContent.length,
+      });
+
+      // 使用较长的内容作为最终内容
+      final finalContent = contextContent.length > repositoryContent.length
+          ? contextContent
+          : repositoryContent;
+
+      // 强制更新Repository缓存
+      await _messageRepository.updateStreamingContent(
+        messageId: messageId,
+        content: finalContent,
+      );
+    }
+  }
+}
+```
+
+### 📊 监控和调试建议
+
+#### 1. **添加流式消息完整性监控**
+
+```dart
+// ✅ 建议：添加监控指标
+final streamingIntegrityProvider = Provider<StreamingIntegrityMetrics>((ref) {
+  return StreamingIntegrityMetrics(
+    totalStreamingMessages: _totalStreaming,
+    completedMessages: _completedStreaming,
+    contentMismatchCount: _contentMismatches,
+    averageContentLength: _averageContentLength,
+    lastMismatchTime: _lastMismatchTime,
+  );
+});
+```
+
+#### 2. **增强日志记录**
+
+```dart
+// ✅ 建议：在关键点添加详细日志
+_logger.debug('流式内容更新', {
+  'messageId': messageId,
+  'contentDelta': contentDelta?.length ?? 0,
+  'fullContentLength': context.fullContent.length,
+  'timestamp': DateTime.now().toIso8601String(),
+});
+
+_logger.info('流式消息完成', {
+  'messageId': messageId,
+  'finalContentLength': context.fullContent.length,
+  'duration': context.duration.inMilliseconds,
+  'updateCount': context.updateCount,
+});
+```
+
 ## 🎯 总结和建议
 
 ### 📋 核心原则
@@ -1446,6 +1743,7 @@ final chatPerformanceProvider = Provider<ChatPerformanceMetrics>((ref) {
 3. **流式消息优化**: 使用 `MessageIdManager` 统一管理消息ID和状态
 4. **错误处理分层**: 实现完整的错误处理和恢复机制
 5. **性能优先**: 使用分页、缓存和内存管理优化性能
+6. **内容完整性**: 确保流式消息的内容完整性和一致性
 
 ### 🚀 最佳实践清单
 
@@ -1457,6 +1755,10 @@ final chatPerformanceProvider = Provider<ChatPerformanceMetrics>((ref) {
 - ✅ 编写全面的单元测试和集成测试
 - ✅ 监控性能指标和内存使用
 - ✅ 遵循Riverpod最佳实践
+- ✅ 添加流式完成延迟确认机制
+- ✅ 实现内容缓存同步验证
+- ✅ 增强流式事件处理原子性
+- ✅ 添加内容完整性验证和监控
 
 ### 🔧 常见陷阱避免
 
@@ -1466,3 +1768,6 @@ final chatPerformanceProvider = Provider<ChatPerformanceMetrics>((ref) {
 - ❌ 不要忘记使用autoDispose防止内存泄漏
 - ❌ 不要在Provider中使用DateTime.now()
 - ❌ 不要忽略流式消息的状态同步
+- ❌ 不要假设流式完成事件总是在最后触发
+- ❌ 不要忽略内容缓存与持久化的时序问题
+- ❌ 不要跳过流式消息的完整性验证
