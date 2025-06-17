@@ -17,6 +17,11 @@ class TextBubbleAdapter extends BubbleBlockAdapter {
     bool isLast = false,
   }) {
     if (!block.hasContent) {
+      // 🚀 修复：在流式状态下，不显示"文本内容为空"，返回空组件
+      // 让上层的 BubbleContent 处理流式占位符的显示
+      if (context.isActiveStreaming || context.isPendingStream || context.isProcessing) {
+        return const SizedBox.shrink();
+      }
       return buildEmptyWidget(context, message: '文本内容为空');
     }
 

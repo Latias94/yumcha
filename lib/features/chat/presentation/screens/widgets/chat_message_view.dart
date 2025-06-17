@@ -67,7 +67,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     ));
 
     // 如果是流式消息，启动闪烁动画
-    if (widget.message.status == MessageStatus.aiProcessing) {
+    if (widget.message.status.showLoadingIndicator) {
       _blinkController.repeat(reverse: true);
     }
   }
@@ -77,11 +77,11 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
     super.didUpdateWidget(oldWidget);
 
     // 监听消息状态变化
-    if (widget.message.status == MessageStatus.aiProcessing &&
-        oldWidget.message.status != MessageStatus.aiProcessing) {
+    if (widget.message.status.showLoadingIndicator &&
+        !oldWidget.message.status.showLoadingIndicator) {
       _blinkController.repeat(reverse: true);
-    } else if (widget.message.status != MessageStatus.aiProcessing &&
-        oldWidget.message.status == MessageStatus.aiProcessing) {
+    } else if (!widget.message.status.showLoadingIndicator &&
+        oldWidget.message.status.showLoadingIndicator) {
       _blinkController.stop();
     }
   }
@@ -207,7 +207,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                   _buildErrorInfo(context, theme),
 
                 // 流式状态指示器
-                if (widget.message.status == MessageStatus.aiProcessing)
+                if (widget.message.status.showLoadingIndicator)
                   _buildStreamingIndicator(context, theme),
               ],
             ),
@@ -365,7 +365,7 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     _buildErrorInfo(context, theme),
 
                   // 流式状态指示器
-                  if (widget.message.status == MessageStatus.aiProcessing)
+                  if (widget.message.status.showLoadingIndicator)
                     _buildStreamingIndicator(context, theme),
 
                   // Token使用信息显示（仅AI消息）
@@ -681,6 +681,12 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
   }) {
     // 使用传入的内容或默认的消息内容
     final messageContent = content ?? widget.message.content;
+
+    // 🚀 修复：如果消息处于流式状态且内容为空，显示流式占位符
+    if (messageContent.isEmpty && widget.message.status.showLoadingIndicator) {
+      return _buildStreamingPlaceholder(context, theme);
+    }
+
     final isDesktop = DesignConstants.isDesktop(context);
 
     // 检查消息内容是否包含markdown语法
@@ -832,6 +838,40 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
              '${timestamp.month.toString().padLeft(2, '0')}/'
              '${timestamp.day.toString().padLeft(2, '0')} $timeStr';
     }
+  }
+
+  /// 构建流式占位符（用于空内容时）
+  Widget _buildStreamingPlaceholder(BuildContext context, ThemeData theme) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: DesignConstants.spaceS),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 流式动画指示器
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                theme.colorScheme.primary.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          SizedBox(width: DesignConstants.spaceS),
+
+          // 状态文本
+          Text(
+            widget.message.status.displayName,
+            style: TextStyle(
+              color: theme.colorScheme.primary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 构建流式状态指示器

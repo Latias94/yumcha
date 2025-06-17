@@ -88,7 +88,7 @@ class BubbleContent extends ConsumerWidget {
     final layoutManager = BlockLayoutManager.instance;
     final renderer = BubbleBlockRenderer.instance;
 
-    return layoutManager.buildOptimizedBlockList(
+    final renderedWidgets = layoutManager.buildOptimizedBlockList(
       filteredBlocks,
       context,
       (block, bubbleContext, {required bool isFirst, required bool isLast}) {
@@ -100,11 +100,29 @@ class BubbleContent extends ConsumerWidget {
         );
       },
     );
+
+    // 🚀 修复：如果在流式状态下所有块都返回了空组件，显示流式占位符
+    if ((context.isActiveStreaming || context.isPendingStream || context.isProcessing)) {
+      final hasVisibleContent = renderedWidgets.any((widget) {
+        if (widget is SizedBox) {
+          // 检查是否为 SizedBox.shrink() (width=0, height=0)
+          return widget.width != 0 || widget.height != 0;
+        }
+        // 非 SizedBox 组件认为是可见内容
+        return true;
+      });
+
+      if (!hasVisibleContent) {
+        return [_buildEmptyContent()];
+      }
+    }
+
+    return renderedWidgets;
   }
 
   /// 构建空内容占位符
   Widget _buildEmptyContent() {
-    // 根据消息状态显示不同的占位符
+    // 🚀 修复：在流式状态下，不显示"消息内容为空"，而是显示相应的流式占位符
     if (context.isPendingStream) {
       return _buildPendingStreamPlaceholder();
     } else if (context.isActiveStreaming) {
@@ -203,6 +221,8 @@ class BubbleContent extends ConsumerWidget {
       ),
     );
   }
+
+
 
   /// 构建默认空内容占位符
   Widget _buildDefaultEmptyPlaceholder() {
@@ -507,6 +527,20 @@ class BubbleContent extends ConsumerWidget {
 
   /// 是否应该显示状态指示器
   bool _shouldShowStatusIndicator() {
+    // 🚀 修复：如果消息块为空且处于流式状态，不显示额外的状态指示器
+    // 因为 _buildEmptyContent() 已经显示了相应的流式占位符
+    if (message.blocks.isEmpty && context.message.status.showLoadingIndicator) {
+      return false;
+    }
+
+    // 🚀 修复：如果所有消息块都没有内容且处于流式状态，不显示额外的状态指示器
+    if (context.message.status.showLoadingIndicator) {
+      final hasAnyContent = message.blocks.any((block) => block.hasContent);
+      if (!hasAnyContent) {
+        return false;
+      }
+    }
+
     return context.message.status.showLoadingIndicator || context.message.status.isError;
   }
 

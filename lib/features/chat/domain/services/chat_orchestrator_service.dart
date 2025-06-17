@@ -7,6 +7,7 @@ import '../entities/message.dart';
 
 import '../entities/message_block_type.dart';
 import 'message_factory.dart';
+import 'message_id_manager.dart';
 import 'unified_message_creator.dart';
 import 'streaming_message_service.dart';
 
@@ -84,6 +85,9 @@ class ChatOrchestratorService {
   /// 获取消息ID服务
   MessageIdService get _messageIdService => _ref.read(messageIdServiceProvider);
 
+  /// 消息ID管理器（延迟初始化）
+  MessageIdManager? _idManager;
+
   /// 统一消息创建器（延迟初始化）
   UnifiedMessageCreator? _unifiedMessageCreator;
 
@@ -132,6 +136,12 @@ class ChatOrchestratorService {
   /// 获取消息存储库
   MessageRepository get _messageRepository =>
       _ref.read(messageRepositoryProvider);
+
+  /// 获取消息ID管理器（延迟初始化）
+  MessageIdManager get _messageIdManager {
+    _idManager ??= MessageIdManager(_messageIdService);
+    return _idManager!;
+  }
 
   /// 获取统一消息创建器（延迟初始化）
   UnifiedMessageCreator get _messageCreator {
@@ -318,8 +328,16 @@ class ChatOrchestratorService {
     }
 
     try {
-      // 🚀 使用统一的消息ID生成器
-      final messageId = _messageIdService.generateAiMessageId();
+      // 🚀 使用MessageIdManager生成AI消息ID并记录状态
+      final messageId = _messageIdManager.generateAiMessageId(
+        conversationId: params.conversationId,
+        assistantId: params.assistant.id,
+        modelId: params.model.name,
+        metadata: params.metadata,
+      );
+
+      // 开始流式消息处理
+      _messageIdManager.startStreamingMessage(messageId);
 
       // 获取聊天历史
       final chatHistory = await _getChatHistory(params.conversationId);
@@ -356,6 +374,7 @@ class ChatOrchestratorService {
         },
         onError: (error) async {
           await _streamingMessageService.cancelStreaming(messageId);
+          _messageIdManager.cancelStreamingMessage(messageId);
           // 创建临时消息用于错误处理
           final tempMessage = _messageFactory.createErrorMessage(
             conversationId: params.conversationId,
@@ -376,6 +395,7 @@ class ChatOrchestratorService {
                 'duration': duration.inMilliseconds,
               },
             );
+            _messageIdManager.completeStreamingMessage(messageId);
             completer.complete(ChatOperationSuccess(lastMessage!));
           }
         },
@@ -394,6 +414,7 @@ class ChatOrchestratorService {
         if (!completer.isCompleted) {
           await subscription?.cancel();
           await _streamingMessageService.cancelStreaming(messageId);
+          _messageIdManager.cancelStreamingMessage(messageId);
           _activeStreams.remove(messageId);
           completer.complete(const ChatOperationFailure('流式传输超时'));
         }
@@ -415,8 +436,13 @@ class ChatOrchestratorService {
     SendMessageParams params,
   ) async {
     try {
-      // 🚀 使用统一的消息ID生成器
-      final messageId = _messageIdService.generateAiMessageId();
+      // 🚀 使用MessageIdManager生成AI消息ID并记录状态
+      final messageId = _messageIdManager.generateAiMessageId(
+        conversationId: params.conversationId,
+        assistantId: params.assistant.id,
+        modelId: params.model.name,
+        metadata: params.metadata,
+      );
 
       // 获取聊天历史
       final chatHistory = await _getChatHistory(params.conversationId);

@@ -291,6 +291,11 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
   /// 构建消息块列表
   List<Widget> _buildMessageBlocks() {
     if (widget.message.blocks.isEmpty) {
+      // 🚀 修复：如果消息处于流式状态，显示流式占位符
+      if (widget.message.status.showLoadingIndicator) {
+        return [_buildStreamingPlaceholder()];
+      }
+
       return [
         Container(
           height: 40,
@@ -343,9 +348,52 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
     }).toList();
   }
 
+  /// 构建流式占位符
+  Widget _buildStreamingPlaceholder() {
+    final theme = Theme.of(context);
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: DesignConstants.radiusM,
+      ),
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  theme.colorScheme.primary.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+            SizedBox(width: DesignConstants.spaceS),
+            Text(
+              widget.message.status.displayName,
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 构建气泡块列表
   List<Widget> _buildBubbleBlocks(ThemeData theme, double maxWidth) {
     if (widget.message.blocks.isEmpty) {
+      // 🚀 修复：如果消息处于流式状态，显示流式占位符
+      if (widget.message.status.showLoadingIndicator) {
+        return [_buildStreamingPlaceholder()];
+      }
+
       return [
         Container(
           padding: DesignConstants.paddingM,
