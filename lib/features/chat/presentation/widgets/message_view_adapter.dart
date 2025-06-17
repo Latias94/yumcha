@@ -49,13 +49,6 @@ class MessageViewAdapter extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chatStyle = ref.watch(currentChatStyleProvider);
 
-    // 在调试模式下显示视图类型信息
-    if (kDebugMode) {
-      print('MessageViewAdapter: useBlockView=$useBlockView, chatStyle=$chatStyle');
-      print('Message details: id=${message.id}, role=${message.role}, isFromUser=${message.isFromUser}, blocks=${message.blocks.length}');
-      print('Message content: ${message.content.substring(0, math.min(50, message.content.length))}');
-    }
-
     // 根据聊天样式选择合适的视图
     switch (chatStyle) {
       case ChatBubbleStyle.bubble:
