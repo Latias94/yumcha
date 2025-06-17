@@ -115,8 +115,6 @@ class ChatOrchestratorService {
   /// 用户消息创建回调
   void Function(Message)? _onUserMessageCreated;
 
-
-
   /// 性能监控定时器
   Timer? _performanceTimer;
 
@@ -127,7 +125,8 @@ class ChatOrchestratorService {
   static const int _maxCacheSize = 50;
 
   /// 获取块化聊天服务
-  BlockBasedChatService get _blockChatService => _ref.read(blockBasedChatServiceProvider);
+  BlockBasedChatService get _blockChatService =>
+      _ref.read(blockBasedChatServiceProvider);
 
   /// 获取对话存储库
   ConversationRepository get _conversationRepository =>
@@ -163,7 +162,8 @@ class ChatOrchestratorService {
     // 监听流式消息更新
     _streamingMessageService.updateStream.listen(
       (update) => _handleStreamingMessageUpdate(update),
-      onError: (error) => _logger.error('流式消息更新错误', {'error': error.toString()}),
+      onError: (error) =>
+          _logger.error('流式消息更新错误', {'error': error.toString()}),
     );
   }
 
@@ -186,18 +186,15 @@ class ChatOrchestratorService {
       ),
     );
 
-
-
     // 清理内容缓存
     _cleanupContentCache();
   }
 
-
-
   /// 清理内容缓存
   void _cleanupContentCache() {
     if (_contentCache.length > _maxCacheSize) {
-      final keysToRemove = _contentCache.keys.take(_contentCache.length - _maxCacheSize);
+      final keysToRemove =
+          _contentCache.keys.take(_contentCache.length - _maxCacheSize);
       for (final key in keysToRemove) {
         _contentCache.remove(key);
       }
@@ -311,7 +308,8 @@ class ChatOrchestratorService {
     SendMessageParams params,
   ) async {
     // 检查并发流数量限制
-    if (_streamingMessageService.activeStreamingCount >= ChatConstants.maxConcurrentStreams) {
+    if (_streamingMessageService.activeStreamingCount >=
+        ChatConstants.maxConcurrentStreams) {
       _logger.warning('达到最大并发流数量限制', {
         'activeStreams': _streamingMessageService.activeStreamingCount,
         'maxConcurrent': ChatConstants.maxConcurrentStreams,
@@ -381,7 +379,8 @@ class ChatOrchestratorService {
             assistantId: params.assistant.id,
             errorMessage: error.toString(),
           );
-          _handleStreamingError(error, lastMessage ?? tempMessage, params.conversationId, messageId, completer, params);
+          _handleStreamingError(error, lastMessage ?? tempMessage,
+              params.conversationId, messageId, completer, params);
         },
         onDone: () async {
           if (!completer.isCompleted && lastMessage != null) {
@@ -504,7 +503,8 @@ class ChatOrchestratorService {
       // 3. 内容结构：AI消息包含复杂的块结构（文本、思考、工具调用等）
       // 4. 元数据差异：AI消息包含处理时长、模型信息等额外元数据
       // 5. 错误处理：AI消息可能失败，需要保存错误状态和部分内容
-      final finalMessage = await _messageCreator.createAiMessageFromBlockService(
+      final finalMessage =
+          await _messageCreator.createAiMessageFromBlockService(
         blockMessage: blockMessage,
         conversationId: params.conversationId,
         assistantId: params.assistant.id,
@@ -587,7 +587,6 @@ class ChatOrchestratorService {
         'streamingMessageId': streamingMessageId,
         'updateSuccess': true,
       });
-
     } catch (error) {
       _logger.error('处理流式消息失败', {
         'messageId': streamingMessageId,
@@ -628,8 +627,6 @@ class ChatOrchestratorService {
 
     return thinkingParts.join('\n\n');
   }
-
-
 
   /// 处理流式错误
   Future<void> _handleStreamingError(
@@ -709,8 +706,7 @@ class ChatOrchestratorService {
       return 'API密钥无效，请检查配置';
     }
 
-    if (errorString.contains('rate limit') ||
-        errorString.contains('quota')) {
+    if (errorString.contains('rate limit') || errorString.contains('quota')) {
       return '请求过于频繁，请稍后再试';
     }
 
@@ -813,10 +809,6 @@ class ChatOrchestratorService {
     }
   }
 
-
-
-
-
   /// 更新统计信息
   void _updateStatistics({Duration? duration, bool failed = false}) {
     _statistics = _statistics.copyWith(
@@ -835,12 +827,6 @@ class ChatOrchestratorService {
 
   /// 获取性能指标
   ChatPerformanceMetrics get performanceMetrics => _performanceMetrics;
-
-
-
-
-
-
 
   /// 清理资源 - 重构版本，使用新的服务架构
   Future<void> dispose() async {

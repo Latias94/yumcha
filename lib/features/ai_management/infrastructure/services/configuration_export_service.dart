@@ -39,9 +39,12 @@ class ConfigurationExportService {
   final LoggerService _logger = LoggerService();
 
   /// 获取Repository实例
-  ProviderRepository get _providerRepository => _ref.read(providerRepositoryProvider);
-  AssistantRepository get _assistantRepository => _ref.read(assistantRepositoryProvider);
-  PreferenceService get _preferenceService => _ref.read(preferenceServiceProvider);
+  ProviderRepository get _providerRepository =>
+      _ref.read(providerRepositoryProvider);
+  AssistantRepository get _assistantRepository =>
+      _ref.read(assistantRepositoryProvider);
+  PreferenceService get _preferenceService =>
+      _ref.read(preferenceServiceProvider);
 
   /// 导出配置到文件
   Future<ExportResult> exportConfiguration({
@@ -54,7 +57,7 @@ class ConfigurationExportService {
     String? customPath,
   }) async {
     final stopwatch = Stopwatch()..start();
-    
+
     try {
       _logger.info('开始导出配置', {
         'includeProviders': includeProviders,
@@ -103,7 +106,6 @@ class ConfigurationExportService {
       });
 
       return ExportResult.success(filePath, statistics);
-
     } catch (error, stackTrace) {
       stopwatch.stop();
       _logger.error('配置导出失败', {
@@ -123,25 +125,25 @@ class ConfigurationExportService {
   }) async {
     // 并行收集数据
     final futures = <Future<dynamic>>[];
-    
+
     if (includeProviders) {
       futures.add(_getProviders());
     } else {
       futures.add(Future.value(null));
     }
-    
+
     if (includeAssistants) {
       futures.add(_getAssistants());
     } else {
       futures.add(Future.value(null));
     }
-    
+
     if (includePreferences) {
       futures.add(_getPreferences());
     } else {
       futures.add(Future.value(null));
     }
-    
+
     if (includeSettings) {
       futures.add(_getSettings());
     } else {
@@ -166,7 +168,7 @@ class ConfigurationExportService {
   Future<List<AiProvider>> _getProviders() async {
     try {
       final providers = await _providerRepository.getAllProviders();
-      
+
       // 脱敏处理：移除或加密敏感信息
       return providers.map((provider) => _sanitizeProvider(provider)).toList();
     } catch (error) {
@@ -241,9 +243,9 @@ class ConfigurationExportService {
   AiProvider _sanitizeProvider(AiProvider provider) {
     // 创建提供商副本，移除或加密敏感信息
     return provider.copyWith(
-      // 这里应该实现API密钥的脱敏或加密处理
-      // 例如：只保留前4位和后4位，中间用*替代
-    );
+        // 这里应该实现API密钥的脱敏或加密处理
+        // 例如：只保留前4位和后4位，中间用*替代
+        );
   }
 
   /// 导出到文件
@@ -263,7 +265,8 @@ class ConfigurationExportService {
         serializedData = _serializeToYaml(configData);
         break;
       case ExportFormat.encrypted:
-        serializedData = await _serializeToEncrypted(configData, encryptionKey!);
+        serializedData =
+            await _serializeToEncrypted(configData, encryptionKey!);
         break;
     }
 
@@ -291,7 +294,8 @@ class ConfigurationExportService {
   }
 
   /// 序列化为加密格式
-  Future<String> _serializeToEncrypted(ConfigurationData configData, String encryptionKey) async {
+  Future<String> _serializeToEncrypted(
+      ConfigurationData configData, String encryptionKey) async {
     final jsonData = _serializeToJson(configData);
     final encrypted = await _encryptData(jsonData, encryptionKey);
     return base64.encode(encrypted);
@@ -308,7 +312,7 @@ class ConfigurationExportService {
   Future<String> _generateFilePath(ExportFormat format) async {
     final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
     final fileName = 'yumcha_config_$timestamp${format.extension}';
-    
+
     // 获取下载目录或文档目录
     final directory = await _getExportDirectory();
     return path.join(directory.path, fileName);
@@ -320,8 +324,6 @@ class ConfigurationExportService {
     // 暂时使用临时目录
     return Directory.systemTemp;
   }
-
-
 }
 
 /// 配置导出服务Provider

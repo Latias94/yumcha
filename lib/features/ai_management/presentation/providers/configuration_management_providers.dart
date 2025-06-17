@@ -5,7 +5,7 @@
 //
 // 🎯 **核心功能**:
 // - 📤 **导出服务**: 配置导出功能的Provider
-// - 📥 **导入服务**: 配置导入功能的Provider  
+// - 📥 **导入服务**: 配置导入功能的Provider
 // - 💾 **备份服务**: 配置备份恢复的Provider
 // - 🔧 **高级服务**: 高级配置管理的Provider
 // - 📊 **状态管理**: 配置操作状态的统一管理
@@ -35,30 +35,35 @@ final configurationBackupServiceProvider = Provider<ConfigurationBackupService>(
 );
 
 /// 高级配置管理服务Provider
-final advancedConfigurationServiceProvider = Provider<AdvancedConfigurationService>(
+final advancedConfigurationServiceProvider =
+    Provider<AdvancedConfigurationService>(
   (ref) => AdvancedConfigurationService(ref),
 );
 
 /// 备份列表Provider
-final backupListProvider = FutureProvider.autoDispose<List<BackupInfo>>((ref) async {
+final backupListProvider =
+    FutureProvider.autoDispose<List<BackupInfo>>((ref) async {
   final backupService = ref.read(configurationBackupServiceProvider);
   return await backupService.getBackupList();
 });
 
 /// 配置分析Provider
-final configurationAnalysisProvider = FutureProvider.autoDispose<ConfigurationAnalysis>((ref) async {
+final configurationAnalysisProvider =
+    FutureProvider.autoDispose<ConfigurationAnalysis>((ref) async {
   final advancedService = ref.read(advancedConfigurationServiceProvider);
   return await advancedService.analyzeConfiguration();
 });
 
 /// 配置模板Provider
-final configurationTemplatesProvider = Provider<List<ConfigurationTemplate>>((ref) {
+final configurationTemplatesProvider =
+    Provider<List<ConfigurationTemplate>>((ref) {
   final advancedService = ref.read(advancedConfigurationServiceProvider);
   return advancedService.getBuiltInTemplates();
 });
 
 /// 配置验证Provider
-final configurationValidationProvider = FutureProvider.autoDispose<ValidationResult>((ref) async {
+final configurationValidationProvider =
+    FutureProvider.autoDispose<ValidationResult>((ref) async {
   final advancedService = ref.read(advancedConfigurationServiceProvider);
   return await advancedService.validateConfigurationIntegrity();
 });
@@ -80,7 +85,7 @@ class ExportOperationNotifier extends StateNotifier<AsyncValue<ExportResult?>> {
     String? customPath,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final exportService = _ref.read(configurationExportServiceProvider);
       final result = await exportService.exportConfiguration(
@@ -92,7 +97,7 @@ class ExportOperationNotifier extends StateNotifier<AsyncValue<ExportResult?>> {
         format: format,
         customPath: customPath,
       );
-      
+
       state = AsyncValue.data(result);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -105,7 +110,8 @@ class ExportOperationNotifier extends StateNotifier<AsyncValue<ExportResult?>> {
   }
 }
 
-final exportOperationProvider = StateNotifierProvider<ExportOperationNotifier, AsyncValue<ExportResult?>>(
+final exportOperationProvider =
+    StateNotifierProvider<ExportOperationNotifier, AsyncValue<ExportResult?>>(
   (ref) => ExportOperationNotifier(ref),
 );
 
@@ -116,7 +122,8 @@ class ImportOperationNotifier extends StateNotifier<AsyncValue<ImportResult?>> {
   final Ref _ref;
 
   /// 预览导入内容
-  Future<ImportPreview?> previewImport(String filePath, String? decryptionKey) async {
+  Future<ImportPreview?> previewImport(
+      String filePath, String? decryptionKey) async {
     try {
       final importService = _ref.read(configurationImportServiceProvider);
       return await importService.previewImport(filePath, decryptionKey);
@@ -134,7 +141,7 @@ class ImportOperationNotifier extends StateNotifier<AsyncValue<ImportResult?>> {
     bool createBackupBeforeImport = true,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final importService = _ref.read(configurationImportServiceProvider);
       final result = await importService.importConfiguration(
@@ -144,7 +151,7 @@ class ImportOperationNotifier extends StateNotifier<AsyncValue<ImportResult?>> {
         validateBeforeImport: validateBeforeImport,
         createBackupBeforeImport: createBackupBeforeImport,
       );
-      
+
       state = AsyncValue.data(result);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -157,7 +164,8 @@ class ImportOperationNotifier extends StateNotifier<AsyncValue<ImportResult?>> {
   }
 }
 
-final importOperationProvider = StateNotifierProvider<ImportOperationNotifier, AsyncValue<ImportResult?>>(
+final importOperationProvider =
+    StateNotifierProvider<ImportOperationNotifier, AsyncValue<ImportResult?>>(
   (ref) => ImportOperationNotifier(ref),
 );
 
@@ -174,7 +182,7 @@ class BackupOperationNotifier extends StateNotifier<AsyncValue<BackupInfo?>> {
     BackupType type = BackupType.full,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final backupService = _ref.read(configurationBackupServiceProvider);
       final result = await backupService.createManualBackup(
@@ -182,7 +190,7 @@ class BackupOperationNotifier extends StateNotifier<AsyncValue<BackupInfo?>> {
         tags: tags,
         type: type,
       );
-      
+
       state = AsyncValue.data(result);
 
       // 刷新备份列表
@@ -198,12 +206,14 @@ class BackupOperationNotifier extends StateNotifier<AsyncValue<BackupInfo?>> {
   }
 }
 
-final backupOperationProvider = StateNotifierProvider<BackupOperationNotifier, AsyncValue<BackupInfo?>>(
+final backupOperationProvider =
+    StateNotifierProvider<BackupOperationNotifier, AsyncValue<BackupInfo?>>(
   (ref) => BackupOperationNotifier(ref),
 );
 
 /// 恢复操作状态Provider
-class RestoreOperationNotifier extends StateNotifier<AsyncValue<RestoreResult?>> {
+class RestoreOperationNotifier
+    extends StateNotifier<AsyncValue<RestoreResult?>> {
   RestoreOperationNotifier(this._ref) : super(const AsyncValue.data(null));
 
   final Ref _ref;
@@ -215,7 +225,7 @@ class RestoreOperationNotifier extends StateNotifier<AsyncValue<RestoreResult?>>
     bool validateBeforeRestore = true,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final backupService = _ref.read(configurationBackupServiceProvider);
       final result = await backupService.restoreFromBackup(
@@ -223,7 +233,7 @@ class RestoreOperationNotifier extends StateNotifier<AsyncValue<RestoreResult?>>
         options: options,
         validateBeforeRestore: validateBeforeRestore,
       );
-      
+
       state = AsyncValue.data(result);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -236,12 +246,14 @@ class RestoreOperationNotifier extends StateNotifier<AsyncValue<RestoreResult?>>
   }
 }
 
-final restoreOperationProvider = StateNotifierProvider<RestoreOperationNotifier, AsyncValue<RestoreResult?>>(
+final restoreOperationProvider =
+    StateNotifierProvider<RestoreOperationNotifier, AsyncValue<RestoreResult?>>(
   (ref) => RestoreOperationNotifier(ref),
 );
 
 /// 批量操作状态Provider
-class BatchOperationNotifier extends StateNotifier<AsyncValue<BatchOperationResult?>> {
+class BatchOperationNotifier
+    extends StateNotifier<AsyncValue<BatchOperationResult?>> {
   BatchOperationNotifier(this._ref) : super(const AsyncValue.data(null));
 
   final Ref _ref;
@@ -252,14 +264,14 @@ class BatchOperationNotifier extends StateNotifier<AsyncValue<BatchOperationResu
     ConflictResolutionStrategy strategy = ConflictResolutionStrategy.ask,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final advancedService = _ref.read(advancedConfigurationServiceProvider);
       final result = await advancedService.batchImportConfigurations(
         filePaths,
         strategy: strategy,
       );
-      
+
       state = AsyncValue.data(result);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -272,7 +284,8 @@ class BatchOperationNotifier extends StateNotifier<AsyncValue<BatchOperationResu
   }
 }
 
-final batchOperationProvider = StateNotifierProvider<BatchOperationNotifier, AsyncValue<BatchOperationResult?>>(
+final batchOperationProvider = StateNotifierProvider<BatchOperationNotifier,
+    AsyncValue<BatchOperationResult?>>(
   (ref) => BatchOperationNotifier(ref),
 );
 
@@ -285,11 +298,11 @@ class BackupCleanupNotifier extends StateNotifier<AsyncValue<CleanupResult?>> {
   /// 清理过期备份
   Future<void> cleanupExpiredBackups() async {
     state = const AsyncValue.loading();
-    
+
     try {
       final backupService = _ref.read(configurationBackupServiceProvider);
       final result = await backupService.cleanupExpiredBackups();
-      
+
       state = AsyncValue.data(result);
 
       // 刷新备份列表
@@ -318,13 +331,16 @@ class BackupCleanupNotifier extends StateNotifier<AsyncValue<CleanupResult?>> {
   }
 }
 
-final backupCleanupProvider = StateNotifierProvider<BackupCleanupNotifier, AsyncValue<CleanupResult?>>(
+final backupCleanupProvider =
+    StateNotifierProvider<BackupCleanupNotifier, AsyncValue<CleanupResult?>>(
   (ref) => BackupCleanupNotifier(ref),
 );
 
 /// 配置管理主界面状态Provider
-class ConfigurationManagementNotifier extends StateNotifier<ConfigurationManagementState> {
-  ConfigurationManagementNotifier(this._ref) : super(const ConfigurationManagementState());
+class ConfigurationManagementNotifier
+    extends StateNotifier<ConfigurationManagementState> {
+  ConfigurationManagementNotifier(this._ref)
+      : super(const ConfigurationManagementState());
 
   final Ref _ref;
 
@@ -367,6 +383,7 @@ class ConfigurationManagementState {
   }
 }
 
-final configurationManagementProvider = StateNotifierProvider<ConfigurationManagementNotifier, ConfigurationManagementState>(
+final configurationManagementProvider = StateNotifierProvider<
+    ConfigurationManagementNotifier, ConfigurationManagementState>(
   (ref) => ConfigurationManagementNotifier(ref),
 );

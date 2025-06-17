@@ -45,60 +45,60 @@ class ConfigurationImportedEvent extends AiManagementEvent {
 
 /// 提供商连接状态
 enum ProviderConnectionStatus {
-  connected,      // 已连接
-  disconnected,   // 未连接
-  testing,        // 测试中
-  error,          // 连接错误
-  keyInvalid,     // API Key无效
-  quotaExceeded,  // 配额超限
+  connected, // 已连接
+  disconnected, // 未连接
+  testing, // 测试中
+  error, // 连接错误
+  keyInvalid, // API Key无效
+  quotaExceeded, // 配额超限
 }
 
 /// 模型能力定义 - 可扩展的能力系统
 @immutable
 class ModelCapabilities {
   // 核心对话能力
-  final bool supportsChat;           // 基础聊天对话
-  final bool supportsStreaming;      // 流式输出
-  final bool supportsSystemPrompt;   // 系统提示
+  final bool supportsChat; // 基础聊天对话
+  final bool supportsStreaming; // 流式输出
+  final bool supportsSystemPrompt; // 系统提示
 
   // 多模态能力
-  final bool supportsVision;         // 视觉理解（图像输入）
+  final bool supportsVision; // 视觉理解（图像输入）
   final bool supportsImageGeneration; // 图像生成
-  final bool supportsAudioInput;     // 音频输入
-  final bool supportsAudioOutput;    // 音频输出
+  final bool supportsAudioInput; // 音频输入
+  final bool supportsAudioOutput; // 音频输出
 
   // 高级功能
-  final bool supportsTools;          // 工具调用/函数调用
-  final bool supportsCodeExecution;  // 代码执行
-  final bool supportsWebSearch;      // 网络搜索
-  final bool supportsFileUpload;     // 文件上传
+  final bool supportsTools; // 工具调用/函数调用
+  final bool supportsCodeExecution; // 代码执行
+  final bool supportsWebSearch; // 网络搜索
+  final bool supportsFileUpload; // 文件上传
 
   // 语音能力
-  final bool supportsTTS;            // 文字转语音
-  final bool supportsSTT;            // 语音转文字
-  final bool supportsVoiceCloning;   // 声音克隆
+  final bool supportsTTS; // 文字转语音
+  final bool supportsSTT; // 语音转文字
+  final bool supportsVoiceCloning; // 声音克隆
 
   // 推理能力
-  final bool supportsReasoning;      // 推理思考（如o1模型）
+  final bool supportsReasoning; // 推理思考（如o1模型）
   final bool supportsChainOfThought; // 思维链
-  final bool supportsMathSolving;    // 数学求解
+  final bool supportsMathSolving; // 数学求解
   final bool supportsCodeGeneration; // 代码生成
 
   // 嵌入和检索
-  final bool supportsEmbedding;      // 文本嵌入
+  final bool supportsEmbedding; // 文本嵌入
   final bool supportsSemanticSearch; // 语义搜索
-  final bool supportsRAG;            // 检索增强生成
+  final bool supportsRAG; // 检索增强生成
 
   // 内容处理
-  final bool supportsTextSummary;    // 文本摘要
-  final bool supportsTranslation;    // 翻译
+  final bool supportsTextSummary; // 文本摘要
+  final bool supportsTranslation; // 翻译
   final bool supportsContentModeration; // 内容审核
 
   // 技术特性
-  final int maxTokens;               // 最大token数
-  final int maxContextLength;        // 最大上下文长度
+  final int maxTokens; // 最大token数
+  final int maxContextLength; // 最大上下文长度
   final List<String> supportedLanguages; // 支持的语言
-  final List<String> supportedFormats;   // 支持的文件格式
+  final List<String> supportedFormats; // 支持的文件格式
 
   const ModelCapabilities({
     // 核心能力默认值
@@ -155,15 +155,11 @@ class ModelCapabilities {
 
   /// 检查是否支持语音功能
   bool get hasVoiceCapabilities =>
-      supportsTTS ||
-      supportsSTT ||
-      supportsVoiceCloning;
+      supportsTTS || supportsSTT || supportsVoiceCloning;
 
   /// 检查是否支持高级推理
   bool get hasAdvancedReasoning =>
-      supportsReasoning ||
-      supportsChainOfThought ||
-      supportsMathSolving;
+      supportsReasoning || supportsChainOfThought || supportsMathSolving;
 
   /// 获取能力评分（用于排序和比较）
   int get capabilityScore {
@@ -214,26 +210,32 @@ class ModelCapabilities {
       supportsStreaming: supportsStreaming ?? this.supportsStreaming,
       supportsSystemPrompt: supportsSystemPrompt ?? this.supportsSystemPrompt,
       supportsVision: supportsVision ?? this.supportsVision,
-      supportsImageGeneration: supportsImageGeneration ?? this.supportsImageGeneration,
+      supportsImageGeneration:
+          supportsImageGeneration ?? this.supportsImageGeneration,
       supportsAudioInput: supportsAudioInput ?? this.supportsAudioInput,
       supportsAudioOutput: supportsAudioOutput ?? this.supportsAudioOutput,
       supportsTools: supportsTools ?? this.supportsTools,
-      supportsCodeExecution: supportsCodeExecution ?? this.supportsCodeExecution,
+      supportsCodeExecution:
+          supportsCodeExecution ?? this.supportsCodeExecution,
       supportsWebSearch: supportsWebSearch ?? this.supportsWebSearch,
       supportsFileUpload: supportsFileUpload ?? this.supportsFileUpload,
       supportsTTS: supportsTTS ?? this.supportsTTS,
       supportsSTT: supportsSTT ?? this.supportsSTT,
       supportsVoiceCloning: supportsVoiceCloning ?? this.supportsVoiceCloning,
       supportsReasoning: supportsReasoning ?? this.supportsReasoning,
-      supportsChainOfThought: supportsChainOfThought ?? this.supportsChainOfThought,
+      supportsChainOfThought:
+          supportsChainOfThought ?? this.supportsChainOfThought,
       supportsMathSolving: supportsMathSolving ?? this.supportsMathSolving,
-      supportsCodeGeneration: supportsCodeGeneration ?? this.supportsCodeGeneration,
+      supportsCodeGeneration:
+          supportsCodeGeneration ?? this.supportsCodeGeneration,
       supportsEmbedding: supportsEmbedding ?? this.supportsEmbedding,
-      supportsSemanticSearch: supportsSemanticSearch ?? this.supportsSemanticSearch,
+      supportsSemanticSearch:
+          supportsSemanticSearch ?? this.supportsSemanticSearch,
       supportsRAG: supportsRAG ?? this.supportsRAG,
       supportsTextSummary: supportsTextSummary ?? this.supportsTextSummary,
       supportsTranslation: supportsTranslation ?? this.supportsTranslation,
-      supportsContentModeration: supportsContentModeration ?? this.supportsContentModeration,
+      supportsContentModeration:
+          supportsContentModeration ?? this.supportsContentModeration,
       maxTokens: maxTokens ?? this.maxTokens,
       maxContextLength: maxContextLength ?? this.maxContextLength,
       supportedLanguages: supportedLanguages ?? this.supportedLanguages,
@@ -302,7 +304,8 @@ class ModelCapabilities {
       supportsContentModeration: json['supportsContentModeration'] ?? false,
       maxTokens: json['maxTokens'] ?? 4096,
       maxContextLength: json['maxContextLength'] ?? 4096,
-      supportedLanguages: List<String>.from(json['supportedLanguages'] ?? ['en', 'zh']),
+      supportedLanguages:
+          List<String>.from(json['supportedLanguages'] ?? ['en', 'zh']),
       supportedFormats: List<String>.from(json['supportedFormats'] ?? ['text']),
     );
   }
@@ -310,21 +313,21 @@ class ModelCapabilities {
 
 /// 配置模板类型
 enum ConfigTemplate {
-  openai,         // OpenAI标准配置
-  anthropic,      // Anthropic配置
-  google,         // Google AI配置
-  deepseek,       // DeepSeek配置
-  groq,           // Groq配置
+  openai, // OpenAI标准配置
+  anthropic, // Anthropic配置
+  google, // Google AI配置
+  deepseek, // DeepSeek配置
+  groq, // Groq配置
 }
 
 /// 用户配置偏好
 @immutable
 class UserConfigPreferences {
-  final bool autoTestConnection;      // 自动测试连接
-  final bool saveApiKeysSecurely;     // 安全保存API Key
-  final bool enableConfigBackup;      // 启用配置备份
-  final bool showAdvancedOptions;     // 显示高级选项
-  final String defaultProvider;       // 默认提供商
+  final bool autoTestConnection; // 自动测试连接
+  final bool saveApiKeysSecurely; // 安全保存API Key
+  final bool enableConfigBackup; // 启用配置备份
+  final bool showAdvancedOptions; // 显示高级选项
+  final String defaultProvider; // 默认提供商
 
   const UserConfigPreferences({
     this.autoTestConnection = true,

@@ -153,7 +153,8 @@ class ConversationRepository {
       // 使用事务确保对话和消息的原子性保存
       await _database.transaction(() async {
         // 检查对话是否已存在
-        final existingConversation = await _database.getConversation(conversation.id);
+        final existingConversation =
+            await _database.getConversation(conversation.id);
 
         if (existingConversation == null) {
           // 创建新对话
@@ -196,7 +197,8 @@ class ConversationRepository {
   }
 
   /// 🚀 阶段5新增：更新现有对话的私有方法
-  Future<void> _updateExistingConversation(ConversationUiState conversation) async {
+  Future<void> _updateExistingConversation(
+      ConversationUiState conversation) async {
     final companion = ConversationsCompanion(
       title: Value(conversation.channelName),
       assistantId: Value(conversation.assistantId ?? ''),
@@ -251,10 +253,6 @@ class ConversationRepository {
     }
   }
 
-
-
-
-
   // 删除对话
   Future<int> deleteConversation(String id) async {
     return await _database.deleteConversation(id);
@@ -262,7 +260,8 @@ class ConversationRepository {
 
   // 获取对话的消息（返回新的块化消息）
   Future<List<Message>> getMessagesByConversation(String conversationId) async {
-    final messageDataList = await _database.getMessagesByConversation(conversationId);
+    final messageDataList =
+        await _database.getMessagesByConversation(conversationId);
     final messages = <Message>[];
 
     for (final messageData in messageDataList) {
@@ -274,16 +273,12 @@ class ConversationRepository {
     return messages;
   }
 
-
-
   // 获取对话的消息数量
   Future<int> getMessageCountByConversation(String conversationId) async {
     return await _database.getMessageCountByConversation(conversationId);
   }
 
   // 已移除废弃的addMessage方法 - 请使用MessageRepository.createUserMessage或addBlockMessage
-
-
 
   // 已移除重复的addBlockMessage方法 - 请使用MessageRepository.saveMessage
 
@@ -311,8 +306,10 @@ class ConversationRepository {
   }
 
   // 将数据库数据转换为新的块化消息
-  Message _dataToMessage(MessageData messageData, List<MessageBlockData> blockDataList) {
-    final blocks = blockDataList.map((blockData) => _blockDataToBlock(blockData)).toList();
+  Message _dataToMessage(
+      MessageData messageData, List<MessageBlockData> blockDataList) {
+    final blocks =
+        blockDataList.map((blockData) => _blockDataToBlock(blockData)).toList();
 
     // 解析消息状态
     MessageStatus status;
@@ -490,6 +487,4 @@ class ConversationRepository {
       return [];
     }
   }
-
-
 }

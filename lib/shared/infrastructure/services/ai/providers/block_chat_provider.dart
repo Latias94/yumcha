@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../features/chat/domain/entities/message.dart';
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
-import '../../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
+    as models;
 import '../../media/media_storage_service.dart';
 import '../block_based_chat_service.dart';
 import '../ai_service_manager.dart';

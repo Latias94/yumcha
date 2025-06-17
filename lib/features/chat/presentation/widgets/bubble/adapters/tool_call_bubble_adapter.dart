@@ -6,7 +6,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 工具调用块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染工具调用类型的消息块
 class ToolCallBubbleAdapter extends BubbleBlockAdapter {
   @override
@@ -22,7 +22,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
       ),
       decoration: buildContainerDecoration(
         context,
-        backgroundColor: context.theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
+        backgroundColor:
+            context.theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
         borderColor: context.theme.colorScheme.secondary.withValues(alpha: 0.3),
         borderRadius: 8.0,
       ),
@@ -52,7 +53,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
   }
 
   /// 构建可展开的工具调用
-  Widget _buildExpandableToolCall(Map<String, dynamic> toolData, BubbleContext context) {
+  Widget _buildExpandableToolCall(
+      Map<String, dynamic> toolData, BubbleContext context) {
     return Theme(
       data: context.theme.copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
@@ -61,14 +63,17 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                context.theme.colorScheme.tertiaryContainer.withValues(alpha: 0.8),
-                context.theme.colorScheme.tertiaryContainer.withValues(alpha: 0.6),
+                context.theme.colorScheme.tertiaryContainer
+                    .withValues(alpha: 0.8),
+                context.theme.colorScheme.tertiaryContainer
+                    .withValues(alpha: 0.6),
               ],
             ),
             borderRadius: BorderRadius.circular(8.0),
             boxShadow: [
               BoxShadow(
-                color: context.theme.colorScheme.tertiary.withValues(alpha: 0.2),
+                color:
+                    context.theme.colorScheme.tertiary.withValues(alpha: 0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -142,7 +147,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
   }
 
   /// 构建简单的工具调用
-  Widget _buildSimpleToolCall(Map<String, dynamic> toolData, BubbleContext context) {
+  Widget _buildSimpleToolCall(
+      Map<String, dynamic> toolData, BubbleContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -151,7 +157,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
             Container(
               padding: EdgeInsets.all(getResponsiveSpacing(context, 4.0)),
               decoration: BoxDecoration(
-                color: context.theme.colorScheme.tertiaryContainer.withValues(alpha: 0.6),
+                color: context.theme.colorScheme.tertiaryContainer
+                    .withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(6.0),
               ),
               child: Icon(
@@ -198,7 +205,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
             width: double.infinity,
             padding: EdgeInsets.all(getResponsiveSpacing(context, 8.0)),
             decoration: BoxDecoration(
-              color: context.theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: context.theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(6.0),
             ),
             child: Text(
@@ -234,8 +242,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
   bool _shouldBeExpandable(MessageBlock block) {
     final metadata = block.metadata ?? {};
     return metadata['parameters'] != null ||
-           metadata['result'] != null ||
-           (block.content?.length ?? 0) > 100;
+        metadata['result'] != null ||
+        (block.content?.length ?? 0) > 100;
   }
 
   /// 获取工具图标
@@ -366,7 +374,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
           width: double.infinity,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: context.theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: context.theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
@@ -412,7 +421,8 @@ class ToolCallBubbleAdapter extends BubbleBlockAdapter {
           width: double.infinity,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: context.theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: context.theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

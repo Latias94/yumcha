@@ -8,7 +8,7 @@ import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/infrastructure/services/message_id_service.dart';
 
 /// 统一的消息工厂服务
-/// 
+///
 /// 负责创建所有类型的消息和消息块，消除重复的消息创建逻辑。
 /// 提供一致的消息创建接口，确保消息结构的统一性。
 class MessageFactory {
@@ -20,7 +20,7 @@ class MessageFactory {
   final _messageIdService = MessageIdService();
 
   /// 创建用户消息
-  /// 
+  ///
   /// [content] 消息内容
   /// [conversationId] 对话ID
   /// [assistantId] 助手ID
@@ -35,7 +35,7 @@ class MessageFactory {
   }) {
     final now = DateTime.now();
     final messageId = _messageIdService.generateUserMessageId();
-    
+
     _logger.debug('创建用户消息', {
       'messageId': messageId,
       'conversationId': conversationId,
@@ -97,7 +97,7 @@ class MessageFactory {
   }
 
   /// 创建AI消息占位符
-  /// 
+  ///
   /// [conversationId] 对话ID
   /// [assistantId] 助手ID
   /// [modelId] 可选的模型ID
@@ -132,7 +132,7 @@ class MessageFactory {
   }
 
   /// 创建完整的AI消息
-  /// 
+  ///
   /// [conversationId] 对话ID
   /// [assistantId] 助手ID
   /// [content] 主要内容
@@ -233,7 +233,7 @@ class MessageFactory {
   }
 
   /// 为现有AI消息添加内容块
-  /// 
+  ///
   /// [message] 现有的AI消息
   /// [content] 主要内容
   /// [thinkingContent] 可选的思考过程内容
@@ -346,7 +346,8 @@ class MessageFactory {
       'messageId': messageId,
       'conversationId': conversationId,
       'assistantId': assistantId,
-      'errorMessage': errorMessage.substring(0, math.min(100, errorMessage.length)),
+      'errorMessage':
+          errorMessage.substring(0, math.min(100, errorMessage.length)),
       'originalMessageId': originalMessageId,
     });
 
@@ -432,7 +433,8 @@ class MessageFactory {
     required String content,
     bool isComplete = false,
   }) {
-    if (message.status != MessageStatus.aiStreaming) { // 🚀 修复：检查正确的流式状态
+    if (message.status != MessageStatus.aiStreaming) {
+      // 🚀 修复：检查正确的流式状态
       throw ArgumentError('只能更新流式消息');
     }
 
@@ -441,7 +443,9 @@ class MessageFactory {
       if (block.type == MessageBlockType.mainText) {
         return block.copyWith(
           content: content,
-          status: isComplete ? MessageBlockStatus.success : MessageBlockStatus.streaming,
+          status: isComplete
+              ? MessageBlockStatus.success
+              : MessageBlockStatus.streaming,
           updatedAt: DateTime.now(),
         );
       }
@@ -449,7 +453,9 @@ class MessageFactory {
     }).toList();
 
     final updatedMessage = message.copyWith(
-      status: isComplete ? MessageStatus.aiSuccess : MessageStatus.aiStreaming, // 🚀 修复：流式进行中应该使用aiStreaming状态
+      status: isComplete
+          ? MessageStatus.aiSuccess
+          : MessageStatus.aiStreaming, // 🚀 修复：流式进行中应该使用aiStreaming状态
       blocks: updatedBlocks,
       updatedAt: DateTime.now(),
       metadata: {
@@ -472,10 +478,11 @@ class MessageFactory {
     String? newContent,
     bool preserveId = false,
   }) {
-    final messageId = preserveId ? originalMessage.id :
-        (originalMessage.isFromUser ?
-         _messageIdService.generateUserMessageId() :
-         _messageIdService.generateAiMessageId());
+    final messageId = preserveId
+        ? originalMessage.id
+        : (originalMessage.isFromUser
+            ? _messageIdService.generateUserMessageId()
+            : _messageIdService.generateAiMessageId());
 
     _logger.debug('复制消息', {
       'originalId': originalMessage.id,
@@ -486,7 +493,8 @@ class MessageFactory {
 
     // 复制消息块
     final newBlocks = originalMessage.blocks.map((block) {
-      final newBlockId = preserveId ? block.id : '${messageId}_${block.type.name}_0';
+      final newBlockId =
+          preserveId ? block.id : '${messageId}_${block.type.name}_0';
 
       return block.copyWith(
         id: newBlockId,

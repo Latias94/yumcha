@@ -27,10 +27,10 @@ class _CachedMessageWidget {
 }
 
 /// 虚拟化消息列表
-/// 
+///
 /// 使用虚拟化技术优化大量消息的渲染性能，
 /// 只渲染可见区域的消息，提高滚动流畅度。
-/// 
+///
 /// 功能特性：
 /// - 🚀 **虚拟化渲染**: 只渲染可见消息，减少内存占用
 /// - 📱 **自适应高度**: 根据消息内容动态计算高度
@@ -40,28 +40,28 @@ class _CachedMessageWidget {
 class VirtualizedMessageList extends ConsumerStatefulWidget {
   /// 对话ID
   final String conversationId;
-  
+
   /// 消息列表
   final List<Message> messages;
-  
+
   /// 是否正在加载
   final bool isLoading;
-  
+
   /// 是否有更多消息
   final bool hasMore;
-  
+
   /// 加载更多消息回调
   final VoidCallback? onLoadMore;
-  
+
   /// 消息编辑回调
   final void Function(Message message)? onEditMessage;
-  
+
   /// 消息重新生成回调
   final void Function(Message message)? onRegenerateMessage;
-  
+
   /// 消息删除回调
   final void Function(Message message)? onDeleteMessage;
-  
+
   /// 欢迎消息
   final String? welcomeMessage;
 
@@ -79,7 +79,8 @@ class VirtualizedMessageList extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<VirtualizedMessageList> createState() => _VirtualizedMessageListState();
+  ConsumerState<VirtualizedMessageList> createState() =>
+      _VirtualizedMessageListState();
 }
 
 class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
@@ -125,11 +126,11 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
   @override
   void didUpdateWidget(VirtualizedMessageList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // 检查是否有新消息
     if (widget.messages.length > _lastMessageCount) {
       _lastMessageCount = widget.messages.length;
-      
+
       // 如果用户在底部，自动滚动到新消息
       if (_shouldAutoScroll) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -169,7 +170,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
                 ),
               ),
             ),
-          
+
           // 消息列表
           SliverList(
             delegate: SliverChildBuilderDelegate(
@@ -177,7 +178,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
                 // 因为reverse=true，需要反转索引
                 final messageIndex = widget.messages.length - 1 - index;
                 final message = widget.messages[messageIndex];
-                
+
                 return _buildMessageItem(message);
               },
               childCount: widget.messages.length,
@@ -195,7 +196,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
               },
             ),
           ),
-          
+
           // 加载更多指示器
           if (widget.hasMore)
             SliverToBoxAdapter(
@@ -230,8 +231,6 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
       onCacheUpdate: _cacheWidget,
     );
   }
-
-
 
   /// 缓存组件（LRU策略）
   void _cacheWidget(String key, Widget widget, String contentHash) {
@@ -277,14 +276,18 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
             Icon(
               Icons.chat_bubble_outline,
               size: 64,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
               widget.welcomeMessage!,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -310,11 +313,11 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
   /// 滚动监听器
   void _onScroll() {
     // 检查是否需要加载更多
-    if (widget.hasMore && 
-        widget.onLoadMore != null && 
+    if (widget.hasMore &&
+        widget.onLoadMore != null &&
         !widget.isLoading &&
-        _scrollController.position.pixels >= 
-        _scrollController.position.maxScrollExtent - loadMoreThreshold) {
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - loadMoreThreshold) {
       widget.onLoadMore!();
     }
   }
@@ -322,7 +325,7 @@ class _VirtualizedMessageListState extends ConsumerState<VirtualizedMessageList>
   /// 滚动到底部
   void _scrollToBottom({bool animated = true}) {
     if (!_scrollController.hasClients) return;
-    
+
     if (animated) {
       _scrollController.animateTo(
         0, // reverse=true时，0是底部
@@ -371,10 +374,11 @@ class MessageListPerformanceMonitor {
     if (startTime != null) {
       final duration = DateTime.now().difference(startTime);
       _renderCounts[messageId] = (_renderCounts[messageId] ?? 0) + 1;
-      
+
       // 记录性能指标
       if (duration.inMilliseconds > 100) {
-        debugPrint('Slow message render: $messageId took ${duration.inMilliseconds}ms');
+        debugPrint(
+            'Slow message render: $messageId took ${duration.inMilliseconds}ms');
       }
     }
   }
@@ -382,9 +386,12 @@ class MessageListPerformanceMonitor {
   /// 获取性能统计
   static Map<String, dynamic> getStats() {
     final totalRenders = _renderCounts.values.fold(0, (a, b) => a + b);
-    final avgRenderTime = _renderTimes.isNotEmpty 
-      ? _renderTimes.values.map((t) => DateTime.now().difference(t).inMilliseconds).reduce((a, b) => a + b) / _renderTimes.length
-      : 0.0;
+    final avgRenderTime = _renderTimes.isNotEmpty
+        ? _renderTimes.values
+                .map((t) => DateTime.now().difference(t).inMilliseconds)
+                .reduce((a, b) => a + b) /
+            _renderTimes.length
+        : 0.0;
 
     return {
       'totalRenders': totalRenders,
@@ -445,7 +452,8 @@ class _OptimizedVirtualizedMessageItem extends ConsumerWidget {
           message: message,
           useBlockView: chatSettings.enableBlockView,
           onEdit: onEdit != null ? () => onEdit!(message) : null,
-          onRegenerate: onRegenerate != null ? () => onRegenerate!(message) : null,
+          onRegenerate:
+              onRegenerate != null ? () => onRegenerate!(message) : null,
           onDelete: onDelete != null ? () => onDelete!(message) : null,
         ),
       ),
@@ -458,7 +466,8 @@ class _OptimizedVirtualizedMessageItem extends ConsumerWidget {
   }
 
   /// 生成消息内容哈希
-  String _generateMessageContentHash(Message message, ChatSettings chatSettings) {
+  String _generateMessageContentHash(
+      Message message, ChatSettings chatSettings) {
     final hashComponents = [
       message.id,
       message.content,

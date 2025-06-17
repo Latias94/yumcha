@@ -25,8 +25,10 @@ import '../../../../core/utils/error_handler.dart';
 /// - 实现响应式监听，自动同步相关状态变化
 /// - 完整的参数验证和错误处理
 /// - 统一的日志记录和错误包装
-class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> {
-  MultimediaSettingsNotifier(this._ref) : super(const MultimediaSettingsState()) {
+class MultimediaSettingsNotifier
+    extends StateNotifier<MultimediaSettingsState> {
+  MultimediaSettingsNotifier(this._ref)
+      : super(const MultimediaSettingsState()) {
     _initialize();
     _setupListeners();
   }
@@ -41,10 +43,10 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
   Future<void> _initialize() async {
     try {
       state = state.copyWith(isLoading: true);
-      
+
       // 加载所有多媒体相关设置
       await _loadMultimediaSettings();
-      
+
       _logger.info('多媒体设置初始化成功');
     } catch (error, stackTrace) {
       _logger.error('多媒体设置初始化失败', {'error': error.toString()});
@@ -79,48 +81,58 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
     try {
       // 加载各项多媒体设置
       final isEnabled = await _repository.getSettingValue<bool>(
-        SettingKeys.multimediaEnabled,
-      ) ?? false;
+            SettingKeys.multimediaEnabled,
+          ) ??
+          false;
 
       final imageGenerationEnabled = await _repository.getSettingValue<bool>(
-        SettingKeys.imageGenerationEnabled,
-      ) ?? true;
+            SettingKeys.imageGenerationEnabled,
+          ) ??
+          true;
 
       final ttsEnabled = await _repository.getSettingValue<bool>(
-        SettingKeys.ttsEnabled,
-      ) ?? true;
+            SettingKeys.ttsEnabled,
+          ) ??
+          true;
 
       final sttEnabled = await _repository.getSettingValue<bool>(
-        SettingKeys.sttEnabled,
-      ) ?? true;
+            SettingKeys.sttEnabled,
+          ) ??
+          true;
 
       final webSearchEnabled = await _repository.getSettingValue<bool>(
-        SettingKeys.webSearchEnabled,
-      ) ?? true;
+            SettingKeys.webSearchEnabled,
+          ) ??
+          true;
 
       final imageAnalysisEnabled = await _repository.getSettingValue<bool>(
-        SettingKeys.imageAnalysisEnabled,
-      ) ?? true;
+            SettingKeys.imageAnalysisEnabled,
+          ) ??
+          true;
 
       final autoDetectEnabled = await _repository.getSettingValue<bool>(
-        SettingKeys.autoDetectMultimedia,
-      ) ?? true;
+            SettingKeys.autoDetectMultimedia,
+          ) ??
+          true;
 
       final httpProxyUrl = await _repository.getSettingValue<String>(
         SettingKeys.httpProxyUrl,
       );
 
       final connectionTimeout = await _repository.getSettingValue<int>(
-        SettingKeys.connectionTimeout,
-      ) ?? 30;
+            SettingKeys.connectionTimeout,
+          ) ??
+          30;
 
       final maxImageSize = await _repository.getSettingValue<int>(
-        SettingKeys.maxImageSize,
-      ) ?? 10; // 10MB
+            SettingKeys.maxImageSize,
+          ) ??
+          10; // 10MB
 
       final maxAudioDuration = await _repository.getSettingValue<int>(
-        SettingKeys.maxAudioDuration,
-      ) ?? 300; // 5分钟
+            SettingKeys.maxAudioDuration,
+          ) ??
+          300; // 5分钟
 
       // 更新状态
       state = MultimediaSettingsState(
@@ -165,7 +177,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(isEnabled: enabled);
-      
+
       _logger.info('多媒体功能开关更新', {'enabled': enabled});
     } catch (error, stackTrace) {
       _logger.error('更新多媒体功能开关失败', {'error': error.toString()});
@@ -187,7 +199,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(imageGenerationEnabled: enabled);
-      
+
       _logger.info('图像生成功能开关更新', {'enabled': enabled});
     } catch (error, stackTrace) {
       _logger.error('更新图像生成功能开关失败', {'error': error.toString()});
@@ -205,7 +217,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(ttsEnabled: enabled);
-      
+
       _logger.info('TTS功能开关更新', {'enabled': enabled});
     } catch (error, stackTrace) {
       _logger.error('更新TTS功能开关失败', {'error': error.toString()});
@@ -223,7 +235,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(sttEnabled: enabled);
-      
+
       _logger.info('STT功能开关更新', {'enabled': enabled});
     } catch (error, stackTrace) {
       _logger.error('更新STT功能开关失败', {'error': error.toString()});
@@ -241,7 +253,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(webSearchEnabled: enabled);
-      
+
       _logger.info('Web搜索功能开关更新', {'enabled': enabled});
     } catch (error, stackTrace) {
       _logger.error('更新Web搜索功能开关失败', {'error': error.toString()});
@@ -259,7 +271,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(imageAnalysisEnabled: enabled);
-      
+
       _logger.info('图像分析功能开关更新', {'enabled': enabled});
     } catch (error, stackTrace) {
       _logger.error('更新图像分析功能开关失败', {'error': error.toString()});
@@ -277,7 +289,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(autoDetectEnabled: enabled);
-      
+
       _logger.info('自动检测功能开关更新', {'enabled': enabled});
     } catch (error, stackTrace) {
       _logger.error('更新自动检测功能开关失败', {'error': error.toString()});
@@ -306,7 +318,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(httpProxyUrl: proxyUrl);
-      
+
       _logger.info('HTTP代理URL更新', {'proxyUrl': proxyUrl});
     } catch (error, stackTrace) {
       _logger.error('更新HTTP代理URL失败', {'error': error.toString()});
@@ -332,7 +344,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
       );
 
       state = state.copyWith(connectionTimeout: timeout);
-      
+
       _logger.info('连接超时时间更新', {'timeout': timeout});
     } catch (error, stackTrace) {
       _logger.error('更新连接超时时间失败', {'error': error.toString()});
@@ -367,7 +379,7 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
 
       // 重新加载设置
       await _loadMultimediaSettings();
-      
+
       _logger.info('多媒体设置已重置为默认值');
     } catch (error, stackTrace) {
       _logger.error('重置多媒体设置失败', {'error': error.toString()});
@@ -380,8 +392,8 @@ class MultimediaSettingsNotifier extends StateNotifier<MultimediaSettingsState> 
 }
 
 /// 多媒体设置Provider
-final multimediaSettingsProvider = StateNotifierProvider<
-    MultimediaSettingsNotifier, MultimediaSettingsState>(
+final multimediaSettingsProvider =
+    StateNotifierProvider<MultimediaSettingsNotifier, MultimediaSettingsState>(
   (ref) => MultimediaSettingsNotifier(ref),
 );
 
@@ -392,11 +404,12 @@ final isMultimediaEnabledProvider = Provider<bool>((ref) {
 });
 
 /// 检查特定多媒体功能是否可用的Provider
-final multimediaCapabilityProvider = Provider.family<bool, String>((ref, capability) {
+final multimediaCapabilityProvider =
+    Provider.family<bool, String>((ref, capability) {
   final settings = ref.watch(multimediaSettingsProvider);
-  
+
   if (!settings.isEnabled) return false;
-  
+
   switch (capability) {
     case 'imageGeneration':
       return settings.imageGenerationEnabled;

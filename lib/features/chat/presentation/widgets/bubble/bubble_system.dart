@@ -34,7 +34,7 @@ export 'adapters/error_bubble_adapter.dart';
 export 'adapters/quote_bubble_adapter.dart';
 
 /// 气泡系统初始化器
-/// 
+///
 /// 负责初始化整个气泡系统
 class BubbleSystem {
   BubbleSystem._();

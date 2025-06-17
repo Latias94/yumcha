@@ -1,13 +1,13 @@
 /// 消息角色枚举
-/// 
+///
 /// 定义消息的发送者角色
 enum MessageRole {
   /// 用户消息
   user,
-  
+
   /// AI助手消息
   assistant,
-  
+
   /// 系统消息
   system,
 }

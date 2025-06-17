@@ -380,7 +380,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SearchServiceSettingsScreen()),
+          MaterialPageRoute(
+              builder: (context) => const SearchServiceSettingsScreen()),
         );
       },
     );

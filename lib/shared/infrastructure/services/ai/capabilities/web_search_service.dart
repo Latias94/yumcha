@@ -199,7 +199,8 @@ class WebSearchService extends AiServiceBase {
       }
 
       // 添加新闻搜索查询
-      final newsPrompt = _buildNewsSearchPrompt(query, maxResults, fromDate, toDate);
+      final newsPrompt =
+          _buildNewsSearchPrompt(query, maxResults, fromDate, toDate);
       messages.add(ChatMessage.user(newsPrompt));
 
       // 发送搜索请求
@@ -270,7 +271,8 @@ class WebSearchService extends AiServiceBase {
   }
 
   /// 构建新闻搜索提示
-  String _buildNewsSearchPrompt(String query, int maxResults, String? fromDate, String? toDate) {
+  String _buildNewsSearchPrompt(
+      String query, int maxResults, String? fromDate, String? toDate) {
     final buffer = StringBuffer();
     buffer.writeln('请帮我搜索最新新闻：');
     buffer.writeln('查询：$query');
@@ -289,13 +291,13 @@ class WebSearchService extends AiServiceBase {
   List<SearchResult> _parseSearchResults(String responseText) {
     // 简化的结果解析 - 实际使用中应该根据具体的响应格式进行解析
     final results = <SearchResult>[];
-    
+
     // 这里应该实现具体的解析逻辑
     // 目前返回一个示例结果
     results.add(SearchResult(
       title: '搜索结果',
       url: 'https://example.com',
-      snippet: responseText.length > 200 
+      snippet: responseText.length > 200
           ? responseText.substring(0, 200) + '...'
           : responseText,
       publishDate: DateTime.now(),

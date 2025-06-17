@@ -246,17 +246,23 @@ class Message {
 
   /// 获取所有图片块
   List<MessageBlock> get imageBlocks {
-    return blocks.where((block) => block.type == MessageBlockType.image).toList();
+    return blocks
+        .where((block) => block.type == MessageBlockType.image)
+        .toList();
   }
 
   /// 获取所有工具调用块
   List<MessageBlock> get toolBlocks {
-    return blocks.where((block) => block.type == MessageBlockType.tool).toList();
+    return blocks
+        .where((block) => block.type == MessageBlockType.tool)
+        .toList();
   }
 
   /// 获取所有代码块
   List<MessageBlock> get codeBlocks {
-    return blocks.where((block) => block.type == MessageBlockType.code).toList();
+    return blocks
+        .where((block) => block.type == MessageBlockType.code)
+        .toList();
   }
 
   /// 获取思考过程耗时（从元数据）
@@ -281,12 +287,12 @@ class Message {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Message &&
-           other.id == id &&
-           other.conversationId == conversationId &&
-           other.role == role &&
-           other.assistantId == assistantId &&
-           listEquals(other.blockIds, blockIds) &&
-           other.status == status;
+        other.id == id &&
+        other.conversationId == conversationId &&
+        other.role == role &&
+        other.assistantId == assistantId &&
+        listEquals(other.blockIds, blockIds) &&
+        other.status == status;
   }
 
   @override
@@ -304,6 +310,6 @@ class Message {
   @override
   String toString() {
     return 'Message(id: $id, role: $role, conversationId: $conversationId, '
-           'assistantId: $assistantId, status: $status, blocks: ${blocks.length})';
+        'assistantId: $assistantId, status: $status, blocks: ${blocks.length})';
   }
 }

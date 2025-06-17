@@ -41,7 +41,8 @@ final aiMultimodalServiceProvider = Provider<MultimodalService>((ref) {
 });
 
 /// AI图像生成服务Provider
-final aiImageGenerationServiceProvider = Provider<ImageGenerationService>((ref) {
+final aiImageGenerationServiceProvider =
+    Provider<ImageGenerationService>((ref) {
   return ImageGenerationService();
 });
 
@@ -88,7 +89,8 @@ final sendChatMessageStreamProvider = StreamProvider.autoDispose
 /// 测试AI提供商连接的Provider
 ///
 /// 使用autoDispose避免内存泄漏，因为这是一次性测试操作
-final testAiProviderProvider = FutureProvider.autoDispose.family<bool, TestProviderParams>((
+final testAiProviderProvider =
+    FutureProvider.autoDispose.family<bool, TestProviderParams>((
   ref,
   params,
 ) async {
@@ -103,7 +105,8 @@ final testAiProviderProvider = FutureProvider.autoDispose.family<bool, TestProvi
 /// 获取提供商模型列表的Provider
 ///
 /// 使用autoDispose避免内存泄漏，因为模型列表是临时获取的数据
-final providerModelsProvider = FutureProvider.autoDispose.family<List<AiModel>, String>((
+final providerModelsProvider =
+    FutureProvider.autoDispose.family<List<AiModel>, String>((
   ref,
   providerId,
 ) async {
@@ -145,7 +148,8 @@ final modelCapabilitiesProvider =
 /// 智能聊天Provider - 需要指定providerId和modelName
 ///
 /// 使用autoDispose避免内存泄漏，因为这是一次性聊天请求
-final smartChatProvider = FutureProvider.autoDispose.family<AiResponse, SmartChatParams>((
+final smartChatProvider =
+    FutureProvider.autoDispose.family<AiResponse, SmartChatParams>((
   ref,
   params,
 ) async {
@@ -188,8 +192,8 @@ final smartChatProvider = FutureProvider.autoDispose.family<AiResponse, SmartCha
 /// 智能流式聊天Provider - 需要指定providerId和modelName
 ///
 /// 使用autoDispose避免内存泄漏，因为这是一次性流式聊天请求
-final smartChatStreamProvider =
-    StreamProvider.autoDispose.family<AiStreamEvent, SmartChatParams>((ref, params) {
+final smartChatStreamProvider = StreamProvider.autoDispose
+    .family<AiStreamEvent, SmartChatParams>((ref, params) {
   final providerId = params.providerId;
   final modelName = params.modelName;
 
@@ -233,8 +237,8 @@ final smartChatStreamProvider =
 /// 对话聊天Provider - 包含标题生成、对话保存等完整业务逻辑
 ///
 /// 使用autoDispose避免内存泄漏，因为这是一次性对话请求
-final conversationChatProvider =
-    FutureProvider.autoDispose.family<ConversationChatResponse, ConversationChatParams>((
+final conversationChatProvider = FutureProvider.autoDispose
+    .family<ConversationChatResponse, ConversationChatParams>((
   ref,
   params,
 ) async {
@@ -245,8 +249,8 @@ final conversationChatProvider =
 /// 对话流式聊天Provider - 包含完整业务逻辑的流式聊天接口
 ///
 /// 使用autoDispose避免内存泄漏，因为这是一次性流式对话请求
-final conversationChatStreamProvider =
-    StreamProvider.autoDispose.family<ConversationChatStreamEvent, ConversationChatParams>((
+final conversationChatStreamProvider = StreamProvider.autoDispose
+    .family<ConversationChatStreamEvent, ConversationChatParams>((
   ref,
   params,
 ) {
@@ -274,7 +278,8 @@ final modelCacheStatsProvider = Provider<Map<String, dynamic>>((ref) {
 // ============================================================================
 
 /// 图像生成Provider
-final generateImageProvider = FutureProvider.autoDispose.family<ImageGenerationResponse, ImageGenerationParams>((
+final generateImageProvider = FutureProvider.autoDispose
+    .family<ImageGenerationResponse, ImageGenerationParams>((
   ref,
   params,
 ) async {
@@ -291,13 +296,15 @@ final generateImageProvider = FutureProvider.autoDispose.family<ImageGenerationR
 });
 
 /// 检查图像生成支持的Provider
-final imageGenerationSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+final imageGenerationSupportProvider =
+    Provider.family<bool, models.AiProvider>((ref, provider) {
   final imageService = ref.read(aiImageGenerationServiceProvider);
   return imageService.supportsImageGeneration(provider);
 });
 
 /// 获取支持的图像尺寸Provider
-final supportedImageSizesProvider = Provider.family<List<String>, models.AiProvider>((ref, provider) {
+final supportedImageSizesProvider =
+    Provider.family<List<String>, models.AiProvider>((ref, provider) {
   final imageService = ref.read(aiImageGenerationServiceProvider);
   return imageService.getSupportedSizes(provider);
 });
@@ -307,7 +314,8 @@ final supportedImageSizesProvider = Provider.family<List<String>, models.AiProvi
 // ============================================================================
 
 /// Web搜索Provider
-final webSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, WebSearchParams>((
+final webSearchProvider =
+    FutureProvider.autoDispose.family<WebSearchResponse, WebSearchParams>((
   ref,
   params,
 ) async {
@@ -325,7 +333,8 @@ final webSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, W
 });
 
 /// 新闻搜索Provider
-final newsSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, NewsSearchParams>((
+final newsSearchProvider =
+    FutureProvider.autoDispose.family<WebSearchResponse, NewsSearchParams>((
   ref,
   params,
 ) async {
@@ -342,7 +351,8 @@ final newsSearchProvider = FutureProvider.autoDispose.family<WebSearchResponse, 
 });
 
 /// 检查Web搜索支持的Provider
-final webSearchSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+final webSearchSupportProvider =
+    Provider.family<bool, models.AiProvider>((ref, provider) {
   final webSearchService = ref.read(aiWebSearchServiceProvider);
   return webSearchService.supportsWebSearch(provider);
 });
@@ -352,7 +362,8 @@ final webSearchSupportProvider = Provider.family<bool, models.AiProvider>((ref, 
 // ============================================================================
 
 /// 文字转语音Provider
-final textToSpeechProvider = FutureProvider.autoDispose.family<TextToSpeechResponse, TextToSpeechParams>((
+final textToSpeechProvider = FutureProvider.autoDispose
+    .family<TextToSpeechResponse, TextToSpeechParams>((
   ref,
   params,
 ) async {
@@ -367,7 +378,8 @@ final textToSpeechProvider = FutureProvider.autoDispose.family<TextToSpeechRespo
 });
 
 /// 语音转文字Provider
-final speechToTextProvider = FutureProvider.autoDispose.family<SpeechToTextResponse, SpeechToTextParams>((
+final speechToTextProvider = FutureProvider.autoDispose
+    .family<SpeechToTextResponse, SpeechToTextParams>((
   ref,
   params,
 ) async {
@@ -382,19 +394,22 @@ final speechToTextProvider = FutureProvider.autoDispose.family<SpeechToTextRespo
 });
 
 /// 检查TTS支持的Provider
-final ttsSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+final ttsSupportProvider =
+    Provider.family<bool, models.AiProvider>((ref, provider) {
   final speechService = ref.read(aiSpeechServiceProvider);
   return speechService.supportsTts(provider);
 });
 
 /// 检查STT支持的Provider
-final sttSupportProvider = Provider.family<bool, models.AiProvider>((ref, provider) {
+final sttSupportProvider =
+    Provider.family<bool, models.AiProvider>((ref, provider) {
   final speechService = ref.read(aiSpeechServiceProvider);
   return speechService.supportsStt(provider);
 });
 
 /// 获取支持的语音列表Provider
-final supportedVoicesProvider = Provider.family<List<String>, models.AiProvider>((ref, provider) {
+final supportedVoicesProvider =
+    Provider.family<List<String>, models.AiProvider>((ref, provider) {
   final speechService = ref.read(aiSpeechServiceProvider);
   return speechService.getSupportedVoices(provider);
 });
@@ -404,7 +419,8 @@ final supportedVoicesProvider = Provider.family<List<String>, models.AiProvider>
 // ============================================================================
 
 /// 图像分析Provider
-final analyzeImageProvider = FutureProvider.autoDispose.family<AiResponse, ImageAnalysisParams>((
+final analyzeImageProvider =
+    FutureProvider.autoDispose.family<AiResponse, ImageAnalysisParams>((
   ref,
   params,
 ) async {
@@ -425,7 +441,8 @@ final analyzeImageProvider = FutureProvider.autoDispose.family<AiResponse, Image
 // ============================================================================
 
 /// HTTP代理配置Provider
-final httpProxyConfigProvider = Provider.family<HttpProxyConfig?, String?>((ref, proxyUrl) {
+final httpProxyConfigProvider =
+    Provider.family<HttpProxyConfig?, String?>((ref, proxyUrl) {
   if (proxyUrl == null || proxyUrl.isEmpty) return null;
 
   return HttpProxyConfig(
@@ -435,7 +452,8 @@ final httpProxyConfigProvider = Provider.family<HttpProxyConfig?, String?>((ref,
 });
 
 /// HTTP超时配置Provider
-final httpTimeoutConfigProvider = Provider.family<HttpTimeoutConfig, Duration>((ref, timeout) {
+final httpTimeoutConfigProvider =
+    Provider.family<HttpTimeoutConfig, Duration>((ref, timeout) {
   return HttpTimeoutConfig(
     connectionTimeout: timeout,
     receiveTimeout: timeout,
@@ -969,10 +987,7 @@ class TextToSpeechParams {
 
   @override
   int get hashCode =>
-      provider.id.hashCode ^
-      text.hashCode ^
-      voice.hashCode ^
-      model.hashCode;
+      provider.id.hashCode ^ text.hashCode ^ voice.hashCode ^ model.hashCode;
 }
 
 /// 语音转文字的参数类

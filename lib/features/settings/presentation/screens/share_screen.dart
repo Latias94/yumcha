@@ -35,7 +35,7 @@ class ShareScreen extends ConsumerStatefulWidget {
 class _ShareScreenState extends ConsumerState<ShareScreen> {
   final String _appDownloadUrl = 'https://yumcha.app/download';
   final String _appDescription = 'YumCha - 现代化的 AI 聊天客户端，支持多模型、MCP 集成，开源免费！';
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,7 +105,7 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 应用预览
             Container(
               padding: DesignConstants.paddingL,
@@ -127,7 +127,8 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                         ),
                         child: Icon(
                           Icons.chat_bubble_outline,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
                         ),
                       ),
                       SizedBox(width: DesignConstants.spaceM),
@@ -137,15 +138,23 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                           children: [
                             Text(
                               'YumCha',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
                                     fontWeight: FontWeight.bold,
-                              ),
+                                  ),
                             ),
                             Text(
                               'AI 聊天客户端',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                             ),
                           ],
                         ),
@@ -168,9 +177,9 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                 ],
               ),
             ),
-            
+
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 分享按钮
             Row(
               children: [
@@ -220,7 +229,6 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             Center(
               child: Container(
                 padding: DesignConstants.paddingL,
@@ -243,14 +251,12 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
                 ),
               ),
             ),
-            
             SizedBox(height: DesignConstants.spaceL),
-            
             Text(
               '扫描二维码下载 YumCha',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -282,7 +288,7 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 社交平台按钮
             Wrap(
               spacing: DesignConstants.spaceM,
@@ -343,15 +349,13 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             Text(
               '分享有趣的 AI 对话内容',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                  ),
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -389,7 +393,6 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             Row(
               children: [
                 Expanded(
@@ -451,14 +454,14 @@ class _ShareScreenState extends ConsumerState<ShareScreen> {
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.primary,
-          ),
+              ),
         ),
         SizedBox(height: DesignConstants.spaceXS),
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+              ),
           textAlign: TextAlign.center,
         ),
       ],

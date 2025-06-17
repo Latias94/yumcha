@@ -12,20 +12,24 @@ import '../../domain/entities/ai_model.dart';
 import '../../data/repositories/provider_repository.dart';
 import '../../data/repositories/assistant_repository.dart';
 
-
 /// 用户自定义AI管理状态管理器
-class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState> {
-  UnifiedAiManagementNotifier(this._ref) : super(const UnifiedAiManagementState()) {
+class UnifiedAiManagementNotifier
+    extends StateNotifier<UnifiedAiManagementState> {
+  UnifiedAiManagementNotifier(this._ref)
+      : super(const UnifiedAiManagementState()) {
     _initialize();
   }
 
   final Ref _ref;
   final LoggerService _logger = LoggerService();
-  
+
   /// 获取Repository实例 - 使用getter避免late final重复初始化问题
-  ProviderRepository get _providerRepository => _ref.read(providerRepositoryProvider);
-  AssistantRepository get _assistantRepository => _ref.read(assistantRepositoryProvider);
-  PreferenceService get _preferenceService => _ref.read(preferenceServiceProvider);
+  ProviderRepository get _providerRepository =>
+      _ref.read(providerRepositoryProvider);
+  AssistantRepository get _assistantRepository =>
+      _ref.read(assistantRepositoryProvider);
+  PreferenceService get _preferenceService =>
+      _ref.read(preferenceServiceProvider);
 
   bool _isInitializing = false;
   Timer? _connectionTestTimer;
@@ -33,7 +37,7 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
   /// 初始化AI管理器
   Future<void> _initialize() async {
     if (_isInitializing || state.isInitialized) return;
-    
+
     _isInitializing = true;
     _logger.info('开始初始化统一AI管理器');
 
@@ -170,9 +174,9 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
 
       // 更新状态
       final updatedProviders = [...state.providers, provider];
-      final updatedConnectionStatuses = Map<String, ProviderConnectionStatus>.from(
-        state.configuration.connectionStatuses
-      );
+      final updatedConnectionStatuses =
+          Map<String, ProviderConnectionStatus>.from(
+              state.configuration.connectionStatuses);
       updatedConnectionStatuses[provider.id] = connectionStatus;
 
       final newConfiguration = state.configuration.copyWith(
@@ -356,15 +360,16 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
   }
 
   /// 测试提供商连接
-  Future<ProviderConnectionStatus> _testProviderConnection(AiProvider provider) async {
+  Future<ProviderConnectionStatus> _testProviderConnection(
+      AiProvider provider) async {
     try {
       // TODO: 实现实际的连接测试逻辑
       // 这里应该调用AI服务来测试连接
       _logger.info('测试提供商连接', {'providerId': provider.id});
-      
+
       // 模拟连接测试
       await Future.delayed(const Duration(seconds: 1));
-      
+
       return ProviderConnectionStatus.connected;
     } catch (error) {
       _logger.error('提供商连接测试失败', {
@@ -385,28 +390,28 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
 
   /// 测试所有连接
   Future<void> _testAllConnections() async {
-    final providersNeedingTest = state.configuration.getProvidersNeedingTest(state.providers);
-    
+    final providersNeedingTest =
+        state.configuration.getProvidersNeedingTest(state.providers);
+
     for (final providerId in providersNeedingTest) {
-      final provider = state.providers.where((p) => p.id == providerId).firstOrNull;
+      final provider =
+          state.providers.where((p) => p.id == providerId).firstOrNull;
       if (provider != null) {
         final status = await _testProviderConnection(provider);
-        
+
         final updatedStatuses = Map<String, ProviderConnectionStatus>.from(
-          state.configuration.connectionStatuses
-        );
+            state.configuration.connectionStatuses);
         updatedStatuses[providerId] = status;
-        
-        final updatedTests = Map<String, DateTime>.from(
-          state.configuration.lastConnectionTests
-        );
+
+        final updatedTests =
+            Map<String, DateTime>.from(state.configuration.lastConnectionTests);
         updatedTests[providerId] = DateTime.now();
-        
+
         final newConfiguration = state.configuration.copyWith(
           connectionStatuses: updatedStatuses,
           lastConnectionTests: updatedTests,
         );
-        
+
         state = state.copyWith(configuration: newConfiguration);
       }
     }
@@ -430,7 +435,8 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
     try {
       _logger.info('切换提供商启用状态', {'providerId': providerId});
 
-      final provider = state.providers.where((p) => p.id == providerId).firstOrNull;
+      final provider =
+          state.providers.where((p) => p.id == providerId).firstOrNull;
       if (provider == null) {
         throw Exception('提供商不存在: $providerId');
       }
@@ -472,7 +478,8 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
     try {
       _logger.info('删除提供商', {'providerId': providerId});
 
-      final provider = state.providers.where((p) => p.id == providerId).firstOrNull;
+      final provider =
+          state.providers.where((p) => p.id == providerId).firstOrNull;
       if (provider == null) {
         throw Exception('提供商不存在: $providerId');
       }
@@ -481,7 +488,8 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
       await _providerRepository.deleteProvider(providerId);
 
       // 更新状态
-      final updatedProviders = state.providers.where((p) => p.id != providerId).toList();
+      final updatedProviders =
+          state.providers.where((p) => p.id != providerId).toList();
       state = state.copyWith(providers: updatedProviders);
 
       // 发送事件
@@ -551,7 +559,8 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
     try {
       _logger.info('切换助手启用状态', {'assistantId': assistantId});
 
-      final assistant = state.assistants.where((a) => a.id == assistantId).firstOrNull;
+      final assistant =
+          state.assistants.where((a) => a.id == assistantId).firstOrNull;
       if (assistant == null) {
         throw Exception('助手不存在: $assistantId');
       }
@@ -593,7 +602,8 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
     try {
       _logger.info('删除助手', {'assistantId': assistantId});
 
-      final assistant = state.assistants.where((a) => a.id == assistantId).firstOrNull;
+      final assistant =
+          state.assistants.where((a) => a.id == assistantId).firstOrNull;
       if (assistant == null) {
         throw Exception('助手不存在: $assistantId');
       }
@@ -602,7 +612,8 @@ class UnifiedAiManagementNotifier extends StateNotifier<UnifiedAiManagementState
       await _assistantRepository.deleteAssistant(assistantId);
 
       // 更新状态
-      final updatedAssistants = state.assistants.where((a) => a.id != assistantId).toList();
+      final updatedAssistants =
+          state.assistants.where((a) => a.id != assistantId).toList();
       state = state.copyWith(assistants: updatedAssistants);
 
       // 发送事件

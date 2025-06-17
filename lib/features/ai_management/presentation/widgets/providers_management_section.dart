@@ -31,7 +31,7 @@ class ProvidersManagementSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final deviceType = DesignConstants.getDeviceType(context);
-    
+
     final providers = ref.watch(aiProvidersProvider);
     final enabledProviders = ref.watch(enabledAiProvidersProvider);
     final connectedProviders = ref.watch(connectedAiProvidersProvider);
@@ -49,9 +49,9 @@ class ProvidersManagementSection extends ConsumerWidget {
           children: [
             // 标题和操作按钮
             _buildHeader(context, theme, ref),
-            
+
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 提供商列表或空状态
             if (providers.isEmpty)
               _buildEmptyState(context, theme, ref)
@@ -122,7 +122,8 @@ class ProvidersManagementSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, ThemeData theme, WidgetRef ref) {
+  Widget _buildEmptyState(
+      BuildContext context, ThemeData theme, WidgetRef ref) {
     return Container(
       width: double.infinity,
       padding: DesignConstants.paddingXL,
@@ -180,18 +181,17 @@ class ProvidersManagementSection extends ConsumerWidget {
   ) {
     // 显示前3个提供商
     final displayProviders = providers.take(3).toList();
-    
+
     return Column(
       children: [
         ...displayProviders.map((provider) => _buildProviderItem(
-          context,
-          theme,
-          provider,
-          enabledProviders.contains(provider),
-          connectedProviders.contains(provider),
-          ref,
-        )),
-        
+              context,
+              theme,
+              provider,
+              enabledProviders.contains(provider),
+              connectedProviders.contains(provider),
+              ref,
+            )),
         if (providers.length > 3) ...[
           SizedBox(height: DesignConstants.spaceM),
           TextButton(
@@ -238,7 +238,8 @@ class ProvidersManagementSection extends ConsumerWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(DesignConstants.radiusSValue),
+                  borderRadius:
+                      BorderRadius.circular(DesignConstants.radiusSValue),
                 ),
                 child: Icon(
                   _getProviderIcon(provider.type.name),
@@ -268,9 +269,9 @@ class ProvidersManagementSection extends ConsumerWidget {
               ),
             ],
           ),
-          
+
           SizedBox(width: DesignConstants.spaceM),
-          
+
           // 提供商信息
           Expanded(
             child: Column(
@@ -292,7 +293,7 @@ class ProvidersManagementSection extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           // 快速操作按钮
           IconButton(
             onPressed: () async {

@@ -6,28 +6,28 @@ import '../../../../shared/infrastructure/services/logger_service.dart';
 enum MessageStateEvent {
   /// 开始处理AI消息
   startAiProcessing,
-  
+
   /// 开始流式传输
   startStreaming,
-  
+
   /// 流式传输中
   streaming,
-  
+
   /// 完成处理
   complete,
-  
+
   /// 发生错误
   error,
-  
+
   /// 暂停处理
   pause,
-  
+
   /// 恢复处理
   resume,
-  
+
   /// 重试处理
   retry,
-  
+
   /// 取消处理
   cancel,
 }
@@ -76,7 +76,8 @@ class StateTransitionResult {
     this.metadata,
   });
 
-  const StateTransitionResult.success(MessageStatus status, {Map<String, dynamic>? metadata})
+  const StateTransitionResult.success(MessageStatus status,
+      {Map<String, dynamic>? metadata})
       : newStatus = status,
         isValid = true,
         errorMessage = null,
@@ -108,14 +109,14 @@ class MessageStateMachine {
 
   /// 最大历史记录数量
   static const int _maxHistorySize = 100;
-  
+
   /// 状态转换映射表
   static const Map<MessageStatus, Set<MessageStatus>> _allowedTransitions = {
     // 用户消息状态（通常不会改变）
     MessageStatus.userSuccess: {
       MessageStatus.userSuccess, // 允许重复设置
     },
-    
+
     // AI消息状态转换
     MessageStatus.aiPending: {
       MessageStatus.aiProcessing,
@@ -123,45 +124,45 @@ class MessageStateMachine {
       MessageStatus.aiError,
       MessageStatus.aiPaused,
     },
-    
+
     MessageStatus.aiProcessing: {
       MessageStatus.aiStreaming,
       MessageStatus.aiSuccess,
       MessageStatus.aiError,
       MessageStatus.aiPaused,
     },
-    
+
     MessageStatus.aiStreaming: {
       MessageStatus.aiSuccess,
       MessageStatus.aiError,
       MessageStatus.aiPaused,
       MessageStatus.aiStreaming, // 允许流式过程中的状态更新
     },
-    
+
     MessageStatus.aiSuccess: {
       MessageStatus.aiSuccess, // 允许重复设置
       MessageStatus.aiProcessing, // 允许重新生成
     },
-    
+
     MessageStatus.aiError: {
       MessageStatus.aiPending,
       MessageStatus.aiProcessing,
       MessageStatus.aiStreaming,
       MessageStatus.aiError, // 允许重复设置错误
     },
-    
+
     MessageStatus.aiPaused: {
       MessageStatus.aiProcessing,
       MessageStatus.aiStreaming,
       MessageStatus.aiError,
       MessageStatus.aiSuccess,
     },
-    
+
     // 系统消息状态
     MessageStatus.system: {
       MessageStatus.system,
     },
-    
+
     // 临时消息状态
     MessageStatus.temporary: {
       MessageStatus.userSuccess,
@@ -196,7 +197,7 @@ class MessageStateMachine {
       });
       return false;
     }
-    
+
     return allowedStates.contains(to);
   }
 
@@ -222,7 +223,8 @@ class MessageStateMachine {
     }
 
     if (!canTransition(currentStatus, targetStatus)) {
-      final errorMessage = '不允许的状态转换: ${currentStatus.name} -> ${targetStatus.name}';
+      final errorMessage =
+          '不允许的状态转换: ${currentStatus.name} -> ${targetStatus.name}';
       final record = StateTransitionRecord(
         fromStatus: currentStatus,
         toStatus: targetStatus,
@@ -294,9 +296,9 @@ class MessageStateMachine {
 
   /// 检查状态是否为终态
   bool isFinalState(MessageStatus status) {
-    return status == MessageStatus.aiSuccess || 
-           status == MessageStatus.userSuccess ||
-           status == MessageStatus.system;
+    return status == MessageStatus.aiSuccess ||
+        status == MessageStatus.userSuccess ||
+        status == MessageStatus.system;
   }
 
   /// 检查状态是否为错误态
@@ -307,8 +309,8 @@ class MessageStateMachine {
   /// 检查状态是否为进行中
   bool isActiveState(MessageStatus status) {
     return status == MessageStatus.aiProcessing ||
-           status == MessageStatus.aiStreaming ||
-           status == MessageStatus.aiPending;
+        status == MessageStatus.aiStreaming ||
+        status == MessageStatus.aiPending;
   }
 
   /// 获取状态的优先级（用于UI显示排序）
@@ -385,7 +387,8 @@ class MessageStateMachine {
 
     // 按优先级排序
     final sortedCandidates = List<MessageStatus>.from(candidateStatuses);
-    sortedCandidates.sort((a, b) => getStatusPriority(b).compareTo(getStatusPriority(a)));
+    sortedCandidates
+        .sort((a, b) => getStatusPriority(b).compareTo(getStatusPriority(a)));
 
     // 选择第一个合法的转换
     for (final candidate in sortedCandidates) {
@@ -430,11 +433,14 @@ class MessageStateMachine {
     final errorCounts = <String, int>{};
 
     for (final record in _transitionHistory) {
-      final transitionKey = '${record.fromStatus.name}->${record.toStatus.name}';
-      transitionCounts[transitionKey] = (transitionCounts[transitionKey] ?? 0) + 1;
+      final transitionKey =
+          '${record.fromStatus.name}->${record.toStatus.name}';
+      transitionCounts[transitionKey] =
+          (transitionCounts[transitionKey] ?? 0) + 1;
 
       if (!record.isSuccess && record.errorMessage != null) {
-        errorCounts[record.errorMessage!] = (errorCounts[record.errorMessage!] ?? 0) + 1;
+        errorCounts[record.errorMessage!] =
+            (errorCounts[record.errorMessage!] ?? 0) + 1;
       }
     }
 
@@ -502,7 +508,9 @@ class MessageStateMachine {
   }) {
     if (fromStatus == toStatus) return [fromStatus];
 
-    final queue = <List<MessageStatus>>[[fromStatus]];
+    final queue = <List<MessageStatus>>[
+      [fromStatus]
+    ];
     final visited = <MessageStatus>{fromStatus};
 
     while (queue.isNotEmpty) {

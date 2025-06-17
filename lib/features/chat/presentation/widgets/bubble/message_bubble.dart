@@ -10,7 +10,7 @@ import 'bubble_size.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 统一的消息气泡组件
-/// 
+///
 /// 这是重构后的核心气泡组件，用于替代原有的多套气泡实现。
 /// 支持所有类型的消息块，具备响应式布局和可配置的视觉样式。
 class MessageBubble extends ConsumerWidget {
@@ -67,8 +67,10 @@ class MessageBubble extends ConsumerWidget {
   }
 
   /// 构建气泡容器
-  Widget _buildBubbleContainer(BuildContext context, BubbleContext bubbleContext) {
-    final calculatedMaxWidth = maxWidth ?? BubbleSize.calculateMaxWidth(context, style);
+  Widget _buildBubbleContainer(
+      BuildContext context, BubbleContext bubbleContext) {
+    final calculatedMaxWidth =
+        maxWidth ?? BubbleSize.calculateMaxWidth(context, style);
 
     // 构建气泡主体
     Widget bubbleWidget = Container(
@@ -109,7 +111,8 @@ class MessageBubble extends ConsumerWidget {
   }
 
   /// 构建带角色标识的气泡布局
-  Widget _buildBubbleWithRoleLabel(BuildContext context, BubbleContext bubbleContext, Widget bubbleWidget) {
+  Widget _buildBubbleWithRoleLabel(
+      BuildContext context, BubbleContext bubbleContext, Widget bubbleWidget) {
     return Column(
       crossAxisAlignment: bubbleContext.crossAxisAlignment,
       mainAxisSize: MainAxisSize.min,
@@ -130,8 +133,10 @@ class MessageBubble extends ConsumerWidget {
         ? bubbleContext.theme.colorScheme.primary
         : bubbleContext.theme.colorScheme.secondary;
     final backgroundColor = message.isFromUser
-        ? bubbleContext.theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
-        : bubbleContext.theme.colorScheme.secondaryContainer.withValues(alpha: 0.3);
+        ? bubbleContext.theme.colorScheme.primaryContainer
+            .withValues(alpha: 0.3)
+        : bubbleContext.theme.colorScheme.secondaryContainer
+            .withValues(alpha: 0.3);
 
     return Container(
       margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
@@ -165,7 +170,8 @@ class MessageBubble extends ConsumerWidget {
           Text(
             _formatTimestamp(message.createdAt),
             style: TextStyle(
-              color: bubbleContext.theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              color: bubbleContext.theme.colorScheme.onSurfaceVariant
+                  .withValues(alpha: 0.7),
               fontSize: DesignConstants.getResponsiveFontSize(
                 context,
                 mobile: 9,

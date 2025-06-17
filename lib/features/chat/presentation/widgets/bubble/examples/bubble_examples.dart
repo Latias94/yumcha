@@ -8,7 +8,7 @@ import '../../../../domain/entities/message_status.dart';
 import '../bubble_system.dart';
 
 /// 气泡系统使用示例
-/// 
+///
 /// 展示如何使用新的MessageBubble组件系统
 class BubbleExamples extends StatefulWidget {
   const BubbleExamples({super.key});
@@ -36,7 +36,8 @@ class _BubbleExamplesState extends State<BubbleExamples> {
   }
 
   /// 创建带有blocks的AI消息的辅助方法
-  Message _createAiMessage(String id, List<MessageBlock> blocks, {MessageStatus? status}) {
+  Message _createAiMessage(String id, List<MessageBlock> blocks,
+      {MessageStatus? status}) {
     return Message.assistant(
       id: id,
       conversationId: 'conv_1',
@@ -58,11 +59,9 @@ class _BubbleExamplesState extends State<BubbleExamples> {
           _buildSectionTitle('用户消息'),
           _buildUserTextMessage(),
           const SizedBox(height: 16),
-
           _buildSectionTitle('AI消息 - 文本'),
           _buildAiTextMessage(),
           const SizedBox(height: 16),
-
           _buildSectionTitle('不同样式对比'),
           _buildStyleComparison(),
         ],
@@ -76,8 +75,8 @@ class _BubbleExamplesState extends State<BubbleExamples> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+              fontWeight: FontWeight.bold,
+            ),
       ),
     );
   }
@@ -107,7 +106,8 @@ class _BubbleExamplesState extends State<BubbleExamples> {
     final textBlock = MessageBlock.text(
       id: 'block_2',
       messageId: 'ai_1',
-      content: '当然可以！我来为您创建一个简单的Flutter Hello World程序。\n\n这是一个基础的Flutter应用程序结构，包含了必要的组件和布局。',
+      content:
+          '当然可以！我来为您创建一个简单的Flutter Hello World程序。\n\n这是一个基础的Flutter应用程序结构，包含了必要的组件和布局。',
     );
 
     final message = _createAiMessage('ai_1', [textBlock]);
@@ -119,8 +119,6 @@ class _BubbleExamplesState extends State<BubbleExamples> {
       onRegenerate: () => _showMessage('重新生成AI消息'),
     );
   }
-
-
 
   Widget _buildStyleComparison() {
     final textBlock = MessageBlock.text(
@@ -137,11 +135,9 @@ class _BubbleExamplesState extends State<BubbleExamples> {
         Text('气泡样式:', style: Theme.of(context).textTheme.bodySmall),
         MessageBubble(message: message, style: BubbleStyle.bubble()),
         const SizedBox(height: 8),
-
         Text('卡片样式:', style: Theme.of(context).textTheme.bodySmall),
         MessageBubble(message: message, style: BubbleStyle.card()),
         const SizedBox(height: 8),
-
         Text('列表样式:', style: Theme.of(context).textTheme.bodySmall),
         MessageBubble(message: message, style: BubbleStyle.list()),
       ],

@@ -66,7 +66,7 @@ class _SearchServiceSettingsScreenState
       final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
       // TODO: 保存搜索服务设置
       // 这里可以添加实际的设置保存逻辑
-      
+
       NotificationService().showSuccess('搜索服务设置已保存');
     } catch (e) {
       NotificationService().showError('保存设置失败: $e');
@@ -191,7 +191,6 @@ class _SearchServiceSettingsScreenState
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             RadioListTile<String>(
               title: const Text('Google'),
               subtitle: const Text('Google 自定义搜索'),
@@ -254,7 +253,7 @@ class _SearchServiceSettingsScreenState
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // Google API Key
             TextField(
               controller: _googleApiKeyController,
@@ -264,7 +263,9 @@ class _SearchServiceSettingsScreenState
                 hintText: '输入 Google 自定义搜索 API 密钥',
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureGoogleKey ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscureGoogleKey
+                      ? Icons.visibility
+                      : Icons.visibility_off),
                   onPressed: () {
                     setState(() {
                       _obscureGoogleKey = !_obscureGoogleKey;
@@ -274,7 +275,7 @@ class _SearchServiceSettingsScreenState
               ),
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // Bing API Key
             TextField(
               controller: _bingApiKeyController,
@@ -284,7 +285,9 @@ class _SearchServiceSettingsScreenState
                 hintText: '输入 Bing 搜索 API 密钥',
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureBingKey ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscureBingKey
+                      ? Icons.visibility
+                      : Icons.visibility_off),
                   onPressed: () {
                     setState(() {
                       _obscureBingKey = !_obscureBingKey;
@@ -322,7 +325,7 @@ class _SearchServiceSettingsScreenState
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 最大结果数量
             ListTile(
               title: const Text('最大结果数量'),
@@ -342,7 +345,7 @@ class _SearchServiceSettingsScreenState
                 },
               ),
             ),
-            
+
             // 搜索语言
             ListTile(
               title: const Text('搜索语言'),
@@ -391,7 +394,6 @@ class _SearchServiceSettingsScreenState
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             SwitchListTile(
               title: const Text('安全搜索'),
               subtitle: const Text('过滤不适宜的搜索结果'),
@@ -431,7 +433,6 @@ class _SearchServiceSettingsScreenState
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             SwitchListTile(
               title: const Text('启用搜索历史'),
               subtitle: const Text('保存搜索历史记录'),
@@ -442,7 +443,6 @@ class _SearchServiceSettingsScreenState
                 });
               },
             ),
-            
             if (_enableSearchHistory) ...[
               const Divider(),
               ListTile(
@@ -481,7 +481,6 @@ class _SearchServiceSettingsScreenState
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(

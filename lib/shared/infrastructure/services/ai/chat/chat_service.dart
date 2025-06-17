@@ -261,11 +261,13 @@ class ChatService extends AiServiceBase {
         logger.info('即将调用 chatWithTools', {
           'requestId': requestId,
           'toolCount': tools.length,
-          'toolDetails': tools.map((t) => {
-            'name': t.function.name,
-            'description': t.function.description,
-            'parametersType': t.function.parameters.schemaType,
-          }).toList(),
+          'toolDetails': tools
+              .map((t) => {
+                    'name': t.function.name,
+                    'description': t.function.description,
+                    'parametersType': t.function.parameters.schemaType,
+                  })
+              .toList(),
         });
 
         // chatWithTools 方法已确认工作正常，现在使用真实的MCP工具
@@ -277,10 +279,13 @@ class ChatService extends AiServiceBase {
           'requestId': requestId,
           'messageCount': conversation.length,
           'toolCount': tools.length,
-          'toolsPreview': tools.take(3).map((t) => {
-            'name': t.function.name,
-            'description': t.function.description,
-          }).toList(),
+          'toolsPreview': tools
+              .take(3)
+              .map((t) => {
+                    'name': t.function.name,
+                    'description': t.function.description,
+                  })
+              .toList(),
         });
       }
 
@@ -539,7 +544,8 @@ class ChatService extends AiServiceBase {
                 'conversationLength': messages.length,
               });
 
-              await for (final finalEvent in chatProvider.chatStream(messages)) {
+              await for (final finalEvent
+                  in chatProvider.chatStream(messages)) {
                 switch (finalEvent) {
                   case TextDeltaEvent(delta: final delta):
                     yield AiStreamEvent.contentDelta(delta);
@@ -673,7 +679,8 @@ class ChatService extends AiServiceBase {
 
       return response.text?.isNotEmpty == true;
     } catch (e) {
-      final errorDetails = _analyzeError(e, provider, modelName ?? _getDefaultModel(provider));
+      final errorDetails =
+          _analyzeError(e, provider, modelName ?? _getDefaultModel(provider));
 
       logger.error('提供商测试失败', {
         'provider': provider.name,
@@ -730,7 +737,8 @@ class ChatService extends AiServiceBase {
 
     // 检查网络连接
     try {
-      final testResult = await testProvider(provider: provider, modelName: modelName);
+      final testResult =
+          await testProvider(provider: provider, modelName: modelName);
       diagnosis['checks']['connection'] = testResult;
       if (!testResult) {
         diagnosis['issues'].add('无法连接到AI服务');
@@ -935,7 +943,8 @@ class ChatService extends AiServiceBase {
 
       // 转换为llm_dart的Tool格式
       final tools = mcpTools.map((mcpTool) {
-        final parameters = _convertMcpSchemaToParametersSchema(mcpTool.inputSchema);
+        final parameters =
+            _convertMcpSchemaToParametersSchema(mcpTool.inputSchema);
 
         // 调试：记录工具转换详情
         // logger.debug('转换MCP工具到llm_dart格式', {
@@ -1167,13 +1176,15 @@ class ChatService extends AiServiceBase {
     logger.debug('发送包含工具结果的最终对话', {
       'conversationLength': conversation.length,
       'toolResultCount': toolResultCalls.length,
-      'toolResults': toolResultCalls.map((t) => {
-        'id': t.id,
-        'name': t.function.name,
-        'resultPreview': t.function.arguments.length > 100
-          ? '${t.function.arguments.substring(0, 100)}...'
-          : t.function.arguments,
-      }).toList(),
+      'toolResults': toolResultCalls
+          .map((t) => {
+                'id': t.id,
+                'name': t.function.name,
+                'resultPreview': t.function.arguments.length > 100
+                    ? '${t.function.arguments.substring(0, 100)}...'
+                    : t.function.arguments,
+              })
+          .toList(),
     });
 
     // 获取最终响应
@@ -1193,10 +1204,12 @@ class ChatService extends AiServiceBase {
     try {
       // 解析工具参数 - 按照示例代码的模式
       Map<String, dynamic> arguments = {};
-      if (toolCall.function.arguments.isNotEmpty && toolCall.function.arguments != '{}') {
+      if (toolCall.function.arguments.isNotEmpty &&
+          toolCall.function.arguments != '{}') {
         try {
           // 使用正确的JSON解析
-          arguments = jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
+          arguments =
+              jsonDecode(toolCall.function.arguments) as Map<String, dynamic>;
         } catch (e) {
           logger.warning('解析工具参数JSON失败，使用空参数', {
             'toolName': toolCall.function.name,
@@ -1218,7 +1231,8 @@ class ChatService extends AiServiceBase {
       }
 
       final mcpManager = _ref!.read(mcpServiceManagerProvider);
-      final result = await mcpManager.callTool(toolCall.function.name, arguments);
+      final result =
+          await mcpManager.callTool(toolCall.function.name, arguments);
 
       // 调试：记录MCP工具返回的原始结果
       logger.debug('MCP工具返回结果', {
@@ -1381,7 +1395,8 @@ class ChatService extends AiServiceBase {
       return {
         'type': 'unknown',
         'message': '连接失败，可能是网络问题或API服务器不可用',
-        'suggestion': '1. 检查网络连接\n2. 验证API密钥\n3. 确认服务器地址: ${provider.baseUrl ?? "默认地址"}',
+        'suggestion':
+            '1. 检查网络连接\n2. 验证API密钥\n3. 确认服务器地址: ${provider.baseUrl ?? "默认地址"}',
       };
     }
 

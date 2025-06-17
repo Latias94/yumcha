@@ -29,7 +29,7 @@ class ConfigurationManagementSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final deviceType = DesignConstants.getDeviceType(context);
-    
+
     final hasCompleteConfig = ref.watch(hasCompleteConfigurationProvider);
     final needsBackup = ref.watch(needsConfigBackupProvider);
     final providerStats = ref.watch(providerStatsProvider);
@@ -48,9 +48,9 @@ class ConfigurationManagementSection extends ConsumerWidget {
           children: [
             // 标题
             _buildHeader(context, theme),
-            
+
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 配置状态卡片
             _buildConfigurationStatus(
               context,
@@ -59,9 +59,9 @@ class ConfigurationManagementSection extends ConsumerWidget {
               providerStats,
               assistantStats,
             ),
-            
+
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 操作按钮网格
             _buildActionGrid(
               context,
@@ -103,16 +103,13 @@ class ConfigurationManagementSection extends ConsumerWidget {
     ({int total, int enabled, int connected}) providerStats,
     ({int total, int enabled, int custom}) assistantStats,
   ) {
-    final statusColor = hasCompleteConfig 
-        ? theme.colorScheme.tertiary 
+    final statusColor = hasCompleteConfig
+        ? theme.colorScheme.tertiary
         : theme.colorScheme.error;
-    final statusIcon = hasCompleteConfig 
-        ? Icons.check_circle_outline 
-        : Icons.warning_outlined;
-    final statusText = hasCompleteConfig 
-        ? '配置完整' 
-        : '配置不完整';
-    
+    final statusIcon =
+        hasCompleteConfig ? Icons.check_circle_outline : Icons.warning_outlined;
+    final statusText = hasCompleteConfig ? '配置完整' : '配置不完整';
+
     return Container(
       width: double.infinity,
       padding: DesignConstants.paddingL,
@@ -161,7 +158,6 @@ class ConfigurationManagementSection extends ConsumerWidget {
               ),
             ],
           ),
-          
           if (!hasCompleteConfig) ...[
             SizedBox(height: DesignConstants.spaceL),
             SizedBox(
@@ -171,7 +167,8 @@ class ConfigurationManagementSection extends ConsumerWidget {
                   // TODO: 启动配置向导
                   _showConfigurationWizard(context);
                 },
-                icon: Icon(Icons.auto_fix_high, size: DesignConstants.iconSizeS),
+                icon:
+                    Icon(Icons.auto_fix_high, size: DesignConstants.iconSizeS),
                 label: const Text('启动配置向导'),
               ),
             ),
@@ -190,7 +187,7 @@ class ConfigurationManagementSection extends ConsumerWidget {
     WidgetRef ref,
   ) {
     final crossAxisCount = deviceType == DeviceType.mobile ? 2 : 4;
-    
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -208,7 +205,7 @@ class ConfigurationManagementSection extends ConsumerWidget {
           subtitle: '快速配置',
           onTap: () => _showConfigurationWizard(context),
         ),
-        
+
         // 备份配置
         _buildActionCard(
           context,
@@ -217,9 +214,10 @@ class ConfigurationManagementSection extends ConsumerWidget {
           title: '备份配置',
           subtitle: needsBackup ? '需要备份' : '已备份',
           color: needsBackup ? theme.colorScheme.error : null,
-          onTap: hasCompleteConfig ? () => _showBackupDialog(context, ref) : null,
+          onTap:
+              hasCompleteConfig ? () => _showBackupDialog(context, ref) : null,
         ),
-        
+
         // 导出配置
         _buildActionCard(
           context,
@@ -227,9 +225,11 @@ class ConfigurationManagementSection extends ConsumerWidget {
           icon: Icons.file_download_outlined,
           title: '导出配置',
           subtitle: '保存到文件',
-          onTap: hasCompleteConfig ? () => _exportConfiguration(context, ref) : null,
+          onTap: hasCompleteConfig
+              ? () => _exportConfiguration(context, ref)
+              : null,
         ),
-        
+
         // 导入配置
         _buildActionCard(
           context,
@@ -254,7 +254,7 @@ class ConfigurationManagementSection extends ConsumerWidget {
   }) {
     final cardColor = color ?? theme.colorScheme.primary;
     final isEnabled = onTap != null;
-    
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -280,7 +280,7 @@ class ConfigurationManagementSection extends ConsumerWidget {
               Icon(
                 icon,
                 size: DesignConstants.iconSizeL,
-                color: isEnabled 
+                color: isEnabled
                     ? cardColor
                     : theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
               ),
@@ -288,7 +288,7 @@ class ConfigurationManagementSection extends ConsumerWidget {
               Text(
                 title,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  color: isEnabled 
+                  color: isEnabled
                       ? theme.colorScheme.onSurface
                       : theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                   fontWeight: FontWeight.w600,
@@ -299,7 +299,7 @@ class ConfigurationManagementSection extends ConsumerWidget {
               Text(
                 subtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isEnabled 
+                  color: isEnabled
                       ? theme.colorScheme.onSurfaceVariant
                       : theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                 ),

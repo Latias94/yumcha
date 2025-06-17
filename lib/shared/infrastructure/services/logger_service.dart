@@ -247,9 +247,12 @@ class LoggerService {
 
     // 清理常见的API密钥模式
     sanitized = sanitized.replaceAll(RegExp(r'sk-[a-zA-Z0-9]{20,}'), 'sk-***');
-    sanitized = sanitized.replaceAll(RegExp(r'Bearer [a-zA-Z0-9]{20,}'), 'Bearer ***');
-    sanitized = sanitized.replaceAll(RegExp(r'"api[_-]?key":\s*"[^"]*"'), '"api_key": "***"');
-    sanitized = sanitized.replaceAll(RegExp(r'"authorization":\s*"[^"]*"'), '"authorization": "***"');
+    sanitized =
+        sanitized.replaceAll(RegExp(r'Bearer [a-zA-Z0-9]{20,}'), 'Bearer ***');
+    sanitized = sanitized.replaceAll(
+        RegExp(r'"api[_-]?key":\s*"[^"]*"'), '"api_key": "***"');
+    sanitized = sanitized.replaceAll(
+        RegExp(r'"authorization":\s*"[^"]*"'), '"authorization": "***"');
 
     // 截断过长的响应体
     if (sanitized.length > 1000) {

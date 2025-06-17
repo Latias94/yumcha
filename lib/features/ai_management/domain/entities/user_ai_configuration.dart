@@ -11,14 +11,14 @@ class UserAiConfiguration {
   final AiProvider? selectedProvider;
   final AiModel? selectedModel;
   final Map<String, ProviderConnectionStatus> connectionStatuses;
-  final Map<String, ModelCapabilities> modelCapabilities;  // 模型能力映射
+  final Map<String, ModelCapabilities> modelCapabilities; // 模型能力映射
   final List<String> favoriteProviderIds;
   final List<String> favoriteAssistantIds;
   final List<String> favoriteModelIds;
   final UserConfigPreferences preferences;
   final DateTime? lastConfigBackup;
   final Map<String, DateTime> lastConnectionTests;
-  final Map<String, DateTime> lastCapabilityUpdates;  // 能力更新时间
+  final Map<String, DateTime> lastCapabilityUpdates; // 能力更新时间
 
   const UserAiConfiguration({
     this.selectedAssistant,
@@ -44,7 +44,8 @@ class UserAiConfiguration {
 
   bool get _isProviderConnected =>
       selectedProvider != null &&
-      connectionStatuses[selectedProvider!.id] == ProviderConnectionStatus.connected;
+      connectionStatuses[selectedProvider!.id] ==
+          ProviderConnectionStatus.connected;
 
   /// 检查是否需要备份配置
   bool get needsBackup {
@@ -169,7 +170,8 @@ class UserAiConfiguration {
       preferences: preferences ?? this.preferences,
       lastConfigBackup: lastConfigBackup ?? this.lastConfigBackup,
       lastConnectionTests: lastConnectionTests ?? this.lastConnectionTests,
-      lastCapabilityUpdates: lastCapabilityUpdates ?? this.lastCapabilityUpdates,
+      lastCapabilityUpdates:
+          lastCapabilityUpdates ?? this.lastCapabilityUpdates,
     );
   }
 
@@ -178,27 +180,34 @@ class UserAiConfiguration {
       'selectedAssistantId': selectedAssistant?.id,
       'selectedProviderId': selectedProvider?.id,
       'selectedModelId': selectedModel?.id,
-      'connectionStatuses': connectionStatuses.map((k, v) => MapEntry(k, v.name)),
-      'modelCapabilities': modelCapabilities.map((k, v) => MapEntry(k, v.toJson())),
+      'connectionStatuses':
+          connectionStatuses.map((k, v) => MapEntry(k, v.name)),
+      'modelCapabilities':
+          modelCapabilities.map((k, v) => MapEntry(k, v.toJson())),
       'favoriteProviderIds': favoriteProviderIds,
       'favoriteAssistantIds': favoriteAssistantIds,
       'favoriteModelIds': favoriteModelIds,
       'preferences': preferences.toJson(),
       'lastConfigBackup': lastConfigBackup?.toIso8601String(),
-      'lastConnectionTests': lastConnectionTests.map((k, v) => MapEntry(k, v.toIso8601String())),
-      'lastCapabilityUpdates': lastCapabilityUpdates.map((k, v) => MapEntry(k, v.toIso8601String())),
+      'lastConnectionTests':
+          lastConnectionTests.map((k, v) => MapEntry(k, v.toIso8601String())),
+      'lastCapabilityUpdates':
+          lastCapabilityUpdates.map((k, v) => MapEntry(k, v.toIso8601String())),
     };
   }
 
   factory UserAiConfiguration.fromJson(Map<String, dynamic> json) {
     return UserAiConfiguration(
       // 注意：这里只保存ID，实际的对象需要从Repository中获取
-      connectionStatuses: (json['connectionStatuses'] as Map<String, dynamic>? ?? {})
-          .map((k, v) => MapEntry(k, ProviderConnectionStatus.values.byName(v))),
-      modelCapabilities: (json['modelCapabilities'] as Map<String, dynamic>? ?? {})
-          .map((k, v) => MapEntry(k, ModelCapabilities.fromJson(v))),
+      connectionStatuses:
+          (json['connectionStatuses'] as Map<String, dynamic>? ?? {}).map(
+              (k, v) => MapEntry(k, ProviderConnectionStatus.values.byName(v))),
+      modelCapabilities:
+          (json['modelCapabilities'] as Map<String, dynamic>? ?? {})
+              .map((k, v) => MapEntry(k, ModelCapabilities.fromJson(v))),
       favoriteProviderIds: List<String>.from(json['favoriteProviderIds'] ?? []),
-      favoriteAssistantIds: List<String>.from(json['favoriteAssistantIds'] ?? []),
+      favoriteAssistantIds:
+          List<String>.from(json['favoriteAssistantIds'] ?? []),
       favoriteModelIds: List<String>.from(json['favoriteModelIds'] ?? []),
       preferences: json['preferences'] != null
           ? UserConfigPreferences.fromJson(json['preferences'])
@@ -206,10 +215,12 @@ class UserAiConfiguration {
       lastConfigBackup: json['lastConfigBackup'] != null
           ? DateTime.parse(json['lastConfigBackup'])
           : null,
-      lastConnectionTests: (json['lastConnectionTests'] as Map<String, dynamic>? ?? {})
-          .map((k, v) => MapEntry(k, DateTime.parse(v))),
-      lastCapabilityUpdates: (json['lastCapabilityUpdates'] as Map<String, dynamic>? ?? {})
-          .map((k, v) => MapEntry(k, DateTime.parse(v))),
+      lastConnectionTests:
+          (json['lastConnectionTests'] as Map<String, dynamic>? ?? {})
+              .map((k, v) => MapEntry(k, DateTime.parse(v))),
+      lastCapabilityUpdates:
+          (json['lastCapabilityUpdates'] as Map<String, dynamic>? ?? {})
+              .map((k, v) => MapEntry(k, DateTime.parse(v))),
     );
   }
 }

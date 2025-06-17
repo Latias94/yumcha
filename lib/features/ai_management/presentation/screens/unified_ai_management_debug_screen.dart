@@ -5,7 +5,7 @@ import '../providers/unified_ai_management_providers.dart';
 import '../providers/unified_ai_management_test.dart';
 
 /// 统一AI管理调试界面
-/// 
+///
 /// 用于测试和调试新的统一AI管理系统
 class UnifiedAiManagementDebugScreen extends ConsumerStatefulWidget {
   const UnifiedAiManagementDebugScreen({super.key});
@@ -136,10 +136,12 @@ class _UnifiedAiManagementDebugScreenState
             SizedBox(height: DesignConstants.spaceM),
             _buildStatusRow('初始化状态', state.isInitialized ? '✅ 已初始化' : '❌ 未初始化'),
             _buildStatusRow('加载状态', state.isLoading ? '🔄 加载中' : '✅ 已加载'),
-            _buildStatusRow('错误状态', state.hasError ? '❌ ${state.error}' : '✅ 正常'),
+            _buildStatusRow(
+                '错误状态', state.hasError ? '❌ ${state.error}' : '✅ 正常'),
             _buildStatusRow('提供商数量', '${state.providers.length}'),
             _buildStatusRow('助手数量', '${state.assistants.length}'),
-            _buildStatusRow('配置完整性', state.hasCompleteConfiguration ? '✅ 完整' : '❌ 不完整'),
+            _buildStatusRow(
+                '配置完整性', state.hasCompleteConfiguration ? '✅ 完整' : '❌ 不完整'),
           ],
         ),
       ),
@@ -195,9 +197,9 @@ class _UnifiedAiManagementDebugScreenState
 
   Widget _buildTestResultCard(ThemeData theme) {
     final isSuccess = _testResult!.contains('✅') || _testResult!.contains('🎉');
-    
+
     return Card(
-      color: isSuccess 
+      color: isSuccess
           ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
           : theme.colorScheme.errorContainer.withValues(alpha: 0.3),
       child: Padding(
@@ -213,7 +215,7 @@ class _UnifiedAiManagementDebugScreenState
             Text(
               _testResult!,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: isSuccess 
+                color: isSuccess
                     ? theme.colorScheme.primary
                     : theme.colorScheme.error,
                 fontWeight: FontWeight.w600,
@@ -257,9 +259,9 @@ class _UnifiedAiManagementDebugScreenState
         ),
         SizedBox(height: DesignConstants.spaceS),
         ...data.entries.map((entry) => Padding(
-          padding: EdgeInsets.only(left: DesignConstants.spaceM),
-          child: _buildStatusRow(entry.key, entry.value.toString()),
-        )),
+              padding: EdgeInsets.only(left: DesignConstants.spaceM),
+              child: _buildStatusRow(entry.key, entry.value.toString()),
+            )),
         SizedBox(height: DesignConstants.spaceM),
       ],
     );
@@ -275,8 +277,8 @@ class _UnifiedAiManagementDebugScreenState
             child: Text(
               '$label:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
           Expanded(

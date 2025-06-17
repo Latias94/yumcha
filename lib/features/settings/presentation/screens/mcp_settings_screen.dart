@@ -561,7 +561,8 @@ class McpServerEditScreen extends ConsumerStatefulWidget {
   const McpServerEditScreen({super.key, this.server, required this.onSave});
 
   @override
-  ConsumerState<McpServerEditScreen> createState() => _McpServerEditScreenState();
+  ConsumerState<McpServerEditScreen> createState() =>
+      _McpServerEditScreenState();
 }
 
 class _McpServerEditScreenState extends ConsumerState<McpServerEditScreen> {

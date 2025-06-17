@@ -93,7 +93,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _conversationState = widget.conversationState;
       });
       // 只有在关键配置发生变化时才同步状态，避免无限循环
-      if (_shouldSyncConfiguration(oldWidget.conversationState, widget.conversationState)) {
+      if (_shouldSyncConfiguration(
+          oldWidget.conversationState, widget.conversationState)) {
         Future(() => _syncToUnifiedChatState());
       }
     }
@@ -115,15 +116,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// 检查是否需要同步配置
-  bool _shouldSyncConfiguration(ConversationUiState? oldState, ConversationUiState? newState) {
+  bool _shouldSyncConfiguration(
+      ConversationUiState? oldState, ConversationUiState? newState) {
     if (oldState == null && newState == null) return false;
     if (oldState == null || newState == null) return true;
 
     // 检查关键配置是否发生变化
     return oldState.assistantId != newState.assistantId ||
-           oldState.selectedProviderId != newState.selectedProviderId ||
-           oldState.selectedModelId != newState.selectedModelId ||
-           oldState.id != newState.id;
+        oldState.selectedProviderId != newState.selectedProviderId ||
+        oldState.selectedModelId != newState.selectedModelId ||
+        oldState.id != newState.id;
   }
 
   /// 同步到统一聊天状态
@@ -176,7 +178,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           }
 
           if (needsUpdate) {
-            debugPrint('配置已同步到统一状态: ${assistant.name}, ${provider.name}, ${model.name}');
+            debugPrint(
+                '配置已同步到统一状态: ${assistant.name}, ${provider.name}, ${model.name}');
           }
         }
       }
@@ -300,7 +303,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final theme = Theme.of(context);
 
     // 监听对话标题的变化
-    final conversationTitle = ref.watch(conversationTitleProvider(_conversationState.id));
+    final conversationTitle =
+        ref.watch(conversationTitleProvider(_conversationState.id));
     final displayTitle = conversationTitle ?? _conversationState.channelName;
 
     return AppBar(
@@ -395,8 +399,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
     widget.onConversationUpdated?.call(_conversationState);
   }
-
-
 
   void _onProviderModelChanged(String providerId, String modelName) {
     setState(() {

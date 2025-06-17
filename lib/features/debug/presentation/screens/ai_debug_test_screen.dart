@@ -382,9 +382,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       // 助手信息
       if (_selectedAssistantId != null) {
         final assistants = ref.read(aiAssistantsProvider);
-        final selectedAssistant = assistants
-            .where((a) => a.id == _selectedAssistantId)
-            .firstOrNull;
+        final selectedAssistant =
+            assistants.where((a) => a.id == _selectedAssistantId).firstOrNull;
         if (selectedAssistant != null) {
           _updateDebugInfo('🤖 助手: ${selectedAssistant.name}\n');
         }
@@ -409,7 +408,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
         // 检查MCP服务状态
         final mcpState = ref.read(mcpServiceProvider);
-        _updateMcpDebugInfo('MCP服务全局状态: ${mcpState.isEnabled ? "已启用" : "未启用"}\n');
+        _updateMcpDebugInfo(
+            'MCP服务全局状态: ${mcpState.isEnabled ? "已启用" : "未启用"}\n');
 
         if (!mcpState.isEnabled) {
           _updateMcpDebugInfo('⚠️ MCP服务未启用，请先在设置中启用MCP服务\n');
@@ -421,11 +421,13 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
           final serverIds = assistant.mcpServerIds;
 
           for (final serverId in serverIds) {
-            final server = _availableMcpServers.where((s) => s.id == serverId).firstOrNull;
+            final server =
+                _availableMcpServers.where((s) => s.id == serverId).firstOrNull;
             if (server != null) {
               final status = ref.read(mcpServerStatusProvider(serverId));
               final statusText = _getStatusText(status);
-              _updateMcpDebugInfo('服务器: ${server.name} (${server.type.displayName}) - $statusText\n');
+              _updateMcpDebugInfo(
+                  '服务器: ${server.name} (${server.type.displayName}) - $statusText\n');
 
               if (status != McpServerStatus.connected) {
                 _updateMcpDebugInfo('  ⚠️ 服务器未连接，工具可能无法正常使用\n');
@@ -450,7 +452,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
               _updateMcpDebugInfo('📋 可用工具列表:\n');
               for (final tool in tools) {
                 final functionInfo = tool['function'] as Map<String, dynamic>;
-                _updateMcpDebugInfo('  - ${functionInfo['name']}: ${functionInfo['description']}\n');
+                _updateMcpDebugInfo(
+                    '  - ${functionInfo['name']}: ${functionInfo['description']}\n');
               }
               _updateMcpDebugInfo('💡 这些工具将通过AI服务传递给LLM，并在需要时自动调用\n');
             } else {
@@ -676,15 +679,17 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     // 如果选择了助手，使用选择的助手
     if (_selectedAssistantId != null) {
       final assistants = ref.read(aiAssistantsProvider);
-      final selectedAssistant = assistants
-          .where((a) => a.id == _selectedAssistantId)
-          .firstOrNull;
+      final selectedAssistant =
+          assistants.where((a) => a.id == _selectedAssistantId).firstOrNull;
 
       if (selectedAssistant != null) {
         _updateDebugInfo('🤖 使用选择的助手: ${selectedAssistant.name}\n');
-        _updateDebugInfo('助手工具设置: ${selectedAssistant.enableTools ? "已启用" : "未启用"}\n');
-        if (selectedAssistant.enableTools && selectedAssistant.mcpServerIds.isNotEmpty) {
-          _updateDebugInfo('助手MCP服务器: ${selectedAssistant.mcpServerIds.join(", ")}\n');
+        _updateDebugInfo(
+            '助手工具设置: ${selectedAssistant.enableTools ? "已启用" : "未启用"}\n');
+        if (selectedAssistant.enableTools &&
+            selectedAssistant.mcpServerIds.isNotEmpty) {
+          _updateDebugInfo(
+              '助手MCP服务器: ${selectedAssistant.mcpServerIds.join(", ")}\n');
         }
         return selectedAssistant;
       }
@@ -756,9 +761,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     // 如果选择了助手
     if (_selectedAssistantId != null) {
       final assistants = ref.read(aiAssistantsProvider);
-      final selectedAssistant = assistants
-          .where((a) => a.id == _selectedAssistantId)
-          .firstOrNull;
+      final selectedAssistant =
+          assistants.where((a) => a.id == _selectedAssistantId).firstOrNull;
 
       if (selectedAssistant != null && selectedAssistant.enableTools) {
         return '请帮我调用可用的工具（使用助手的MCP配置）';
@@ -767,7 +771,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
     }
 
     // 使用测试配置
-    if (_enableMcpTools && _availableMcpServers.where((s) => s.isEnabled).isNotEmpty) {
+    if (_enableMcpTools &&
+        _availableMcpServers.where((s) => s.isEnabled).isNotEmpty) {
       return '请帮我调用可用的工具（测试MCP配置）';
     }
 
@@ -959,7 +964,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                                 SizedBox(width: DesignConstants.spaceXS),
                                 Icon(Icons.extension,
                                     size: DesignConstants.iconSizeS,
-                                    color: Theme.of(context).colorScheme.primary),
+                                    color:
+                                        Theme.of(context).colorScheme.primary),
                               ],
                             ],
                           ),
@@ -992,16 +998,18 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
   Widget _buildSelectedAssistantInfo() {
     final assistants = ref.watch(aiAssistantsProvider);
-    final selectedAssistant = assistants
-        .where((a) => a.id == _selectedAssistantId)
-        .firstOrNull;
+    final selectedAssistant =
+        assistants.where((a) => a.id == _selectedAssistantId).firstOrNull;
 
     if (selectedAssistant == null) return const SizedBox.shrink();
 
     return Container(
       padding: DesignConstants.paddingS,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+        color: Theme.of(context)
+            .colorScheme
+            .primaryContainer
+            .withValues(alpha: 0.3),
         borderRadius: DesignConstants.radiusXS,
       ),
       child: Column(
@@ -1020,7 +1028,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
             '• 工具功能: ${selectedAssistant.enableTools ? "已启用" : "未启用"}',
             style: const TextStyle(fontSize: 11),
           ),
-          if (selectedAssistant.enableTools && selectedAssistant.mcpServerIds.isNotEmpty)
+          if (selectedAssistant.enableTools &&
+              selectedAssistant.mcpServerIds.isNotEmpty)
             Text(
               '• MCP服务器: ${selectedAssistant.mcpServerIds.length}个',
               style: const TextStyle(fontSize: 11),
@@ -1207,15 +1216,17 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
                 const Spacer(),
                 Switch(
                   value: _enableMcpTools,
-                  onChanged: isAssistantSelected ? null : (value) {
-                    setState(() {
-                      _enableMcpTools = value;
-                      if (!value) {
-                        _selectedMcpServerIds.clear();
-                      }
-                    });
-                    _saveCurrentSettings();
-                  },
+                  onChanged: isAssistantSelected
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _enableMcpTools = value;
+                            if (!value) {
+                              _selectedMcpServerIds.clear();
+                            }
+                          });
+                          _saveCurrentSettings();
+                        },
                 ),
               ],
             ),
@@ -1996,7 +2007,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   }
 
   /// 获取真实的MCP工具列表
-  Future<List<Map<String, dynamic>>> _getRealMcpTools([List<String>? serverIds]) async {
+  Future<List<Map<String, dynamic>>> _getRealMcpTools(
+      [List<String>? serverIds]) async {
     try {
       // 🔧 修复：通过Riverpod Provider获取MCP服务管理器，而不是直接创建新实例
       final mcpManager = ref.read(mcpServiceManagerProvider);
@@ -2015,7 +2027,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         if (status == McpServerStatus.connected) {
           connectedServerIds.add(serverId);
         } else {
-          _updateMcpDebugInfo('⚠️ 服务器 $serverId 未连接 (状态: ${status.displayName})\n');
+          _updateMcpDebugInfo(
+              '⚠️ 服务器 $serverId 未连接 (状态: ${status.displayName})\n');
         }
       }
 
@@ -2055,7 +2068,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
   }
 
   /// 将MCP输入模式转换为OpenAI参数模式
-  Map<String, dynamic> _convertMcpSchemaToOpenAISchema(Map<String, dynamic>? inputSchema) {
+  Map<String, dynamic> _convertMcpSchemaToOpenAISchema(
+      Map<String, dynamic>? inputSchema) {
     if (inputSchema == null) {
       return {
         'type': 'object',
@@ -2066,7 +2080,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
 
     // 提取属性定义
     final properties = <String, dynamic>{};
-    final mcpProperties = inputSchema['properties'] as Map<String, dynamic>? ?? {};
+    final mcpProperties =
+        inputSchema['properties'] as Map<String, dynamic>? ?? {};
 
     for (final entry in mcpProperties.entries) {
       final propName = entry.key;
@@ -2141,7 +2156,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       _updateDebugInfo('📋 基本配置检查:\n');
       _updateDebugInfo('  提供商: ${provider.name}\n');
       _updateDebugInfo('  模型: $modelName\n');
-      _updateDebugInfo('  API密钥: ${provider.apiKey.isNotEmpty ? "已配置" : "未配置"}\n');
+      _updateDebugInfo(
+          '  API密钥: ${provider.apiKey.isNotEmpty ? "已配置" : "未配置"}\n');
       _updateDebugInfo('  基础URL: ${provider.baseUrl ?? "使用默认"}\n\n');
 
       // 使用ChatService的诊断功能
@@ -2152,7 +2168,8 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       );
 
       _updateDebugInfo('🏥 诊断结果:\n');
-      _updateDebugInfo('  整体状态: ${diagnosis['isHealthy'] ? "✅ 健康" : "❌ 有问题"}\n\n');
+      _updateDebugInfo(
+          '  整体状态: ${diagnosis['isHealthy'] ? "✅ 健康" : "❌ 有问题"}\n\n');
 
       // 显示各项检查结果
       final checks = diagnosis['checks'] as Map<String, dynamic>;
@@ -2186,7 +2203,6 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
       } else {
         _updateDebugInfo('\n🔧 请根据上述建议修复配置问题。\n');
       }
-
     } catch (e) {
       _updateDebugInfo('\n❌ 诊断过程出错: $e\n');
       _showError('诊断失败: $e');
@@ -2210,6 +2226,4 @@ class _AiDebugScreenState extends ConsumerState<AiDebugScreen> {
         return key;
     }
   }
-
-
 }

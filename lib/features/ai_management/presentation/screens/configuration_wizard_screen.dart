@@ -33,13 +33,15 @@ class ConfigurationWizardScreen extends ConsumerStatefulWidget {
   const ConfigurationWizardScreen({super.key});
 
   @override
-  ConsumerState<ConfigurationWizardScreen> createState() => _ConfigurationWizardScreenState();
+  ConsumerState<ConfigurationWizardScreen> createState() =>
+      _ConfigurationWizardScreenState();
 }
 
-class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardScreen> {
+class _ConfigurationWizardScreenState
+    extends ConsumerState<ConfigurationWizardScreen> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
-  
+
   final List<WizardStep> _steps = [
     WizardStep(
       title: '欢迎使用AI管理',
@@ -77,16 +79,16 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final deviceType = DesignConstants.getDeviceType(context);
-    
+
     return Scaffold(
       body: Column(
         children: [
           // 应用栏
           _buildAppBar(context, theme),
-          
+
           // 步骤指示器
           _buildStepIndicator(context, theme),
-          
+
           // 内容区域
           Expanded(
             child: PageView.builder(
@@ -102,7 +104,7 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
               },
             ),
           ),
-          
+
           // 导航按钮
           _buildNavigationButtons(context, theme),
         ],
@@ -143,7 +145,7 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
         children: List.generate(_steps.length, (index) {
           final isActive = index == _currentStep;
           final isCompleted = index < _currentStep;
-          
+
           return Expanded(
             child: Container(
               height: 4,
@@ -161,15 +163,16 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
     );
   }
 
-  Widget _buildStepContent(BuildContext context, ThemeData theme, DeviceType deviceType, int stepIndex) {
+  Widget _buildStepContent(BuildContext context, ThemeData theme,
+      DeviceType deviceType, int stepIndex) {
     final step = _steps[stepIndex];
-    
+
     return Padding(
       padding: DesignConstants.paddingL,
       child: Column(
         children: [
           SizedBox(height: DesignConstants.spaceXL),
-          
+
           // 步骤图标
           Container(
             width: 80,
@@ -184,9 +187,9 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
               color: theme.colorScheme.primary,
             ),
           ),
-          
+
           SizedBox(height: DesignConstants.spaceXL),
-          
+
           // 步骤标题
           Text(
             step.title,
@@ -195,9 +198,9 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           SizedBox(height: DesignConstants.spaceM),
-          
+
           // 步骤描述
           Text(
             step.subtitle,
@@ -206,9 +209,9 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           SizedBox(height: DesignConstants.spaceXL),
-          
+
           // 步骤内容
           Expanded(
             child: _buildStepSpecificContent(context, theme, stepIndex),
@@ -218,7 +221,8 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
     );
   }
 
-  Widget _buildStepSpecificContent(BuildContext context, ThemeData theme, int stepIndex) {
+  Widget _buildStepSpecificContent(
+      BuildContext context, ThemeData theme, int stepIndex) {
     switch (stepIndex) {
       case 0:
         return _buildWelcomeContent(context, theme);
@@ -443,9 +447,9 @@ class _ConfigurationWizardScreenState extends ConsumerState<ConfigurationWizardS
             )
           else
             const Expanded(child: SizedBox()),
-          
+
           SizedBox(width: DesignConstants.spaceM),
-          
+
           // 下一步/完成按钮
           Expanded(
             child: FilledButton(

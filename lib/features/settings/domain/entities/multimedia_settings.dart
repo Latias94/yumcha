@@ -8,40 +8,40 @@ import 'package:flutter/foundation.dart';
 class MultimediaSettingsState {
   /// 是否正在加载
   final bool isLoading;
-  
+
   /// 错误信息
   final String? error;
-  
+
   /// 多媒体功能总开关
   final bool isEnabled;
-  
+
   /// AI图像生成功能开关
   final bool imageGenerationEnabled;
-  
+
   /// 文字转语音(TTS)功能开关
   final bool ttsEnabled;
-  
+
   /// 语音转文字(STT)功能开关
   final bool sttEnabled;
-  
+
   /// Web搜索功能开关
   final bool webSearchEnabled;
-  
+
   /// 图像分析功能开关
   final bool imageAnalysisEnabled;
-  
+
   /// 自动检测多媒体需求功能开关
   final bool autoDetectEnabled;
-  
+
   /// HTTP代理服务器URL
   final String? httpProxyUrl;
-  
+
   /// 网络连接超时时间（秒）
   final int connectionTimeout;
-  
+
   /// 最大图像文件大小（MB）
   final int maxImageSize;
-  
+
   /// 最大音频时长（秒）
   final int maxAudioDuration;
 
@@ -63,22 +63,18 @@ class MultimediaSettingsState {
 
   /// 检查是否有任何多媒体功能启用
   bool get hasAnyFeatureEnabled {
-    return isEnabled && (
-      imageGenerationEnabled ||
-      ttsEnabled ||
-      sttEnabled ||
-      webSearchEnabled ||
-      imageAnalysisEnabled
-    );
+    return isEnabled &&
+        (imageGenerationEnabled ||
+            ttsEnabled ||
+            sttEnabled ||
+            webSearchEnabled ||
+            imageAnalysisEnabled);
   }
 
   /// 检查是否有网络相关功能启用
   bool get hasNetworkFeaturesEnabled {
-    return isEnabled && (
-      imageGenerationEnabled ||
-      webSearchEnabled ||
-      ttsEnabled
-    );
+    return isEnabled &&
+        (imageGenerationEnabled || webSearchEnabled || ttsEnabled);
   }
 
   /// 检查是否配置了HTTP代理
@@ -89,28 +85,28 @@ class MultimediaSettingsState {
   /// 获取启用的功能列表
   List<String> get enabledFeatures {
     if (!isEnabled) return [];
-    
+
     final features = <String>[];
     if (imageGenerationEnabled) features.add('图像生成');
     if (ttsEnabled) features.add('文字转语音');
     if (sttEnabled) features.add('语音转文字');
     if (webSearchEnabled) features.add('Web搜索');
     if (imageAnalysisEnabled) features.add('图像分析');
-    
+
     return features;
   }
 
   /// 获取功能启用数量
   int get enabledFeatureCount {
     if (!isEnabled) return 0;
-    
+
     int count = 0;
     if (imageGenerationEnabled) count++;
     if (ttsEnabled) count++;
     if (sttEnabled) count++;
     if (webSearchEnabled) count++;
     if (imageAnalysisEnabled) count++;
-    
+
     return count;
   }
 
@@ -134,7 +130,8 @@ class MultimediaSettingsState {
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
       isEnabled: isEnabled ?? this.isEnabled,
-      imageGenerationEnabled: imageGenerationEnabled ?? this.imageGenerationEnabled,
+      imageGenerationEnabled:
+          imageGenerationEnabled ?? this.imageGenerationEnabled,
       ttsEnabled: ttsEnabled ?? this.ttsEnabled,
       sttEnabled: sttEnabled ?? this.sttEnabled,
       webSearchEnabled: webSearchEnabled ?? this.webSearchEnabled,
@@ -188,7 +185,7 @@ class MultimediaSettingsState {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    
+
     return other is MultimediaSettingsState &&
         other.isLoading == isLoading &&
         other.error == error &&
@@ -253,7 +250,7 @@ enum MultimediaFeatureType {
   imageAnalysis('图像分析');
 
   const MultimediaFeatureType(this.displayName);
-  
+
   final String displayName;
 }
 
@@ -318,10 +315,10 @@ class MultimediaSettingItems {
 
   /// 获取所有设置项
   static List<MultimediaSettingItem> get all => [
-    imageGeneration,
-    tts,
-    stt,
-    webSearch,
-    imageAnalysis,
-  ];
+        imageGeneration,
+        tts,
+        stt,
+        webSearch,
+        imageAnalysis,
+      ];
 }

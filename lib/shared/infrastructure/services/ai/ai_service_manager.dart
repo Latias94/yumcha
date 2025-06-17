@@ -176,8 +176,6 @@ class AiServiceManager {
   HttpConfigurationService get httpConfigurationService =>
       _getService<HttpConfigurationService>('httpConfiguration');
 
-
-
   /// 初始化所有AI服务
   ///
   /// 这是整个AI服务系统的启动入口，负责：

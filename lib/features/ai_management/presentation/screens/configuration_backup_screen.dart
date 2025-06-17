@@ -29,7 +29,6 @@ class ConfigurationBackupScreen extends ConsumerStatefulWidget {
 
 class _ConfigurationBackupScreenState
     extends ConsumerState<ConfigurationBackupScreen> {
-  
   BackupType _selectedBackupType = BackupType.full;
   String _backupDescription = '';
   final List<String> _backupTags = [];
@@ -72,7 +71,7 @@ class _ConfigurationBackupScreenState
         children: [
           // 备份统计卡片
           _buildBackupStatsCard(),
-          
+
           // 备份列表
           Expanded(
             child: _buildBackupList(),
@@ -90,7 +89,7 @@ class _ConfigurationBackupScreenState
   /// 构建备份统计卡片
   Widget _buildBackupStatsCard() {
     final backupListAsync = ref.watch(backupListProvider);
-    
+
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
@@ -100,7 +99,7 @@ class _ConfigurationBackupScreenState
             final manualBackups = backups.where((b) => !b.isAutomatic).length;
             final autoBackups = backups.where((b) => b.isAutomatic).length;
             final totalSize = backups.fold<int>(0, (sum, b) => sum + b.size);
-            
+
             return Row(
               children: [
                 Expanded(
@@ -132,8 +131,8 @@ class _ConfigurationBackupScreenState
         Text(
           value,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+                fontWeight: FontWeight.bold,
+              ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -147,7 +146,7 @@ class _ConfigurationBackupScreenState
   /// 构建备份列表
   Widget _buildBackupList() {
     final backupListAsync = ref.watch(backupListProvider);
-    
+
     return backupListAsync.when(
       data: (backups) {
         if (backups.isEmpty) {
@@ -164,7 +163,7 @@ class _ConfigurationBackupScreenState
             ),
           );
         }
-        
+
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: backups.length,
@@ -188,7 +187,7 @@ class _ConfigurationBackupScreenState
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: backup.isAutomatic 
+          backgroundColor: backup.isAutomatic
               ? Colors.blue.withOpacity(0.2)
               : Colors.green.withOpacity(0.2),
           child: Icon(
@@ -205,11 +204,14 @@ class _ConfigurationBackupScreenState
               const SizedBox(height: 4),
               Wrap(
                 spacing: 4,
-                children: backup.tags.map((tag) => Chip(
-                  label: Text(tag),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                )).toList(),
+                children: backup.tags
+                    .map((tag) => Chip(
+                          label: Text(tag),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ))
+                    .toList(),
               ),
             ],
           ],
@@ -279,7 +281,8 @@ class _ConfigurationBackupScreenState
                     ),
                   );
                 }).toList(),
-                onChanged: (value) => setState(() => _selectedBackupType = value!),
+                onChanged: (value) =>
+                    setState(() => _selectedBackupType = value!),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -313,7 +316,7 @@ class _ConfigurationBackupScreenState
   /// 创建备份
   Future<void> _createBackup() async {
     final notifier = ref.read(backupOperationProvider.notifier);
-    
+
     await notifier.createManualBackup(
       description: _backupDescription.isEmpty ? null : _backupDescription,
       tags: _backupTags,
@@ -440,7 +443,7 @@ class _ConfigurationBackupScreenState
   /// 从备份恢复
   Future<void> _restoreFromBackup(BackupInfo backup) async {
     final notifier = ref.read(restoreOperationProvider.notifier);
-    
+
     await notifier.restoreFromBackup(backup.id);
 
     final result = ref.read(restoreOperationProvider);
@@ -517,7 +520,7 @@ class _ConfigurationBackupScreenState
   Future<void> _deleteBackup(BackupInfo backup) async {
     final notifier = ref.read(backupCleanupProvider.notifier);
     await notifier.deleteBackup(backup.id);
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('备份已删除'),
@@ -579,9 +582,12 @@ class _ConfigurationBackupScreenState
                 _buildDetailRow('触发器', backup.trigger!.displayName),
               if (backup.tags.isNotEmpty)
                 _buildDetailRow('标签', backup.tags.join(', ')),
-              _buildDetailRow('提供商数量', backup.metadata.providerCount.toString()),
-              _buildDetailRow('助手数量', backup.metadata.assistantCount.toString()),
-              _buildDetailRow('包含偏好', backup.metadata.hasPreferences ? '是' : '否'),
+              _buildDetailRow(
+                  '提供商数量', backup.metadata.providerCount.toString()),
+              _buildDetailRow(
+                  '助手数量', backup.metadata.assistantCount.toString()),
+              _buildDetailRow(
+                  '包含偏好', backup.metadata.hasPreferences ? '是' : '否'),
               _buildDetailRow('包含设置', backup.metadata.hasSettings ? '是' : '否'),
             ],
           ),

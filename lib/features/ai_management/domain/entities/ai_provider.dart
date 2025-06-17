@@ -189,9 +189,12 @@ class AiProvider {
       apiKey: json['apiKey'] as String,
       baseUrl: json['baseUrl'] as String?,
       models: (json['models'] as List<dynamic>?)
-          ?.map((modelJson) => AiModel.fromJson(modelJson as Map<String, dynamic>))
-          .toList() ?? [],
-      customHeaders: Map<String, String>.from(json['customHeaders'] as Map? ?? {}),
+              ?.map((modelJson) =>
+                  AiModel.fromJson(modelJson as Map<String, dynamic>))
+              .toList() ??
+          [],
+      customHeaders:
+          Map<String, String>.from(json['customHeaders'] as Map? ?? {}),
       isEnabled: json['isEnabled'] as bool? ?? true,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),

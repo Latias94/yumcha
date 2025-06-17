@@ -2,18 +2,25 @@
 enum ChatErrorType {
   /// 网络错误
   network,
+
   /// 认证错误
   authentication,
+
   /// 配额错误
   quota,
+
   /// 验证错误
   validation,
+
   /// 服务器错误
   server,
+
   /// 流式处理错误
   streaming,
+
   /// 数据持久化错误
   persistence,
+
   /// 未知错误
   unknown,
 }
@@ -22,28 +29,28 @@ enum ChatErrorType {
 class ChatError implements Exception {
   /// 错误类型
   final ChatErrorType type;
-  
+
   /// 错误消息
   final String message;
-  
+
   /// 原始错误
   final dynamic originalError;
-  
+
   /// 错误上下文
   final String? context;
-  
+
   /// 错误代码
   final String? code;
-  
+
   /// 错误元数据
   final Map<String, dynamic>? metadata;
-  
+
   /// 是否可重试
   final bool isRetryable;
-  
+
   /// 错误时间戳
   final DateTime timestamp;
-  
+
   ChatError({
     required this.type,
     required this.message,
@@ -54,7 +61,7 @@ class ChatError implements Exception {
     this.isRetryable = false,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
-  
+
   /// 创建网络错误
   factory ChatError.network({
     required String message,
@@ -73,7 +80,7 @@ class ChatError implements Exception {
       isRetryable: true,
     );
   }
-  
+
   /// 创建认证错误
   factory ChatError.authentication({
     required String message,
@@ -92,7 +99,7 @@ class ChatError implements Exception {
       isRetryable: false,
     );
   }
-  
+
   /// 创建配额错误
   factory ChatError.quota({
     required String message,
@@ -111,7 +118,7 @@ class ChatError implements Exception {
       isRetryable: true,
     );
   }
-  
+
   /// 创建验证错误
   factory ChatError.validation({
     required String message,
@@ -130,7 +137,7 @@ class ChatError implements Exception {
       isRetryable: false,
     );
   }
-  
+
   /// 创建服务器错误
   factory ChatError.server({
     required String message,
@@ -149,7 +156,7 @@ class ChatError implements Exception {
       isRetryable: true,
     );
   }
-  
+
   /// 创建流式处理错误
   factory ChatError.streaming({
     required String message,
@@ -168,7 +175,7 @@ class ChatError implements Exception {
       isRetryable: true,
     );
   }
-  
+
   /// 创建数据持久化错误
   factory ChatError.persistence({
     required String message,
@@ -187,7 +194,7 @@ class ChatError implements Exception {
       isRetryable: true,
     );
   }
-  
+
   /// 创建未知错误
   factory ChatError.unknown({
     required String message,
@@ -206,7 +213,7 @@ class ChatError implements Exception {
       isRetryable: false,
     );
   }
-  
+
   /// 获取用户友好的错误消息
   String get userFriendlyMessage {
     switch (type) {
@@ -228,7 +235,7 @@ class ChatError implements Exception {
         return '发生未知错误，请重试';
     }
   }
-  
+
   /// 获取错误的严重程度
   ErrorSeverity get severity {
     switch (type) {
@@ -246,7 +253,7 @@ class ChatError implements Exception {
         return ErrorSeverity.critical;
     }
   }
-  
+
   @override
   String toString() {
     final buffer = StringBuffer();
@@ -260,17 +267,17 @@ class ChatError implements Exception {
     buffer.write(')');
     return buffer.toString();
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is ChatError &&
-           other.type == type &&
-           other.message == message &&
-           other.context == context &&
-           other.code == code;
+        other.type == type &&
+        other.message == message &&
+        other.context == context &&
+        other.code == code;
   }
-  
+
   @override
   int get hashCode {
     return Object.hash(type, message, context, code);
@@ -281,10 +288,13 @@ class ChatError implements Exception {
 enum ErrorSeverity {
   /// 信息级别
   info,
+
   /// 警告级别
   warning,
+
   /// 错误级别
   error,
+
   /// 严重错误级别
   critical,
 }

@@ -6,7 +6,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 引用块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染引用类型的消息块
 class QuoteBubbleAdapter extends BubbleBlockAdapter {
   @override
@@ -46,7 +46,8 @@ class QuoteBubbleAdapter extends BubbleBlockAdapter {
         vertical: getResponsiveSpacing(context, 4.0),
       ),
       decoration: BoxDecoration(
-        color: context.theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: context.theme.colorScheme.surfaceContainerHighest
+            .withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
           color: context.theme.colorScheme.primary.withValues(alpha: 0.3),
@@ -75,7 +76,8 @@ class QuoteBubbleAdapter extends BubbleBlockAdapter {
         Container(
           padding: EdgeInsets.all(getResponsiveSpacing(context, 12.0)),
           decoration: BoxDecoration(
-            color: context.theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+            color: context.theme.colorScheme.primaryContainer
+                .withValues(alpha: 0.3),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(12.0),
               topRight: Radius.circular(12.0),
@@ -86,7 +88,8 @@ class QuoteBubbleAdapter extends BubbleBlockAdapter {
               Container(
                 padding: EdgeInsets.all(getResponsiveSpacing(context, 6.0)),
                 decoration: BoxDecoration(
-                  color: context.theme.colorScheme.primary.withValues(alpha: 0.1),
+                  color:
+                      context.theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8.0),
                 ),
                 child: Icon(
@@ -116,7 +119,8 @@ class QuoteBubbleAdapter extends BubbleBlockAdapter {
                         data['url'],
                         style: TextStyle(
                           fontSize: getResponsiveFontSize(context, 11.0),
-                          color: context.theme.colorScheme.primary.withValues(alpha: 0.7),
+                          color: context.theme.colorScheme.primary
+                              .withValues(alpha: 0.7),
                           decoration: TextDecoration.underline,
                         ),
                         maxLines: 1,
@@ -128,12 +132,15 @@ class QuoteBubbleAdapter extends BubbleBlockAdapter {
               ),
               if (data['confidence'] != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _getConfidenceColor(data['confidence'], context).withValues(alpha: 0.1),
+                    color: _getConfidenceColor(data['confidence'], context)
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: _getConfidenceColor(data['confidence'], context).withValues(alpha: 0.3),
+                      color: _getConfidenceColor(data['confidence'], context)
+                          .withValues(alpha: 0.3),
                       width: 0.5,
                     ),
                   ),
@@ -206,7 +213,8 @@ class QuoteBubbleAdapter extends BubbleBlockAdapter {
   }
 
   /// 构建简单引用样式
-  Widget _buildSimpleCitation(Map<String, dynamic> data, BubbleContext context) {
+  Widget _buildSimpleCitation(
+      Map<String, dynamic> data, BubbleContext context) {
     return Container(
       padding: EdgeInsets.all(getResponsiveSpacing(context, 12.0)),
       child: Row(

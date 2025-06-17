@@ -4,7 +4,7 @@ import 'unified_ai_management_providers.dart';
 import '../../domain/entities/unified_ai_management_state.dart';
 
 /// 统一AI管理测试工具类
-/// 
+///
 /// 用于测试和验证新的统一AI管理系统是否正常工作
 class UnifiedAiManagementTest {
   static final LoggerService _logger = LoggerService();
@@ -38,17 +38,17 @@ class UnifiedAiManagementTest {
     _logger.info('测试状态初始化...');
 
     final state = ref.read(unifiedAiManagementProvider);
-    
+
     // 检查初始状态
     if (state.isLoading) {
       _logger.info('状态正在加载中...');
-      
+
       // 等待初始化完成
       await _waitForInitialization(ref);
     }
 
     final finalState = ref.read(unifiedAiManagementProvider);
-    
+
     if (!finalState.isInitialized) {
       throw Exception('状态初始化失败');
     }
@@ -96,7 +96,7 @@ class UnifiedAiManagementTest {
 
     // 测试当前选择
     final currentSelection = ref.read(currentAiSelectionProvider);
-    
+
     _logger.info('当前选择', {
       'assistant': currentSelection.assistant?.name,
       'provider': currentSelection.provider?.name,
@@ -146,7 +146,7 @@ class UnifiedAiManagementTest {
 
     while (DateTime.now().difference(startTime) < maxWaitTime) {
       final state = ref.read(unifiedAiManagementProvider);
-      
+
       if (state.isInitialized) {
         return;
       }
@@ -167,7 +167,7 @@ class UnifiedAiManagementTest {
 
     try {
       final actions = ref.read(aiManagementActionsProvider);
-      
+
       await actions.addCustomProvider(
         name: 'Test Provider',
         apiKey: 'test-api-key',
@@ -188,7 +188,7 @@ class UnifiedAiManagementTest {
 
     try {
       final actions = ref.read(aiManagementActionsProvider);
-      
+
       await actions.createCustomAssistant(
         name: 'Test Assistant',
         systemPrompt: 'You are a helpful test assistant.',

@@ -122,7 +122,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
       // 如果已经有有效的助手配置，且不是通过initialAssistantId强制指定的，则跳过初始化
       if (currentAssistant != null &&
           currentAssistant.isEnabled &&
-          (widget.initialAssistantId == null || widget.initialAssistantId!.isEmpty)) {
+          (widget.initialAssistantId == null ||
+              widget.initialAssistantId!.isEmpty)) {
         return;
       }
 
@@ -194,7 +195,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
     try {
       // ✅ 修复：通过provider获取助手列表，而不是直接使用repository
       final allAssistants = ref.read(aiAssistantsProvider);
-      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
+      final enabledAssistants =
+          allAssistants.where((a) => a.isEnabled).toList();
 
       if (enabledAssistants.isNotEmpty) {
         // 使用统一聊天状态管理选择助手
@@ -666,7 +668,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
         child: Shortcuts(
           shortcuts: {
             LogicalKeySet(LogicalKeyboardKey.enter): const SendMessageIntent(),
-            LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.enter): const NewLineIntent(),
+            LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.enter):
+                const NewLineIntent(),
           },
           child: Actions(
             actions: {
@@ -697,42 +700,44 @@ class _ChatInputState extends ConsumerState<ChatInput>
               // 移除 onSubmitted，因为我们现在使用快捷键处理
               onSubmitted: null,
               decoration: InputDecoration(
-            hintText: _getInputHintText(isEditing),
-            hintStyle: TextStyle(
-              color: widget.isLoading
-                  ? theme.colorScheme.primary.withValues(alpha: 0.7)
-                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontSize: 15,
-              fontStyle: widget.isLoading ? FontStyle.italic : FontStyle.normal,
-            ),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: DesignConstants.spaceXL,
-              vertical: DesignConstants.spaceM + 2,
-            ),
-            // 添加前缀图标来指示状态
-            prefixIcon: widget.isLoading
-                ? Padding(
-                    padding: EdgeInsets.only(
-                      left: DesignConstants.spaceM,
-                      right: DesignConstants.spaceS,
-                    ),
-                    child: SizedBox(
-                      width: DesignConstants.iconSizeS,
-                      height: DesignConstants.iconSizeS,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary.withValues(alpha: 0.7),
+                hintText: _getInputHintText(isEditing),
+                hintStyle: TextStyle(
+                  color: widget.isLoading
+                      ? theme.colorScheme.primary.withValues(alpha: 0.7)
+                      : theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.6),
+                  fontSize: 15,
+                  fontStyle:
+                      widget.isLoading ? FontStyle.italic : FontStyle.normal,
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: DesignConstants.spaceXL,
+                  vertical: DesignConstants.spaceM + 2,
+                ),
+                // 添加前缀图标来指示状态
+                prefixIcon: widget.isLoading
+                    ? Padding(
+                        padding: EdgeInsets.only(
+                          left: DesignConstants.spaceM,
+                          right: DesignConstants.spaceS,
                         ),
-                      ),
-                    ),
-                  )
-                : null,
-            prefixIconConstraints: const BoxConstraints(
-              minWidth: 36,
-              minHeight: 16,
-            ),
+                        child: SizedBox(
+                          width: DesignConstants.iconSizeS,
+                          height: DesignConstants.iconSizeS,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.colorScheme.primary.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                      )
+                    : null,
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 16,
+                ),
               ),
               maxLines: DesignConstants.isDesktop(context) ? 5 : 4,
               minLines: 1,

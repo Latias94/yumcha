@@ -78,8 +78,6 @@ class StreamingUpdateManager {
     // 在简化版本中，所有更新都是立即处理的，所以这个方法不需要做任何事情
   }
 
-
-  
   /// 处理单个更新
   void _processUpdate(StreamingUpdate update) {
     try {
@@ -87,12 +85,14 @@ class StreamingUpdateManager {
       // 如果返回Future，等待完成但不阻塞
       if (result is Future) {
         result.catchError((error) {
-          developer.log('Error in async streaming update: $error', name: 'StreamingUpdateManager');
+          developer.log('Error in async streaming update: $error',
+              name: 'StreamingUpdateManager');
         });
       }
     } catch (error) {
       // 记录错误但继续处理
-      developer.log('Error processing streaming update: $error', name: 'StreamingUpdateManager');
+      developer.log('Error processing streaming update: $error',
+          name: 'StreamingUpdateManager');
     }
   }
 
@@ -120,8 +120,6 @@ class StreamingUpdateManager {
     // 简化版本中没有需要清理的资源
   }
 }
-
-
 
 /// 流式更新统计信息
 class StreamingUpdateStats {
@@ -180,7 +178,8 @@ class GlobalStreamingUpdateManager {
   static StreamingUpdateManager? _instance;
 
   /// 获取全局实例（现在使用简化的管理器）
-  static StreamingUpdateManager getInstance(Function(StreamingUpdate) onUpdate) {
+  static StreamingUpdateManager getInstance(
+      Function(StreamingUpdate) onUpdate) {
     _instance ??= StreamingUpdateManager(onUpdate: onUpdate);
     return _instance!;
   }

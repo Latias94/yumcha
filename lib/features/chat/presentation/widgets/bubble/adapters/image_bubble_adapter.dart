@@ -6,7 +6,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 图片块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染图片类型的消息块
 class ImageBubbleAdapter extends BubbleBlockAdapter {
   @override
@@ -40,7 +40,7 @@ class ImageBubbleAdapter extends BubbleBlockAdapter {
   /// 构建图片内容
   Widget _buildImageContent(MessageBlock block, BubbleContext context) {
     final imageUrl = block.content!;
-    
+
     return Container(
       margin: EdgeInsets.symmetric(
         vertical: getResponsiveSpacing(context, 4.0),
@@ -61,14 +61,14 @@ class ImageBubbleAdapter extends BubbleBlockAdapter {
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-        
+
         return Container(
           height: 200,
           child: Center(
             child: CircularProgressIndicator(
               value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / 
-                    loadingProgress.expectedTotalBytes!
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
                   : null,
             ),
           ),

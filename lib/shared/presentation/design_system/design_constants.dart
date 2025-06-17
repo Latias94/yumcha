@@ -58,7 +58,8 @@ class DesignConstants {
 
   /// 📱 响应式水平边距
   static EdgeInsets responsiveHorizontalPadding(BuildContext context) {
-    return EdgeInsets.symmetric(horizontal: isDesktop(context) ? spaceXXL : spaceL);
+    return EdgeInsets.symmetric(
+        horizontal: isDesktop(context) ? spaceXXL : spaceL);
   }
 
   /// 🌊 阴影层次规范

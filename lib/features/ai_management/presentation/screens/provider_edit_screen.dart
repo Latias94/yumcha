@@ -119,13 +119,9 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
       );
 
       if (_isEditing) {
-        await ref
-            .read(aiManagementActionsProvider)
-            .updateProvider(provider);
+        await ref.read(aiManagementActionsProvider).updateProvider(provider);
       } else {
-        await ref
-            .read(aiManagementActionsProvider)
-            .addProvider(provider);
+        await ref.read(aiManagementActionsProvider).addProvider(provider);
       }
 
       if (mounted) {
@@ -342,7 +338,9 @@ class _ProviderEditScreenState extends ConsumerState<ProviderEditScreen> {
                       helperText: '从AI提供商官网获取的API密钥，用于身份验证和计费',
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureApiKey ? Icons.visibility : Icons.visibility_off,
+                          _obscureApiKey
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
                         onPressed: () {
                           setState(() {

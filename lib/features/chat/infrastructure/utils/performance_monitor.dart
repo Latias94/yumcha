@@ -3,22 +3,23 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 
 /// 聊天性能监控器
-/// 
+///
 /// 用于监控聊天系统的性能指标，包括状态更新频率、UI重建次数等
 class ChatPerformanceMonitor {
-  static final ChatPerformanceMonitor _instance = ChatPerformanceMonitor._internal();
+  static final ChatPerformanceMonitor _instance =
+      ChatPerformanceMonitor._internal();
   factory ChatPerformanceMonitor() => _instance;
   ChatPerformanceMonitor._internal();
 
   /// 性能指标记录
   final Map<String, List<PerformanceMetric>> _metrics = {};
-  
+
   /// 监控开始时间
   DateTime? _monitoringStartTime;
-  
+
   /// 是否启用监控
   bool _isEnabled = kDebugMode;
-  
+
   /// 最大记录数量
   static const int _maxRecords = 1000;
 
@@ -34,7 +35,9 @@ class ChatPerformanceMonitor {
   }
 
   /// 记录性能指标
-  void recordMetric(String category, String name, {
+  void recordMetric(
+    String category,
+    String name, {
     Duration? duration,
     int? count,
     Map<String, dynamic>? metadata,
@@ -69,32 +72,29 @@ class ChatPerformanceMonitor {
   }
 
   /// 记录消息处理
-  void recordMessageProcessing(String operation, {Duration? duration, int? messageCount}) {
-    recordMetric('message_processing', operation, 
-      duration: duration, 
-      count: messageCount
-    );
+  void recordMessageProcessing(String operation,
+      {Duration? duration, int? messageCount}) {
+    recordMetric('message_processing', operation,
+        duration: duration, count: messageCount);
   }
 
   /// 记录流式更新
-  void recordStreamingUpdate(String messageId, {Duration? duration, int? updateCount}) {
-    recordMetric('streaming_updates', messageId, 
-      duration: duration, 
-      count: updateCount
-    );
+  void recordStreamingUpdate(String messageId,
+      {Duration? duration, int? updateCount}) {
+    recordMetric('streaming_updates', messageId,
+        duration: duration, count: updateCount);
   }
 
   /// 记录事件发送
   void recordEventEmission(String eventType, {bool wasDeduplicated = false}) {
-    recordMetric('event_emissions', eventType, 
-      metadata: {'deduplicated': wasDeduplicated}
-    );
+    recordMetric('event_emissions', eventType,
+        metadata: {'deduplicated': wasDeduplicated});
   }
 
   /// 获取性能报告
   PerformanceReport getReport() {
     final now = DateTime.now();
-    final monitoringDuration = _monitoringStartTime != null 
+    final monitoringDuration = _monitoringStartTime != null
         ? now.difference(_monitoringStartTime!)
         : Duration.zero;
 
@@ -136,7 +136,8 @@ class ChatPerformanceMonitor {
     final report = getReport();
     final summary = <String, dynamic>{};
 
-    summary['monitoring_duration_minutes'] = report.monitoringDuration.inMinutes;
+    summary['monitoring_duration_minutes'] =
+        report.monitoringDuration.inMinutes;
     summary['is_enabled'] = report.isEnabled;
 
     for (final entry in report.categoryReports.entries) {
@@ -144,8 +145,10 @@ class ChatPerformanceMonitor {
       final categoryReport = entry.value;
 
       summary['${category}_total_count'] = categoryReport.totalCount;
-      summary['${category}_avg_duration_ms'] = categoryReport.averageDuration?.inMilliseconds;
-      summary['${category}_recent_rate_per_sec'] = categoryReport.recentRate.toStringAsFixed(2);
+      summary['${category}_avg_duration_ms'] =
+          categoryReport.averageDuration?.inMilliseconds;
+      summary['${category}_recent_rate_per_sec'] =
+          categoryReport.recentRate.toStringAsFixed(2);
     }
 
     return summary;
@@ -195,7 +198,8 @@ class ChatPerformanceMonitor {
   }
 
   /// 获取最近的指标
-  List<PerformanceMetric> _getRecentMetrics(List<PerformanceMetric> metrics, Duration timeWindow) {
+  List<PerformanceMetric> _getRecentMetrics(
+      List<PerformanceMetric> metrics, Duration timeWindow) {
     final cutoff = DateTime.now().subtract(timeWindow);
     return metrics.where((m) => m.timestamp.isAfter(cutoff)).toList();
   }
@@ -215,9 +219,12 @@ class ChatPerformanceMonitor {
 
       print('\n[$category]');
       print('  总计数: ${categoryReport.totalCount}');
-      print('  平均耗时: ${categoryReport.averageDuration?.inMilliseconds ?? "N/A"} ms');
-      print('  最大耗时: ${categoryReport.maxDuration?.inMilliseconds ?? "N/A"} ms');
-      print('  最小耗时: ${categoryReport.minDuration?.inMilliseconds ?? "N/A"} ms');
+      print(
+          '  平均耗时: ${categoryReport.averageDuration?.inMilliseconds ?? "N/A"} ms');
+      print(
+          '  最大耗时: ${categoryReport.maxDuration?.inMilliseconds ?? "N/A"} ms');
+      print(
+          '  最小耗时: ${categoryReport.minDuration?.inMilliseconds ?? "N/A"} ms');
       print('  最近频率: ${categoryReport.recentRate.toStringAsFixed(2)} 次/秒');
     }
 
@@ -284,7 +291,7 @@ class PerformanceReport {
 }
 
 /// 性能监控装饰器
-/// 
+///
 /// 用于包装方法调用并自动记录性能指标
 class PerformanceDecorator {
   static T measureSync<T>(

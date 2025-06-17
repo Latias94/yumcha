@@ -76,18 +76,18 @@ class BackupInfo {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'type': type.name,
-    'description': description,
-    'tags': tags,
-    'timestamp': timestamp.toIso8601String(),
-    'size': size,
-    'filePath': filePath,
-    'isAutomatic': isAutomatic,
-    'trigger': trigger?.name,
-    'checksum': checksum,
-    'metadata': metadata.toJson(),
-  };
+        'id': id,
+        'type': type.name,
+        'description': description,
+        'tags': tags,
+        'timestamp': timestamp.toIso8601String(),
+        'size': size,
+        'filePath': filePath,
+        'isAutomatic': isAutomatic,
+        'trigger': trigger?.name,
+        'checksum': checksum,
+        'metadata': metadata.toJson(),
+      };
 
   factory BackupInfo.fromJson(Map<String, dynamic> json) {
     return BackupInfo(
@@ -99,11 +99,12 @@ class BackupInfo {
       size: json['size'] as int,
       filePath: json['filePath'] as String,
       isAutomatic: json['isAutomatic'] as bool,
-      trigger: json['trigger'] != null 
+      trigger: json['trigger'] != null
           ? BackupTrigger.values.firstWhere((t) => t.name == json['trigger'])
           : null,
       checksum: json['checksum'] as String?,
-      metadata: BackupMetadata.fromJson(json['metadata'] as Map<String, dynamic>),
+      metadata:
+          BackupMetadata.fromJson(json['metadata'] as Map<String, dynamic>),
     );
   }
 
@@ -116,7 +117,7 @@ class BackupInfo {
   String get formattedTimestamp {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays}天前';
     } else if (difference.inHours > 0) {
@@ -157,14 +158,14 @@ class BackupMetadata {
   });
 
   Map<String, dynamic> toJson() => {
-    'appVersion': appVersion,
-    'platform': platform,
-    'providerCount': providerCount,
-    'assistantCount': assistantCount,
-    'hasPreferences': hasPreferences,
-    'hasSettings': hasSettings,
-    'customData': customData,
-  };
+        'appVersion': appVersion,
+        'platform': platform,
+        'providerCount': providerCount,
+        'assistantCount': assistantCount,
+        'hasPreferences': hasPreferences,
+        'hasSettings': hasSettings,
+        'customData': customData,
+      };
 
   factory BackupMetadata.fromJson(Map<String, dynamic> json) {
     return BackupMetadata(
@@ -203,28 +204,28 @@ class RestoreOptions {
   factory RestoreOptions.defaultOptions() => const RestoreOptions();
 
   factory RestoreOptions.providersOnly() => const RestoreOptions(
-    restoreProviders: true,
-    restoreAssistants: false,
-    restoreSettings: false,
-    restorePreferences: false,
-  );
+        restoreProviders: true,
+        restoreAssistants: false,
+        restoreSettings: false,
+        restorePreferences: false,
+      );
 
   factory RestoreOptions.assistantsOnly() => const RestoreOptions(
-    restoreProviders: false,
-    restoreAssistants: true,
-    restoreSettings: false,
-    restorePreferences: false,
-  );
+        restoreProviders: false,
+        restoreAssistants: true,
+        restoreSettings: false,
+        restorePreferences: false,
+      );
 
   Map<String, dynamic> toJson() => {
-    'restoreProviders': restoreProviders,
-    'restoreAssistants': restoreAssistants,
-    'restoreSettings': restoreSettings,
-    'restorePreferences': restorePreferences,
-    'conflictStrategy': conflictStrategy.name,
-    'createBackupBeforeRestore': createBackupBeforeRestore,
-    'validateBeforeRestore': validateBeforeRestore,
-  };
+        'restoreProviders': restoreProviders,
+        'restoreAssistants': restoreAssistants,
+        'restoreSettings': restoreSettings,
+        'restorePreferences': restorePreferences,
+        'conflictStrategy': conflictStrategy.name,
+        'createBackupBeforeRestore': createBackupBeforeRestore,
+        'validateBeforeRestore': validateBeforeRestore,
+      };
 
   factory RestoreOptions.fromJson(Map<String, dynamic> json) {
     return RestoreOptions(
@@ -236,7 +237,8 @@ class RestoreOptions {
         (s) => s.name == json['conflictStrategy'],
         orElse: () => ConflictResolutionStrategy.ask,
       ),
-      createBackupBeforeRestore: json['createBackupBeforeRestore'] as bool? ?? true,
+      createBackupBeforeRestore:
+          json['createBackupBeforeRestore'] as bool? ?? true,
       validateBeforeRestore: json['validateBeforeRestore'] as bool? ?? true,
     );
   }
@@ -259,7 +261,8 @@ class RestoreResult {
     this.backupId,
   });
 
-  factory RestoreResult.success(RestoreStatistics statistics, {String? backupId}) {
+  factory RestoreResult.success(RestoreStatistics statistics,
+      {String? backupId}) {
     return RestoreResult(
       success: true,
       statistics: statistics,
@@ -313,7 +316,8 @@ class CleanupResult {
 
   String get formattedFreedSpace {
     if (freedSpace < 1024) return '${freedSpace}B';
-    if (freedSpace < 1024 * 1024) return '${(freedSpace / 1024).toStringAsFixed(1)}KB';
+    if (freedSpace < 1024 * 1024)
+      return '${(freedSpace / 1024).toStringAsFixed(1)}KB';
     return '${(freedSpace / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 }
@@ -342,20 +346,21 @@ class BackupSettings {
   });
 
   Map<String, dynamic> toJson() => {
-    'enableAutoBackup': enableAutoBackup,
-    'autoBackupIntervalHours': autoBackupInterval.inHours,
-    'maxManualBackups': maxManualBackups,
-    'maxAutoBackups': maxAutoBackups,
-    'retentionDays': retentionDays,
-    'enableCompression': enableCompression,
-    'enableEncryption': enableEncryption,
-    'encryptionKey': encryptionKey,
-  };
+        'enableAutoBackup': enableAutoBackup,
+        'autoBackupIntervalHours': autoBackupInterval.inHours,
+        'maxManualBackups': maxManualBackups,
+        'maxAutoBackups': maxAutoBackups,
+        'retentionDays': retentionDays,
+        'enableCompression': enableCompression,
+        'enableEncryption': enableEncryption,
+        'encryptionKey': encryptionKey,
+      };
 
   factory BackupSettings.fromJson(Map<String, dynamic> json) {
     return BackupSettings(
       enableAutoBackup: json['enableAutoBackup'] as bool? ?? true,
-      autoBackupInterval: Duration(hours: json['autoBackupIntervalHours'] as int? ?? 24),
+      autoBackupInterval:
+          Duration(hours: json['autoBackupIntervalHours'] as int? ?? 24),
       maxManualBackups: json['maxManualBackups'] as int? ?? 10,
       maxAutoBackups: json['maxAutoBackups'] as int? ?? 7,
       retentionDays: json['retentionDays'] as int? ?? 30,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// 加载遮罩组件
-/// 
+///
 /// 用于在异步操作期间显示加载指示器，阻止用户交互
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay({

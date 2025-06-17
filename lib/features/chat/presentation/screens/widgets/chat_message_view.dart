@@ -203,7 +203,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                 ),
 
                 // 错误信息显示
-                if (widget.message.isError && widget.message.metadata?['errorInfo'] != null)
+                if (widget.message.isError &&
+                    widget.message.metadata?['errorInfo'] != null)
                   _buildErrorInfo(context, theme),
 
                 // 流式状态指示器
@@ -361,7 +362,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                   ],
 
                   // 错误信息显示
-                  if (widget.message.isError && widget.message.metadata?['errorInfo'] != null)
+                  if (widget.message.isError &&
+                      widget.message.metadata?['errorInfo'] != null)
                     _buildErrorInfo(context, theme),
 
                   // 流式状态指示器
@@ -369,7 +371,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
                     _buildStreamingIndicator(context, theme),
 
                   // Token使用信息显示（仅AI消息）
-                  if (!widget.message.isFromUser && widget.message.metadata?['tokenUsage'] != null)
+                  if (!widget.message.isFromUser &&
+                      widget.message.metadata?['tokenUsage'] != null)
                     _buildTokenInfo(context, theme),
                 ],
               ),
@@ -819,24 +822,24 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final isToday = now.year == timestamp.year &&
-                   now.month == timestamp.month &&
-                   now.day == timestamp.day;
+        now.month == timestamp.month &&
+        now.day == timestamp.day;
 
     final isThisYear = now.year == timestamp.year;
 
     // 格式化时间部分
     final timeStr = '${timestamp.hour.toString().padLeft(2, '0')}:'
-                   '${timestamp.minute.toString().padLeft(2, '0')}';
+        '${timestamp.minute.toString().padLeft(2, '0')}';
 
     if (isToday) {
       return timeStr;
     } else if (isThisYear) {
       return '${timestamp.month.toString().padLeft(2, '0')}/'
-             '${timestamp.day.toString().padLeft(2, '0')} $timeStr';
+          '${timestamp.day.toString().padLeft(2, '0')} $timeStr';
     } else {
       return '${timestamp.year}/'
-             '${timestamp.month.toString().padLeft(2, '0')}/'
-             '${timestamp.day.toString().padLeft(2, '0')} $timeStr';
+          '${timestamp.month.toString().padLeft(2, '0')}/'
+          '${timestamp.day.toString().padLeft(2, '0')} $timeStr';
     }
   }
 
@@ -1015,7 +1018,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
   /// 构建Token使用信息显示
   Widget _buildTokenInfo(BuildContext context, ThemeData theme) {
-    final tokenUsageData = widget.message.metadata?['tokenUsage'] as Map<String, dynamic>?;
+    final tokenUsageData =
+        widget.message.metadata?['tokenUsage'] as Map<String, dynamic>?;
     if (tokenUsageData == null) return const SizedBox.shrink();
 
     // 构建Token信息文本
@@ -1073,19 +1077,22 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
   /// 检查是否有文件块
   bool _hasFileBlocks() {
-    return widget.message.blocks.any((block) => block.type == MessageBlockType.file);
+    return widget.message.blocks
+        .any((block) => block.type == MessageBlockType.file);
   }
 
   /// 构建图片块
-  Widget _buildImageBlocks(BuildContext context, ThemeData theme, {required bool compact}) {
+  Widget _buildImageBlocks(BuildContext context, ThemeData theme,
+      {required bool compact}) {
     final imageBlocks = widget.message.imageBlocks;
     if (imageBlocks.isEmpty) return const SizedBox.shrink();
 
     // 根据当前样式调整对齐方式
     final chatStyle = ref.watch(currentChatStyleProvider);
-    final crossAxisAlignment = chatStyle == ChatBubbleStyle.bubble && widget.message.isFromUser
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.start;
+    final crossAxisAlignment =
+        chatStyle == ChatBubbleStyle.bubble && widget.message.isFromUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start;
 
     return Column(
       crossAxisAlignment: crossAxisAlignment,
@@ -1099,7 +1106,9 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
   }
 
   /// 构建单个图片块
-  Widget _buildImageBlock(BuildContext context, ThemeData theme, MessageBlock block, {required bool compact}) {
+  Widget _buildImageBlock(
+      BuildContext context, ThemeData theme, MessageBlock block,
+      {required bool compact}) {
     if (block.url == null) return const SizedBox.shrink();
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1180,14 +1189,17 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
   /// 构建文件块
   Widget _buildFileBlocks(BuildContext context, ThemeData theme) {
-    final fileBlocks = widget.message.blocks.where((block) => block.type == MessageBlockType.file).toList();
+    final fileBlocks = widget.message.blocks
+        .where((block) => block.type == MessageBlockType.file)
+        .toList();
     if (fileBlocks.isEmpty) return const SizedBox.shrink();
 
     // 根据当前样式调整对齐方式
     final chatStyle = ref.watch(currentChatStyleProvider);
-    final crossAxisAlignment = chatStyle == ChatBubbleStyle.bubble && widget.message.isFromUser
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.start;
+    final crossAxisAlignment =
+        chatStyle == ChatBubbleStyle.bubble && widget.message.isFromUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start;
 
     return Column(
       crossAxisAlignment: crossAxisAlignment,
@@ -1201,7 +1213,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
   }
 
   /// 构建单个文件块
-  Widget _buildFileBlock(BuildContext context, ThemeData theme, MessageBlock block) {
+  Widget _buildFileBlock(
+      BuildContext context, ThemeData theme, MessageBlock block) {
     final fileName = block.metadata?['fileName'] as String? ?? '未知文件';
     final fileSize = block.metadata?['sizeBytes'] as int?;
     final mimeType = block.metadata?['mimeType'] as String?;

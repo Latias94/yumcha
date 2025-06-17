@@ -5,7 +5,7 @@ import '../../../../../../shared/infrastructure/services/media/media_storage_ser
 import '../../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 图片显示组件
-/// 
+///
 /// 支持多种图片来源：
 /// - 网络图片（URL）
 /// - 本地文件
@@ -93,7 +93,7 @@ class _ImageDisplayWidgetState extends State<ImageDisplayWidget> {
       await mediaService.initialize();
 
       final data = await mediaService.retrieveMedia(widget.mediaMetadata);
-      
+
       if (mounted) {
         setState(() {
           _imageData = data;
@@ -113,7 +113,7 @@ class _ImageDisplayWidgetState extends State<ImageDisplayWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     Widget imageWidget;
 
     if (_isLoading && widget.showLoadingIndicator) {
@@ -224,7 +224,8 @@ class _ImageDisplayWidgetState extends State<ImageDisplayWidget> {
             Text(
               '加载中...',
               style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                 fontSize: 12,
               ),
             ),
@@ -268,7 +269,8 @@ class _ImageDisplayWidgetState extends State<ImageDisplayWidget> {
               Text(
                 _errorMessage!,
                 style: TextStyle(
-                  color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.6),
+                  color:
+                      theme.colorScheme.onErrorContainer.withValues(alpha: 0.6),
                   fontSize: 10,
                 ),
                 textAlign: TextAlign.center,
@@ -284,7 +286,7 @@ class _ImageDisplayWidgetState extends State<ImageDisplayWidget> {
 }
 
 /// 图片网格显示组件
-/// 
+///
 /// 用于显示多张图片的网格布局
 class ImageGridWidget extends StatelessWidget {
   const ImageGridWidget({
@@ -330,7 +332,7 @@ class ImageGridWidget extends StatelessWidget {
     final metadata = imageMetadataList.first;
     final screenWidth = MediaQuery.of(context).size.width;
     final maxWidth = screenWidth * 0.7; // 最大宽度为屏幕的70%
-    
+
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxWidth: maxWidth,
@@ -339,9 +341,7 @@ class ImageGridWidget extends StatelessWidget {
       child: ImageDisplayWidget(
         mediaMetadata: metadata,
         fit: BoxFit.cover,
-        onTap: onImageTap != null 
-            ? () => onImageTap!(metadata, 0)
-            : null,
+        onTap: onImageTap != null ? () => onImageTap!(metadata, 0) : null,
       ),
     );
   }
@@ -362,9 +362,7 @@ class ImageGridWidget extends StatelessWidget {
         return ImageDisplayWidget(
           mediaMetadata: metadata,
           fit: BoxFit.cover,
-          onTap: onImageTap != null 
-              ? () => onImageTap!(metadata, index)
-              : null,
+          onTap: onImageTap != null ? () => onImageTap!(metadata, index) : null,
         );
       },
     );

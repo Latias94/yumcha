@@ -169,7 +169,8 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
-                              onPressed: () => ref.invalidate(unifiedAiManagementProvider),
+                              onPressed: () =>
+                                  ref.invalidate(unifiedAiManagementProvider),
                               child: const Text('重新加载'),
                             ),
                           ],

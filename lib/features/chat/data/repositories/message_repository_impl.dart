@@ -14,20 +14,20 @@ import '../../../../shared/infrastructure/services/message_id_service.dart';
 
 /// 错误严重程度枚举
 enum ErrorSeverity {
-  low,      // 低严重程度，通常可以重试
-  medium,   // 中等严重程度，需要注意
-  high,     // 高严重程度，需要立即处理
+  low, // 低严重程度，通常可以重试
+  medium, // 中等严重程度，需要注意
+  high, // 高严重程度，需要立即处理
   critical, // 严重错误，可能需要人工干预
 }
 
 /// 错误类型枚举
 enum TransactionErrorType {
-  networkTimeout,     // 网络超时
-  databaseLock,      // 数据库锁定
+  networkTimeout, // 网络超时
+  databaseLock, // 数据库锁定
   constraintViolation, // 约束违反
-  diskSpace,         // 磁盘空间不足
-  corruption,        // 数据损坏
-  unknown,           // 未知错误
+  diskSpace, // 磁盘空间不足
+  corruption, // 数据损坏
+  unknown, // 未知错误
 }
 
 /// 事务错误上下文
@@ -63,7 +63,8 @@ class MessageRepositoryImpl implements MessageRepository {
       // 🚀 修复：在加载对话消息时清理可能残留的流式缓存
       cleanupStreamingCache();
 
-      final messageDataList = await _database.getMessagesByConversation(conversationId);
+      final messageDataList =
+          await _database.getMessagesByConversation(conversationId);
       final messages = <Message>[];
 
       for (final messageData in messageDataList) {
@@ -122,19 +123,25 @@ class MessageRepositoryImpl implements MessageRepository {
   }
 
   @override
-  Future<void> updateMessageStatus(String messageId, msg_status.MessageStatus status) async {
-    await _database.updateMessage(messageId, MessagesCompanion(
-      status: Value(status.name),
-      updatedAt: Value(DateTime.now()),
-    ));
+  Future<void> updateMessageStatus(
+      String messageId, msg_status.MessageStatus status) async {
+    await _database.updateMessage(
+        messageId,
+        MessagesCompanion(
+          status: Value(status.name),
+          updatedAt: Value(DateTime.now()),
+        ));
   }
 
   @override
-  Future<void> updateMessageMetadata(String messageId, Map<String, dynamic> metadata) async {
-    await _database.updateMessage(messageId, MessagesCompanion(
-      metadata: Value(_encodeJson(metadata)),
-      updatedAt: Value(DateTime.now()),
-    ));
+  Future<void> updateMessageMetadata(
+      String messageId, Map<String, dynamic> metadata) async {
+    await _database.updateMessage(
+        messageId,
+        MessagesCompanion(
+          metadata: Value(_encodeJson(metadata)),
+          updatedAt: Value(DateTime.now()),
+        ));
   }
 
   @override
@@ -276,21 +283,24 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<void> updateBlockContent(String blockId, String content) async {
-    await _database.updateMessageBlock(blockId, MessageBlocksCompanion(
-      content: Value(content),
-      updatedAt: Value(DateTime.now()),
-    ));
+    await _database.updateMessageBlock(
+        blockId,
+        MessageBlocksCompanion(
+          content: Value(content),
+          updatedAt: Value(DateTime.now()),
+        ));
   }
 
   @override
-  Future<void> updateBlockStatus(String blockId, MessageBlockStatus status) async {
-    await _database.updateMessageBlock(blockId, MessageBlocksCompanion(
-      status: Value(status.name),
-      updatedAt: Value(DateTime.now()),
-    ));
+  Future<void> updateBlockStatus(
+      String blockId, MessageBlockStatus status) async {
+    await _database.updateMessageBlock(
+        blockId,
+        MessageBlocksCompanion(
+          status: Value(status.name),
+          updatedAt: Value(DateTime.now()),
+        ));
   }
-
-
 
   @override
   Future<void> deleteMessageBlock(String blockId) async {
@@ -332,10 +342,12 @@ class MessageRepositoryImpl implements MessageRepository {
     final blocks = await _database.getMessageBlocks(messageId);
     final blockIds = blocks.map((block) => block.id).toList();
 
-    await _database.updateMessage(messageId, MessagesCompanion(
-      blockIds: Value(blockIds),
-      updatedAt: Value(DateTime.now()),
-    ));
+    await _database.updateMessage(
+        messageId,
+        MessagesCompanion(
+          blockIds: Value(blockIds),
+          updatedAt: Value(DateTime.now()),
+        ));
   }
 
   @override
@@ -379,8 +391,8 @@ class MessageRepositoryImpl implements MessageRepository {
         );
 
         // 记录操作性能统计
-        _recordOperationPerformance('saveMessage', stopwatch.elapsedMilliseconds);
-
+        _recordOperationPerformance(
+            'saveMessage', stopwatch.elapsedMilliseconds);
       } catch (e) {
         stopwatch.stop();
 
@@ -410,7 +422,8 @@ class MessageRepositoryImpl implements MessageRepository {
         );
 
         // 根据错误类型决定是否重试或抛出特定异常
-        if (errorContext.retryable && errorContext.severity != ErrorSeverity.critical) {
+        if (errorContext.retryable &&
+            errorContext.severity != ErrorSeverity.critical) {
           _logger.info('错误可重试，建议稍后重试', {
             'messageId': message.id,
             'errorType': errorContext.type,
@@ -449,7 +462,8 @@ class MessageRepositoryImpl implements MessageRepository {
   }
 
   /// 分析事务错误并返回错误上下文
-  TransactionErrorContext _analyzeTransactionError(dynamic error, Message message) {
+  TransactionErrorContext _analyzeTransactionError(
+      dynamic error, Message message) {
     final errorString = error.toString().toLowerCase();
 
     // 网络超时错误
@@ -479,7 +493,10 @@ class MessageRepositoryImpl implements MessageRepository {
         severity: ErrorSeverity.high,
         retryable: false,
         suggestedAction: '数据约束违反，检查消息ID是否重复',
-        details: {'messageId': message.id, 'blocksCount': message.blocks.length},
+        details: {
+          'messageId': message.id,
+          'blocksCount': message.blocks.length
+        },
       );
     }
 
@@ -526,17 +543,22 @@ class MessageRepositoryImpl implements MessageRepository {
         updatedAt: message.updatedAt,
         status: Value(message.status.name),
         modelId: Value(message.modelId),
-        metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
+        metadata: Value(
+            message.metadata != null ? _encodeJson(message.metadata!) : null),
         blockIds: Value(message.blockIds),
       ));
     } catch (e) {
       // 如果插入失败（通常是主键冲突），则更新
-      await _database.updateMessage(message.id, MessagesCompanion(
-        status: Value(message.status.name),
-        updatedAt: Value(message.updatedAt),
-        metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
-        blockIds: Value(message.blockIds),
-      ));
+      await _database.updateMessage(
+          message.id,
+          MessagesCompanion(
+            status: Value(message.status.name),
+            updatedAt: Value(message.updatedAt),
+            metadata: Value(message.metadata != null
+                ? _encodeJson(message.metadata!)
+                : null),
+            blockIds: Value(message.blockIds),
+          ));
     }
   }
 
@@ -569,7 +591,6 @@ class MessageRepositoryImpl implements MessageRepository {
 
       // 记录批量操作性能
       _recordOperationPerformance('batchUpsert', stopwatch.elapsedMilliseconds);
-
     } catch (e) {
       stopwatch.stop();
       _logger.error('批量保存消息块失败', {
@@ -598,7 +619,8 @@ class MessageRepositoryImpl implements MessageRepository {
           content: Value(block.content),
           status: Value(block.status.name),
           orderIndex: Value(0),
-          metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+          metadata: Value(
+              block.metadata != null ? _encodeJson(block.metadata!) : null),
         ));
       } catch (e) {
         // 插入失败，标记为需要更新
@@ -608,12 +630,15 @@ class MessageRepositoryImpl implements MessageRepository {
 
     // 批量更新失败的块
     for (final block in failedBlocks) {
-      await _database.updateMessageBlock(block.id, MessageBlocksCompanion(
-        content: Value(block.content),
-        status: Value(block.status.name),
-        updatedAt: Value(block.updatedAt ?? DateTime.now()),
-        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
-      ));
+      await _database.updateMessageBlock(
+          block.id,
+          MessageBlocksCompanion(
+            content: Value(block.content),
+            status: Value(block.status.name),
+            updatedAt: Value(block.updatedAt ?? DateTime.now()),
+            metadata: Value(
+                block.metadata != null ? _encodeJson(block.metadata!) : null),
+          ));
     }
 
     if (failedBlocks.isNotEmpty) {
@@ -637,20 +662,22 @@ class MessageRepositoryImpl implements MessageRepository {
         content: Value(block.content),
         status: Value(block.status.name),
         orderIndex: Value(0),
-        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+        metadata:
+            Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
       ));
     } catch (e) {
       // 如果插入失败（通常是主键冲突），则更新
-      await _database.updateMessageBlock(block.id, MessageBlocksCompanion(
-        content: Value(block.content),
-        status: Value(block.status.name),
-        updatedAt: Value(block.updatedAt ?? DateTime.now()),
-        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
-      ));
+      await _database.updateMessageBlock(
+          block.id,
+          MessageBlocksCompanion(
+            content: Value(block.content),
+            status: Value(block.status.name),
+            updatedAt: Value(block.updatedAt ?? DateTime.now()),
+            metadata: Value(
+                block.metadata != null ? _encodeJson(block.metadata!) : null),
+          ));
     }
   }
-
-
 
   // 🚀 阶段4：性能监控相关方法
 
@@ -716,9 +743,10 @@ class MessageRepositoryImpl implements MessageRepository {
   /// 此方法已被移除，所有保存操作统一使用saveMessage方法
 
   /// 将数据库数据转换为Message实体
-  Message _dataToMessage(MessageData data, List<MessageBlockData> blockDataList) {
+  Message _dataToMessage(
+      MessageData data, List<MessageBlockData> blockDataList) {
     final blocks = blockDataList.map(_dataToMessageBlock).toList();
-    
+
     return Message(
       id: data.id,
       conversationId: data.conversationId,
@@ -936,8 +964,8 @@ class MessageRepositoryImpl implements MessageRepository {
   /// 在应用重启或对话加载时调用，清理可能残留的流式状态
   void cleanupStreamingCache() {
     final cacheCount = _streamingBlocksCache.length +
-                      _streamingContentCache.length +
-                      _streamingMessageInfoCache.length;
+        _streamingContentCache.length +
+        _streamingMessageInfoCache.length;
 
     if (cacheCount > 0) {
       _logger.info('清理流式消息缓存', {
@@ -965,9 +993,8 @@ class MessageRepositoryImpl implements MessageRepository {
     _logger.debug('Repository接收流式内容更新', {
       'messageId': messageId,
       'contentLength': content.length,
-      'contentPreview': content.length > 100
-          ? '${content.substring(0, 100)}...'
-          : content,
+      'contentPreview':
+          content.length > 100 ? '${content.substring(0, 100)}...' : content,
       'contentEnding': content.length > 30
           ? '...${content.substring(content.length - 30)}'
           : content,
@@ -1012,7 +1039,8 @@ class MessageRepositoryImpl implements MessageRepository {
     final now = DateTime.now();
 
     // 更新或创建文本块
-    var textBlock = blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
+    var textBlock =
+        blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
     if (textBlock != null) {
       final index = blocks.indexWhere((b) => b.id == textBlock!.id);
       if (index != -1) {
@@ -1049,11 +1077,13 @@ class MessageRepositoryImpl implements MessageRepository {
 
     // 更新或创建思考过程块
     if (thinkingContent != null && thinkingContent.isNotEmpty) {
-      var thinkingBlock = blocks.where((b) => b.type == MessageBlockType.thinking).firstOrNull;
+      var thinkingBlock =
+          blocks.where((b) => b.type == MessageBlockType.thinking).firstOrNull;
       if (thinkingBlock != null) {
         final index = blocks.indexWhere((b) => b.id == thinkingBlock!.id);
         if (index != -1) {
-          blocks[index] = thinkingBlock.copyWith(content: thinkingContent, updatedAt: now);
+          blocks[index] =
+              thinkingBlock.copyWith(content: thinkingContent, updatedAt: now);
         }
       } else {
         // 创建新的思考块（仅在缓存中）
@@ -1071,12 +1101,14 @@ class MessageRepositoryImpl implements MessageRepository {
     _streamingBlocksCache[messageId] = blocks;
 
     // 🔍 调试日志：记录最终缓存状态
-    final finalTextBlock = blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
+    final finalTextBlock =
+        blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
     _logger.debug('流式内容缓存更新完成', {
       'messageId': messageId,
       'blocksCount': blocks.length,
       'finalTextBlockLength': finalTextBlock?.content?.length ?? 0,
-      'finalTextBlockEnding': finalTextBlock?.content != null && finalTextBlock!.content!.length > 20
+      'finalTextBlockEnding': finalTextBlock?.content != null &&
+              finalTextBlock!.content!.length > 20
           ? '...${finalTextBlock.content!.substring(finalTextBlock.content!.length - 20)}'
           : finalTextBlock?.content ?? '',
       'cacheContentLength': contentCache['mainText']?.length ?? 0,
@@ -1084,8 +1116,6 @@ class MessageRepositoryImpl implements MessageRepository {
 
     // 注意：这里不再写入数据库，只在流式结束时统一写入
   }
-
-
 
   @override
   Future<void> finishStreamingMessage({
@@ -1142,7 +1172,8 @@ class MessageRepositoryImpl implements MessageRepository {
             'messageId': messageId,
             'currentStatus': existingMessage.status.name,
           });
-          await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
+          await updateMessageStatus(
+              messageId, msg_status.MessageStatus.aiSuccess);
           if (metadata != null) {
             await updateMessageMetadata(messageId, metadata);
           }
@@ -1160,8 +1191,10 @@ class MessageRepositoryImpl implements MessageRepository {
     }
 
     // 🔍 调试日志：记录准备保存到数据库的内容
-    final textBlocks = cachedBlocks.where((b) => b.type == MessageBlockType.mainText).toList();
-    final thinkingBlocks = cachedBlocks.where((b) => b.type == MessageBlockType.thinking).toList();
+    final textBlocks =
+        cachedBlocks.where((b) => b.type == MessageBlockType.mainText).toList();
+    final thinkingBlocks =
+        cachedBlocks.where((b) => b.type == MessageBlockType.thinking).toList();
 
     _logger.info('准备保存流式消息到数据库', {
       'messageId': messageId,
@@ -1171,10 +1204,12 @@ class MessageRepositoryImpl implements MessageRepository {
       'textBlockContent': textBlocks.isNotEmpty
           ? {
               'length': textBlocks.first.content?.length ?? 0,
-              'preview': textBlocks.first.content != null && textBlocks.first.content!.length > 100
+              'preview': textBlocks.first.content != null &&
+                      textBlocks.first.content!.length > 100
                   ? '${textBlocks.first.content!.substring(0, 100)}...'
                   : textBlocks.first.content ?? '',
-              'ending': textBlocks.first.content != null && textBlocks.first.content!.length > 30
+              'ending': textBlocks.first.content != null &&
+                      textBlocks.first.content!.length > 30
                   ? '...${textBlocks.first.content!.substring(textBlocks.first.content!.length - 30)}'
                   : textBlocks.first.content ?? '',
             }
@@ -1216,7 +1251,8 @@ class MessageRepositoryImpl implements MessageRepository {
           updatedAt: DateTime.now(),
           status: Value(msg_status.MessageStatus.aiSuccess.name),
           modelId: Value(messageInfo['modelId'] as String?),
-          metadata: Value(finalMetadata.isNotEmpty ? _encodeJson(finalMetadata) : null),
+          metadata: Value(
+              finalMetadata.isNotEmpty ? _encodeJson(finalMetadata) : null),
           blockIds: Value(cachedBlocks.map((b) => b.id).toList()),
         ));
       } else {
@@ -1227,7 +1263,8 @@ class MessageRepositoryImpl implements MessageRepository {
           'newStatus': msg_status.MessageStatus.aiSuccess.name,
         });
 
-        await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
+        await updateMessageStatus(
+            messageId, msg_status.MessageStatus.aiSuccess);
         if (metadata != null) {
           await updateMessageMetadata(messageId, metadata);
         }
@@ -1252,7 +1289,8 @@ class MessageRepositoryImpl implements MessageRepository {
           'blockId': finalBlock.id,
           'blockType': finalBlock.type.name,
           'contentLength': finalBlock.content?.length ?? 0,
-          'contentEnding': finalBlock.content != null && finalBlock.content!.length > 20
+          'contentEnding': finalBlock.content != null &&
+                  finalBlock.content!.length > 20
               ? '...${finalBlock.content!.substring(finalBlock.content!.length - 20)}'
               : finalBlock.content ?? '',
         });
@@ -1273,13 +1311,16 @@ class MessageRepositoryImpl implements MessageRepository {
     try {
       final savedMessage = await getMessage(messageId);
       if (savedMessage != null) {
-        final textBlock = savedMessage.blocks.where((b) => b.type == MessageBlockType.mainText).firstOrNull;
+        final textBlock = savedMessage.blocks
+            .where((b) => b.type == MessageBlockType.mainText)
+            .firstOrNull;
         _logger.info('流式消息保存验证', {
           'messageId': messageId,
           'savedStatus': savedMessage.status.name,
           'savedBlocksCount': savedMessage.blocks.length,
           'savedTextLength': textBlock?.content?.length ?? 0,
-          'savedTextEnding': textBlock?.content != null && textBlock!.content!.length > 30
+          'savedTextEnding': textBlock?.content != null &&
+                  textBlock!.content!.length > 30
               ? '...${textBlock.content!.substring(textBlock.content!.length - 30)}'
               : textBlock?.content ?? '',
           'success': true,
@@ -1344,7 +1385,9 @@ class MessageRepositoryImpl implements MessageRepository {
           updatedAt: DateTime.now(),
           status: Value(msg_status.MessageStatus.aiError.name),
           modelId: Value(messageInfo['modelId'] as String?),
-          metadata: Value(messageInfo['metadata'] != null ? _encodeJson(messageInfo['metadata'] as Map<String, dynamic>) : null),
+          metadata: Value(messageInfo['metadata'] != null
+              ? _encodeJson(messageInfo['metadata'] as Map<String, dynamic>)
+              : null),
           blockIds: Value(<String>[]),
         ));
       } else {
@@ -1400,7 +1443,8 @@ class MessageRepositoryImpl implements MessageRepository {
       final result = <Message>[];
       for (final messageData in messages) {
         // 如果指定了对话ID，过滤结果
-        if (conversationId != null && messageData.conversationId != conversationId) {
+        if (conversationId != null &&
+            messageData.conversationId != conversationId) {
           continue;
         }
 
@@ -1436,7 +1480,8 @@ class MessageRepositoryImpl implements MessageRepository {
   @override
   Future<int> getMessageCount(String conversationId) async {
     try {
-      final messages = await _database.getMessagesByConversation(conversationId);
+      final messages =
+          await _database.getMessagesByConversation(conversationId);
       return messages.length;
     } catch (e) {
       return 0;
@@ -1446,7 +1491,8 @@ class MessageRepositoryImpl implements MessageRepository {
   @override
   Future<Message?> getLastMessage(String conversationId) async {
     try {
-      final messageData = await _database.getLastMessageByConversation(conversationId);
+      final messageData =
+          await _database.getLastMessageByConversation(conversationId);
       if (messageData == null) return null;
 
       final blocks = await _database.getMessageBlocks(messageData.id);

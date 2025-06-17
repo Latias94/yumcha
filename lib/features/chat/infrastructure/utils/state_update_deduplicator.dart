@@ -7,19 +7,19 @@ class StateUpdateDeduplicator {
   StateUpdateDeduplicator({
     Duration? minInterval, // 保留参数兼容性，但不使用
   });
-  
+
   /// 检查是否应该执行更新（简化版本，总是返回true）
   bool shouldUpdate(String key) {
     // 不再使用去重逻辑，所有更新都被允许
     return true;
   }
-  
+
   /// 延迟执行更新（简化版本，立即执行）
   void scheduleUpdate(String key, VoidCallback callback) {
     // 不再使用延迟和去重，立即执行回调
     callback();
   }
-  
+
   /// 强制执行更新（简化版本，立即执行）
   void forceUpdate(String key, VoidCallback callback) {
     // 不再使用去重，立即执行回调
@@ -39,27 +39,25 @@ class StateUpdateDeduplicator {
       oldestRecord: null, // 不再跟踪记录
     );
   }
-  
+
   /// 释放资源（简化版本）
   void dispose() {
     // 简化版本中没有需要清理的资源
   }
 }
 
-
-
 /// 状态更新统计信息
 class StateUpdateStats {
   final int totalKeys;
   final int pendingUpdates;
   final DateTime? oldestRecord;
-  
+
   const StateUpdateStats({
     required this.totalKeys,
     required this.pendingUpdates,
     this.oldestRecord,
   });
-  
+
   @override
   String toString() {
     return 'StateUpdateStats(totalKeys: $totalKeys, pendingUpdates: $pendingUpdates, oldestRecord: $oldestRecord)';
@@ -95,13 +93,15 @@ class MessageStateDeduplicator extends StateUpdateDeduplicator {
   }
 
   /// 调度消息内容更新（立即执行）
-  void scheduleMessageContentUpdate(String messageId, String newContent, VoidCallback callback) {
+  void scheduleMessageContentUpdate(
+      String messageId, String newContent, VoidCallback callback) {
     // 不再使用延迟，立即执行回调
     callback();
   }
 
   /// 调度消息状态更新（立即执行）
-  void scheduleMessageStatusUpdate(String messageId, String newStatus, VoidCallback callback) {
+  void scheduleMessageStatusUpdate(
+      String messageId, String newStatus, VoidCallback callback) {
     // 不再使用延迟，立即执行回调
     callback();
   }
@@ -142,17 +142,18 @@ class StreamingUpdateDeduplicator extends StateUpdateDeduplicator {
 class GlobalDeduplicators {
   static final StateUpdateDeduplicator _general = StateUpdateDeduplicator();
   static final MessageStateDeduplicator _message = MessageStateDeduplicator();
-  static final StreamingUpdateDeduplicator _streaming = StreamingUpdateDeduplicator();
-  
+  static final StreamingUpdateDeduplicator _streaming =
+      StreamingUpdateDeduplicator();
+
   /// 通用状态更新去重器
   static StateUpdateDeduplicator get general => _general;
-  
+
   /// 消息状态更新去重器
   static MessageStateDeduplicator get message => _message;
-  
+
   /// 流式更新去重器
   static StreamingUpdateDeduplicator get streaming => _streaming;
-  
+
   /// 释放所有资源
   static void disposeAll() {
     _general.dispose();

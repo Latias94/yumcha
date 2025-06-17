@@ -7,31 +7,33 @@ import 'bubble_style.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 块布局管理器
-/// 
+///
 /// 负责管理消息块的布局、间距和视觉层次
 class BlockLayoutManager {
   const BlockLayoutManager._();
-  
+
   static const BlockLayoutManager instance = BlockLayoutManager._();
 
   /// 构建优化的块列表
   List<Widget> buildOptimizedBlockList(
     List<MessageBlock> blocks,
     BubbleContext context,
-    Widget Function(MessageBlock, BubbleContext, {required bool isFirst, required bool isLast}) blockBuilder,
+    Widget Function(MessageBlock, BubbleContext,
+            {required bool isFirst, required bool isLast})
+        blockBuilder,
   ) {
     if (blocks.isEmpty) return [];
 
     final widgets = <Widget>[];
-    
+
     // 按类型分组块，优化视觉层次
     final groupedBlocks = _groupBlocksByType(blocks);
-    
+
     for (int groupIndex = 0; groupIndex < groupedBlocks.length; groupIndex++) {
       final group = groupedBlocks[groupIndex];
       final isFirstGroup = groupIndex == 0;
       final isLastGroup = groupIndex == groupedBlocks.length - 1;
-      
+
       // 构建组内容
       final groupWidgets = _buildBlockGroup(
         group,
@@ -40,9 +42,9 @@ class BlockLayoutManager {
         isFirstGroup: isFirstGroup,
         isLastGroup: isLastGroup,
       );
-      
+
       widgets.addAll(groupWidgets);
-      
+
       // 组间间距和视觉分隔
       if (!isLastGroup) {
         final nextGroup = groupedBlocks[groupIndex + 1];
@@ -58,7 +60,7 @@ class BlockLayoutManager {
         }
       }
     }
-    
+
     return widgets;
   }
 
@@ -117,41 +119,42 @@ class BlockLayoutManager {
   /// 判断是否为文本相关类型
   bool _isTextRelatedType(MessageBlockType type) {
     return type == MessageBlockType.mainText ||
-           type == MessageBlockType.thinking ||
-           type == MessageBlockType.translation;
+        type == MessageBlockType.thinking ||
+        type == MessageBlockType.translation;
   }
 
   /// 判断是否为媒体类型
   bool _isMediaType(MessageBlockType type) {
-    return type == MessageBlockType.image ||
-           type == MessageBlockType.file;
+    return type == MessageBlockType.image || type == MessageBlockType.file;
   }
 
   /// 构建块组
   List<Widget> _buildBlockGroup(
     List<MessageBlock> group,
     BubbleContext context,
-    Widget Function(MessageBlock, BubbleContext, {required bool isFirst, required bool isLast}) blockBuilder, {
+    Widget Function(MessageBlock, BubbleContext,
+            {required bool isFirst, required bool isLast})
+        blockBuilder, {
     required bool isFirstGroup,
     required bool isLastGroup,
   }) {
     final widgets = <Widget>[];
-    
+
     // 组内块的紧密布局
     for (int i = 0; i < group.length; i++) {
       final block = group[i];
       final isFirst = i == 0;
       final isLast = i == group.length - 1;
-      
+
       final widget = blockBuilder(
         block,
         context,
         isFirst: isFirst && isFirstGroup,
         isLast: isLast && isLastGroup,
       );
-      
+
       widgets.add(widget);
-      
+
       // 组内间距（更小）
       if (!isLast) {
         final spacing = _getIntraGroupSpacing(block, group[i + 1], context);
@@ -160,7 +163,7 @@ class BlockLayoutManager {
         }
       }
     }
-    
+
     return widgets;
   }
 
@@ -172,13 +175,13 @@ class BlockLayoutManager {
   ) {
     final currentType = currentGroup.first.type;
     final nextType = nextGroup.first.type;
-    
+
     // 基础组间距
     double baseSpacing = _getBaseSpacing(context) * 1.5;
-    
+
     // 特殊类型组合调整
     final multiplier = _getGroupSpacingMultiplier(currentType, nextType);
-    
+
     return baseSpacing * multiplier * _getResponsiveMultiplier(context);
   }
 
@@ -190,7 +193,7 @@ class BlockLayoutManager {
   ) {
     // 同类型块使用更小的间距
     double baseSpacing = _getBaseSpacing(context) * 0.3;
-    
+
     return baseSpacing * _getResponsiveMultiplier(context);
   }
 
@@ -207,27 +210,31 @@ class BlockLayoutManager {
   }
 
   /// 获取组间距倍数
-  double _getGroupSpacingMultiplier(MessageBlockType currentType, MessageBlockType nextType) {
+  double _getGroupSpacingMultiplier(
+      MessageBlockType currentType, MessageBlockType nextType) {
     // 思考过程后需要更大间距
     if (currentType == MessageBlockType.thinking) {
       return 2.0;
     }
-    
+
     // 代码块前后需要适中间距
-    if (currentType == MessageBlockType.code || nextType == MessageBlockType.code) {
+    if (currentType == MessageBlockType.code ||
+        nextType == MessageBlockType.code) {
       return 1.5;
     }
-    
+
     // 图片前后需要适中间距
-    if (currentType == MessageBlockType.image || nextType == MessageBlockType.image) {
+    if (currentType == MessageBlockType.image ||
+        nextType == MessageBlockType.image) {
       return 1.3;
     }
-    
+
     // 文本到其他类型
-    if (currentType == MessageBlockType.mainText && nextType != MessageBlockType.mainText) {
+    if (currentType == MessageBlockType.mainText &&
+        nextType != MessageBlockType.mainText) {
       return 1.2;
     }
-    
+
     return 1.0;
   }
 
@@ -280,17 +287,20 @@ class BlockLayoutManager {
   }
 
   /// 判断是否需要视觉分隔器
-  bool _needsVisualSeparator(List<MessageBlock> currentGroup, List<MessageBlock> nextGroup) {
+  bool _needsVisualSeparator(
+      List<MessageBlock> currentGroup, List<MessageBlock> nextGroup) {
     final currentType = currentGroup.first.type;
     final nextType = nextGroup.first.type;
 
     // 思考过程和主要内容之间需要分隔器
-    if (currentType == MessageBlockType.thinking && nextType == MessageBlockType.mainText) {
+    if (currentType == MessageBlockType.thinking &&
+        nextType == MessageBlockType.mainText) {
       return true;
     }
 
     // 代码块前后需要分隔器
-    if (currentType == MessageBlockType.code || nextType == MessageBlockType.code) {
+    if (currentType == MessageBlockType.code ||
+        nextType == MessageBlockType.code) {
       return true;
     }
 

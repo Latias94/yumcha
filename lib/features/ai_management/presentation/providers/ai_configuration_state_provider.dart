@@ -17,7 +17,8 @@ final aiConfigurationStateProvider = Provider<AiConfigurationState>((ref) {
     configuration: config,
     isValid: _validateConfiguration(config),
     status: _getConfigurationStatus(config, management),
-    lastUpdated: DateTime.now(), // 使用当前时间，因为UnifiedAiManagementState没有lastUpdated字段
+    lastUpdated:
+        DateTime.now(), // 使用当前时间，因为UnifiedAiManagementState没有lastUpdated字段
     validationErrors: _getValidationErrors(config, management.providers),
     warnings: _getWarnings(config, management.assistants),
     isLoading: management.isLoading,
@@ -54,7 +55,8 @@ ConfigurationStatus _getConfigurationStatus(
 }
 
 /// 获取验证错误
-List<ValidationError> _getValidationErrors(UserAiConfiguration config, List<AiProvider> providers) {
+List<ValidationError> _getValidationErrors(
+    UserAiConfiguration config, List<AiProvider> providers) {
   final errors = <ValidationError>[];
 
   if (config.selectedAssistant == null) {
@@ -106,15 +108,18 @@ List<ValidationError> _getValidationErrors(UserAiConfiguration config, List<AiPr
 }
 
 /// 获取警告信息
-List<String> _getWarnings(UserAiConfiguration config, List<AiAssistant> assistants) {
+List<String> _getWarnings(
+    UserAiConfiguration config, List<AiAssistant> assistants) {
   final warnings = <String>[];
 
   // 添加配置相关的警告
-  if (config.selectedModel != null && config.selectedModel!.name.contains('gpt-4')) {
+  if (config.selectedModel != null &&
+      config.selectedModel!.name.contains('gpt-4')) {
     warnings.add('GPT-4模型消耗较多tokens，请注意使用成本');
   }
 
-  if (config.selectedModel != null && config.selectedModel!.name.contains('claude-3')) {
+  if (config.selectedModel != null &&
+      config.selectedModel!.name.contains('claude-3')) {
     warnings.add('Claude-3模型具有较高的推理能力，适合复杂任务');
   }
 
@@ -140,25 +145,25 @@ List<String> _getWarnings(UserAiConfiguration config, List<AiAssistant> assistan
 // ============================================================================
 
 /// 配置有效性Provider（向后兼容）
-final configurationValidityProvider = Provider<bool>((ref) => 
-  ref.watch(aiConfigurationStateProvider).isValid);
-  
+final configurationValidityProvider =
+    Provider<bool>((ref) => ref.watch(aiConfigurationStateProvider).isValid);
+
 /// 配置状态Provider（向后兼容）
-final configurationStatusProvider = Provider<ConfigurationStatus>((ref) => 
-  ref.watch(aiConfigurationStateProvider).status);
+final configurationStatusProvider = Provider<ConfigurationStatus>(
+    (ref) => ref.watch(aiConfigurationStateProvider).status);
 
 /// 配置错误Provider（新增）
-final configurationErrorsProvider = Provider<List<ValidationError>>((ref) => 
-  ref.watch(aiConfigurationStateProvider).validationErrors);
+final configurationErrorsProvider = Provider<List<ValidationError>>(
+    (ref) => ref.watch(aiConfigurationStateProvider).validationErrors);
 
 /// 配置警告Provider（新增）
-final configurationWarningsProvider = Provider<List<String>>((ref) => 
-  ref.watch(aiConfigurationStateProvider).warnings);
+final configurationWarningsProvider = Provider<List<String>>(
+    (ref) => ref.watch(aiConfigurationStateProvider).warnings);
 
 /// 配置是否可用Provider（新增）
-final configurationUsabilityProvider = Provider<bool>((ref) => 
-  ref.watch(aiConfigurationStateProvider).isUsable);
+final configurationUsabilityProvider =
+    Provider<bool>((ref) => ref.watch(aiConfigurationStateProvider).isUsable);
 
 /// 配置需要注意Provider（新增）
-final configurationNeedsAttentionProvider = Provider<bool>((ref) => 
-  ref.watch(aiConfigurationStateProvider).needsAttention);
+final configurationNeedsAttentionProvider = Provider<bool>(
+    (ref) => ref.watch(aiConfigurationStateProvider).needsAttention);

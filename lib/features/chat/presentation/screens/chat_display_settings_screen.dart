@@ -74,17 +74,14 @@ class DisplaySettingsScreen extends ConsumerWidget {
                 _buildSectionHeader(context, "消息显示模式"),
                 _buildBlockViewToggle(context, ref),
                 const SizedBox(height: 16),
-
                 _buildSectionHeader(context, "消息显示样式"),
                 _buildStyleOption(context, ref, ChatBubbleStyle.list),
                 _buildStyleOption(context, ref, ChatBubbleStyle.card),
                 _buildStyleOption(context, ref, ChatBubbleStyle.bubble),
                 const SizedBox(height: 24),
-
                 _buildSectionHeader(context, "高级设置"),
                 _buildAdvancedSettings(context, ref),
                 const SizedBox(height: 24),
-
                 _buildSectionHeader(context, "样式预览"),
                 _buildPreviewSection(context, ref),
                 const SizedBox(height: 32),
@@ -118,17 +115,15 @@ class DisplaySettingsScreen extends ConsumerWidget {
       value: chatSettings.enableBlockView,
       onChanged: (value) {
         ref.read(chatSettingsProvider.notifier).toggleBlockView();
-        NotificationService().showSuccess(
-          value ? '已启用块化消息显示' : '已禁用块化消息显示'
-        );
+        NotificationService().showSuccess(value ? '已启用块化消息显示' : '已禁用块化消息显示');
       },
       secondary: Icon(
         chatSettings.enableBlockView
-          ? Icons.view_module_rounded
-          : Icons.view_list_rounded,
+            ? Icons.view_module_rounded
+            : Icons.view_list_rounded,
         color: chatSettings.enableBlockView
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).colorScheme.onSurfaceVariant,
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -148,11 +143,10 @@ class DisplaySettingsScreen extends ConsumerWidget {
           secondary: Icon(
             Icons.psychology_rounded,
             color: chatSettings.showThinkingProcess
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.onSurfaceVariant,
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-
         if (chatSettings.enableBlockView) ...[
           SwitchListTile(
             title: const Text("显示块类型标签"),
@@ -164,11 +158,10 @@ class DisplaySettingsScreen extends ConsumerWidget {
             secondary: Icon(
               Icons.label_rounded,
               color: chatSettings.showBlockTypeLabels
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-
           SwitchListTile(
             title: const Text("启用块编辑功能"),
             subtitle: const Text("允许编辑和操作单个消息块（实验性功能）"),
@@ -179,8 +172,8 @@ class DisplaySettingsScreen extends ConsumerWidget {
             secondary: Icon(
               Icons.edit_rounded,
               color: chatSettings.enableBlockEditing
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -246,17 +239,18 @@ class DisplaySettingsScreen extends ConsumerWidget {
             children: [
               Text(
                 "预览效果",
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600
-                ),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: chatSettings.enableBlockView
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : Theme.of(context).colorScheme.secondaryContainer,
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.secondaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -265,8 +259,8 @@ class DisplaySettingsScreen extends ConsumerWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: chatSettings.enableBlockView
-                      ? Theme.of(context).colorScheme.onPrimaryContainer
-                      : Theme.of(context).colorScheme.onSecondaryContainer,
+                        ? Theme.of(context).colorScheme.onPrimaryContainer
+                        : Theme.of(context).colorScheme.onSecondaryContainer,
                   ),
                 ),
               ),
@@ -498,9 +492,11 @@ class DisplaySettingsScreen extends ConsumerWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                    color: theme.colorScheme.secondaryContainer
+                        .withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -516,7 +512,8 @@ class DisplaySettingsScreen extends ConsumerWidget {
                 Text(
                   "刚刚",
                   style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.7),
                     fontSize: 9,
                   ),
                 ),
@@ -605,8 +602,8 @@ class DisplaySettingsScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: isCode
-          ? theme.colorScheme.surfaceContainerHighest
-          : theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.3),
+            ? theme.colorScheme.surfaceContainerHighest
+            : theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: color.withValues(alpha: 0.2),
@@ -647,7 +644,8 @@ class DisplaySettingsScreen extends ConsumerWidget {
   }
 
   /// 获取消息容器装饰
-  BoxDecoration _getMessageContainerDecoration(ThemeData theme, ChatBubbleStyle style) {
+  BoxDecoration _getMessageContainerDecoration(
+      ThemeData theme, ChatBubbleStyle style) {
     switch (style) {
       case ChatBubbleStyle.list:
         return BoxDecoration(

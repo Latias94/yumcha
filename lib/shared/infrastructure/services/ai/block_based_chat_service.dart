@@ -4,32 +4,33 @@ import '../../../../features/chat/domain/entities/message_block_type.dart';
 import '../../../../features/chat/domain/entities/message_block_status.dart';
 import '../../../../features/chat/domain/entities/message_status.dart';
 import '../../../../features/ai_management/domain/entities/ai_assistant.dart';
-import '../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../../features/ai_management/domain/entities/ai_provider.dart'
+    as models;
 import '../../../../features/chat/domain/services/message_factory.dart';
 import '../media/media_storage_service.dart';
 import 'ai_service_manager.dart';
 import '../logger_service.dart';
 
 /// 基于块的聊天服务 - 使用新的块化消息系统的AI聊天服务
-/// 
+///
 /// 这个服务替代了EnhancedChatService，使用新的块化消息架构：
 /// - 🧩 消息块化管理 - 每个消息由多个块组成
 /// - 🎨 多媒体块支持 - 图片、音频、文件等作为独立块
 /// - 🔄 流式块更新 - 支持实时块状态更新
 /// - 📊 精细化状态管理 - 每个块独立的状态跟踪
-/// 
+///
 /// ## 核心优势
-/// 
+///
 /// ### 1. 更好的内容组织
 /// - 文本、图片、音频等内容分离管理
 /// - 支持复杂的多模态消息结构
 /// - 便于内容的独立操作和展示
-/// 
+///
 /// ### 2. 增强的流式体验
 /// - 文本块可以流式更新
 /// - 多媒体块可以异步生成
 /// - 用户可以看到每个块的生成进度
-/// 
+///
 /// ### 3. 更好的错误处理
 /// - 单个块失败不影响整个消息
 /// - 可以重试失败的块
@@ -42,24 +43,49 @@ class BlockBasedChatService {
 
   // 图片生成关键词检测
   static const List<String> _imageGenerationKeywords = [
-    '画', '绘制', '生成图片', '创建图像', '制作图片', '设计图片',
-    '画一张', '画个', '画出', '生成一张', '创作图片', '制作海报',
-    'draw', 'paint', 'create image', 'generate image', 'make picture',
-    'design', 'illustrate', 'sketch', 'render'
+    '画',
+    '绘制',
+    '生成图片',
+    '创建图像',
+    '制作图片',
+    '设计图片',
+    '画一张',
+    '画个',
+    '画出',
+    '生成一张',
+    '创作图片',
+    '制作海报',
+    'draw',
+    'paint',
+    'create image',
+    'generate image',
+    'make picture',
+    'design',
+    'illustrate',
+    'sketch',
+    'render'
   ];
 
   // TTS生成阈值和关键词
   static const int _ttsTextLengthThreshold = 100;
   static const List<String> _ttsRequestKeywords = [
-    '读出来', '朗读', '语音播放', '念给我听', '用语音说',
-    'read aloud', 'speak', 'voice', 'audio', 'tts'
+    '读出来',
+    '朗读',
+    '语音播放',
+    '念给我听',
+    '用语音说',
+    'read aloud',
+    'speak',
+    'voice',
+    'audio',
+    'tts'
   ];
 
   BlockBasedChatService({
     required AiServiceManager serviceManager,
     required MediaStorageService mediaService,
-  }) : _serviceManager = serviceManager,
-       _mediaService = mediaService;
+  })  : _serviceManager = serviceManager,
+        _mediaService = mediaService;
 
   /// 发送块化聊天消息（支持多媒体生成）
   Future<Message> sendBlockMessage({
@@ -89,8 +115,8 @@ class BlockBasedChatService {
 
     try {
       // 1. 检测用户消息中的图片生成请求
-      final shouldGenerateImage = autoGenerateImages && 
-          _detectImageGenerationIntent(userMessage);
+      final shouldGenerateImage =
+          autoGenerateImages && _detectImageGenerationIntent(userMessage);
 
       // 2. 发送基础聊天请求
       final chatResponse = await _serviceManager.sendMessage(
@@ -197,7 +223,8 @@ class BlockBasedChatService {
         modelId: modelName,
         metadata: {
           'modelName': modelName,
-          'totalDurationMs': DateTime.now().difference(startTime).inMilliseconds,
+          'totalDurationMs':
+              DateTime.now().difference(startTime).inMilliseconds,
           'messageId': finalMessageId, // 保持外部传入的ID
         },
       ).copyWith(
@@ -210,14 +237,18 @@ class BlockBasedChatService {
         'messageId': finalMessageId,
         'duration': '${DateTime.now().difference(startTime).inMilliseconds}ms',
         'blocksCount': blocks.length,
-        'textBlocks': blocks.where((b) => b.type == MessageBlockType.mainText).length,
-        'imageBlocks': blocks.where((b) => b.type == MessageBlockType.image).length,
-        'audioBlocks': blocks.where((b) => b.type == MessageBlockType.file &&
-            b.metadata?['fileType'] == 'audio').length,
+        'textBlocks':
+            blocks.where((b) => b.type == MessageBlockType.mainText).length,
+        'imageBlocks':
+            blocks.where((b) => b.type == MessageBlockType.image).length,
+        'audioBlocks': blocks
+            .where((b) =>
+                b.type == MessageBlockType.file &&
+                b.metadata?['fileType'] == 'audio')
+            .length,
       });
 
       return blockMessage;
-
     } catch (e) {
       _logger.error('块化聊天请求失败', {
         'requestId': requestId,
@@ -265,8 +296,8 @@ class BlockBasedChatService {
 
     try {
       // 检测是否需要生成图片
-      final shouldGenerateImage = autoGenerateImages && 
-          _detectImageGenerationIntent(userMessage);
+      final shouldGenerateImage =
+          autoGenerateImages && _detectImageGenerationIntent(userMessage);
 
       var accumulatedContent = '';
       final blocks = <MessageBlock>[];
@@ -316,9 +347,10 @@ class BlockBasedChatService {
           _logger.debug('块化服务接收内容增量', {
             'messageId': finalMessageId,
             'deltaLength': event.contentDelta?.length ?? 0,
-            'deltaContent': event.contentDelta != null && event.contentDelta!.length > 30
-                ? '${event.contentDelta!.substring(0, 30)}...'
-                : event.contentDelta ?? '',
+            'deltaContent':
+                event.contentDelta != null && event.contentDelta!.length > 30
+                    ? '${event.contentDelta!.substring(0, 30)}...'
+                    : event.contentDelta ?? '',
             'previousLength': previousLength,
             'newLength': accumulatedContent.length,
             'accumulatedEnding': accumulatedContent.length > 20
@@ -340,7 +372,6 @@ class BlockBasedChatService {
           );
 
           yield currentMessage;
-          
         } else if (event.isCompleted) {
           // 🔍 调试日志：记录流式完成时的状态
           _logger.info('块化服务流式完成', {
@@ -376,7 +407,8 @@ class BlockBasedChatService {
             ));
           }
 
-          if (autoGenerateTts && _shouldGenerateTts(accumulatedContent, userMessage)) {
+          if (autoGenerateTts &&
+              _shouldGenerateTts(accumulatedContent, userMessage)) {
             finalBlocks.add(MessageBlock(
               id: '${finalMessageId}_audio',
               messageId: finalMessageId,
@@ -393,7 +425,8 @@ class BlockBasedChatService {
             'messageId': finalMessageId,
             'finalBlocksCount': finalBlocks.length,
             'textBlockContentLength': textBlock.content?.length ?? 0,
-            'textBlockContentEnding': textBlock.content != null && textBlock.content!.length > 30
+            'textBlockContentEnding': textBlock.content != null &&
+                    textBlock.content!.length > 30
                 ? '...${textBlock.content!.substring(textBlock.content!.length - 30)}'
                 : textBlock.content ?? '',
           });
@@ -405,12 +438,12 @@ class BlockBasedChatService {
             updatedAt: DateTime.now(),
             metadata: {
               ...?currentMessage.metadata,
-              'totalDurationMs': DateTime.now().difference(startTime).inMilliseconds,
+              'totalDurationMs':
+                  DateTime.now().difference(startTime).inMilliseconds,
             },
           );
 
           yield currentMessage;
-          
         } else if (event.isError) {
           // 更新为错误状态
           textBlock = textBlock.copyWith(
@@ -418,7 +451,7 @@ class BlockBasedChatService {
             error: {'streamError': event.error},
             updatedAt: DateTime.now(),
           );
-          
+
           currentMessage = currentMessage.copyWith(
             status: MessageStatus.aiError,
             blocks: [textBlock],
@@ -428,11 +461,10 @@ class BlockBasedChatService {
               'errorInfo': event.error,
             },
           );
-          
+
           yield currentMessage;
         }
       }
-
     } catch (e) {
       _logger.error('块化流式聊天请求失败', {
         'requestId': requestId,
@@ -460,16 +492,16 @@ class BlockBasedChatService {
   /// 检测用户消息中的图片生成意图
   bool _detectImageGenerationIntent(String userMessage) {
     final lowerMessage = userMessage.toLowerCase();
-    return _imageGenerationKeywords.any((keyword) =>
-        lowerMessage.contains(keyword.toLowerCase()));
+    return _imageGenerationKeywords
+        .any((keyword) => lowerMessage.contains(keyword.toLowerCase()));
   }
 
   /// 判断是否应该生成TTS
   bool _shouldGenerateTts(String aiResponse, String userMessage) {
     // 1. 用户明确请求语音
     final lowerUserMessage = userMessage.toLowerCase();
-    if (_ttsRequestKeywords.any((keyword) =>
-        lowerUserMessage.contains(keyword.toLowerCase()))) {
+    if (_ttsRequestKeywords
+        .any((keyword) => lowerUserMessage.contains(keyword.toLowerCase()))) {
       return true;
     }
 
@@ -480,9 +512,18 @@ class BlockBasedChatService {
 
     // 3. 回复包含诗歌、故事等适合朗读的内容
     final lowerResponse = aiResponse.toLowerCase();
-    final narrativeKeywords = ['故事', '诗歌', '诗', '童话', '小说', 'story', 'poem', 'tale'];
-    if (narrativeKeywords.any((keyword) =>
-        lowerResponse.contains(keyword.toLowerCase()))) {
+    final narrativeKeywords = [
+      '故事',
+      '诗歌',
+      '诗',
+      '童话',
+      '小说',
+      'story',
+      'poem',
+      'tale'
+    ];
+    if (narrativeKeywords
+        .any((keyword) => lowerResponse.contains(keyword.toLowerCase()))) {
       return true;
     }
 
@@ -534,7 +575,10 @@ class BlockBasedChatService {
           id: blockId,
           messageId: messageId,
           content: '图片生成失败: ${imageResponse.error}',
-          error: {'reason': 'generation_failed', 'details': imageResponse.error},
+          error: {
+            'reason': 'generation_failed',
+            'details': imageResponse.error
+          },
         );
       }
 
@@ -548,7 +592,6 @@ class BlockBasedChatService {
         status: MessageBlockStatus.success,
         createdAt: DateTime.now(),
       );
-
     } catch (e) {
       return MessageBlock.error(
         id: blockId,
@@ -613,7 +656,6 @@ class BlockBasedChatService {
           'fileType': 'audio',
         },
       );
-
     } catch (e) {
       return MessageBlock.error(
         id: blockId,
@@ -629,18 +671,18 @@ class BlockBasedChatService {
     // 简单的提示词提取逻辑
     // 在实际应用中，这里可能需要更复杂的NLP处理
     final lowerUserPrompt = userPrompt.toLowerCase();
-    
+
     // 如果用户消息包含图片生成关键词，使用用户消息
-    if (_imageGenerationKeywords.any((keyword) =>
-        lowerUserPrompt.contains(keyword.toLowerCase()))) {
+    if (_imageGenerationKeywords
+        .any((keyword) => lowerUserPrompt.contains(keyword.toLowerCase()))) {
       return userPrompt;
     }
-    
+
     // 否则尝试从AI回复中提取描述
     if (aiResponse.length > 50) {
       return aiResponse.substring(0, 200); // 取前200字符作为提示词
     }
-    
+
     return userPrompt;
   }
 

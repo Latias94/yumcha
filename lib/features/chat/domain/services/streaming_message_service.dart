@@ -102,11 +102,11 @@ class _StreamingContext {
   final String? modelId;
   final DateTime startTime;
   final Map<String, dynamic>? initialMetadata;
-  
+
   // 内容累积
   final StringBuffer _contentBuffer = StringBuffer();
   final StringBuffer _thinkingBuffer = StringBuffer();
-  
+
   // 状态管理
   MessageStatus _status = MessageStatus.aiPending;
   final MessageStateMachine _stateMachine = MessageStateMachine();
@@ -137,7 +137,7 @@ class _StreamingContext {
       currentStatus: _status,
       event: event,
     );
-    
+
     if (result.isValid) {
       _status = result.newStatus;
       return true;
@@ -157,7 +157,7 @@ class _StreamingContext {
 }
 
 /// 流式消息服务
-/// 
+///
 /// 专门处理流式消息的业务逻辑，包括：
 /// - 流式消息的生命周期管理
 /// - 内容累积和状态转换
@@ -166,12 +166,12 @@ class _StreamingContext {
 class StreamingMessageService {
   final MessageRepository _messageRepository;
   final LoggerService _logger = LoggerService();
-  
+
   /// 活跃的流式上下文
   final Map<String, _StreamingContext> _activeContexts = {};
-  
+
   /// 流式更新控制器
-  final StreamController<StreamingMessageUpdate> _updateController = 
+  final StreamController<StreamingMessageUpdate> _updateController =
       StreamController<StreamingMessageUpdate>.broadcast();
 
   StreamingMessageService(this._messageRepository);
@@ -220,7 +220,6 @@ class StreamingMessageService {
         'conversationId': conversationId,
         'assistantId': assistantId,
       });
-
     } catch (error) {
       _logger.error('初始化流式消息失败', {
         'messageId': messageId,
@@ -297,11 +296,8 @@ class StreamingMessageService {
       final afterContent = context.fullContent;
 
       // 🔍 记录到调试跟踪器
-      StreamingDebugHelper.recordContentUpdate(
-        messageId,
-        afterContent,
-        source: 'StreamingMessageService.updateContent'
-      );
+      StreamingDebugHelper.recordContentUpdate(messageId, afterContent,
+          source: 'StreamingMessageService.updateContent');
 
       _logger.info('流式内容更新完成', {
         'messageId': messageId,
@@ -323,7 +319,8 @@ class StreamingMessageService {
       await _messageRepository.updateStreamingContent(
         messageId: messageId,
         content: context.fullContent,
-        thinkingContent: context.fullThinking.isNotEmpty ? context.fullThinking : null,
+        thinkingContent:
+            context.fullThinking.isNotEmpty ? context.fullThinking : null,
       );
 
       // 🔍 调试日志：验证Repository更新
@@ -341,10 +338,10 @@ class StreamingMessageService {
         contentDelta: contentDelta,
         thinkingDelta: thinkingDelta,
         fullContent: context.fullContent,
-        fullThinking: context.fullThinking.isNotEmpty ? context.fullThinking : null,
+        fullThinking:
+            context.fullThinking.isNotEmpty ? context.fullThinking : null,
         metadata: metadata,
       ));
-
     } catch (error) {
       _logger.error('更新流式内容失败', {
         'messageId': messageId,
@@ -441,7 +438,8 @@ class StreamingMessageService {
       _updateController.add(StreamingMessageUpdate.completed(
         messageId: messageId,
         fullContent: context.fullContent,
-        fullThinking: context.fullThinking.isNotEmpty ? context.fullThinking : null,
+        fullThinking:
+            context.fullThinking.isNotEmpty ? context.fullThinking : null,
         metadata: metadata,
       ));
 
@@ -470,7 +468,6 @@ class StreamingMessageService {
         'success': true,
         'debugReport': debugReport,
       });
-
     } catch (error) {
       _logger.error('完成流式消息失败', {
         'messageId': messageId,
@@ -485,7 +482,8 @@ class StreamingMessageService {
   }
 
   /// 处理流式错误
-  Future<void> _handleStreamingError(String messageId, String errorMessage) async {
+  Future<void> _handleStreamingError(
+      String messageId, String errorMessage) async {
     final context = _activeContexts[messageId];
     if (context == null) return;
 
@@ -497,20 +495,22 @@ class StreamingMessageService {
       await _messageRepository.handleStreamingError(
         messageId: messageId,
         errorMessage: errorMessage,
-        partialContent: context.fullContent.isNotEmpty ? context.fullContent : null,
+        partialContent:
+            context.fullContent.isNotEmpty ? context.fullContent : null,
       );
 
       // 发送错误事件
       _updateController.add(StreamingMessageUpdate.error(
         messageId: messageId,
         error: errorMessage,
-        partialContent: context.fullContent.isNotEmpty ? context.fullContent : null,
-        partialThinking: context.fullThinking.isNotEmpty ? context.fullThinking : null,
+        partialContent:
+            context.fullContent.isNotEmpty ? context.fullContent : null,
+        partialThinking:
+            context.fullThinking.isNotEmpty ? context.fullThinking : null,
       ));
 
       // 清理上下文
       _activeContexts.remove(messageId);
-
     } catch (error) {
       _logger.error('处理流式错误失败', {
         'messageId': messageId,

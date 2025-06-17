@@ -122,8 +122,6 @@ final messageIdServiceProvider = Provider<MessageIdService>((ref) {
   return MessageIdService();
 });
 
-
-
 // 注意：blockBasedChatServiceProvider 已在
 // lib/shared/infrastructure/services/ai/providers/block_chat_provider.dart 中定义
 // 请从该文件导入使用

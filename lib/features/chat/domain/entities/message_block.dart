@@ -4,7 +4,7 @@ import 'message_block_type.dart';
 import 'message_block_status.dart';
 
 /// 消息块实体
-/// 
+///
 /// 表示消息中的一个内容块，支持多种类型的内容
 /// 每个消息可以包含多个消息块，实现更精细的内容管理
 @immutable
@@ -291,7 +291,8 @@ class MessageBlock {
 
   /// 是否有错误
   bool get hasError {
-    return status.isError && (error != null || (content != null && content!.isNotEmpty));
+    return status.isError &&
+        (error != null || (content != null && content!.isNotEmpty));
   }
 
   /// 获取思考时间

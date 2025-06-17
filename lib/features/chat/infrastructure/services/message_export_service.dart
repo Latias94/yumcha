@@ -29,7 +29,6 @@ enum ExportFormat {
 /// - 🎨 **格式化输出**: 美观的格式化输出
 /// - 📱 **跨平台**: 支持移动端和桌面端
 class MessageExportService {
-
   /// 导出消息列表
   Future<String> exportMessages({
     required List<Message> messages,
@@ -44,7 +43,7 @@ class MessageExportService {
 
     try {
       String content;
-      
+
       switch (format) {
         case ExportFormat.text:
           content = _exportAsText(messages, includeMetadata, includeThinking);
@@ -53,10 +52,12 @@ class MessageExportService {
           content = _exportAsJson(messages, includeMetadata);
           break;
         case ExportFormat.markdown:
-          content = _exportAsMarkdown(messages, title, includeMetadata, includeThinking);
+          content = _exportAsMarkdown(
+              messages, title, includeMetadata, includeThinking);
           break;
         case ExportFormat.html:
-          content = _exportAsHtml(messages, title, includeMetadata, includeThinking);
+          content =
+              _exportAsHtml(messages, title, includeMetadata, includeThinking);
           break;
         case ExportFormat.csv:
           content = _exportAsCsv(messages, includeMetadata);
@@ -65,27 +66,28 @@ class MessageExportService {
 
       ChatLoggerService.logDebug('Export completed successfully');
       return content;
-      
     } catch (e) {
       ChatLoggerService.logException(
-        ValidationException.invalidParameter('export', 'Failed to export messages: $e'),
+        ValidationException.invalidParameter(
+            'export', 'Failed to export messages: $e'),
       );
       rethrow;
     }
   }
 
   /// 导出为文本格式
-  String _exportAsText(List<Message> messages, bool includeMetadata, bool includeThinking) {
+  String _exportAsText(
+      List<Message> messages, bool includeMetadata, bool includeThinking) {
     final buffer = StringBuffer();
-    
+
     for (int i = 0; i < messages.length; i++) {
       final message = messages[i];
-      
+
       // 消息头
       buffer.writeln('=' * 50);
       buffer.writeln('消息 ${i + 1} - ${message.isFromUser ? '用户' : 'AI助手'}');
       buffer.writeln('时间: ${_formatDateTime(message.createdAt)}');
-      
+
       if (includeMetadata) {
         buffer.writeln('ID: ${message.id}');
         buffer.writeln('状态: ${message.status.displayName}');
@@ -93,23 +95,23 @@ class MessageExportService {
           buffer.writeln('模型: ${message.modelId}');
         }
       }
-      
+
       buffer.writeln('-' * 30);
-      
+
       // 消息内容
       for (final block in message.blocks) {
         if (block.type == MessageBlockType.thinking && !includeThinking) {
           continue;
         }
-        
+
         buffer.writeln();
         buffer.writeln('[${_getBlockTypeName(block.type)}]');
         buffer.writeln(block.content ?? '');
       }
-      
+
       buffer.writeln();
     }
-    
+
     return buffer.toString();
   }
 
@@ -118,62 +120,70 @@ class MessageExportService {
     final data = {
       'exportTime': DateTime.now().toIso8601String(),
       'messageCount': messages.length,
-      'messages': messages.map((message) => {
-        'id': message.id,
-        'conversationId': message.conversationId,
-        'role': message.role,
-        'assistantId': message.assistantId,
-        'createdAt': message.createdAt.toIso8601String(),
-        'updatedAt': message.updatedAt.toIso8601String(),
-        if (includeMetadata) ...{
-          'status': message.status.name,
-          'modelId': message.modelId,
-          'metadata': message.metadata,
-        },
-        'blocks': message.blocks.map((block) => {
-          'id': block.id,
-          'type': block.type.name,
-          'content': block.content,
-          // 'orderIndex': block.orderIndex, // MessageBlock没有orderIndex属性
-          'status': block.status.name,
-          if (block.language != null) 'language': block.language,
-          if (block.toolName != null) 'toolName': block.toolName,
-          if (includeMetadata) ...{
-            'createdAt': block.createdAt.toIso8601String(),
-            'metadata': block.metadata,
-          },
-        }).toList(),
-      }).toList(),
+      'messages': messages
+          .map((message) => {
+                'id': message.id,
+                'conversationId': message.conversationId,
+                'role': message.role,
+                'assistantId': message.assistantId,
+                'createdAt': message.createdAt.toIso8601String(),
+                'updatedAt': message.updatedAt.toIso8601String(),
+                if (includeMetadata) ...{
+                  'status': message.status.name,
+                  'modelId': message.modelId,
+                  'metadata': message.metadata,
+                },
+                'blocks': message.blocks
+                    .map((block) => {
+                          'id': block.id,
+                          'type': block.type.name,
+                          'content': block.content,
+                          // 'orderIndex': block.orderIndex, // MessageBlock没有orderIndex属性
+                          'status': block.status.name,
+                          if (block.language != null)
+                            'language': block.language,
+                          if (block.toolName != null)
+                            'toolName': block.toolName,
+                          if (includeMetadata) ...{
+                            'createdAt': block.createdAt.toIso8601String(),
+                            'metadata': block.metadata,
+                          },
+                        })
+                    .toList(),
+              })
+          .toList(),
     };
-    
+
     return const JsonEncoder.withIndent('  ').convert(data);
   }
 
   /// 导出为Markdown格式
-  String _exportAsMarkdown(List<Message> messages, String? title, bool includeMetadata, bool includeThinking) {
+  String _exportAsMarkdown(List<Message> messages, String? title,
+      bool includeMetadata, bool includeThinking) {
     final buffer = StringBuffer();
-    
+
     // 标题
     if (title != null) {
       buffer.writeln('# $title');
       buffer.writeln();
     }
-    
+
     // 元信息
     buffer.writeln('**导出时间**: ${_formatDateTime(DateTime.now())}');
     buffer.writeln('**消息数量**: ${messages.length}');
     buffer.writeln();
     buffer.writeln('---');
     buffer.writeln();
-    
+
     // 消息内容
     for (int i = 0; i < messages.length; i++) {
       final message = messages[i];
-      
+
       // 消息标题
-      buffer.writeln('## 消息 ${i + 1} - ${message.isFromUser ? '👤 用户' : '🤖 AI助手'}');
+      buffer.writeln(
+          '## 消息 ${i + 1} - ${message.isFromUser ? '👤 用户' : '🤖 AI助手'}');
       buffer.writeln();
-      
+
       if (includeMetadata) {
         buffer.writeln('- **时间**: ${_formatDateTime(message.createdAt)}');
         buffer.writeln('- **ID**: `${message.id}`');
@@ -183,13 +193,13 @@ class MessageExportService {
         }
         buffer.writeln();
       }
-      
+
       // 消息块
       for (final block in message.blocks) {
         if (block.type == MessageBlockType.thinking && !includeThinking) {
           continue;
         }
-        
+
         switch (block.type) {
           case MessageBlockType.mainText:
             buffer.writeln(block.content ?? '');
@@ -202,7 +212,8 @@ class MessageExportService {
             break;
           case MessageBlockType.thinking:
             buffer.writeln('> **思考过程**:');
-            buffer.writeln('> ${(block.content ?? '').replaceAll('\n', '\n> ')}');
+            buffer
+                .writeln('> ${(block.content ?? '').replaceAll('\n', '\n> ')}');
             break;
           case MessageBlockType.tool:
             buffer.writeln('**🔧 工具调用**: ${block.toolName ?? '未知工具'}');
@@ -217,84 +228,90 @@ class MessageExportService {
             buffer.writeln('> ⚠️ **错误**: ${block.content ?? ''}');
             break;
           default:
-            buffer.writeln('**${_getBlockTypeName(block.type)}**: ${block.content ?? ''}');
+            buffer.writeln(
+                '**${_getBlockTypeName(block.type)}**: ${block.content ?? ''}');
         }
-        
+
         buffer.writeln();
       }
-      
+
       buffer.writeln('---');
       buffer.writeln();
     }
-    
+
     return buffer.toString();
   }
 
   /// 导出为HTML格式
-  String _exportAsHtml(List<Message> messages, String? title, bool includeMetadata, bool includeThinking) {
+  String _exportAsHtml(List<Message> messages, String? title,
+      bool includeMetadata, bool includeThinking) {
     final buffer = StringBuffer();
-    
+
     // HTML头部
     buffer.writeln('<!DOCTYPE html>');
     buffer.writeln('<html lang="zh-CN">');
     buffer.writeln('<head>');
     buffer.writeln('  <meta charset="UTF-8">');
-    buffer.writeln('  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    buffer.writeln(
+        '  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
     buffer.writeln('  <title>${title ?? '聊天记录'}</title>');
     buffer.writeln('  <style>');
     buffer.writeln(_getHtmlStyles());
     buffer.writeln('  </style>');
     buffer.writeln('</head>');
     buffer.writeln('<body>');
-    
+
     // 标题
     if (title != null) {
       buffer.writeln('  <h1>$title</h1>');
     }
-    
+
     // 元信息
     buffer.writeln('  <div class="meta-info">');
-    buffer.writeln('    <p><strong>导出时间</strong>: ${_formatDateTime(DateTime.now())}</p>');
+    buffer.writeln(
+        '    <p><strong>导出时间</strong>: ${_formatDateTime(DateTime.now())}</p>');
     buffer.writeln('    <p><strong>消息数量</strong>: ${messages.length}</p>');
     buffer.writeln('  </div>');
-    
+
     // 消息列表
     buffer.writeln('  <div class="messages">');
-    
+
     for (final message in messages) {
       final roleClass = message.isFromUser ? 'user' : 'assistant';
       buffer.writeln('    <div class="message $roleClass">');
       buffer.writeln('      <div class="message-header">');
-      buffer.writeln('        <span class="role">${message.isFromUser ? '👤 用户' : '🤖 AI助手'}</span>');
-      buffer.writeln('        <span class="time">${_formatDateTime(message.createdAt)}</span>');
+      buffer.writeln(
+          '        <span class="role">${message.isFromUser ? '👤 用户' : '🤖 AI助手'}</span>');
+      buffer.writeln(
+          '        <span class="time">${_formatDateTime(message.createdAt)}</span>');
       buffer.writeln('      </div>');
-      
+
       buffer.writeln('      <div class="message-content">');
       for (final block in message.blocks) {
         if (block.type == MessageBlockType.thinking && !includeThinking) {
           continue;
         }
-        
+
         buffer.writeln('        <div class="block ${block.type.name}">');
         buffer.writeln('          ${_formatBlockContentForHtml(block)}');
         buffer.writeln('        </div>');
       }
       buffer.writeln('      </div>');
-      
+
       buffer.writeln('    </div>');
     }
-    
+
     buffer.writeln('  </div>');
     buffer.writeln('</body>');
     buffer.writeln('</html>');
-    
+
     return buffer.toString();
   }
 
   /// 导出为CSV格式
   String _exportAsCsv(List<Message> messages, bool includeMetadata) {
     final buffer = StringBuffer();
-    
+
     // CSV头部
     final headers = [
       'ID',
@@ -308,7 +325,7 @@ class MessageExportService {
       ],
     ];
     buffer.writeln(headers.map(_escapeCsvField).join(','));
-    
+
     // 数据行
     for (final message in messages) {
       final row = [
@@ -324,7 +341,7 @@ class MessageExportService {
       ];
       buffer.writeln(row.map(_escapeCsvField).join(','));
     }
-    
+
     return buffer.toString();
   }
 
@@ -334,14 +351,15 @@ class MessageExportService {
     required String fileName,
     String? directory,
   }) async {
-    final dir = directory != null 
-      ? Directory(directory)
-      : await getApplicationDocumentsDirectory();
-    
+    final dir = directory != null
+        ? Directory(directory)
+        : await getApplicationDocumentsDirectory();
+
     final file = File('${dir.path}/$fileName');
     await file.writeAsString(content);
-    
-    ChatLoggerService.logFileOperation('export', file.path, fileSize: content.length);
+
+    ChatLoggerService.logFileOperation('export', file.path,
+        fileSize: content.length);
     return file;
   }
 
@@ -368,7 +386,7 @@ class MessageExportService {
   /// 格式化日期时间
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
-           '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
   }
 
   /// 转义CSV字段
@@ -382,7 +400,7 @@ class MessageExportService {
   /// 格式化HTML块内容
   String _formatBlockContentForHtml(MessageBlock block) {
     final content = block.content ?? '';
-    
+
     switch (block.type) {
       case MessageBlockType.code:
         return '<pre><code class="${block.language ?? ''}">${_escapeHtml(content)}</code></pre>';

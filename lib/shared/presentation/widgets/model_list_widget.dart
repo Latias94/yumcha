@@ -182,7 +182,8 @@ class _ModelListWidgetState extends ConsumerState<ModelListWidget> {
     );
   }
 
-  void _showModelSelectionDialogWithError(List<AiModel> availableModels, String errorMessage) {
+  void _showModelSelectionDialogWithError(
+      List<AiModel> availableModels, String errorMessage) {
     showDialog(
       context: context,
       builder: (context) => ModelSelectionDialog(

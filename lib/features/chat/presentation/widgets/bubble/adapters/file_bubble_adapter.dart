@@ -6,7 +6,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 文件块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染文件类型的消息块
 class FileBubbleAdapter extends BubbleBlockAdapter {
   @override

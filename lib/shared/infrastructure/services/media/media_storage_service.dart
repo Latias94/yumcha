@@ -10,13 +10,13 @@ import '../logger_service.dart';
 enum MediaStorageStrategy {
   /// 数据库存储（适用于小文件 <1MB）
   database,
-  
+
   /// 本地文件存储（适用于大文件 >=1MB）
   localFile,
-  
+
   /// 网络URL引用（适用于远程资源）
   networkUrl,
-  
+
   /// 缓存存储（临时文件）
   cache,
 }
@@ -61,7 +61,8 @@ class MediaMetadata {
   /// 格式化文件大小
   String get formattedSize {
     if (sizeBytes < 1024) return '$sizeBytes B';
-    if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    if (sizeBytes < 1024 * 1024)
+      return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
     return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
@@ -101,7 +102,7 @@ class MediaMetadata {
       networkUrl: json['networkUrl'] as String?,
       base64Data: json['base64Data'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      expiresAt: json['expiresAt'] != null 
+      expiresAt: json['expiresAt'] != null
           ? DateTime.parse(json['expiresAt'] as String)
           : null,
       customProperties: json['customProperties'] as Map<String, dynamic>?,
@@ -110,9 +111,9 @@ class MediaMetadata {
 }
 
 /// 多媒体存储服务
-/// 
+///
 /// 负责管理AI聊天中的图片、音频等多媒体文件的存储和检索
-/// 
+///
 /// 存储策略：
 /// - 小文件（<1MB）：Base64编码存储在数据库中
 /// - 大文件（>=1MB）：存储在本地文件系统
@@ -122,9 +123,9 @@ class MediaStorageService {
   static const int _smallFileSizeThreshold = 1024 * 1024; // 1MB
   static const String _mediaFolderName = 'media';
   static const String _cacheFolderName = 'cache';
-  
+
   final LoggerService _logger = LoggerService();
-  
+
   Directory? _mediaDirectory;
   Directory? _cacheDirectory;
   bool _isInitialized = false;
@@ -135,7 +136,7 @@ class MediaStorageService {
 
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      
+
       // 创建媒体文件目录
       _mediaDirectory = Directory(path.join(appDir.path, _mediaFolderName));
       if (!await _mediaDirectory!.exists()) {
@@ -266,7 +267,7 @@ class MediaStorageService {
             final file = File(metadata.localPath!);
             if (await file.exists()) {
               // 检查缓存文件是否过期
-              if (metadata.strategy == MediaStorageStrategy.cache && 
+              if (metadata.strategy == MediaStorageStrategy.cache &&
                   metadata.isExpired) {
                 await file.delete();
                 _logger.debug('删除过期缓存文件: ${metadata.localPath}');
@@ -463,7 +464,8 @@ class MediaStorageService {
       return importedMedia;
     }
 
-    final files = await importDir.list().where((entity) => entity is File).toList();
+    final files =
+        await importDir.list().where((entity) => entity is File).toList();
 
     for (final entity in files) {
       try {
@@ -510,7 +512,8 @@ class MediaStorageService {
   }
 
   /// 确定存储策略
-  MediaStorageStrategy _determineStorageStrategy(int sizeBytes, String? networkUrl) {
+  MediaStorageStrategy _determineStorageStrategy(
+      int sizeBytes, String? networkUrl) {
     if (networkUrl != null && networkUrl.startsWith('http')) {
       return MediaStorageStrategy.networkUrl;
     }
@@ -523,7 +526,8 @@ class MediaStorageService {
   }
 
   /// 保存到本地文件
-  Future<String> _saveToLocalFile(String id, String fileName, Uint8List data) async {
+  Future<String> _saveToLocalFile(
+      String id, String fileName, Uint8List data) async {
     final extension = path.extension(fileName);
     final localFileName = '$id$extension';
     final localFile = File(path.join(_mediaDirectory!.path, localFileName));
@@ -533,7 +537,8 @@ class MediaStorageService {
   }
 
   /// 保存到缓存文件
-  Future<String> _saveToCacheFile(String id, String fileName, Uint8List data) async {
+  Future<String> _saveToCacheFile(
+      String id, String fileName, Uint8List data) async {
     final extension = path.extension(fileName);
     final cacheFileName = '$id$extension';
     final cacheFile = File(path.join(_cacheDirectory!.path, cacheFileName));
@@ -546,7 +551,8 @@ class MediaStorageService {
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 

@@ -66,11 +66,15 @@ class AppSplashScreen extends ConsumerWidget {
                   children: [
                     // 应用Logo区域
                     _buildLogoSection(context, colorScheme),
-                    SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXXL * 2)),
+                    SizedBox(
+                        height: _getAdaptiveSpacing(
+                            context, DesignConstants.spaceXXXL * 2)),
 
                     // 加载进度区域
                     _buildLoadingSection(context, colorScheme),
-                    SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXL)),
+                    SizedBox(
+                        height: _getAdaptiveSpacing(
+                            context, DesignConstants.spaceXXL)),
 
                     // 初始化状态详情
                     _buildInitializationDetails(context, colorScheme),
@@ -78,7 +82,9 @@ class AppSplashScreen extends ConsumerWidget {
                     // 底部版本信息
                     const Spacer(),
                     _buildVersionInfo(context, colorScheme),
-                    SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXL)),
+                    SizedBox(
+                        height: _getAdaptiveSpacing(
+                            context, DesignConstants.spaceXXL)),
                   ],
                 ),
               ),
@@ -144,7 +150,8 @@ class AppSplashScreen extends ConsumerWidget {
             );
           },
         ),
-        SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceXXL)),
+        SizedBox(
+            height: _getAdaptiveSpacing(context, DesignConstants.spaceXXL)),
 
         // 应用名称
         TweenAnimationBuilder<double>(
@@ -249,28 +256,35 @@ class AppSplashScreen extends ConsumerWidget {
 
           // 在小屏设备上隐藏详细的子状态，节省空间
           if (!isSmallScreen) ...[
-            SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceS)),
+            SizedBox(
+                height: _getAdaptiveSpacing(context, DesignConstants.spaceS)),
             // 详细的数据加载状态
             Padding(
               padding: EdgeInsets.only(left: DesignConstants.spaceL),
               child: Column(
                 children: [
-                  _buildSubStatusItem('提供商数据', initState.isProvidersLoaded, colorScheme),
+                  _buildSubStatusItem(
+                      '提供商数据', initState.isProvidersLoaded, colorScheme),
                   SizedBox(height: DesignConstants.spaceXS),
-                  _buildSubStatusItem('助手数据', initState.isAssistantsLoaded, colorScheme),
+                  _buildSubStatusItem(
+                      '助手数据', initState.isAssistantsLoaded, colorScheme),
                   SizedBox(height: DesignConstants.spaceXS),
-                  _buildSubStatusItem('设置数据', initState.isSettingsLoaded, colorScheme),
+                  _buildSubStatusItem(
+                      '设置数据', initState.isSettingsLoaded, colorScheme),
                   SizedBox(height: DesignConstants.spaceXS),
-                  _buildSubStatusItem('收藏模型', initState.isFavoriteModelsLoaded, colorScheme),
+                  _buildSubStatusItem(
+                      '收藏模型', initState.isFavoriteModelsLoaded, colorScheme),
                 ],
               ),
             ),
           ],
 
-          SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceM)),
+          SizedBox(
+              height: _getAdaptiveSpacing(context, DesignConstants.spaceM)),
           _buildStatusItem(
               'AI服务初始化', initState.isAiServicesInitialized, colorScheme),
-          SizedBox(height: _getAdaptiveSpacing(context, DesignConstants.spaceM)),
+          SizedBox(
+              height: _getAdaptiveSpacing(context, DesignConstants.spaceM)),
           _buildStatusItem('MCP服务初始化', initState.isMcpInitialized, colorScheme),
         ],
       ),
@@ -338,7 +352,8 @@ class AppSplashScreen extends ConsumerWidget {
       duration: DesignConstants.animationNormal +
           const Duration(milliseconds: 50), // 300ms
       padding: EdgeInsets.symmetric(
-          horizontal: DesignConstants.spaceM, vertical: DesignConstants.spaceXS),
+          horizontal: DesignConstants.spaceM,
+          vertical: DesignConstants.spaceXS),
       decoration: BoxDecoration(
         color: isCompleted
             ? colorScheme.primaryContainer
@@ -348,8 +363,8 @@ class AppSplashScreen extends ConsumerWidget {
         borderRadius: DesignConstants.radiusXS,
         border: Border.all(
           color: isCompleted
-              ? colorScheme.primary
-                  .withValues(alpha: DesignConstants.opacityMedium * 0.3) // 0.18
+              ? colorScheme.primary.withValues(
+                  alpha: DesignConstants.opacityMedium * 0.3) // 0.18
               : colorScheme.outline.withValues(
                   alpha: DesignConstants.opacityMedium * 0.2), // 0.12
           width: DesignConstants.borderWidthThin * 0.5,

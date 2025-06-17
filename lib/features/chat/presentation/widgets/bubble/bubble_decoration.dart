@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'bubble_context.dart';
 
 /// 气泡装饰工具类
-/// 
+///
 /// 提供气泡的装饰效果，包括背景、边框、阴影等
 class BubbleDecoration {
   BubbleDecoration._();
@@ -79,7 +79,7 @@ class BubbleDecoration {
   /// 创建错误状态装饰
   static BoxDecoration createError(BubbleContext context) {
     final errorColor = context.theme.colorScheme.error;
-    
+
     return BoxDecoration(
       color: errorColor.withValues(alpha: 0.1),
       borderRadius: _getBorderRadius(context),
@@ -100,7 +100,7 @@ class BubbleDecoration {
   /// 创建流式状态装饰
   static BoxDecoration createStreaming(BubbleContext context) {
     final primaryColor = context.theme.colorScheme.primary;
-    
+
     return create(context).copyWith(
       border: Border.all(
         color: primaryColor.withValues(alpha: 0.3),
@@ -294,9 +294,11 @@ extension BubbleDecorationExtensions on BoxDecoration {
         hoverColor.withValues(alpha: 0.05),
         color ?? Colors.transparent,
       ),
-      boxShadow: boxShadow?.map((shadow) => shadow.copyWith(
-        blurRadius: shadow.blurRadius * 1.2,
-      )).toList(),
+      boxShadow: boxShadow
+          ?.map((shadow) => shadow.copyWith(
+                blurRadius: shadow.blurRadius * 1.2,
+              ))
+          .toList(),
     );
   }
 

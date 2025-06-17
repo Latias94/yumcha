@@ -5,10 +5,10 @@ import '../../domain/entities/message_block.dart';
 import '../../domain/entities/message_block_type.dart';
 
 /// 批量操作面板
-/// 
+///
 /// 提供消息和消息块的批量操作功能，
 /// 包括选择、删除、导出、复制等操作。
-/// 
+///
 /// 功能特性：
 /// - ✅ **多选模式**: 支持消息和消息块的多选
 /// - 🗑️ **批量删除**: 一次删除多个项目
@@ -19,18 +19,19 @@ import '../../domain/entities/message_block_type.dart';
 class BatchOperationsPanel extends ConsumerStatefulWidget {
   /// 对话ID
   final String conversationId;
-  
+
   /// 可操作的消息列表
   final List<Message> messages;
-  
+
   /// 是否启用批量模式
   final bool isBatchMode;
-  
+
   /// 批量模式切换回调
   final void Function(bool enabled)? onBatchModeToggle;
-  
+
   /// 操作完成回调
-  final void Function(String operation, List<String> itemIds)? onOperationComplete;
+  final void Function(String operation, List<String> itemIds)?
+      onOperationComplete;
 
   const BatchOperationsPanel({
     super.key,
@@ -42,7 +43,8 @@ class BatchOperationsPanel extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<BatchOperationsPanel> createState() => _BatchOperationsPanelState();
+  ConsumerState<BatchOperationsPanel> createState() =>
+      _BatchOperationsPanelState();
 }
 
 class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
@@ -53,7 +55,7 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
   @override
   void didUpdateWidget(BatchOperationsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // 如果退出批量模式，清除选择
     if (!widget.isBatchMode && oldWidget.isBatchMode) {
       _clearSelection();
@@ -81,7 +83,8 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
             icon: const Icon(Icons.checklist, size: 18),
             label: const Text('批量操作'),
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
             ),
           ),
         ],
@@ -92,7 +95,7 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
   /// 构建批量操作面板
   Widget _buildBatchOperationsPanel() {
     final selectedCount = _selectedMessageIds.length + _selectedBlockIds.length;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -106,13 +109,13 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
         children: [
           // 标题栏
           _buildTitleBar(selectedCount),
-          
+
           // 选择控制
           _buildSelectionControls(),
-          
+
           // 操作按钮
           if (selectedCount > 0) _buildOperationButtons(),
-          
+
           // 选中项列表
           if (selectedCount > 0) _buildSelectedItemsList(),
         ],
@@ -131,19 +134,18 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(width: 8.0),
-          
           Text(
             '批量操作',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
-          
           if (selectedCount > 0) ...[
             const SizedBox(width: 8.0),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(12.0),
@@ -151,15 +153,13 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
               child: Text(
                 '$selectedCount',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ),
           ],
-          
           const Spacer(),
-          
           IconButton(
             onPressed: () => widget.onBatchModeToggle?.call(false),
             icon: const Icon(Icons.close),
@@ -182,14 +182,11 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
             tristate: true,
           ),
           const SizedBox(width: 8.0),
-          
           Text(
             _selectAll ? '取消全选' : '全选',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          
           const Spacer(),
-          
           TextButton(
             onPressed: _clearSelection,
             child: const Text('清除选择'),
@@ -212,19 +209,16 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
             label: '复制',
             onPressed: _copySelected,
           ),
-          
           _buildOperationButton(
             icon: Icons.download,
             label: '导出',
             onPressed: _exportSelected,
           ),
-          
           _buildOperationButton(
             icon: Icons.label,
             label: '标记',
             onPressed: _markSelected,
           ),
-          
           _buildOperationButton(
             icon: Icons.delete,
             label: '删除',
@@ -248,12 +242,11 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
       icon: Icon(icon, size: 16),
       label: Text(label),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isDestructive 
-          ? Theme.of(context).colorScheme.errorContainer
-          : null,
-        foregroundColor: isDestructive 
-          ? Theme.of(context).colorScheme.onErrorContainer
-          : null,
+        backgroundColor:
+            isDestructive ? Theme.of(context).colorScheme.errorContainer : null,
+        foregroundColor: isDestructive
+            ? Theme.of(context).colorScheme.onErrorContainer
+            : null,
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -285,7 +278,7 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
               return _buildSelectedMessageItem(message);
             }),
           ],
-          
+
           // 选中的消息块
           if (_selectedBlockIds.isNotEmpty) ...[
             Padding(
@@ -297,7 +290,9 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
             ),
             ..._selectedBlockIds.map((blockId) {
               final block = _findBlockById(blockId);
-              return block != null ? _buildSelectedBlockItem(block) : const SizedBox.shrink();
+              return block != null
+                  ? _buildSelectedBlockItem(block)
+                  : const SizedBox.shrink();
             }),
           ],
         ],
@@ -314,9 +309,9 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
         size: 16,
       ),
       title: Text(
-        message.content.length > 50 
-          ? '${message.content.substring(0, 50)}...'
-          : message.content,
+        message.content.length > 50
+            ? '${message.content.substring(0, 50)}...'
+            : message.content,
         style: Theme.of(context).textTheme.bodySmall,
       ),
       subtitle: Text(
@@ -339,9 +334,9 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
         size: 16,
       ),
       title: Text(
-        block.content?.length != null && block.content!.length > 50 
-          ? '${block.content!.substring(0, 50)}...'
-          : block.content ?? '',
+        block.content?.length != null && block.content!.length > 50
+            ? '${block.content!.substring(0, 50)}...'
+            : block.content ?? '',
         style: Theme.of(context).textTheme.bodySmall,
       ),
       subtitle: Text(
@@ -396,10 +391,10 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
 
   /// 更新全选状态
   void _updateSelectAllState() {
-    final totalItems = widget.messages.length + 
-      widget.messages.fold(0, (sum, m) => sum + m.blocks.length);
+    final totalItems = widget.messages.length +
+        widget.messages.fold(0, (sum, m) => sum + m.blocks.length);
     final selectedItems = _selectedMessageIds.length + _selectedBlockIds.length;
-    
+
     setState(() {
       _selectAll = selectedItems == totalItems;
     });
@@ -447,7 +442,8 @@ class _BatchOperationsPanelState extends ConsumerState<BatchOperationsPanel> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认删除'),
-        content: Text('确定要删除选中的 ${_selectedMessageIds.length + _selectedBlockIds.length} 个项目吗？'),
+        content: Text(
+            '确定要删除选中的 ${_selectedMessageIds.length + _selectedBlockIds.length} 个项目吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

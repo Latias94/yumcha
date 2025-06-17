@@ -34,7 +34,8 @@ import 'package:llm_dart/llm_dart.dart';
 /// ```
 class ImageGenerationService extends AiServiceBase {
   // 单例模式实现
-  static final ImageGenerationService _instance = ImageGenerationService._internal();
+  static final ImageGenerationService _instance =
+      ImageGenerationService._internal();
   factory ImageGenerationService() => _instance;
   ImageGenerationService._internal();
 
@@ -117,7 +118,8 @@ class ImageGenerationService extends AiServiceBase {
         style: style,
       );
 
-      final result = await (chatProvider as ImageGenerationCapability).generateImages(request);
+      final result = await (chatProvider as ImageGenerationCapability)
+          .generateImages(request);
       final duration = DateTime.now().difference(startTime);
 
       // 更新统计信息
@@ -130,11 +132,13 @@ class ImageGenerationService extends AiServiceBase {
       });
 
       return ImageGenerationResponse(
-        images: result.images.map((img) => GeneratedImage(
-          url: img.url,
-          base64: null, // llm_dart 的 GeneratedImage 可能没有 base64 属性
-          revisedPrompt: img.revisedPrompt,
-        )).toList(),
+        images: result.images
+            .map((img) => GeneratedImage(
+                  url: img.url,
+                  base64: null, // llm_dart 的 GeneratedImage 可能没有 base64 属性
+                  revisedPrompt: img.revisedPrompt,
+                ))
+            .toList(),
         duration: duration,
         isSuccess: true,
         usage: result.usage,
@@ -235,7 +239,8 @@ class ImageGenerationService extends AiServiceBase {
   }
 
   /// 更新统计信息
-  void _updateStats(String providerId, bool success, Duration duration, int imageCount) {
+  void _updateStats(
+      String providerId, bool success, Duration duration, int imageCount) {
     final currentStats = _stats[providerId] ?? ImageGenerationStats();
 
     _stats[providerId] = ImageGenerationStats(
@@ -258,7 +263,8 @@ class ImageGenerationService extends AiServiceBase {
   }
 
   /// 获取图像生成统计信息
-  Map<String, ImageGenerationStats> getImageGenerationStats() => Map.from(_stats);
+  Map<String, ImageGenerationStats> getImageGenerationStats() =>
+      Map.from(_stats);
 
   /// 清除统计信息
   void clearStats([String? providerId]) {
@@ -323,7 +329,6 @@ class ImageGenerationStats {
   Duration get averageDuration => totalRequests > 0
       ? Duration(microseconds: totalDuration.inMicroseconds ~/ totalRequests)
       : Duration.zero;
-  double get averageImagesPerRequest => totalRequests > 0
-      ? totalImagesGenerated / totalRequests
-      : 0.0;
+  double get averageImagesPerRequest =>
+      totalRequests > 0 ? totalImagesGenerated / totalRequests : 0.0;
 }

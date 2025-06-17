@@ -651,7 +651,8 @@ class _StreamableHttpConnection extends _McpConnection {
         'toolName': toolName,
         'contentCount': response.content.length,
         'isError': response.isError,
-        'contentTypes': response.content.map((c) => c.runtimeType.toString()).toList(),
+        'contentTypes':
+            response.content.map((c) => c.runtimeType.toString()).toList(),
       });
 
       // 处理响应内容

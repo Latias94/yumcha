@@ -6,7 +6,7 @@ import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 
 /// 消息编辑对话框
-/// 
+///
 /// 支持编辑用户消息和AI消息的内容
 class MessageEditDialog extends ConsumerStatefulWidget {
   const MessageEditDialog({
@@ -80,15 +80,15 @@ class _MessageEditDialogState extends ConsumerState<MessageEditDialog> {
     return AnimatedSwitcher(
       duration: DesignConstants.animationFast,
       child: _isLoading
-        ? SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: theme.colorScheme.onPrimary,
-            ),
-          )
-        : const Text('保存'),
+          ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: theme.colorScheme.onPrimary,
+              ),
+            )
+          : const Text('保存'),
     );
   }
 
@@ -109,7 +109,8 @@ class _MessageEditDialogState extends ConsumerState<MessageEditDialog> {
       // ✅ 使用对话框标准内边距
       contentPadding: DesignConstants.dialogPadding,
       titlePadding: DesignConstants.dialogPadding.copyWith(bottom: 0),
-      actionsPadding: DesignConstants.dialogPadding.copyWith(top: DesignConstants.spaceM),
+      actionsPadding:
+          DesignConstants.dialogPadding.copyWith(top: DesignConstants.spaceM),
       title: Row(
         children: [
           Icon(
@@ -159,8 +160,8 @@ class _MessageEditDialogState extends ConsumerState<MessageEditDialog> {
                   Expanded(
                     child: Text(
                       isUserMessage
-                        ? '编辑用户消息后，相关的AI回复将被删除并重新生成'
-                        : '编辑AI消息内容，修改后的内容将直接保存',
+                          ? '编辑用户消息后，相关的AI回复将被删除并重新生成'
+                          : '编辑AI消息内容，修改后的内容将直接保存',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         height: 1.4,
@@ -224,7 +225,8 @@ class _MessageEditDialogState extends ConsumerState<MessageEditDialog> {
               ),
               SizedBox(height: DesignConstants.spaceS),
               TextButton(
-                onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                onPressed:
+                    _isLoading ? null : () => Navigator.of(context).pop(),
                 child: const Text('取消'),
               ),
             ],
@@ -235,7 +237,8 @@ class _MessageEditDialogState extends ConsumerState<MessageEditDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextButton(
-                onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                onPressed:
+                    _isLoading ? null : () => Navigator.of(context).pop(),
                 child: const Text('取消'),
               ),
               SizedBox(width: DesignConstants.spaceM),

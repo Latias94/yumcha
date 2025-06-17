@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'mcp_server_state.freezed.dart';
 
 /// MCP服务器状态聚合模型
-/// 
+///
 /// 统一管理MCP服务器的所有相关状态信息，包括：
 /// - 连接状态和错误信息
 /// - 工具列表和能力信息
@@ -86,9 +86,10 @@ class McpServerState with _$McpServerState {
   }
 
   /// 是否可以重连
-  bool get canReconnect => 
-    (status == McpConnectionStatus.disconnected || status == McpConnectionStatus.error) &&
-    reconnectAttempts < maxReconnectAttempts;
+  bool get canReconnect =>
+      (status == McpConnectionStatus.disconnected ||
+          status == McpConnectionStatus.error) &&
+      reconnectAttempts < maxReconnectAttempts;
 
   /// 获取工具摘要
   String get toolsSummary => '可用工具: $toolCount 个';
@@ -99,11 +100,11 @@ class McpServerState with _$McpServerState {
 
 /// MCP连接状态
 enum McpConnectionStatus {
-  disconnected,    // 未连接
-  connecting,      // 连接中
-  connected,       // 已连接
-  error,           // 连接错误
-  reconnecting,    // 重连中
+  disconnected, // 未连接
+  connecting, // 连接中
+  connected, // 已连接
+  error, // 连接错误
+  reconnecting, // 重连中
 }
 
 /// MCP工具模型
@@ -138,10 +139,10 @@ class McpTool with _$McpTool {
 
 /// 使用频率等级
 enum UsageLevel {
-  unused,          // 未使用
-  low,             // 低频
-  medium,          // 中频
-  high,            // 高频
+  unused, // 未使用
+  low, // 低频
+  medium, // 中频
+  high, // 高频
 }
 
 /// MCP错误模型
@@ -161,7 +162,8 @@ class McpError with _$McpError {
   const McpError._();
 
   /// 是否为严重错误
-  bool get isCritical => type == McpErrorType.connection || type == McpErrorType.authentication;
+  bool get isCritical =>
+      type == McpErrorType.connection || type == McpErrorType.authentication;
 
   /// 获取错误级别
   ErrorLevel get level {
@@ -198,28 +200,28 @@ class McpError with _$McpError {
 
 /// MCP错误类型
 enum McpErrorType {
-  connection,      // 连接错误
-  authentication,  // 认证错误
-  toolExecution,   // 工具执行错误
-  configuration,   // 配置错误
-  timeout,         // 超时错误
-  unknown,         // 未知错误
+  connection, // 连接错误
+  authentication, // 认证错误
+  toolExecution, // 工具执行错误
+  configuration, // 配置错误
+  timeout, // 超时错误
+  unknown, // 未知错误
 }
 
 /// 错误级别
 enum ErrorLevel {
-  critical,        // 严重错误
-  high,            // 高级错误
-  medium,          // 中级错误
-  low,             // 低级错误
+  critical, // 严重错误
+  high, // 高级错误
+  medium, // 中级错误
+  low, // 低级错误
 }
 
 /// 健康状态
 enum HealthStatus {
-  healthy,         // 健康
-  caution,         // 注意
-  warning,         // 警告
-  critical,        // 严重
+  healthy, // 健康
+  caution, // 注意
+  warning, // 警告
+  critical, // 严重
 }
 
 /// MCP服务器能力
@@ -261,10 +263,12 @@ class McpServerMetrics with _$McpServerMetrics {
   const McpServerMetrics._();
 
   /// 成功率
-  double get successRate => totalRequests > 0 ? successfulRequests / totalRequests : 0.0;
+  double get successRate =>
+      totalRequests > 0 ? successfulRequests / totalRequests : 0.0;
 
   /// 失败率
-  double get failureRate => totalRequests > 0 ? failedRequests / totalRequests : 0.0;
+  double get failureRate =>
+      totalRequests > 0 ? failedRequests / totalRequests : 0.0;
 
   /// 性能等级
   PerformanceLevel get performanceLevel {
@@ -277,8 +281,8 @@ class McpServerMetrics with _$McpServerMetrics {
 
 /// 性能等级
 enum PerformanceLevel {
-  excellent,       // 优秀
-  good,            // 良好
-  fair,            // 一般
-  poor,            // 较差
+  excellent, // 优秀
+  good, // 良好
+  fair, // 一般
+  poor, // 较差
 }

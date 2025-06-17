@@ -28,7 +28,7 @@ class AiManagementStatsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final deviceType = DesignConstants.getDeviceType(context);
-    
+
     // 获取统计数据
     final providerStats = ref.watch(providerStatsProvider);
     final assistantStats = ref.watch(assistantStatsProvider);
@@ -70,9 +70,9 @@ class AiManagementStatsCard extends ConsumerWidget {
                 ),
               ],
             ),
-            
+
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 统计信息网格
             _buildStatsGrid(
               context,
@@ -147,7 +147,7 @@ class AiManagementStatsCard extends ConsumerWidget {
     bool needsBackup,
   ) {
     final crossAxisCount = deviceType == DeviceType.mobile ? 2 : 4;
-    
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -166,7 +166,7 @@ class AiManagementStatsCard extends ConsumerWidget {
           subtitle: '${providerStats.connected} 已连接',
           color: theme.colorScheme.primary,
         ),
-        
+
         // 助手统计
         _buildStatItem(
           context,
@@ -177,18 +177,22 @@ class AiManagementStatsCard extends ConsumerWidget {
           subtitle: '${assistantStats.custom} 自定义',
           color: theme.colorScheme.secondary,
         ),
-        
+
         // 配置状态
         _buildStatItem(
           context,
           theme,
-          icon: hasCompleteConfig ? Icons.check_circle_outline : Icons.warning_outlined,
+          icon: hasCompleteConfig
+              ? Icons.check_circle_outline
+              : Icons.warning_outlined,
           title: '配置',
           value: hasCompleteConfig ? '完整' : '不完整',
           subtitle: hasCompleteConfig ? '配置正常' : '需要配置',
-          color: hasCompleteConfig ? theme.colorScheme.tertiary : theme.colorScheme.error,
+          color: hasCompleteConfig
+              ? theme.colorScheme.tertiary
+              : theme.colorScheme.error,
         ),
-        
+
         // 备份状态
         _buildStatItem(
           context,
@@ -197,7 +201,9 @@ class AiManagementStatsCard extends ConsumerWidget {
           title: '备份',
           value: needsBackup ? '需要' : '最新',
           subtitle: needsBackup ? '建议备份' : '已同步',
-          color: needsBackup ? theme.colorScheme.error : theme.colorScheme.tertiary,
+          color: needsBackup
+              ? theme.colorScheme.error
+              : theme.colorScheme.tertiary,
         ),
       ],
     );

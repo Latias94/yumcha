@@ -14,7 +14,7 @@ import 'adapters/error_bubble_adapter.dart';
 import 'adapters/quote_bubble_adapter.dart';
 
 /// 气泡块渲染器
-/// 
+///
 /// 负责管理和调度不同类型消息块的渲染适配器
 class BubbleBlockRenderer {
   BubbleBlockRenderer._();
@@ -32,7 +32,7 @@ class BubbleBlockRenderer {
   void initialize() {
     // 注册所有内置适配器
     _registerBuiltinAdapters();
-    
+
     // 设置默认适配器
     _defaultAdapter = TextBubbleAdapter();
   }
@@ -72,7 +72,7 @@ class BubbleBlockRenderer {
     bool isLast = false,
   }) {
     final adapter = _getAdapterForBlock(block);
-    
+
     try {
       return adapter.buildInBubble(
         block,
@@ -92,14 +92,14 @@ class BubbleBlockRenderer {
     if (adapter != null && adapter.canHandleBlock(block.type)) {
       return adapter;
     }
-    
+
     // 尝试找到能处理该块类型的适配器
     for (final adapter in _adapters.values) {
       if (adapter.canHandleBlock(block.type)) {
         return adapter;
       }
     }
-    
+
     // 使用默认适配器
     return _defaultAdapter;
   }
@@ -156,7 +156,8 @@ class BubbleBlockRenderer {
               '内容: ${block.content!.length > 50 ? '${block.content!.substring(0, 50)}...' : block.content!}',
               style: TextStyle(
                 fontSize: 12,
-                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                color:
+                    context.theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -180,7 +181,7 @@ class BubbleBlockRenderer {
     BubbleContext context,
   ) {
     final adapter = _getAdapterForBlock(block);
-    
+
     try {
       return adapter.getPreferredHeight(block, context);
     } catch (e) {
@@ -198,13 +199,13 @@ class BubbleBlockRenderer {
   /// 获取所有支持的块类型
   Set<MessageBlockType> getSupportedBlockTypes() {
     final types = <MessageBlockType>{};
-    
+
     for (final entry in _adapters.entries) {
       if (entry.value.canHandleBlock(entry.key)) {
         types.add(entry.key);
       }
     }
-    
+
     return types;
   }
 
@@ -213,10 +214,12 @@ class BubbleBlockRenderer {
     return {
       'totalAdapters': _adapters.length,
       'supportedTypes': getSupportedBlockTypes().length,
-      'adapters': _adapters.entries.map((entry) => {
-        'type': entry.key.name,
-        'adapter': entry.value.runtimeType.toString(),
-      }).toList(),
+      'adapters': _adapters.entries
+          .map((entry) => {
+                'type': entry.key.name,
+                'adapter': entry.value.runtimeType.toString(),
+              })
+          .toList(),
     };
   }
 
@@ -237,22 +240,22 @@ extension BubbleBlockRendererExtensions on BubbleBlockRenderer {
     BubbleContext context,
   ) {
     final widgets = <Widget>[];
-    
+
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
       final isFirst = i == 0;
       final isLast = i == blocks.length - 1;
-      
+
       final widget = renderBlock(
         block,
         context,
         isFirst: isFirst,
         isLast: isLast,
       );
-      
+
       widgets.add(widget);
     }
-    
+
     return widgets;
   }
 
@@ -263,27 +266,27 @@ extension BubbleBlockRendererExtensions on BubbleBlockRenderer {
     double spacing = 8.0,
   }) {
     final widgets = <Widget>[];
-    
+
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
       final isFirst = i == 0;
       final isLast = i == blocks.length - 1;
-      
+
       final widget = renderBlock(
         block,
         context,
         isFirst: isFirst,
         isLast: isLast,
       );
-      
+
       widgets.add(widget);
-      
+
       // 在块之间添加间距（除了最后一个）
       if (!isLast) {
         widgets.add(SizedBox(height: spacing));
       }
     }
-    
+
     return widgets;
   }
 
@@ -294,17 +297,17 @@ extension BubbleBlockRendererExtensions on BubbleBlockRenderer {
     double spacing = 8.0,
   }) {
     double totalHeight = 0.0;
-    
+
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
       totalHeight += calculatePreferredHeight(block, context);
-      
+
       // 添加间距（除了最后一个）
       if (i < blocks.length - 1) {
         totalHeight += spacing;
       }
     }
-    
+
     return totalHeight;
   }
 }

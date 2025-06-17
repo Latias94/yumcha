@@ -12,7 +12,7 @@ import 'message_block_widget.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 块化消息视图组件
-/// 
+///
 /// 基于新的块化消息架构的消息显示组件
 class BlockMessageView extends ConsumerStatefulWidget {
   const BlockMessageView({
@@ -99,9 +99,10 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ..._buildMessageBlocks(),
-                
+
                 // 消息状态指示器
-                if (widget.message.status != msg_status.MessageStatus.userSuccess &&
+                if (widget.message.status !=
+                        msg_status.MessageStatus.userSuccess &&
                     widget.message.status != msg_status.MessageStatus.aiSuccess)
                   _buildMessageStatusIndicator(theme),
               ],
@@ -154,7 +155,8 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
               ..._buildMessageBlocks(),
 
               // 消息状态指示器
-              if (widget.message.status != msg_status.MessageStatus.userSuccess &&
+              if (widget.message.status !=
+                      msg_status.MessageStatus.userSuccess &&
                   widget.message.status != msg_status.MessageStatus.aiSuccess)
                 _buildMessageStatusIndicator(theme),
 
@@ -261,21 +263,18 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
                 widget.message.isFromUser ? "用户" : "AI助手",
                 style: TextStyle(
                   color: theme.colorScheme.onSurface,
-                  fontSize: DesignConstants.getResponsiveFontSize(
-                      context,
-                      mobile: 15,
-                      desktop: 16),
+                  fontSize: DesignConstants.getResponsiveFontSize(context,
+                      mobile: 15, desktop: 16),
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 _formatTimestamp(widget.message.createdAt),
                 style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                  fontSize: DesignConstants.getResponsiveFontSize(
-                      context,
-                      mobile: 12,
-                      desktop: 13),
+                  color:
+                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  fontSize: DesignConstants.getResponsiveFontSize(context,
+                      mobile: 12, desktop: 13),
                 ),
               ),
             ],
@@ -300,14 +299,20 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
         Container(
           height: 40,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.3),
             borderRadius: DesignConstants.radiusM,
           ),
           child: Center(
             child: Text(
               '消息内容为空',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
               ),
@@ -319,7 +324,8 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
 
     // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，显示流式占位符
     if (widget.message.status.showLoadingIndicator) {
-      final hasAnyContent = widget.message.blocks.any((block) => block.hasContent);
+      final hasAnyContent =
+          widget.message.blocks.any((block) => block.hasContent);
       if (!hasAnyContent) {
         return [_buildStreamingPlaceholder()];
       }
@@ -425,7 +431,8 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
 
     // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，显示流式占位符
     if (widget.message.status.showLoadingIndicator) {
-      final hasAnyContent = widget.message.blocks.any((block) => block.hasContent);
+      final hasAnyContent =
+          widget.message.blocks.any((block) => block.hasContent);
       if (!hasAnyContent) {
         return [_buildStreamingPlaceholder()];
       }
@@ -457,7 +464,8 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
     // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，
     // 则已经显示了流式占位符，不需要额外的状态指示器
     if (widget.message.status.showLoadingIndicator) {
-      final hasAnyContent = widget.message.blocks.any((block) => block.hasContent);
+      final hasAnyContent =
+          widget.message.blocks.any((block) => block.hasContent);
       if (!hasAnyContent) {
         return const SizedBox.shrink(); // 不显示重复的流式指示器
       }

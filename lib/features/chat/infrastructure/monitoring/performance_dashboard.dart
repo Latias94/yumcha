@@ -8,19 +8,20 @@ import 'package:yumcha/features/chat/data/repositories/message_repository_impl.d
 import 'package:yumcha/shared/infrastructure/services/logger_service.dart';
 
 /// 性能监控仪表板
-/// 
+///
 /// 提供统一的性能监控、报告生成和性能分析功能
 class PerformanceDashboard {
-  static final PerformanceDashboard _instance = PerformanceDashboard._internal();
+  static final PerformanceDashboard _instance =
+      PerformanceDashboard._internal();
   factory PerformanceDashboard() => _instance;
   PerformanceDashboard._internal();
 
   final LoggerService _logger = LoggerService();
   final ChatPerformanceMonitor _performanceMonitor = ChatPerformanceMonitor();
-  
+
   Timer? _reportTimer;
   bool _isEnabled = kDebugMode;
-  
+
   /// 性能阈值配置
   static const Map<String, int> _performanceThresholds = {
     'message_creation_ms': 1,
@@ -33,15 +34,15 @@ class PerformanceDashboard {
   /// 启用性能监控仪表板
   void enable({Duration reportInterval = const Duration(minutes: 5)}) {
     if (_isEnabled) return;
-    
+
     _isEnabled = true;
     _performanceMonitor.enable();
-    
+
     // 定期生成性能报告
     _reportTimer = Timer.periodic(reportInterval, (_) {
       generatePerformanceReport();
     });
-    
+
     _logger.info('性能监控仪表板已启用', {
       'reportInterval': reportInterval.inMinutes,
     });
@@ -53,7 +54,7 @@ class PerformanceDashboard {
     _performanceMonitor.disable();
     _reportTimer?.cancel();
     _reportTimer = null;
-    
+
     _logger.info('性能监控仪表板已禁用');
   }
 
@@ -65,7 +66,7 @@ class PerformanceDashboard {
 
     final chatReport = _performanceMonitor.getReport();
     final chatSummary = _performanceMonitor.getPerformanceSummary();
-    
+
     // 获取数据库性能统计（如果可用）
     Map<String, Map<String, dynamic>> dbStats = {};
     try {
@@ -112,7 +113,7 @@ class PerformanceDashboard {
       if (entry.key.endsWith('_avg_duration_ms') && entry.value != null) {
         final avgDuration = entry.value as int;
         final category = entry.key.replaceAll('_avg_duration_ms', '');
-        
+
         if (_isPerformanceThresholdExceeded(category, avgDuration)) {
           alerts.add(PerformanceAlert(
             type: PerformanceAlertType.slowOperation,
@@ -131,8 +132,9 @@ class PerformanceDashboard {
       final operation = entry.key;
       final stats = entry.value;
       final avgMs = stats['avg_ms'] as int?;
-      
-      if (avgMs != null && avgMs > (_performanceThresholds['database_operation_ms'] ?? 500)) {
+
+      if (avgMs != null &&
+          avgMs > (_performanceThresholds['database_operation_ms'] ?? 500)) {
         alerts.add(PerformanceAlert(
           type: PerformanceAlertType.slowDatabase,
           category: 'database_$operation',
@@ -153,9 +155,10 @@ class PerformanceDashboard {
     Map<String, Map<String, dynamic>> dbStats,
   ) {
     int healthScore = 100;
-    
+
     // 检查聊天性能
-    final messageProcessingRate = chatSummary['message_processing_recent_rate_per_sec'];
+    final messageProcessingRate =
+        chatSummary['message_processing_recent_rate_per_sec'];
     if (messageProcessingRate != null) {
       final rate = double.tryParse(messageProcessingRate.toString()) ?? 0.0;
       if (rate > 10) healthScore -= 20; // 处理频率过高
@@ -179,8 +182,8 @@ class PerformanceDashboard {
 
   /// 检查性能阈值是否超过
   bool _isPerformanceThresholdExceeded(String category, int value) {
-    final threshold = _performanceThresholds['${category}_ms'] ?? 
-                     _performanceThresholds['${category}_us'];
+    final threshold = _performanceThresholds['${category}_ms'] ??
+        _performanceThresholds['${category}_us'];
     return threshold != null && value > threshold;
   }
 
@@ -197,7 +200,7 @@ class PerformanceDashboard {
     print('📅 生成时间: ${report.timestamp}');
     print('🏥 系统健康: ${report.systemHealth.displayName}');
     print('⚠️  性能警报: ${report.performanceAlerts.length} 个');
-    
+
     if (report.performanceAlerts.isNotEmpty) {
       print('\n📋 性能警报详情:');
       for (final alert in report.performanceAlerts) {
@@ -216,7 +219,8 @@ class PerformanceDashboard {
       print('\n💾 数据库性能:');
       for (final entry in report.databasePerformance.entries) {
         final stats = entry.value;
-        print('  ${entry.key}: 平均${stats['avg_ms']}ms, P95=${stats['p95_ms']}ms, 次数=${stats['count']}');
+        print(
+            '  ${entry.key}: 平均${stats['avg_ms']}ms, P95=${stats['p95_ms']}ms, 次数=${stats['count']}');
       }
     }
 
@@ -229,7 +233,8 @@ class PerformanceDashboard {
   }
 
   /// 获取性能趋势数据
-  Map<String, List<double>> getPerformanceTrends({Duration period = const Duration(hours: 1)}) {
+  Map<String, List<double>> getPerformanceTrends(
+      {Duration period = const Duration(hours: 1)}) {
     // 这里可以实现性能趋势分析
     // 返回各个指标在指定时间段内的变化趋势
     return {};

@@ -15,7 +15,7 @@ import 'package:llm_dart/llm_dart.dart';
 /// - 📊 **日志配置**：HTTP请求/响应日志
 ///
 /// ## 参考llm_dart示例的配置方式
-/// 
+///
 /// ### 基础配置
 /// ```dart
 /// final provider = await ai()
@@ -48,7 +48,8 @@ import 'package:llm_dart/llm_dart.dart';
 /// ```
 class HttpConfigurationService extends AiServiceBase {
   // 单例模式实现
-  static final HttpConfigurationService _instance = HttpConfigurationService._internal();
+  static final HttpConfigurationService _instance =
+      HttpConfigurationService._internal();
   factory HttpConfigurationService() => _instance;
   HttpConfigurationService._internal();
 
@@ -130,7 +131,7 @@ class HttpConfigurationService extends AiServiceBase {
   /// 更新HTTP配置
   void updateHttpConfig(String providerId, HttpConfig config) {
     _configCache[providerId] = config;
-    
+
     logger.info('更新HTTP配置', {
       'providerId': providerId,
       'hasProxy': config.proxyUrl != null,
@@ -238,14 +239,12 @@ class HttpConfigurationService extends AiServiceBase {
   /// 获取HTTP配置统计信息
   Map<String, dynamic> getHttpConfigStats() {
     final stats = <String, dynamic>{};
-    
+
     stats['totalConfigs'] = _configCache.length;
-    stats['configsWithProxy'] = _configCache.values
-        .where((config) => config.proxyUrl != null)
-        .length;
-    stats['configsWithLogging'] = _configCache.values
-        .where((config) => config.enableLogging)
-        .length;
+    stats['configsWithProxy'] =
+        _configCache.values.where((config) => config.proxyUrl != null).length;
+    stats['configsWithLogging'] =
+        _configCache.values.where((config) => config.enableLogging).length;
     stats['configsWithSSLBypass'] = _configCache.values
         .where((config) => config.bypassSSLVerification)
         .length;
@@ -301,7 +300,8 @@ class HttpConfig {
       sendTimeout: sendTimeout ?? this.sendTimeout,
       customHeaders: customHeaders ?? this.customHeaders,
       enableLogging: enableLogging ?? this.enableLogging,
-      bypassSSLVerification: bypassSSLVerification ?? this.bypassSSLVerification,
+      bypassSSLVerification:
+          bypassSSLVerification ?? this.bypassSSLVerification,
       sslCertificatePath: sslCertificatePath ?? this.sslCertificatePath,
     );
   }

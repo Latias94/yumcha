@@ -131,7 +131,8 @@ class Messages extends Table {
   TextColumn get blockIds => text()
       .map(const StringListConverter())
       .withDefault(const Constant('[]'))(); // 消息块ID列表
-  TextColumn get status => text().withDefault(const Constant('userSuccess'))(); // 消息状态
+  TextColumn get status =>
+      text().withDefault(const Constant('userSuccess'))(); // 消息状态
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -148,11 +149,14 @@ class Messages extends Table {
 class MessageBlocks extends Table {
   TextColumn get id => text()();
   TextColumn get messageId => text()(); // 所属消息ID
-  TextColumn get type => text()(); // 块类型：mainText, thinking, image, code, tool, file, error, citation
-  TextColumn get status => text().withDefault(const Constant('success'))(); // 块状态
+  TextColumn get type =>
+      text()(); // 块类型：mainText, thinking, image, code, tool, file, error, citation
+  TextColumn get status =>
+      text().withDefault(const Constant('success'))(); // 块状态
   TextColumn get content => text().nullable()(); // 块内容
   TextColumn get metadata => text().nullable()(); // 块元数据（JSON格式）
-  IntColumn get orderIndex => integer().withDefault(const Constant(0))(); // 块在消息中的顺序
+  IntColumn get orderIndex =>
+      integer().withDefault(const Constant(0))(); // 块在消息中的顺序
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -372,8 +376,6 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-
-
   // 提供商相关操作
   Future<List<ProviderData>> getAllProviders() => select(providers).get();
 
@@ -498,7 +500,8 @@ class AppDatabase extends _$AppDatabase {
       await (delete(messages)..where((m) => m.conversationId.equals(id))).go();
 
       // 3. 删除对话
-      final result = await (delete(conversations)..where((c) => c.id.equals(id))).go();
+      final result =
+          await (delete(conversations)..where((c) => c.id.equals(id))).go();
 
       return result;
     });
@@ -540,12 +543,14 @@ class AppDatabase extends _$AppDatabase {
           .get();
 
   Future<MessageBlockData?> getMessageBlock(String id) =>
-      (select(messageBlocks)..where((mb) => mb.id.equals(id))).getSingleOrNull();
+      (select(messageBlocks)..where((mb) => mb.id.equals(id)))
+          .getSingleOrNull();
 
   Future<int> insertMessageBlock(MessageBlocksCompanion block) =>
       into(messageBlocks).insert(block);
 
-  Future<bool> updateMessageBlock(String id, MessageBlocksCompanion block) async {
+  Future<bool> updateMessageBlock(
+      String id, MessageBlocksCompanion block) async {
     final result = await (update(
       messageBlocks,
     )..where((mb) => mb.id.equals(id)))
@@ -587,10 +592,12 @@ class AppDatabase extends _$AppDatabase {
 
     try {
       // 尝试使用FTS全文搜索
-      return await _searchMessagesWithFTS(query, assistantId: assistantId, limit: limit, offset: offset);
+      return await _searchMessagesWithFTS(query,
+          assistantId: assistantId, limit: limit, offset: offset);
     } catch (e) {
       // 如果FTS搜索失败，回退到LIKE搜索
-      return await _searchMessagesWithLike(query, assistantId: assistantId, limit: limit, offset: offset);
+      return await _searchMessagesWithLike(query,
+          assistantId: assistantId, limit: limit, offset: offset);
     }
   }
 
@@ -602,7 +609,8 @@ class AppDatabase extends _$AppDatabase {
     int offset = 0,
   }) async {
     // 构建FTS查询
-    final ftsQuery = query.trim().split(' ').map((term) => '"$term"').join(' OR ');
+    final ftsQuery =
+        query.trim().split(' ').map((term) => '"$term"').join(' OR ');
 
     // 使用FTS搜索获取匹配的消息块
     final sql = '''
@@ -623,7 +631,9 @@ class AppDatabase extends _$AppDatabase {
       offset,
     ];
 
-    final result = await customSelect(sql, variables: params.map((p) => Variable(p)).toList()).get();
+    final result = await customSelect(sql,
+            variables: params.map((p) => Variable(p)).toList())
+        .get();
     return Future.wait(result.map((row) => messages.mapFromRow(row)));
   }
 
@@ -729,7 +739,8 @@ class AppDatabase extends _$AppDatabase {
   // ========== 🚀 新增：批量操作优化 ==========
 
   /// 批量插入消息块
-  Future<void> batchInsertMessageBlocks(List<MessageBlocksCompanion> blocks) async {
+  Future<void> batchInsertMessageBlocks(
+      List<MessageBlocksCompanion> blocks) async {
     if (blocks.isEmpty) return;
 
     await batch((batch) {
@@ -740,7 +751,8 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 批量更新消息状态
-  Future<int> batchUpdateMessageStatus(List<String> messageIds, String status) async {
+  Future<int> batchUpdateMessageStatus(
+      List<String> messageIds, String status) async {
     if (messageIds.isEmpty) return 0;
 
     final placeholders = List.filled(messageIds.length, '?').join(',');
@@ -825,7 +837,8 @@ class AppDatabase extends _$AppDatabase {
                 .get();
 
             if (conversations.length > maxConversationsPerAssistant) {
-              final toDelete = conversations.skip(maxConversationsPerAssistant).toList();
+              final toDelete =
+                  conversations.skip(maxConversationsPerAssistant).toList();
               if (!dryRun) {
                 for (final conv in toDelete) {
                   await deleteConversation(conv.id);
@@ -858,7 +871,8 @@ class AppDatabase extends _$AppDatabase {
     stats.assistantCount = await _getTableRowCount('assistants');
 
     // 数据库文件大小
-    final dbFile = File(p.join((await getApplicationDocumentsDirectory()).path, 'yumcha.db'));
+    final dbFile = File(
+        p.join((await getApplicationDocumentsDirectory()).path, 'yumcha.db'));
     if (await dbFile.exists()) {
       stats.databaseSizeBytes = await dbFile.length();
     }
@@ -877,14 +891,17 @@ class AppDatabase extends _$AppDatabase {
 
   /// 获取表行数
   Future<int> _getTableRowCount(String tableName) async {
-    final result = await customSelect('SELECT COUNT(*) as count FROM $tableName').getSingle();
+    final result =
+        await customSelect('SELECT COUNT(*) as count FROM $tableName')
+            .getSingle();
     return result.data['count'] as int;
   }
 
   // ========== 🚀 新增：性能监控 ==========
 
   /// 分析查询性能
-  Future<List<QueryPlan>> analyzeQuery(String sql, [List<Object?>? parameters]) async {
+  Future<List<QueryPlan>> analyzeQuery(String sql,
+      [List<Object?>? parameters]) async {
     final plans = <QueryPlan>[];
 
     try {
@@ -935,7 +952,8 @@ class AppDatabase extends _$AppDatabase {
     final recommendations = <String>[];
 
     // 检查数据库大小
-    if (stats.databaseSizeBytes > 100 * 1024 * 1024) { // 100MB
+    if (stats.databaseSizeBytes > 100 * 1024 * 1024) {
+      // 100MB
       issues.add('数据库文件过大 (${stats.formattedSize})');
       recommendations.add('考虑清理历史数据或启用数据归档');
     }
@@ -954,7 +972,8 @@ class AppDatabase extends _$AppDatabase {
 
     // 检查最后活动时间
     if (stats.lastActivityAt != null) {
-      final daysSinceLastActivity = DateTime.now().difference(stats.lastActivityAt!).inDays;
+      final daysSinceLastActivity =
+          DateTime.now().difference(stats.lastActivityAt!).inDays;
       if (daysSinceLastActivity > 30) {
         issues.add('数据库长时间未活动 ($daysSinceLastActivity 天)');
         recommendations.add('考虑备份数据并清理过期内容');
@@ -988,7 +1007,9 @@ class AppDatabase extends _$AppDatabase {
 
     try {
       // 获取所有索引
-      final indexes = await customSelect('SELECT name FROM sqlite_master WHERE type = "index" AND name NOT LIKE "sqlite_%"').get();
+      final indexes = await customSelect(
+              'SELECT name FROM sqlite_master WHERE type = "index" AND name NOT LIKE "sqlite_%"')
+          .get();
 
       for (final index in indexes) {
         final indexName = index.data['name'] as String;
@@ -1037,7 +1058,8 @@ class IndexUsageStats {
   });
 
   int get totalIndexes => usedIndexes.length + unusedIndexes.length;
-  double get usageRate => totalIndexes > 0 ? usedIndexes.length / totalIndexes : 0.0;
+  double get usageRate =>
+      totalIndexes > 0 ? usedIndexes.length / totalIndexes : 0.0;
 }
 
 LazyDatabase _openConnection() {

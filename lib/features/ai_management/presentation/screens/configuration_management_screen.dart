@@ -31,7 +31,6 @@ class ConfigurationManagementScreen extends ConsumerStatefulWidget {
 class _ConfigurationManagementScreenState
     extends ConsumerState<ConfigurationManagementScreen>
     with TickerProviderStateMixin {
-  
   late TabController _tabController;
 
   @override
@@ -133,10 +132,12 @@ class _ConfigurationManagementScreenState
                   const SizedBox(height: 16),
                   analysisAsync.when(
                     data: (analysis) => _buildAnalysisContent(analysis),
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, stack) => ErrorDisplay(
                       error: error,
-                      onRetry: () => ref.invalidate(configurationAnalysisProvider),
+                      onRetry: () =>
+                          ref.invalidate(configurationAnalysisProvider),
                     ),
                   ),
                 ],
@@ -160,10 +161,12 @@ class _ConfigurationManagementScreenState
                   const SizedBox(height: 16),
                   validationAsync.when(
                     data: (validation) => _buildValidationContent(validation),
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, stack) => ErrorDisplay(
                       error: error,
-                      onRetry: () => ref.invalidate(configurationValidationProvider),
+                      onRetry: () =>
+                          ref.invalidate(configurationValidationProvider),
                     ),
                   ),
                 ],
@@ -282,7 +285,8 @@ class _ConfigurationManagementScreenState
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _buildStatCard('启用提供商', analysis.enabledProviders.toString()),
+              child:
+                  _buildStatCard('启用提供商', analysis.enabledProviders.toString()),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -290,11 +294,11 @@ class _ConfigurationManagementScreenState
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _buildStatCard('启用助手', analysis.enabledAssistants.toString()),
+              child:
+                  _buildStatCard('启用助手', analysis.enabledAssistants.toString()),
             ),
           ],
         ),
-
         if (analysis.recommendations.isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
@@ -324,16 +328,15 @@ class _ConfigurationManagementScreenState
                 ),
                 const SizedBox(height: 8),
                 ...analysis.recommendations.map((rec) => Text(
-                  '• $rec',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                )),
+                      '• $rec',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    )),
               ],
             ),
           ),
         ],
-
         if (analysis.warnings.isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
@@ -363,11 +366,11 @@ class _ConfigurationManagementScreenState
                 ),
                 const SizedBox(height: 8),
                 ...analysis.warnings.map((warning) => Text(
-                  '• $warning',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onErrorContainer,
-                  ),
-                )),
+                      '• $warning',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    )),
               ],
             ),
           ),
@@ -409,23 +412,21 @@ class _ConfigurationManagementScreenState
             ],
           ),
         ),
-
         if (validation.errors.isNotEmpty) ...[
           const SizedBox(height: 16),
           ...validation.errors.map((error) => ListTile(
-            leading: const Icon(Icons.error, color: Colors.red),
-            title: Text(error),
-            dense: true,
-          )),
+                leading: const Icon(Icons.error, color: Colors.red),
+                title: Text(error),
+                dense: true,
+              )),
         ],
-
         if (validation.warnings.isNotEmpty) ...[
           const SizedBox(height: 16),
           ...validation.warnings.map((warning) => ListTile(
-            leading: const Icon(Icons.warning, color: Colors.orange),
-            title: Text(warning),
-            dense: true,
-          )),
+                leading: const Icon(Icons.warning, color: Colors.orange),
+                title: Text(warning),
+                dense: true,
+              )),
         ],
       ],
     );
@@ -444,15 +445,15 @@ class _ConfigurationManagementScreenState
           Text(
             value,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
         ],
       ),

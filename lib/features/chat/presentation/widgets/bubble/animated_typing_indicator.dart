@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// 动画打字指示器
-/// 
+///
 /// 用于显示AI正在输入的动画效果，提供多种样式选择
 class AnimatedTypingIndicator extends StatefulWidget {
   const AnimatedTypingIndicator({
@@ -15,21 +15,22 @@ class AnimatedTypingIndicator extends StatefulWidget {
 
   /// 点的颜色
   final Color? dotColor;
-  
+
   /// 点的大小
   final double dotSize;
-  
+
   /// 点之间的间距
   final double dotSpacing;
-  
+
   /// 动画持续时间
   final Duration animationDuration;
-  
+
   /// 指示器样式
   final TypingIndicatorStyle style;
 
   @override
-  State<AnimatedTypingIndicator> createState() => _AnimatedTypingIndicatorState();
+  State<AnimatedTypingIndicator> createState() =>
+      _AnimatedTypingIndicatorState();
 }
 
 class _AnimatedTypingIndicatorState extends State<AnimatedTypingIndicator>
@@ -230,10 +231,13 @@ class _AnimatedTypingIndicatorState extends State<AnimatedTypingIndicator>
 enum TypingIndicatorStyle {
   /// 点状动画
   dots,
+
   /// 波浪动画
   wave,
+
   /// 脉冲动画
   pulse,
+
   /// 打字机动画
   typing,
 }
@@ -250,20 +254,20 @@ class EnhancedStatusIndicator extends StatelessWidget {
 
   /// 消息状态
   final String status;
-  
+
   /// 状态消息
   final String? message;
-  
+
   /// 是否显示进度
   final bool showProgress;
-  
+
   /// 进度值 (0.0 - 1.0)
   final double? progress;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -408,7 +408,8 @@ class _CustomThemeSettings extends ConsumerStatefulWidget {
   const _CustomThemeSettings({required this.themeNotifier});
 
   @override
-  ConsumerState<_CustomThemeSettings> createState() => _CustomThemeSettingsState();
+  ConsumerState<_CustomThemeSettings> createState() =>
+      _CustomThemeSettingsState();
 }
 
 class _CustomThemeSettingsState extends ConsumerState<_CustomThemeSettings> {
@@ -432,7 +433,9 @@ class _CustomThemeSettingsState extends ConsumerState<_CustomThemeSettings> {
     final newUseCustomColors = widget.themeNotifier.getUseCustomColors();
     final newSelectedColor = widget.themeNotifier.getCustomPrimaryColor();
 
-    if (mounted && (newUseCustomColors != _useCustomColors || newSelectedColor != _selectedColor)) {
+    if (mounted &&
+        (newUseCustomColors != _useCustomColors ||
+            newSelectedColor != _selectedColor)) {
       setState(() {
         _useCustomColors = newUseCustomColors;
         _selectedColor = newSelectedColor;
@@ -571,8 +574,8 @@ class _CustomThemeSettingsState extends ConsumerState<_CustomThemeSettings> {
         Text(
           '快速选择颜色',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+                fontWeight: FontWeight.w600,
+              ),
         ),
         SizedBox(height: DesignConstants.spaceS),
         GridView.builder(

@@ -6,7 +6,7 @@ import 'bubble_style.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 气泡上下文类
-/// 
+///
 /// 提供气泡渲染所需的所有上下文信息，包括约束、主题、样式和消息数据
 class BubbleContext {
   const BubbleContext({
@@ -77,8 +77,9 @@ class BubbleContext {
   bool get isDesktop => screenWidth >= DesignConstants.breakpointDesktop;
 
   /// 是否为平板
-  bool get isTablet => screenWidth >= DesignConstants.breakpointTablet &&
-                      screenWidth < DesignConstants.breakpointDesktop;
+  bool get isTablet =>
+      screenWidth >= DesignConstants.breakpointTablet &&
+      screenWidth < DesignConstants.breakpointDesktop;
 
   /// 是否为移动端
   bool get isMobile => screenWidth < DesignConstants.breakpointTablet;
@@ -114,8 +115,8 @@ class BubbleContext {
   bool get hasMultipleBlocks => blockCount > 1;
 
   /// 是否为空消息
-  bool get isEmpty => blockCount == 0 || 
-                     (blockCount == 1 && !message.blocks.first.hasContent);
+  bool get isEmpty =>
+      blockCount == 0 || (blockCount == 1 && !message.blocks.first.hasContent);
 
   /// 获取气泡颜色
   Color get bubbleColor => style.theme.getBubbleColor(isFromUser);
@@ -155,11 +156,11 @@ class BubbleContext {
   Alignment get alignment => style.layout.getAlignment(isFromUser);
 
   /// 获取交叉轴对齐方式
-  CrossAxisAlignment get crossAxisAlignment => 
+  CrossAxisAlignment get crossAxisAlignment =>
       style.layout.getCrossAxisAlignment(isFromUser);
 
   /// 获取主轴对齐方式
-  MainAxisAlignment get mainAxisAlignment => 
+  MainAxisAlignment get mainAxisAlignment =>
       style.layout.getMainAxisAlignment(isFromUser);
 
   /// 获取计算后的最大宽度
@@ -199,10 +200,12 @@ class BubbleContext {
   /// 获取状态相关的阴影调整
   List<BoxShadow> getStateAdjustedShadows() {
     if (isSelected || isHovered) {
-      return shadows.map((shadow) => shadow.copyWith(
-        blurRadius: shadow.blurRadius * 1.5,
-        spreadRadius: shadow.spreadRadius + 1,
-      )).toList();
+      return shadows
+          .map((shadow) => shadow.copyWith(
+                blurRadius: shadow.blurRadius * 1.5,
+                spreadRadius: shadow.spreadRadius + 1,
+              ))
+          .toList();
     }
     return shadows;
   }

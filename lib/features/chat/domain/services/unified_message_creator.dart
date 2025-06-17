@@ -7,7 +7,7 @@ import 'message_factory.dart';
 import '../../infrastructure/services/chat_logger_service.dart';
 
 /// 统一的消息创建服务
-/// 
+///
 /// 提供一致的消息创建接口，整合MessageFactory和MessageRepository的功能
 /// 确保所有消息创建都遵循相同的模式和最佳实践
 class UnifiedMessageCreator {
@@ -71,7 +71,7 @@ class UnifiedMessageCreator {
   }
 
   /// 创建并保存AI消息占位符
-  /// 
+  ///
   /// [conversationId] 对话ID
   /// [assistantId] 助手ID
   /// [modelId] 可选的模型ID
@@ -109,9 +109,9 @@ class UnifiedMessageCreator {
   }
 
   /// 创建流式消息
-  /// 
+  ///
   /// 流式消息在创建时只保存基本信息，内容在流式过程中更新
-  /// 
+  ///
   /// [conversationId] 对话ID
   /// [assistantId] 助手ID
   /// [modelId] 可选的模型ID
@@ -147,7 +147,7 @@ class UnifiedMessageCreator {
   }
 
   /// 创建完整的AI消息
-  /// 
+  ///
   /// [conversationId] 对话ID
   /// [assistantId] 助手ID
   /// [content] 主要内容
@@ -196,7 +196,7 @@ class UnifiedMessageCreator {
   }
 
   /// 创建错误消息
-  /// 
+  ///
   /// [conversationId] 对话ID
   /// [assistantId] 助手ID
   /// [errorMessage] 错误信息
@@ -214,7 +214,8 @@ class UnifiedMessageCreator {
     ChatLoggerService.logDebug('创建错误消息', context: {
       'conversationId': conversationId,
       'assistantId': assistantId,
-      'errorMessage': errorMessage.substring(0, errorMessage.length.clamp(0, 100)),
+      'errorMessage':
+          errorMessage.substring(0, errorMessage.length.clamp(0, 100)),
       'originalMessageId': originalMessageId,
       'saveToDatabase': saveToDatabase,
     });
@@ -238,7 +239,7 @@ class UnifiedMessageCreator {
   }
 
   /// 更新流式消息内容
-  /// 
+  ///
   /// [messageId] 消息ID
   /// [content] 新的内容
   /// [thinkingContent] 可选的思考过程内容
@@ -255,7 +256,7 @@ class UnifiedMessageCreator {
   }
 
   /// 完成流式消息
-  /// 
+  ///
   /// [messageId] 消息ID
   /// [metadata] 可选的元数据
   Future<void> finishStreamingMessage({
@@ -266,7 +267,7 @@ class UnifiedMessageCreator {
       messageId: messageId,
       metadata: metadata,
     );
-    
+
     ChatLoggerService.logDebug('流式消息完成', context: {
       'messageId': messageId,
     });
@@ -290,7 +291,8 @@ class UnifiedMessageCreator {
 
     ChatLoggerService.logDebug('流式消息错误处理完成', context: {
       'messageId': messageId,
-      'errorMessage': errorMessage.substring(0, errorMessage.length.clamp(0, 100)),
+      'errorMessage':
+          errorMessage.substring(0, errorMessage.length.clamp(0, 100)),
     });
   }
 
@@ -401,7 +403,8 @@ class UnifiedMessageCreator {
         return updatedMessage;
       } else {
         // 如果无法获取更新后的消息，创建一个备用错误消息
-        return _createFallbackErrorMessage(conversationId, assistantId, errorMessage);
+        return _createFallbackErrorMessage(
+            conversationId, assistantId, errorMessage);
       }
     } else {
       // 非流式错误：创建新的错误消息
@@ -436,8 +439,7 @@ class UnifiedMessageCreator {
       return 'API密钥无效，请检查配置';
     }
 
-    if (errorString.contains('rate limit') ||
-        errorString.contains('quota')) {
+    if (errorString.contains('rate limit') || errorString.contains('quota')) {
       return '请求过于频繁，请稍后再试';
     }
 

@@ -373,7 +373,9 @@ class ModelService extends AiServiceBase {
       provider.type.toString(),
       provider.baseUrl ?? 'default',
       // 注意：不包含完整的API密钥，只包含前几位作为标识
-      provider.apiKey.isNotEmpty ? provider.apiKey.substring(0, 8.clamp(0, provider.apiKey.length)) : 'no-key',
+      provider.apiKey.isNotEmpty
+          ? provider.apiKey.substring(0, 8.clamp(0, provider.apiKey.length))
+          : 'no-key',
     ];
 
     return keyComponents.join('|');

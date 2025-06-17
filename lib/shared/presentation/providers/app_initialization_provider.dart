@@ -23,8 +23,10 @@ import '../../../features/chat/presentation/widgets/bubble/bubble_system.dart';
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
 import '../../../features/settings/presentation/providers/mcp_service_provider.dart';
-import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart' as chat_config;
-import '../../../features/chat/presentation/providers/unified_chat_notifier.dart' as unified_chat; // 新增：统一聊天Provider
+import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart'
+    as chat_config;
+import '../../../features/chat/presentation/providers/unified_chat_notifier.dart'
+    as unified_chat; // 新增：统一聊天Provider
 import 'favorite_model_notifier.dart';
 import 'configuration_persistence_notifier.dart';
 import '../../../app/theme/theme_provider.dart';
@@ -80,11 +82,17 @@ class AppInitializationState {
 
   /// 是否所有核心数据都已加载
   bool get isCoreDataLoaded =>
-      isProvidersLoaded && isAssistantsLoaded && isSettingsLoaded && isFavoriteModelsLoaded;
+      isProvidersLoaded &&
+      isAssistantsLoaded &&
+      isSettingsLoaded &&
+      isFavoriteModelsLoaded;
 
   /// 是否所有服务都已初始化
   bool get isFullyInitialized =>
-      isDataInitialized && isCoreDataLoaded && isAiServicesInitialized && isMcpInitialized;
+      isDataInitialized &&
+      isCoreDataLoaded &&
+      isAiServicesInitialized &&
+      isMcpInitialized;
 
   /// 是否正在初始化
   bool get isInitializing => !isFullyInitialized && error == null;
@@ -113,7 +121,8 @@ class AppInitializationState {
       isProvidersLoaded: isProvidersLoaded ?? this.isProvidersLoaded,
       isAssistantsLoaded: isAssistantsLoaded ?? this.isAssistantsLoaded,
       isSettingsLoaded: isSettingsLoaded ?? this.isSettingsLoaded,
-      isFavoriteModelsLoaded: isFavoriteModelsLoaded ?? this.isFavoriteModelsLoaded,
+      isFavoriteModelsLoaded:
+          isFavoriteModelsLoaded ?? this.isFavoriteModelsLoaded,
       isAiServicesInitialized:
           isAiServicesInitialized ?? this.isAiServicesInitialized,
       isMcpInitialized: isMcpInitialized ?? this.isMcpInitialized,
@@ -364,7 +373,6 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
             'maxAttempts': maxAttempts,
             'isLoading': mcpState.isLoading,
           });
-
         } catch (e) {
           _logger.warning('检查MCP服务Provider状态时出错', {
             'attempt': attempts + 1,
@@ -425,10 +433,12 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         final providers = _ref.read(aiProvidersProvider);
         final enabledProviders = providers.where((p) => p.isEnabled).toList();
 
-        _logger.debug('提供商数据检查: 总数=${providers.length}, 启用数=${enabledProviders.length}');
+        _logger.debug(
+            '提供商数据检查: 总数=${providers.length}, 启用数=${enabledProviders.length}');
 
         if (enabledProviders.isNotEmpty) {
-          _logger.info('✅ 找到可用提供商: ${enabledProviders.map((p) => '${p.id}(${p.name})').join(', ')}');
+          _logger.info(
+              '✅ 找到可用提供商: ${enabledProviders.map((p) => '${p.id}(${p.name})').join(', ')}');
           state = state.copyWith(
             isProvidersLoaded: true,
             currentStep: '提供商数据加载完成',
@@ -437,7 +447,6 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         }
 
         _logger.debug('提供商数据仍在加载中...');
-
       } catch (error) {
         _logger.error('提供商数据加载错误: $error');
         _logger.warning('⚠️ 提供商数据加载失败，但继续初始化');
@@ -485,10 +494,12 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         final assistants = _ref.read(aiAssistantsProvider);
         final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
 
-        _logger.debug('助手数据检查: 总数=${assistants.length}, 启用数=${enabledAssistants.length}');
+        _logger.debug(
+            '助手数据检查: 总数=${assistants.length}, 启用数=${enabledAssistants.length}');
 
         if (enabledAssistants.isNotEmpty) {
-          _logger.info('✅ 找到可用助手: ${enabledAssistants.map((a) => '${a.id}(${a.name})').join(', ')}');
+          _logger.info(
+              '✅ 找到可用助手: ${enabledAssistants.map((a) => '${a.id}(${a.name})').join(', ')}');
           state = state.copyWith(
             isAssistantsLoaded: true,
             currentStep: '助手数据加载完成',
@@ -497,7 +508,6 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         }
 
         _logger.debug('助手数据仍在加载中...');
-
       } catch (error) {
         _logger.error('助手数据加载错误: $error');
         _logger.warning('⚠️ 助手数据加载失败，但继续初始化');
@@ -587,7 +597,6 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         }
 
         _logger.debug('统一AI管理器仍在初始化中...');
-
       } catch (error) {
         _logger.error('统一AI管理器初始化检查错误: $error');
         _logger.warning('⚠️ 统一AI管理器初始化检查失败，但继续初始化');
@@ -663,7 +672,6 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         }
 
         _logger.debug('聊天配置仍在加载中...');
-
       } catch (error) {
         _logger.error('聊天配置检查错误: $error');
         return;
@@ -716,7 +724,6 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
         }
 
         _logger.debug('统一聊天系统仍在加载中...');
-
       } catch (error) {
         _logger.error('统一聊天系统检查错误: $error');
         return;

@@ -27,9 +27,13 @@ class ConversationService {
     final enabledProviders = providers.where((p) => p.isEnabled).toList();
     final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
 
-    final provider = enabledProviders.isNotEmpty ? enabledProviders.first : null;
-    final assistant = enabledAssistants.isNotEmpty ? enabledAssistants.first : null;
-    final modelName = provider?.models.isNotEmpty == true ? provider!.models.first.name : null;
+    final provider =
+        enabledProviders.isNotEmpty ? enabledProviders.first : null;
+    final assistant =
+        enabledAssistants.isNotEmpty ? enabledAssistants.first : null;
+    final modelName = provider?.models.isNotEmpty == true
+        ? provider!.models.first.name
+        : null;
 
     return ConversationConfig(
       assistant: assistant,

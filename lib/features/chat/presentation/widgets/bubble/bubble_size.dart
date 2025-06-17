@@ -4,7 +4,7 @@ import 'bubble_style.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 气泡尺寸计算工具类
-/// 
+///
 /// 提供智能的气泡尺寸计算，支持响应式设计
 class BubbleSize {
   BubbleSize._();
@@ -59,7 +59,7 @@ class BubbleSize {
     final isTablet = screenWidth > 480 && screenWidth <= 768;
 
     final basePadding = style.layout.padding;
-    
+
     if (isDesktop) {
       return EdgeInsets.all(basePadding.left * 1.2);
     } else if (isTablet) {
@@ -95,7 +95,7 @@ class BubbleSize {
     final isTablet = screenWidth > 480 && screenWidth <= 768;
 
     final baseBorderRadius = style.layout.borderRadius;
-    
+
     if (isDesktop) {
       return baseBorderRadius * 1.25;
     } else if (isTablet) {
@@ -148,7 +148,7 @@ class BubbleSize {
     bool isSelected = false,
   }) {
     final baseShadows = style.theme.shadows;
-    
+
     if (baseShadows.isEmpty) {
       return [];
     }

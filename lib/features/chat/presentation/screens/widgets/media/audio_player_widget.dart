@@ -8,7 +8,7 @@ import '../../../../../../shared/infrastructure/services/media/media_storage_ser
 import '../../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 音频播放组件
-/// 
+///
 /// 支持多种音频来源：
 /// - 网络音频（URL）
 /// - 本地文件
@@ -77,7 +77,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
     try {
       await _prepareAudioSource();
-      
+
       if (widget.autoPlay && mounted) {
         await _audioPlayer.play();
       }
@@ -113,7 +113,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         // 从存储服务获取音频数据
         final mediaService = MediaStorageService();
         await mediaService.initialize();
-        
+
         final audioData = await mediaService.retrieveMedia(metadata);
         if (audioData != null) {
           // 创建临时文件
@@ -129,9 +129,10 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   Future<String> _createTempFile(Uint8List data, String fileName) async {
     final tempDir = await getTemporaryDirectory();
     final extension = path.extension(fileName);
-    final tempFileName = 'audio_${DateTime.now().millisecondsSinceEpoch}$extension';
+    final tempFileName =
+        'audio_${DateTime.now().millisecondsSinceEpoch}$extension';
     final tempFile = File(path.join(tempDir.path, tempFileName));
-    
+
     await tempFile.writeAsBytes(data);
     return tempFile.path;
   }
@@ -161,7 +162,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       return _buildErrorWidget(theme);
     }
 
-    return widget.compact 
+    return widget.compact
         ? _buildCompactPlayer(theme)
         : _buildFullPlayer(theme);
   }
@@ -237,7 +238,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   Text(
                     _errorMessage!,
                     style: TextStyle(
-                      color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onErrorContainer
+                          .withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                     maxLines: 2,
@@ -331,8 +333,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (widget.showDuration)
-                _buildDurationText(theme),
+              if (widget.showDuration) _buildDurationText(theme),
             ],
           ),
 
@@ -374,7 +375,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
             height: size,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             ),
           );
         }
@@ -449,7 +451,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       builder: (context, snapshot) {
         final duration = snapshot.data;
         if (duration == null) return const SizedBox.shrink();
-        
+
         return Text(
           _formatDuration(duration),
           style: TextStyle(
@@ -467,7 +469,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       builder: (context, snapshot) {
         final position = snapshot.data ?? Duration.zero;
         final duration = _audioPlayer.duration ?? Duration.zero;
-        
+
         return Column(
           children: [
             SliderTheme(
@@ -493,14 +495,16 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                 Text(
                   _formatDuration(position),
                   style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),
                 Text(
                   _formatDuration(duration),
                   style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),

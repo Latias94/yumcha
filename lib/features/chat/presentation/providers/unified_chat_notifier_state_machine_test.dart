@@ -6,7 +6,7 @@ import '../../domain/services/message_state_machine.dart';
 import 'message_state_manager.dart';
 
 /// 状态机集成测试
-/// 
+///
 /// 验证 UnifiedChatNotifier 中状态机集成的正确性
 void main() {
   group('UnifiedChatNotifier 状态机集成测试', () {
@@ -24,7 +24,8 @@ void main() {
 
     test('状态管理器初始化', () {
       expect(stateManager, isNotNull);
-      expect(stateManager.getTransitionStatistics()['totalTransitions'], equals(0));
+      expect(stateManager.getTransitionStatistics()['totalTransitions'],
+          equals(0));
     });
 
     test('消息状态转换 - 正常流程', () {
@@ -160,7 +161,8 @@ void main() {
         status: MessageStatus.aiError,
       );
 
-      final suggestions = stateManager.getSuggestedActionsForMessage(errorMessage);
+      final suggestions =
+          stateManager.getSuggestedActionsForMessage(errorMessage);
       expect(suggestions, contains(MessageStateEvent.retry));
     });
 
@@ -240,9 +242,9 @@ void main() {
 /// 运行测试的辅助函数
 void runStateTransitionTests() {
   print('开始运行状态机集成测试...');
-  
+
   // 这里可以添加实际的测试运行逻辑
   // 在实际应用中，这些测试应该通过 flutter test 命令运行
-  
+
   print('状态机集成测试完成');
 }

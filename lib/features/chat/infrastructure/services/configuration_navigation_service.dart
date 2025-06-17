@@ -9,12 +9,16 @@ import '../../../../shared/infrastructure/services/logger_service.dart';
 enum NavigationTarget {
   /// 提供商管理页面
   providers,
+
   /// 助手管理页面
   assistants,
+
   /// 通用设置页面
   settings,
+
   /// 提供商编辑页面（带特定提供商参数）
   providerEdit,
+
   /// 助手编辑页面（带特定助手参数）
   assistantEdit,
 }
@@ -80,7 +84,9 @@ class ConfigurationNavigationService {
     // 分析具体问题类型
     if (issue != null) {
       // API密钥相关问题 - 导航到提供商页面
-      if (issue.contains('API') || issue.contains('密钥') || issue.contains('连接')) {
+      if (issue.contains('API') ||
+          issue.contains('密钥') ||
+          issue.contains('连接')) {
         return NavigationResult(
           target: NavigationTarget.providerEdit,
           routeName: AppRouter.providerEdit,
@@ -149,7 +155,8 @@ class ConfigurationNavigationService {
     }
 
     // 根据配置健康状态决定
-    final health = ChatConfigurationValidator.evaluateConfigurationHealth(config);
+    final health =
+        ChatConfigurationValidator.evaluateConfigurationHealth(config);
 
     if (health.score < 50) {
       // 健康状态较差，可能需要重新配置

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'design_constants.dart';
 
 /// 🎨 主题扩展方法
-/// 
+///
 /// 提供便捷的主题相关装饰和样式方法，统一管理主题相关的UI样式
 extension ThemeExtensions on ThemeData {
   /// 获取统一的卡片装饰
@@ -112,14 +112,16 @@ extension ThemeExtensions on ThemeData {
 }
 
 /// 🎨 颜色扩展方法
-/// 
+///
 /// 提供便捷的颜色相关方法
 extension ColorExtensions on ColorScheme {
   /// 获取禁用状态的颜色
-  Color get disabled => onSurface.withValues(alpha: DesignConstants.opacityDisabled);
+  Color get disabled =>
+      onSurface.withValues(alpha: DesignConstants.opacityDisabled);
 
   /// 获取中等透明度的颜色
-  Color get medium => onSurface.withValues(alpha: DesignConstants.opacityMedium);
+  Color get medium =>
+      onSurface.withValues(alpha: DesignConstants.opacityMedium);
 
   /// 获取高透明度的颜色
   Color get high => onSurface.withValues(alpha: DesignConstants.opacityHigh);
@@ -150,7 +152,7 @@ extension ColorExtensions on ColorScheme {
 }
 
 /// 🎨 文本样式扩展方法
-/// 
+///
 /// 提供便捷的文本样式方法
 extension TextStyleExtensions on TextTheme {
   /// 获取标题样式（响应式）
@@ -199,7 +201,7 @@ extension TextStyleExtensions on TextTheme {
 }
 
 /// 🎨 边距扩展方法
-/// 
+///
 /// 提供便捷的边距计算方法
 extension PaddingExtensions on BuildContext {
   /// 获取响应式水平边距

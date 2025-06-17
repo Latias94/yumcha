@@ -1,5 +1,5 @@
 /// 聊天系统异常定义
-/// 
+///
 /// 定义聊天系统中可能出现的各种异常类型，
 /// 提供详细的错误信息和恢复建议。
 
@@ -7,13 +7,13 @@
 abstract class ChatException implements Exception {
   /// 错误消息
   final String message;
-  
+
   /// 错误代码
   final String code;
-  
+
   /// 原始异常
   final Exception? cause;
-  
+
   /// 错误详情
   final Map<String, dynamic>? details;
 
@@ -67,7 +67,8 @@ class MessageException extends ChatException {
   }
 
   /// 消息状态无效
-  factory MessageException.invalidStatus(String currentStatus, String targetStatus) {
+  factory MessageException.invalidStatus(
+      String currentStatus, String targetStatus) {
     return MessageException(
       message: '无法从状态 $currentStatus 转换到 $targetStatus',
       code: 'MESSAGE_INVALID_STATUS_TRANSITION',
@@ -107,7 +108,8 @@ class MessageBlockException extends ChatException {
   }
 
   /// 消息块顺序错误
-  factory MessageBlockException.invalidOrder(String blockId, int currentOrder, int targetOrder) {
+  factory MessageBlockException.invalidOrder(
+      String blockId, int currentOrder, int targetOrder) {
     return MessageBlockException(
       message: '消息块顺序错误: 当前 $currentOrder, 目标 $targetOrder',
       code: 'BLOCK_INVALID_ORDER',
@@ -148,7 +150,8 @@ class ConversationException extends ChatException {
   }
 
   /// 对话消息过多
-  factory ConversationException.tooManyMessages(String conversationId, int messageCount, int maxCount) {
+  factory ConversationException.tooManyMessages(
+      String conversationId, int messageCount, int maxCount) {
     return ConversationException(
       message: '对话消息过多: $messageCount/$maxCount',
       code: 'CONVERSATION_TOO_MANY_MESSAGES',
@@ -236,7 +239,8 @@ class DatabaseException extends ChatException {
   }
 
   /// 数据库迁移失败
-  factory DatabaseException.migrationFailed(int fromVersion, int toVersion, Exception cause) {
+  factory DatabaseException.migrationFailed(
+      int fromVersion, int toVersion, Exception cause) {
     return DatabaseException(
       message: '数据库迁移失败: v$fromVersion -> v$toVersion',
       code: 'DATABASE_MIGRATION_FAILED',
@@ -259,7 +263,8 @@ class ValidationException extends ChatException {
   });
 
   /// 参数无效
-  factory ValidationException.invalidParameter(String parameterName, String reason) {
+  factory ValidationException.invalidParameter(
+      String parameterName, String reason) {
     return ValidationException(
       message: '参数无效: $parameterName - $reason',
       code: 'VALIDATION_INVALID_PARAMETER',
@@ -271,7 +276,8 @@ class ValidationException extends ChatException {
   }
 
   /// 数据格式错误
-  factory ValidationException.invalidFormat(String fieldName, String expectedFormat) {
+  factory ValidationException.invalidFormat(
+      String fieldName, String expectedFormat) {
     return ValidationException(
       message: '数据格式错误: $fieldName，期望格式: $expectedFormat',
       code: 'VALIDATION_INVALID_FORMAT',
@@ -311,7 +317,8 @@ class PermissionException extends ChatException {
   }
 
   /// 资源访问被拒绝
-  factory PermissionException.accessDenied(String resourceType, String resourceId) {
+  factory PermissionException.accessDenied(
+      String resourceType, String resourceId) {
     return PermissionException(
       message: '资源访问被拒绝: $resourceType($resourceId)',
       code: 'PERMISSION_ACCESS_DENIED',

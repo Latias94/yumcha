@@ -22,18 +22,16 @@ class ChatDisplayTestScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chatSettings = ref.watch(chatSettingsProvider);
     final currentStyle = ref.watch(currentChatStyleProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('聊天显示效果测试'),
         actions: [
           // 快速切换块化视图
           IconButton(
-            icon: Icon(
-              chatSettings.enableBlockView 
-                ? Icons.view_module_rounded 
-                : Icons.view_list_rounded
-            ),
+            icon: Icon(chatSettings.enableBlockView
+                ? Icons.view_module_rounded
+                : Icons.view_list_rounded),
             onPressed: () {
               ref.read(chatSettingsProvider.notifier).toggleBlockView();
             },
@@ -59,9 +57,9 @@ class ChatDisplayTestScreen extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(
-                  chatSettings.enableBlockView 
-                    ? Icons.view_module_rounded 
-                    : Icons.view_list_rounded,
+                  chatSettings.enableBlockView
+                      ? Icons.view_module_rounded
+                      : Icons.view_list_rounded,
                   size: 16,
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -90,7 +88,7 @@ class ChatDisplayTestScreen extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           // 测试消息列表
           Expanded(
             child: ListView(
@@ -101,33 +99,33 @@ class ChatDisplayTestScreen extends ConsumerWidget {
                   message: _createUserMessage(),
                   useBlockView: chatSettings.enableBlockView,
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // 简单AI回复
                 MessageViewAdapter(
                   message: _createSimpleAIMessage(),
                   useBlockView: chatSettings.enableBlockView,
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // 复杂AI回复（包含多种块类型）
                 MessageViewAdapter(
                   message: _createComplexAIMessage(),
                   useBlockView: chatSettings.enableBlockView,
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // 错误消息
                 MessageViewAdapter(
                   message: _createErrorMessage(),
                   useBlockView: chatSettings.enableBlockView,
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // 流式消息（处理中）
                 MessageViewAdapter(
                   message: _createStreamingMessage(),
@@ -208,9 +206,10 @@ class ChatDisplayTestScreen extends ConsumerWidget {
           type: MessageBlockType.thinking,
           status: MessageBlockStatus.success,
           createdAt: now,
-          content: '用户想要一个Flutter Hello World程序。我需要提供一个完整的示例，包括main.dart文件的内容，并解释每个部分的作用。',
+          content:
+              '用户想要一个Flutter Hello World程序。我需要提供一个完整的示例，包括main.dart文件的内容，并解释每个部分的作用。',
         ),
-        
+
         // 主文本块
         MessageBlock(
           id: 'test_ai_2_text',
@@ -220,7 +219,7 @@ class ChatDisplayTestScreen extends ConsumerWidget {
           createdAt: now,
           content: '下面是一个完整的Flutter Hello World程序：',
         ),
-        
+
         // 代码块
         MessageBlock(
           id: 'test_ai_2_code',
@@ -265,7 +264,7 @@ class MyHomePage extends StatelessWidget {
   }
 }''',
         ),
-        
+
         // 解释文本块
         MessageBlock(
           id: 'test_ai_2_explanation',

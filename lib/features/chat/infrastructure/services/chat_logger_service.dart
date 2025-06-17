@@ -4,11 +4,11 @@ import '../../domain/entities/message_block.dart';
 import '../../domain/exceptions/chat_exceptions.dart';
 
 /// 聊天系统专用日志服务
-/// 
+///
 /// 提供结构化的日志记录功能，专门针对聊天系统的各种操作和事件
 class ChatLoggerService {
   static final Logger _logger = Logger('ChatSystem');
-  
+
   /// 初始化日志服务
   static void initialize() {
     Logger.root.level = Level.ALL;
@@ -85,7 +85,8 @@ class ChatLoggerService {
   }
 
   /// 记录流式消息开始事件
-  static void logStreamingStarted(String messageId, String provider, String model) {
+  static void logStreamingStarted(
+      String messageId, String provider, String model) {
     _logger.info(
       'Streaming started: message $messageId using $provider/$model',
     );
@@ -99,7 +100,8 @@ class ChatLoggerService {
   }
 
   /// 记录流式消息完成事件
-  static void logStreamingCompleted(String messageId, Duration duration, int totalTokens) {
+  static void logStreamingCompleted(
+      String messageId, Duration duration, int totalTokens) {
     _logger.info(
       'Streaming completed: message $messageId in ${duration.inMilliseconds}ms (tokens: $totalTokens)',
     );
@@ -114,7 +116,8 @@ class ChatLoggerService {
   }
 
   /// 记录对话创建事件
-  static void logConversationCreated(String conversationId, String assistantId) {
+  static void logConversationCreated(
+      String conversationId, String assistantId) {
     _logger.info(
       'Conversation created: $conversationId with assistant $assistantId',
     );
@@ -128,7 +131,8 @@ class ChatLoggerService {
   }
 
   /// 记录数据库操作
-  static void logDatabaseOperation(String operation, String table, {Map<String, dynamic>? details}) {
+  static void logDatabaseOperation(String operation, String table,
+      {Map<String, dynamic>? details}) {
     _logger.fine(
       'Database operation: $operation on $table',
       details,
@@ -136,28 +140,32 @@ class ChatLoggerService {
   }
 
   /// 记录数据库查询性能
-  static void logDatabaseQuery(String query, Duration duration, int resultCount) {
+  static void logDatabaseQuery(
+      String query, Duration duration, int resultCount) {
     _logger.fine(
       'Database query completed in ${duration.inMilliseconds}ms: $query (results: $resultCount)',
     );
   }
 
   /// 记录AI服务调用
-  static void logAiServiceCall(String provider, String model, String operation) {
+  static void logAiServiceCall(
+      String provider, String model, String operation) {
     _logger.info(
       'AI service call: $provider/$model - $operation',
     );
   }
 
   /// 记录AI服务响应
-  static void logAiServiceResponse(String provider, String model, Duration duration, int tokens) {
+  static void logAiServiceResponse(
+      String provider, String model, Duration duration, int tokens) {
     _logger.info(
       'AI service response: $provider/$model in ${duration.inMilliseconds}ms (tokens: $tokens)',
     );
   }
 
   /// 记录AI服务错误
-  static void logAiServiceError(String provider, String model, Exception error) {
+  static void logAiServiceError(
+      String provider, String model, Exception error) {
     _logger.severe(
       'AI service error: $provider/$model',
       error,
@@ -206,28 +214,32 @@ class ChatLoggerService {
   }
 
   /// 记录配置变更
-  static void logConfigurationChange(String configKey, dynamic oldValue, dynamic newValue) {
+  static void logConfigurationChange(
+      String configKey, dynamic oldValue, dynamic newValue) {
     _logger.info(
       'Configuration changed: $configKey from $oldValue to $newValue',
     );
   }
 
   /// 记录缓存操作
-  static void logCacheOperation(String operation, String key, {bool hit = false}) {
+  static void logCacheOperation(String operation, String key,
+      {bool hit = false}) {
     _logger.fine(
       'Cache $operation: $key${hit ? ' (hit)' : ''}',
     );
   }
 
   /// 记录网络请求
-  static void logNetworkRequest(String method, String url, int statusCode, Duration duration) {
+  static void logNetworkRequest(
+      String method, String url, int statusCode, Duration duration) {
     _logger.fine(
       'Network request: $method $url -> $statusCode in ${duration.inMilliseconds}ms',
     );
   }
 
   /// 记录文件操作
-  static void logFileOperation(String operation, String filePath, {int? fileSize}) {
+  static void logFileOperation(String operation, String filePath,
+      {int? fileSize}) {
     final sizeInfo = fileSize != null ? ' (${fileSize}bytes)' : '';
     _logger.fine(
       'File operation: $operation $filePath$sizeInfo',

@@ -6,7 +6,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 思考过程块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染思考过程类型的消息块
 class ThinkingBubbleAdapter extends BubbleBlockAdapter {
   @override
@@ -40,7 +40,7 @@ class ThinkingBubbleAdapter extends BubbleBlockAdapter {
     final lineHeight = getResponsiveFontSize(context, 14.0) * 1.4;
     final headerHeight = 32.0; // 思考过程头部高度
     final padding = 24.0; // 内边距
-    
+
     return headerHeight + (lines * lineHeight) + padding;
   }
 
@@ -55,7 +55,8 @@ class ThinkingBubbleAdapter extends BubbleBlockAdapter {
       ),
       decoration: buildContainerDecoration(
         context,
-        backgroundColor: context.theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        backgroundColor: context.theme.colorScheme.surfaceContainerHighest
+            .withValues(alpha: 0.3),
         borderColor: context.theme.colorScheme.outline.withValues(alpha: 0.2),
         borderRadius: 8.0,
       ),
@@ -77,8 +78,10 @@ class ThinkingBubbleAdapter extends BubbleBlockAdapter {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                context.theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
-                context.theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                context.theme.colorScheme.primaryContainer
+                    .withValues(alpha: 0.8),
+                context.theme.colorScheme.primaryContainer
+                    .withValues(alpha: 0.6),
               ],
             ),
             borderRadius: BorderRadius.circular(8.0),
@@ -113,7 +116,8 @@ class ThinkingBubbleAdapter extends BubbleBlockAdapter {
                 color: context.theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: context.theme.colorScheme.primary.withValues(alpha: 0.3),
+                  color:
+                      context.theme.colorScheme.primary.withValues(alpha: 0.3),
                   width: 0.5,
                 ),
               ),
@@ -259,19 +263,22 @@ extension ThinkingBubbleAdapterExtensions on ThinkingBubbleAdapter {
 
   /// 检查文本是否包含思考过程标签
   static bool containsThinkingTags(String text) {
-    return text.contains(RegExp(r'<thinking[^>]*>.*?</thinking>', dotAll: true));
+    return text
+        .contains(RegExp(r'<thinking[^>]*>.*?</thinking>', dotAll: true));
   }
 
   /// 从文本中提取思考过程
   static List<String> extractThinkingProcesses(String text) {
     final regex = RegExp(r'<thinking[^>]*>(.*?)</thinking>', dotAll: true);
     final matches = regex.allMatches(text);
-    
+
     return matches.map((match) => match.group(1)?.trim() ?? '').toList();
   }
 
   /// 移除文本中的思考过程标签
   static String removeThinkingTags(String text) {
-    return text.replaceAll(RegExp(r'<thinking[^>]*>.*?</thinking>', dotAll: true), '').trim();
+    return text
+        .replaceAll(RegExp(r'<thinking[^>]*>.*?</thinking>', dotAll: true), '')
+        .trim();
   }
 }

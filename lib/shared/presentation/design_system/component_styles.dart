@@ -36,7 +36,8 @@ class ChatMessageStyles {
   static double get messageSpacing => DesignConstants.spaceS;
 
   /// 角色标签样式
-  static BoxDecoration roleLabelDecoration(ThemeData theme, bool isUser) => BoxDecoration(
+  static BoxDecoration roleLabelDecoration(ThemeData theme, bool isUser) =>
+      BoxDecoration(
         color: isUser
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
             : theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
@@ -44,7 +45,8 @@ class ChatMessageStyles {
       );
 
   /// 时间戳文本样式
-  static TextStyle timestampStyle(ThemeData theme, BuildContext context) => TextStyle(
+  static TextStyle timestampStyle(ThemeData theme, BuildContext context) =>
+      TextStyle(
         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
         fontSize: DesignConstants.getResponsiveFontSize(
           context,
@@ -135,7 +137,8 @@ class InputStyles {
         ),
         contentPadding: DesignConstants.paddingL,
         filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        fillColor:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       );
 
   /// 搜索框装饰
@@ -169,7 +172,8 @@ class InputStyles {
           ),
         ),
         filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        fillColor:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
         contentPadding: EdgeInsets.symmetric(
           horizontal: DesignConstants.spaceL,
           vertical: DesignConstants.spaceM,
@@ -226,7 +230,8 @@ class ListStyles {
   ListStyles._();
 
   /// 列表项装饰
-  static BoxDecoration item(ThemeData theme, {bool isSelected = false}) => BoxDecoration(
+  static BoxDecoration item(ThemeData theme, {bool isSelected = false}) =>
+      BoxDecoration(
         color: isSelected
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.2)
             : Colors.transparent,
@@ -269,7 +274,8 @@ class NavigationStyles {
       );
 
   /// 标签页装饰
-  static BoxDecoration tab(ThemeData theme, {bool isSelected = false}) => BoxDecoration(
+  static BoxDecoration tab(ThemeData theme, {bool isSelected = false}) =>
+      BoxDecoration(
         color: isSelected
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
             : Colors.transparent,

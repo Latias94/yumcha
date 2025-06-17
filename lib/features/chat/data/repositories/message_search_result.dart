@@ -2,19 +2,19 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/message.dart';
 
 /// 消息搜索结果模型
-/// 
+///
 /// 用于封装搜索到的消息及其相关的对话信息
 @immutable
 class MessageSearchResult {
   /// 搜索到的消息
   final Message message;
-  
+
   /// 消息所属的对话ID
   final String conversationId;
-  
+
   /// 消息所属的对话标题
   final String conversationTitle;
-  
+
   /// 消息所属对话的助手ID
   final String assistantId;
 

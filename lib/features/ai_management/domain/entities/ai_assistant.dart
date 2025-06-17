@@ -277,7 +277,8 @@ class AiAssistant {
       streamOutput: json['streamOutput'] as bool? ?? true,
       frequencyPenalty: (json['frequencyPenalty'] as num?)?.toDouble(),
       presencePenalty: (json['presencePenalty'] as num?)?.toDouble(),
-      customHeaders: Map<String, String>.from(json['customHeaders'] as Map? ?? {}),
+      customHeaders:
+          Map<String, String>.from(json['customHeaders'] as Map? ?? {}),
       customBody: Map<String, dynamic>.from(json['customBody'] as Map? ?? {}),
       stopSequences: List<String>.from(json['stopSequences'] as List? ?? []),
       enableCodeExecution: json['enableCodeExecution'] as bool? ?? false,

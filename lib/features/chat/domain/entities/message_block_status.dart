@@ -1,22 +1,22 @@
 /// 消息块状态枚举
-/// 
+///
 /// 定义消息块的处理状态，支持流式处理和错误处理
 enum MessageBlockStatus {
   /// 等待处理
   pending,
-  
+
   /// 正在处理
   processing,
-  
+
   /// 正在流式接收
   streaming,
-  
+
   /// 处理成功
   success,
-  
+
   /// 处理错误
   error,
-  
+
   /// 处理暂停
   paused,
 }
@@ -44,14 +44,14 @@ extension MessageBlockStatusExtension on MessageBlockStatus {
   /// 是否是进行中的状态
   bool get isInProgress {
     return this == MessageBlockStatus.pending ||
-           this == MessageBlockStatus.processing ||
-           this == MessageBlockStatus.streaming;
+        this == MessageBlockStatus.processing ||
+        this == MessageBlockStatus.streaming;
   }
 
   /// 是否是完成状态
   bool get isCompleted {
     return this == MessageBlockStatus.success ||
-           this == MessageBlockStatus.error;
+        this == MessageBlockStatus.error;
   }
 
   /// 是否是错误状态
@@ -67,13 +67,13 @@ extension MessageBlockStatusExtension on MessageBlockStatus {
   /// 是否可以重试
   bool get canRetry {
     return this == MessageBlockStatus.error ||
-           this == MessageBlockStatus.paused;
+        this == MessageBlockStatus.paused;
   }
 
   /// 是否可以暂停
   bool get canPause {
     return this == MessageBlockStatus.processing ||
-           this == MessageBlockStatus.streaming;
+        this == MessageBlockStatus.streaming;
   }
 
   /// 是否可以继续
@@ -84,6 +84,6 @@ extension MessageBlockStatusExtension on MessageBlockStatus {
   /// 是否显示加载指示器
   bool get showLoadingIndicator {
     return this == MessageBlockStatus.processing ||
-           this == MessageBlockStatus.streaming;
+        this == MessageBlockStatus.streaming;
   }
 }

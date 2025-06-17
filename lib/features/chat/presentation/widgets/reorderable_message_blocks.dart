@@ -6,10 +6,10 @@ import '../../domain/entities/message_block_type.dart';
 import 'message_block_widget.dart';
 
 /// 可重排序的消息块列表
-/// 
+///
 /// 允许用户通过拖拽重新排列消息块的顺序，
 /// 提供直观的消息内容组织方式。
-/// 
+///
 /// 功能特性：
 /// - 🔄 **拖拽排序**: 直观的拖拽重排序操作
 /// - 🎯 **智能约束**: 某些块类型有位置约束
@@ -19,22 +19,22 @@ import 'message_block_widget.dart';
 class ReorderableMessageBlocks extends ConsumerStatefulWidget {
   /// 消息对象
   final Message message;
-  
+
   /// 是否启用编辑模式
   final bool isEditable;
-  
+
   /// 是否显示类型标签
   final bool showTypeLabels;
-  
+
   /// 块编辑回调
   final void Function(String blockId)? onBlockEdit;
-  
+
   /// 块删除回调
   final void Function(String blockId)? onBlockDelete;
-  
+
   /// 块重新生成回调
   final void Function(String blockId)? onBlockRegenerate;
-  
+
   /// 排序变更回调
   final void Function(List<MessageBlock> reorderedBlocks)? onReorder;
 
@@ -50,10 +50,12 @@ class ReorderableMessageBlocks extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ReorderableMessageBlocks> createState() => _ReorderableMessageBlocksState();
+  ConsumerState<ReorderableMessageBlocks> createState() =>
+      _ReorderableMessageBlocksState();
 }
 
-class _ReorderableMessageBlocksState extends ConsumerState<ReorderableMessageBlocks> {
+class _ReorderableMessageBlocksState
+    extends ConsumerState<ReorderableMessageBlocks> {
   List<MessageBlock> _blocks = [];
   bool _isDragging = false;
 
@@ -128,7 +130,7 @@ class _ReorderableMessageBlocksState extends ConsumerState<ReorderableMessageBlo
             children: [
               // 拖拽手柄
               _buildDragHandle(block, index),
-              
+
               // 块内容
               _buildBlockItem(block, true),
             ],
@@ -141,7 +143,7 @@ class _ReorderableMessageBlocksState extends ConsumerState<ReorderableMessageBlo
   /// 构建拖拽手柄
   Widget _buildDragHandle(MessageBlock block, int index) {
     final canMove = _canMoveBlock(block);
-    
+
     return Container(
       height: 32,
       decoration: BoxDecoration(
@@ -159,23 +161,26 @@ class _ReorderableMessageBlocksState extends ConsumerState<ReorderableMessageBlo
             child: Icon(
               canMove ? Icons.drag_handle : Icons.lock,
               size: 16,
-              color: canMove 
-                ? Theme.of(context).colorScheme.onSurfaceVariant
-                : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: canMove
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant
+                      .withOpacity(0.5),
             ),
           ),
-          
+
           // 块类型标签
           Expanded(
             child: Text(
               _getBlockTypeDisplayName(block.type),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
-          
+
           // 位置指示器
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
@@ -186,12 +191,12 @@ class _ReorderableMessageBlocksState extends ConsumerState<ReorderableMessageBlo
             child: Text(
               '${index + 1}',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
           ),
-          
+
           const SizedBox(width: 8.0),
         ],
       ),
@@ -253,7 +258,7 @@ class _ReorderableMessageBlocksState extends ConsumerState<ReorderableMessageBlo
     }
 
     final block = _blocks[oldIndex];
-    
+
     // 检查是否可以移动到目标位置
     if (!_canMoveToPosition(block, newIndex)) {
       setState(() {
@@ -324,11 +329,11 @@ class _ReorderableMessageBlocksState extends ConsumerState<ReorderableMessageBlo
           (b) => b.type == MessageBlockType.mainText,
         );
         return mainTextIndex == -1 || newIndex <= mainTextIndex;
-        
+
       case MessageBlockType.error:
         // 错误块不能移动
         return false;
-        
+
       default:
         return true;
     }
@@ -397,7 +402,10 @@ class ReorderToolbar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Row(
@@ -408,44 +416,39 @@ class ReorderToolbar extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8.0),
-          
           Text(
             isEditing ? '编辑模式' : '查看模式',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
-          
           const Spacer(),
-          
           if (isEditing) ...[
             TextButton.icon(
               onPressed: onReset,
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('重置'),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
-            
             const SizedBox(width: 8.0),
-            
             TextButton.icon(
               onPressed: onSave,
               icon: const Icon(Icons.save, size: 16),
               label: const Text('保存'),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
           ],
-          
           const SizedBox(width: 8.0),
-          
           IconButton(
             onPressed: onToggleEdit,
             icon: Icon(isEditing ? Icons.check : Icons.edit),

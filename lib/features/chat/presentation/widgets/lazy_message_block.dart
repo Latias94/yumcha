@@ -6,10 +6,10 @@ import '../../domain/entities/message_block_status.dart';
 import 'message_block_widget.dart';
 
 /// 懒加载消息块组件
-/// 
+///
 /// 实现消息块的懒加载机制，只在需要时才渲染复杂内容，
 /// 提高大型消息的渲染性能。
-/// 
+///
 /// 功能特性：
 /// - 🔄 **懒加载**: 只在可见时才加载内容
 /// - 📊 **占位符**: 提供加载状态的占位符
@@ -19,25 +19,25 @@ import 'message_block_widget.dart';
 class LazyMessageBlock extends ConsumerStatefulWidget {
   /// 消息块
   final MessageBlock block;
-  
+
   /// 是否可编辑
   final bool isEditable;
-  
+
   /// 是否显示类型标签
   final bool showTypeLabel;
-  
+
   /// 编辑回调
   final void Function(String blockId)? onEdit;
-  
+
   /// 删除回调
   final void Function(String blockId)? onDelete;
-  
+
   /// 重新生成回调
   final void Function(String blockId)? onRegenerate;
-  
+
   /// 是否强制立即加载
   final bool forceLoad;
-  
+
   /// 懒加载阈值（像素）
   final double lazyLoadThreshold;
 
@@ -61,11 +61,11 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
   bool _isLoaded = false;
   bool _isVisible = false;
   Widget? _cachedWidget;
-  
+
   /// 是否应该懒加载此类型的块
   bool get _shouldLazyLoad {
     if (widget.forceLoad) return false;
-    
+
     switch (widget.block.type) {
       case MessageBlockType.mainText:
         // 主文本通常较小，不需要懒加载
@@ -143,7 +143,7 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
   /// 构建占位符内容
   Widget _buildPlaceholderContent() {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4.0),
       padding: const EdgeInsets.all(12.0),
@@ -160,7 +160,8 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
           // 类型标签
           if (widget.showTypeLabel)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
               decoration: BoxDecoration(
                 color: _getTypeColor().withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4.0),
@@ -173,9 +174,9 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
                 ),
               ),
             ),
-          
+
           if (widget.showTypeLabel) const SizedBox(height: 8.0),
-          
+
           // 占位符内容
           Row(
             children: [
@@ -200,14 +201,15 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
                 icon: const Icon(Icons.visibility, size: 16),
                 label: const Text('显示'),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
             ],
           ),
-          
+
           // 内容预览
           if (_hasPreview())
             Padding(
@@ -215,7 +217,8 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
               child: Text(
                 _getPreviewText(),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  color:
+                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -244,7 +247,7 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
   /// 加载内容
   void _loadContent() {
     if (_isLoaded) return;
-    
+
     setState(() {
       _isLoaded = true;
     });
@@ -253,7 +256,7 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
   /// 获取类型颜色
   Color _getTypeColor() {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     switch (widget.block.type) {
       case MessageBlockType.mainText:
         return colorScheme.primary;
@@ -371,6 +374,6 @@ class _VisibilityDetectorState extends State<VisibilityDetector> {
 /// 可见性信息
 class VisibilityInfo {
   final double visibleFraction;
-  
+
   const VisibilityInfo({required this.visibleFraction});
 }

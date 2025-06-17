@@ -1,5 +1,5 @@
 /// 数据库工具类和数据模型
-/// 
+///
 /// 包含数据库性能监控、数据清理等功能的辅助类和数据模型
 
 /// 数据清理结果
@@ -9,27 +9,28 @@ class DataCleanupResult {
   int messagesDeleted = 0;
   int messageBlocksDeleted = 0;
   String? error;
-  
+
   DataCleanupResult();
-  
+
   /// 总删除数量
-  int get totalDeleted => conversationsDeleted + messagesDeleted + messageBlocksDeleted;
-  
+  int get totalDeleted =>
+      conversationsDeleted + messagesDeleted + messageBlocksDeleted;
+
   /// 格式化结果
   String get summary {
     if (!success) {
       return '清理失败: ${error ?? "未知错误"}';
     }
-    
+
     final parts = <String>[];
     if (conversationsDeleted > 0) parts.add('对话: $conversationsDeleted');
     if (messagesDeleted > 0) parts.add('消息: $messagesDeleted');
     if (messageBlocksDeleted > 0) parts.add('消息块: $messageBlocksDeleted');
-    
+
     if (parts.isEmpty) {
       return '无数据需要清理';
     }
-    
+
     return '已清理 ${parts.join(', ')}';
   }
 }
@@ -43,12 +44,12 @@ class DatabaseStats {
   int assistantCount = 0;
   int favoriteModelCount = 0;
   int settingCount = 0;
-  
+
   int databaseSizeBytes = 0;
   DateTime? lastActivityAt;
-  
+
   DatabaseStats();
-  
+
   /// 格式化数据库大小
   String get formattedSize {
     if (databaseSizeBytes < 1024) {
@@ -61,11 +62,17 @@ class DatabaseStats {
       return '${(databaseSizeBytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
     }
   }
-  
+
   /// 总记录数
-  int get totalRecords => conversationCount + messageCount + messageBlockCount + 
-                         providerCount + assistantCount + favoriteModelCount + settingCount;
-  
+  int get totalRecords =>
+      conversationCount +
+      messageCount +
+      messageBlockCount +
+      providerCount +
+      assistantCount +
+      favoriteModelCount +
+      settingCount;
+
   /// 转换为Map
   Map<String, dynamic> toMap() {
     return {
@@ -89,19 +96,19 @@ class QueryPlan {
   final int id;
   final int parent;
   final String detail;
-  
+
   QueryPlan({
     required this.id,
     required this.parent,
     required this.detail,
   });
-  
+
   /// 是否使用了索引
   bool get usesIndex => detail.toLowerCase().contains('index');
-  
+
   /// 是否是全表扫描
   bool get isTableScan => detail.toLowerCase().contains('scan table');
-  
+
   /// 性能等级 (1-5, 5最好)
   int get performanceLevel {
     if (usesIndex) return 5;
@@ -109,7 +116,7 @@ class QueryPlan {
     if (detail.toLowerCase().contains('search')) return 3;
     return 2;
   }
-  
+
   /// 转换为Map
   Map<String, dynamic> toMap() {
     return {
@@ -127,25 +134,26 @@ class QueryPlan {
 class DatabasePerformanceMonitor {
   static final Map<String, List<Duration>> _queryTimes = {};
   static final Map<String, int> _queryCount = {};
-  
+
   /// 记录查询时间
   static void recordQuery(String queryType, Duration duration) {
     _queryTimes.putIfAbsent(queryType, () => []).add(duration);
     _queryCount[queryType] = (_queryCount[queryType] ?? 0) + 1;
   }
-  
+
   /// 获取查询统计
   static Map<String, QueryStats> getQueryStats() {
     final stats = <String, QueryStats>{};
-    
+
     for (final entry in _queryTimes.entries) {
       final times = entry.value;
       if (times.isNotEmpty) {
         final total = times.fold(Duration.zero, (a, b) => a + b);
-        final average = Duration(microseconds: total.inMicroseconds ~/ times.length);
+        final average =
+            Duration(microseconds: total.inMicroseconds ~/ times.length);
         final max = times.reduce((a, b) => a > b ? a : b);
         final min = times.reduce((a, b) => a < b ? a : b);
-        
+
         stats[entry.key] = QueryStats(
           queryType: entry.key,
           count: _queryCount[entry.key] ?? 0,
@@ -156,18 +164,19 @@ class DatabasePerformanceMonitor {
         );
       }
     }
-    
+
     return stats;
   }
-  
+
   /// 清除统计数据
   static void clearStats() {
     _queryTimes.clear();
     _queryCount.clear();
   }
-  
+
   /// 获取慢查询
-  static List<QueryStats> getSlowQueries({Duration threshold = const Duration(milliseconds: 100)}) {
+  static List<QueryStats> getSlowQueries(
+      {Duration threshold = const Duration(milliseconds: 100)}) {
     return getQueryStats()
         .values
         .where((stats) => stats.averageTime > threshold)
@@ -184,7 +193,7 @@ class QueryStats {
   final Duration averageTime;
   final Duration maxTime;
   final Duration minTime;
-  
+
   QueryStats({
     required this.queryType,
     required this.count,
@@ -193,13 +202,13 @@ class QueryStats {
     required this.maxTime,
     required this.minTime,
   });
-  
+
   /// 每秒查询数
   double get queriesPerSecond {
     if (totalTime.inMilliseconds == 0) return 0;
     return count * 1000 / totalTime.inMilliseconds;
   }
-  
+
   /// 转换为Map
   Map<String, dynamic> toMap() {
     return {
@@ -220,14 +229,14 @@ class DatabaseHealthCheck {
   final List<String> issues;
   final List<String> recommendations;
   final DatabaseStats stats;
-  
+
   DatabaseHealthCheck({
     required this.isHealthy,
     required this.issues,
     required this.recommendations,
     required this.stats,
   });
-  
+
   /// 创建健康的检查结果
   factory DatabaseHealthCheck.healthy(DatabaseStats stats) {
     return DatabaseHealthCheck(
@@ -237,7 +246,7 @@ class DatabaseHealthCheck {
       stats: stats,
     );
   }
-  
+
   /// 创建有问题的检查结果
   factory DatabaseHealthCheck.unhealthy(
     DatabaseStats stats,
@@ -251,7 +260,7 @@ class DatabaseHealthCheck {
       stats: stats,
     );
   }
-  
+
   /// 转换为Map
   Map<String, dynamic> toMap() {
     return {
@@ -271,7 +280,7 @@ class DatabaseConfig {
   final String tempStore;
   final int mmapSize;
   final bool foreignKeys;
-  
+
   const DatabaseConfig({
     this.cacheSize = -10000, // 10MB
     this.journalMode = 'WAL',
@@ -280,10 +289,10 @@ class DatabaseConfig {
     this.mmapSize = 268435456, // 256MB
     this.foreignKeys = true,
   });
-  
+
   /// 默认配置
   static const DatabaseConfig defaultConfig = DatabaseConfig();
-  
+
   /// 高性能配置
   static const DatabaseConfig highPerformance = DatabaseConfig(
     cacheSize: -20000, // 20MB

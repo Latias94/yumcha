@@ -8,7 +8,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 代码块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染代码类型的消息块
 class CodeBubbleAdapter extends BubbleBlockAdapter {
   @override
@@ -42,7 +42,7 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
     final lineHeight = getResponsiveFontSize(context, 14.0) * 1.3;
     final headerHeight = 40.0; // 代码头部高度
     final padding = 24.0; // 内边距
-    
+
     return headerHeight + (lines * lineHeight) + padding;
   }
 
@@ -72,7 +72,8 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
   }
 
   /// 构建代码头部
-  Widget _buildCodeHeader(String language, BubbleContext context, String content) {
+  Widget _buildCodeHeader(
+      String language, BubbleContext context, String content) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: getResponsiveSpacing(context, 12.0),
@@ -143,14 +144,16 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
               Icon(
                 Icons.copy_outlined,
                 size: getResponsiveSpacing(context, 14.0),
-                color: context.theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                color:
+                    context.theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               SizedBox(width: getResponsiveSpacing(context, 4.0)),
               Text(
                 '复制',
                 style: TextStyle(
                   fontSize: getResponsiveFontSize(context, 11.0),
-                  color: context.theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  color: context.theme.colorScheme.onSurface
+                      .withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -180,17 +183,19 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
       if (content.contains('public ')) return 'java';
       if (content.contains('function ')) return 'javascript';
     }
-    
+
     if (content.contains('<?php')) return 'php';
     if (content.contains('#include')) return 'c';
     if (content.contains('fn main()')) return 'rust';
     if (content.contains('func main()')) return 'go';
-    if (content.contains('SELECT ') || content.contains('INSERT ')) return 'sql';
+    if (content.contains('SELECT ') || content.contains('INSERT '))
+      return 'sql';
     if (content.contains('<html') || content.contains('<div')) return 'html';
     if (content.contains('{') && content.contains('color:')) return 'css';
     if (content.contains('```')) return 'markdown';
-    if (content.contains('"scripts"') && content.contains('"dependencies"')) return 'json';
-    
+    if (content.contains('"scripts"') && content.contains('"dependencies"'))
+      return 'json';
+
     return 'code';
   }
 
@@ -225,7 +230,7 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
   /// 复制代码到剪贴板
   void _copyToClipboard(String content, BubbleContext context) {
     Clipboard.setData(ClipboardData(text: content));
-    
+
     // 显示复制成功的提示
     ScaffoldMessenger.of(context.theme.platform as BuildContext).showSnackBar(
       SnackBar(
@@ -277,7 +282,7 @@ extension CodeBubbleAdapterExtensions on CodeBubbleAdapter {
     if (firstLine.startsWith('```')) {
       language = firstLine.substring(3).trim();
       if (language.isEmpty) language = null;
-      
+
       // 移除第一行和最后一行的```
       final codeLines = lines.skip(1).toList();
       if (codeLines.isNotEmpty && codeLines.last.trim() == '```') {

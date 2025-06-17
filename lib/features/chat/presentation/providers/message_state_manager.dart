@@ -5,9 +5,9 @@ import '../../domain/services/message_state_machine.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 
 /// 消息状态管理器
-/// 
+///
 /// 为UnifiedChatNotifier提供状态机集成，管理消息状态的转换和验证
-/// 
+///
 /// 核心功能：
 /// - 🔄 状态转换管理：使用状态机确保合法的状态转换
 /// - 🛡️ 状态验证：验证状态转换的合法性
@@ -24,7 +24,7 @@ class MessageStateManager {
   MessageStateManager._internal();
 
   /// 转换消息状态
-  /// 
+  ///
   /// 使用状态机验证并执行状态转换
   MessageStateTransitionResult transitionMessageState({
     required Message message,
@@ -75,7 +75,7 @@ class MessageStateManager {
     Map<String, dynamic>? metadata,
   }) {
     final results = <String, MessageStateTransitionResult>{};
-    
+
     for (final message in messages) {
       results[message.id] = transitionMessageState(
         message: message,
@@ -94,7 +94,7 @@ class MessageStateManager {
   }) {
     final targetStatus = _stateMachine.getTargetStatus(event);
     if (targetStatus == null) return false;
-    
+
     return _stateMachine.canTransition(currentStatus, targetStatus);
   }
 
@@ -214,13 +214,13 @@ class MessageStateTransitionResult {
   /// 创建更新后的消息
   Message? get updatedMessage {
     if (!isSuccess || newStatus == null) return null;
-    
+
     return message.copyWith(
       status: newStatus!,
       updatedAt: timestamp,
-      metadata: metadata != null 
-        ? {...?message.metadata, ...metadata!}
-        : message.metadata,
+      metadata: metadata != null
+          ? {...?message.metadata, ...metadata!}
+          : message.metadata,
     );
   }
 

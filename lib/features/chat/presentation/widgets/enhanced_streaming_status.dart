@@ -3,7 +3,7 @@ import '../../domain/entities/message_status.dart';
 import 'animated_typing_indicator.dart';
 
 /// 增强的流式状态组件
-/// 
+///
 /// 根据不同的消息状态显示相应的视觉指示器和文本
 class EnhancedStreamingStatus extends StatelessWidget {
   const EnhancedStreamingStatus({
@@ -32,9 +32,9 @@ class EnhancedStreamingStatus extends StatelessWidget {
     final effectiveColor = color ?? theme.colorScheme.primary;
 
     return Container(
-      padding: compact 
-        ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
-        : const EdgeInsets.all(12),
+      padding: compact
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
+          : const EdgeInsets.all(12),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -109,7 +109,7 @@ class EnhancedStreamingStatus extends StatelessWidget {
   Widget _buildStatusText(BuildContext context, Color color) {
     final theme = Theme.of(context);
     final fontSize = compact ? 11.0 : 12.0;
-    
+
     String text;
     Color textColor;
 
@@ -155,7 +155,7 @@ class EnhancedStreamingStatus extends StatelessWidget {
 }
 
 /// 流式消息占位符组件
-/// 
+///
 /// 在消息内容为空时显示的占位符，根据状态显示不同的内容
 class StreamingMessagePlaceholder extends StatelessWidget {
   const StreamingMessagePlaceholder({
@@ -216,7 +216,6 @@ class StreamingMessagePlaceholder extends StatelessWidget {
               ],
             ],
           ),
-          
           if (showProgress && progress != null) ...[
             const SizedBox(height: 8),
             LinearProgressIndicator(
@@ -234,7 +233,7 @@ class StreamingMessagePlaceholder extends StatelessWidget {
 }
 
 /// 流式消息底部状态栏
-/// 
+///
 /// 显示在消息底部的状态信息，包括耗时、字数等
 class StreamingMessageFooter extends StatelessWidget {
   const StreamingMessageFooter({
@@ -289,9 +288,9 @@ class StreamingMessageFooter extends StatelessWidget {
 
   bool _shouldShowFooter() {
     return status == MessageStatus.aiStreaming ||
-           status == MessageStatus.aiSuccess ||
-           duration != null ||
-           wordCount != null;
+        status == MessageStatus.aiSuccess ||
+        duration != null ||
+        wordCount != null;
   }
 
   List<Widget> _buildFooterInfo(BuildContext context) {

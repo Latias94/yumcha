@@ -195,12 +195,16 @@ class _EnhancedSplashScreenState extends ConsumerState<EnhancedSplashScreen>
                         // Logo区域
                         _buildAnimatedLogo(colorScheme),
                         SizedBox(
-                            height: _getAdaptiveSpacing(context, DesignConstants.spaceXXXL * 2)),
+                            height: _getAdaptiveSpacing(
+                                context, DesignConstants.spaceXXXL * 2)),
 
                         // 进度区域
                         _buildProgressSection(colorScheme),
                         SizedBox(
-                            height: _getAdaptiveSpacing(context, DesignConstants.spaceXXXL + DesignConstants.spaceS)),
+                            height: _getAdaptiveSpacing(
+                                context,
+                                DesignConstants.spaceXXXL +
+                                    DesignConstants.spaceS)),
 
                         // 状态详情
                         _buildStatusDetails(colorScheme),

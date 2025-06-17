@@ -14,10 +14,10 @@ final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   return MessageRepositoryImpl(database);
 });
 
-
 /// 聊天设置Provider
 /// 管理聊天相关的设置选项（区别于聊天配置Provider）
-final chatSettingsProvider = StateNotifierProvider<ChatSettingsNotifier, ChatSettings>((ref) {
+final chatSettingsProvider =
+    StateNotifierProvider<ChatSettingsNotifier, ChatSettings>((ref) {
   return ChatSettingsNotifier();
 });
 
@@ -57,9 +57,11 @@ class ChatSettings {
       enableBlockView: enableBlockView ?? this.enableBlockView,
       enableBlockEditing: enableBlockEditing ?? this.enableBlockEditing,
       showBlockTypeLabels: showBlockTypeLabels ?? this.showBlockTypeLabels,
-      enableStreamingByDefault: enableStreamingByDefault ?? this.enableStreamingByDefault,
+      enableStreamingByDefault:
+          enableStreamingByDefault ?? this.enableStreamingByDefault,
       showThinkingProcess: showThinkingProcess ?? this.showThinkingProcess,
-      maxMessagesPerConversation: maxMessagesPerConversation ?? this.maxMessagesPerConversation,
+      maxMessagesPerConversation:
+          maxMessagesPerConversation ?? this.maxMessagesPerConversation,
       enableMessageSearch: enableMessageSearch ?? this.enableMessageSearch,
       enableAutoScroll: enableAutoScroll ?? this.enableAutoScroll,
     );
@@ -87,7 +89,8 @@ class ChatSettingsNotifier extends StateNotifier<ChatSettings> {
 
   /// 启用/禁用默认流式处理
   void toggleStreamingByDefault() {
-    state = state.copyWith(enableStreamingByDefault: !state.enableStreamingByDefault);
+    state = state.copyWith(
+        enableStreamingByDefault: !state.enableStreamingByDefault);
   }
 
   /// 显示/隐藏思考过程
@@ -165,7 +168,8 @@ final currentModelProvider = Provider((ref) {
 
 /// 消息视图配置Provider
 /// 控制消息的显示方式
-final messageViewConfigProvider = StateNotifierProvider<MessageViewConfigNotifier, MessageViewConfig>((ref) {
+final messageViewConfigProvider =
+    StateNotifierProvider<MessageViewConfigNotifier, MessageViewConfig>((ref) {
   final chatSettings = ref.watch(chatSettingsProvider);
   return MessageViewConfigNotifier(chatSettings);
 });
@@ -208,7 +212,7 @@ class MessageViewConfigNotifier extends StateNotifier<MessageViewConfig> {
   final ChatSettings _chatSettings;
 
   MessageViewConfigNotifier(this._chatSettings)
-    : super(MessageViewConfig(useBlockView: _chatSettings.enableBlockView));
+      : super(MessageViewConfig(useBlockView: _chatSettings.enableBlockView));
 
   /// 切换视图模式
   void toggleViewMode() {

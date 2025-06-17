@@ -35,18 +35,21 @@ class UnifiedAiManagementState {
   List<AiAssistant> get userAssistants => assistants;
 
   /// 获取收藏的提供商
-  List<AiProvider> get favoriteProviders =>
-      providers.where((p) => configuration.favoriteProviderIds.contains(p.id)).toList();
+  List<AiProvider> get favoriteProviders => providers
+      .where((p) => configuration.favoriteProviderIds.contains(p.id))
+      .toList();
 
   /// 获取收藏的助手
-  List<AiAssistant> get favoriteAssistants =>
-      assistants.where((a) => configuration.favoriteAssistantIds.contains(a.id)).toList();
+  List<AiAssistant> get favoriteAssistants => assistants
+      .where((a) => configuration.favoriteAssistantIds.contains(a.id))
+      .toList();
 
   /// 获取已连接的提供商
-  List<AiProvider> get connectedProviders =>
-      providers.where((p) =>
-          configuration.connectionStatuses[p.id] == ProviderConnectionStatus.connected
-      ).toList();
+  List<AiProvider> get connectedProviders => providers
+      .where((p) =>
+          configuration.connectionStatuses[p.id] ==
+          ProviderConnectionStatus.connected)
+      .toList();
 
   /// 获取启用的提供商
   List<AiProvider> get enabledProviders =>
@@ -63,14 +66,16 @@ class UnifiedAiManagementState {
   bool get hasCompleteConfiguration => configuration.isValid;
 
   /// 获取当前选择的配置信息
-  ({AiAssistant? assistant, AiProvider? provider, AiModel? model}) get currentSelection => (
-    assistant: configuration.selectedAssistant,
-    provider: configuration.selectedProvider,
-    model: configuration.selectedModel,
-  );
+  ({AiAssistant? assistant, AiProvider? provider, AiModel? model})
+      get currentSelection => (
+            assistant: configuration.selectedAssistant,
+            provider: configuration.selectedProvider,
+            model: configuration.selectedModel,
+          );
 
   /// 获取可用的模板列表
-  List<ConfigTemplate> get availableTemplatesList => availableTemplates.values.toList();
+  List<ConfigTemplate> get availableTemplatesList =>
+      availableTemplates.values.toList();
 
   /// 检查是否有错误
   bool get hasError => error != null;
@@ -96,7 +101,8 @@ class UnifiedAiManagementState {
   }
 
   /// 获取支持特定能力的提供商
-  List<AiProvider> getProvidersWithCapability(bool Function(ModelCapabilities) capabilityCheck) {
+  List<AiProvider> getProvidersWithCapability(
+      bool Function(ModelCapabilities) capabilityCheck) {
     return providers.where((provider) {
       return provider.models.any((model) {
         final capabilities = configuration.modelCapabilities[model.name];
@@ -107,23 +113,23 @@ class UnifiedAiManagementState {
 
   /// 获取支持视觉的提供商
   List<AiProvider> get visionProviders => getProvidersWithCapability(
-    (capabilities) => capabilities.supportsVision,
-  );
+        (capabilities) => capabilities.supportsVision,
+      );
 
   /// 获取支持工具调用的提供商
   List<AiProvider> get toolProviders => getProvidersWithCapability(
-    (capabilities) => capabilities.supportsTools,
-  );
+        (capabilities) => capabilities.supportsTools,
+      );
 
   /// 获取支持TTS的提供商
   List<AiProvider> get ttsProviders => getProvidersWithCapability(
-    (capabilities) => capabilities.supportsTTS,
-  );
+        (capabilities) => capabilities.supportsTTS,
+      );
 
   /// 获取支持推理的提供商
   List<AiProvider> get reasoningProviders => getProvidersWithCapability(
-    (capabilities) => capabilities.supportsReasoning,
-  );
+        (capabilities) => capabilities.supportsReasoning,
+      );
 
   /// 根据助手需求获取兼容的提供商
   List<AiProvider> getCompatibleProviders(AiAssistant assistant) {

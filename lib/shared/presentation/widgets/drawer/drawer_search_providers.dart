@@ -5,21 +5,24 @@ import '../../providers/dependency_providers.dart';
 import '../../../infrastructure/services/logger_service.dart';
 
 /// 🔍 侧边栏搜索Provider
-/// 
+///
 /// 遵循Riverpod最佳实践，通过Provider层访问数据，
 /// 替代直接在UI组件中使用Repository的方式。
 
 /// 搜索查询状态Provider
-final drawerSearchQueryProvider = StateProvider.autoDispose<String>((ref) => '');
+final drawerSearchQueryProvider =
+    StateProvider.autoDispose<String>((ref) => '');
 
-/// 选中助手状态Provider  
-final drawerSelectedAssistantProvider = StateProvider.autoDispose<String>((ref) => 'ai');
+/// 选中助手状态Provider
+final drawerSelectedAssistantProvider =
+    StateProvider.autoDispose<String>((ref) => 'ai');
 
 /// 搜索结果Provider - 分页获取对话列表
-final drawerConversationPageProvider = FutureProvider.autoDispose.family<List<ConversationUiState>, DrawerPageParams>((ref, params) async {
+final drawerConversationPageProvider = FutureProvider.autoDispose
+    .family<List<ConversationUiState>, DrawerPageParams>((ref, params) async {
   final conversationRepository = ref.read(conversationRepositoryProvider);
   final logger = LoggerService();
-  
+
   try {
     logger.debug('获取对话分页数据', {
       'pageKey': params.pageKey,
@@ -47,7 +50,8 @@ final drawerConversationPageProvider = FutureProvider.autoDispose.family<List<Co
         limit: params.pageSize,
         offset: params.pageKey,
         includeMessages: false,
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           logger.warning('获取对话列表超时，返回空列表');
@@ -84,7 +88,8 @@ Future<List<ConversationUiState>> _performComprehensiveSearch(
 
   try {
     // 1. 搜索对话标题
-    final conversationResults = await conversationRepository.searchConversationsByTitle(
+    final conversationResults =
+        await conversationRepository.searchConversationsByTitle(
       trimmedQuery,
       assistantId: assistantId,
       limit: limit,
@@ -112,7 +117,8 @@ Future<List<ConversationUiState>> _performComprehensiveSearch(
       final conversationId = messageResult.conversationId;
       if (!uniqueConversations.containsKey(conversationId)) {
         // 获取完整的对话信息
-        final conversation = await conversationRepository.getConversation(conversationId);
+        final conversation =
+            await conversationRepository.getConversation(conversationId);
         if (conversation != null) {
           uniqueConversations[conversationId] = conversation;
         }

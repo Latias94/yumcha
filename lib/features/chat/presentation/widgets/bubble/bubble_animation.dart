@@ -4,20 +4,25 @@ import 'package:flutter/material.dart';
 enum BubbleAnimationType {
   /// 无动画
   none,
+
   /// 淡入
   fadeIn,
+
   /// 滑入
   slideIn,
+
   /// 缩放
   scale,
+
   /// 弹性
   bounce,
+
   /// 组合动画
   combined,
 }
 
 /// 气泡动画配置类
-/// 
+///
 /// 管理气泡的出现、悬停、点击等动画效果
 class BubbleAnimation {
   const BubbleAnimation({
@@ -131,7 +136,8 @@ class BubbleAnimation {
   }
 
   /// 是否有动画
-  bool get hasAnimation => type != BubbleAnimationType.none && duration > Duration.zero;
+  bool get hasAnimation =>
+      type != BubbleAnimationType.none && duration > Duration.zero;
 
   /// 是否为淡入动画
   bool get isFadeIn => type == BubbleAnimationType.fadeIn;
@@ -179,7 +185,7 @@ class BubbleAnimation {
 }
 
 /// 气泡动画包装器
-/// 
+///
 /// 为气泡组件提供动画效果
 class BubbleAnimationWrapper extends StatefulWidget {
   const BubbleAnimationWrapper({
@@ -230,9 +236,8 @@ class _BubbleAnimationWrapperState extends State<BubbleAnimationWrapper>
       curve: widget.animation.curve,
     ));
 
-    final slideOffset = widget.isFromUser
-        ? const Offset(0.3, 0.0)
-        : const Offset(-0.3, 0.0);
+    final slideOffset =
+        widget.isFromUser ? const Offset(0.3, 0.0) : const Offset(-0.3, 0.0);
 
     _slideAnimation = Tween<Offset>(
       begin: slideOffset,

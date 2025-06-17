@@ -109,7 +109,6 @@ class MessageViewAdapter extends ConsumerWidget {
       isWelcomeMessage: isWelcomeMessage,
     );
   }
-
 }
 
 /// 消息视图配置Provider
@@ -121,10 +120,10 @@ final messageViewConfigProvider = StateProvider<MessageViewConfig>((ref) {
 class MessageViewConfig {
   /// 是否启用块化视图
   final bool enableBlockView;
-  
+
   /// 是否启用块编辑功能
   final bool enableBlockEditing;
-  
+
   /// 是否显示块类型标识
   final bool showBlockTypeLabels;
 

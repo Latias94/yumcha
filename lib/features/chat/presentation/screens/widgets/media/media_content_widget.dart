@@ -5,7 +5,6 @@ import '../../../../domain/entities/message_block_type.dart';
 
 import '../../../../../../shared/presentation/design_system/design_constants.dart';
 
-
 /// 多媒体内容显示组件
 ///
 /// 专门用于显示新的块化消息系统中的多媒体内容
@@ -40,10 +39,11 @@ class MediaContentWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaBlocks = message.blocks.where((block) =>
-      block.type == MessageBlockType.image ||
-      block.type == MessageBlockType.file
-    ).toList();
+    final mediaBlocks = message.blocks
+        .where((block) =>
+            block.type == MessageBlockType.image ||
+            block.type == MessageBlockType.file)
+        .toList();
 
     if (mediaBlocks.isEmpty) {
       return const SizedBox.shrink();
@@ -55,8 +55,7 @@ class MediaContentWidget extends StatelessWidget {
         // 显示图片块
         if (message.hasImages) ...[
           _buildImageBlocks(context),
-          if (_hasFileBlocks())
-            SizedBox(height: DesignConstants.spaceM),
+          if (_hasFileBlocks()) SizedBox(height: DesignConstants.spaceM),
         ],
 
         // 显示文件块
@@ -87,7 +86,8 @@ class MediaContentWidget extends StatelessWidget {
     return _buildImageGrid(context, imageBlocks);
   }
 
-  Widget _buildSingleImage(BuildContext context, MessageBlock imageBlock, int index) {
+  Widget _buildSingleImage(
+      BuildContext context, MessageBlock imageBlock, int index) {
     if (imageBlock.url == null) return const SizedBox.shrink();
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -168,7 +168,8 @@ class MediaContentWidget extends StatelessWidget {
                   : _buildImageError(context),
             ),
             if (showMoreOverlay)
-              _buildMoreImagesOverlay(context, imageBlocks.length - displayBlocks.length),
+              _buildMoreImagesOverlay(
+                  context, imageBlocks.length - displayBlocks.length),
           ],
         );
       },
@@ -229,7 +230,9 @@ class MediaContentWidget extends StatelessWidget {
   }
 
   Widget _buildFileBlocks(BuildContext context) {
-    final fileBlocks = message.blocks.where((block) => block.type == MessageBlockType.file).toList();
+    final fileBlocks = message.blocks
+        .where((block) => block.type == MessageBlockType.file)
+        .toList();
 
     if (fileBlocks.isEmpty) {
       return const SizedBox.shrink();
@@ -340,5 +343,3 @@ class MediaContentWidget extends StatelessWidget {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
-
-

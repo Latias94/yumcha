@@ -22,7 +22,6 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
@@ -41,9 +40,12 @@ class ConfigurationBackupService {
   final LoggerService _logger = LoggerService();
 
   /// 获取服务实例
-  ProviderRepository get _providerRepository => _ref.read(providerRepositoryProvider);
-  AssistantRepository get _assistantRepository => _ref.read(assistantRepositoryProvider);
-  PreferenceService get _preferenceService => _ref.read(preferenceServiceProvider);
+  ProviderRepository get _providerRepository =>
+      _ref.read(providerRepositoryProvider);
+  AssistantRepository get _assistantRepository =>
+      _ref.read(assistantRepositoryProvider);
+  PreferenceService get _preferenceService =>
+      _ref.read(preferenceServiceProvider);
 
   /// 创建手动备份
   Future<BackupInfo> createManualBackup({
@@ -92,7 +94,6 @@ class ConfigurationBackupService {
       });
 
       return backupInfo;
-
     } catch (error, stackTrace) {
       _logger.error('手动备份创建失败', {
         'error': error.toString(),
@@ -108,13 +109,12 @@ class ConfigurationBackupService {
       _logger.info('开始创建自动备份', {'trigger': trigger.name});
 
       final description = _getAutomaticBackupDescription(trigger);
-      
+
       return await createManualBackup(
         description: description,
         tags: ['automatic', trigger.name],
         type: BackupType.full,
       );
-
     } catch (error, stackTrace) {
       _logger.error('自动备份创建失败', {
         'trigger': trigger.name,
@@ -131,7 +131,7 @@ class ConfigurationBackupService {
     bool validateBeforeRestore = true,
   }) async {
     final stopwatch = Stopwatch()..start();
-    
+
     try {
       _logger.info('开始恢复配置', {
         'backupId': backupId,
@@ -147,7 +147,8 @@ class ConfigurationBackupService {
       if (validateBeforeRestore) {
         final validation = await _validateBackupFile(backupInfo);
         if (!validation.isValid) {
-          return RestoreResult.failed('备份验证失败: ${validation.errors.join(', ')}');
+          return RestoreResult.failed(
+              '备份验证失败: ${validation.errors.join(', ')}');
         }
       }
 
@@ -158,7 +159,8 @@ class ConfigurationBackupService {
       String? preRestoreBackupId;
       if (options?.createBackupBeforeRestore ?? true) {
         try {
-          final preRestoreBackup = await createAutomaticBackup(BackupTrigger.beforeRestore);
+          final preRestoreBackup =
+              await createAutomaticBackup(BackupTrigger.beforeRestore);
           preRestoreBackupId = preRestoreBackup.id;
         } catch (error) {
           _logger.warning('恢复前备份创建失败', {'error': error.toString()});
@@ -166,7 +168,8 @@ class ConfigurationBackupService {
       }
 
       // 执行恢复
-      final importResult = await _performRestore(configData, options ?? const RestoreOptions());
+      final importResult =
+          await _performRestore(configData, options ?? const RestoreOptions());
 
       stopwatch.stop();
 
@@ -191,7 +194,6 @@ class ConfigurationBackupService {
       } else {
         return RestoreResult.failed('恢复失败: ${importResult.errors.join(', ')}');
       }
-
     } catch (error, stackTrace) {
       stopwatch.stop();
       _logger.error('配置恢复失败', {
@@ -213,12 +215,12 @@ class ConfigurationBackupService {
 
       return allBackups.where((backup) {
         if (type != null && backup.type != type) return false;
-        if (tags != null && !tags.any((tag) => backup.tags.contains(tag))) return false;
+        if (tags != null && !tags.any((tag) => backup.tags.contains(tag)))
+          return false;
         if (since != null && backup.timestamp.isBefore(since)) return false;
         return true;
       }).toList()
         ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
     } catch (error, stackTrace) {
       _logger.error('获取备份列表失败', {
         'error': error.toString(),
@@ -246,7 +248,6 @@ class ConfigurationBackupService {
 
       _logger.info('备份删除成功', {'backupId': backupId});
       return true;
-
     } catch (error, stackTrace) {
       _logger.error('备份删除失败', {
         'backupId': backupId,
@@ -281,9 +282,11 @@ class ConfigurationBackupService {
       }
 
       // 删除过期备份
-      final expiredBackups = allBackups.where((b) =>
-        DateTime.now().difference(b.timestamp).inDays > settings.retentionDays
-      ).toList();
+      final expiredBackups = allBackups
+          .where((b) =>
+              DateTime.now().difference(b.timestamp).inDays >
+              settings.retentionDays)
+          .toList();
       toDelete.addAll(expiredBackups);
 
       // 执行删除
@@ -313,7 +316,6 @@ class ConfigurationBackupService {
         freedSpace: freedSpace,
         errors: errors,
       );
-
     } catch (error, stackTrace) {
       _logger.error('备份清理失败', {
         'error': error.toString(),
@@ -331,7 +333,6 @@ class ConfigurationBackupService {
       }
 
       return await _validateBackupFile(backupInfo);
-
     } catch (error) {
       return BackupValidationResult.invalid(['验证失败: $error']);
     }
@@ -440,7 +441,8 @@ class ConfigurationBackupService {
   }
 
   /// 保存备份文件
-  Future<File> _saveBackupFile(String backupId, ConfigurationData configData) async {
+  Future<File> _saveBackupFile(
+      String backupId, ConfigurationData configData) async {
     final backupDir = await _getBackupDirectory();
     final fileName = '$backupId.json';
     final filePath = path.join(backupDir.path, fileName);
@@ -448,7 +450,7 @@ class ConfigurationBackupService {
     final file = File(filePath);
     const encoder = JsonEncoder.withIndent('  ');
     final jsonData = encoder.convert(configData.toJson());
-    
+
     await file.writeAsString(jsonData, encoding: utf8);
     return file;
   }
@@ -461,7 +463,8 @@ class ConfigurationBackupService {
   }
 
   /// 创建备份元数据
-  Future<BackupMetadata> _createBackupMetadata(ConfigurationData configData) async {
+  Future<BackupMetadata> _createBackupMetadata(
+      ConfigurationData configData) async {
     // 暂时使用硬编码版本，后续可以从其他地方获取
     const appVersion = '1.0.0';
 
@@ -484,7 +487,7 @@ class ConfigurationBackupService {
     final file = File(filePath);
     const encoder = JsonEncoder.withIndent('  ');
     final jsonData = encoder.convert(backupInfo.toJson());
-    
+
     await file.writeAsString(jsonData, encoding: utf8);
   }
 
@@ -501,7 +504,6 @@ class ConfigurationBackupService {
       final jsonData = await file.readAsString(encoding: utf8);
       final data = json.decode(jsonData) as Map<String, dynamic>;
       return BackupInfo.fromJson(data);
-
     } catch (error) {
       _logger.error('获取备份信息失败', {
         'backupId': backupId,
@@ -515,8 +517,10 @@ class ConfigurationBackupService {
   Future<List<BackupInfo>> _loadAllBackupMetadata() async {
     try {
       final metadataDir = await _getBackupMetadataDirectory();
-      final files = await metadataDir.list()
-          .where((entity) => entity is File && entity.path.endsWith('.meta.json'))
+      final files = await metadataDir
+          .list()
+          .where(
+              (entity) => entity is File && entity.path.endsWith('.meta.json'))
           .cast<File>()
           .toList();
 
@@ -535,7 +539,6 @@ class ConfigurationBackupService {
       }
 
       return backups;
-
     } catch (error) {
       _logger.error('加载备份元数据失败', {'error': error.toString()});
       return [];
@@ -555,7 +558,8 @@ class ConfigurationBackupService {
   }
 
   /// 验证备份文件
-  Future<BackupValidationResult> _validateBackupFile(BackupInfo backupInfo) async {
+  Future<BackupValidationResult> _validateBackupFile(
+      BackupInfo backupInfo) async {
     final errors = <String>[];
 
     // 检查文件是否存在
@@ -598,7 +602,8 @@ class ConfigurationBackupService {
   }
 
   /// 执行恢复
-  Future<ImportResult> _performRestore(ConfigurationData configData, RestoreOptions options) async {
+  Future<ImportResult> _performRestore(
+      ConfigurationData configData, RestoreOptions options) async {
     // 暂时返回成功结果，实际实现需要导入服务
     return ImportResult.success(const ImportStatistics());
   }
@@ -679,8 +684,8 @@ class ConfigurationBackupService {
   AiProvider _sanitizeProvider(AiProvider provider) {
     // 创建提供商副本，移除或加密敏感信息
     return provider.copyWith(
-      // 这里应该实现API密钥的脱敏或加密处理
-    );
+        // 这里应该实现API密钥的脱敏或加密处理
+        );
   }
 
   /// 删除备份文件
@@ -708,11 +713,11 @@ class ConfigurationBackupService {
     // 这里应该根据平台获取合适的目录
     final appDir = Directory.systemTemp; // 暂时使用临时目录
     final backupDir = Directory(path.join(appDir.path, 'yumcha_backups'));
-    
+
     if (!await backupDir.exists()) {
       await backupDir.create(recursive: true);
     }
-    
+
     return backupDir;
   }
 
@@ -720,11 +725,11 @@ class ConfigurationBackupService {
   Future<Directory> _getBackupMetadataDirectory() async {
     final backupDir = await _getBackupDirectory();
     final metadataDir = Directory(path.join(backupDir.path, 'metadata'));
-    
+
     if (!await metadataDir.exists()) {
       await metadataDir.create(recursive: true);
     }
-    
+
     return metadataDir;
   }
 

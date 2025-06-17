@@ -10,7 +10,7 @@ import '../../../ai_management/presentation/providers/unified_ai_management_prov
 /// 聊天配置状态显示组件 - 简化版
 ///
 /// 显示当前聊天配置的状态。
-/// 
+///
 /// 核心功能：
 /// - 📊 **状态显示**: 显示配置是否完整
 /// - 🚨 **问题提示**: 突出显示配置问题
@@ -45,7 +45,8 @@ class ChatConfigurationStatus extends ConsumerWidget {
     final validatorConfig = _convertToValidatorConfig(chatConfig, ref);
 
     // 检查配置是否有问题
-    final configurationIssue = ChatConfigurationValidator.getConfigurationIssue(validatorConfig);
+    final configurationIssue =
+        ChatConfigurationValidator.getConfigurationIssue(validatorConfig);
     final hasIssue = configurationIssue != null;
 
     // 如果没有问题且是紧凑模式，不显示任何内容
@@ -54,9 +55,11 @@ class ChatConfigurationStatus extends ConsumerWidget {
     }
 
     if (compact) {
-      return _buildCompactStatus(context, theme, chatConfig, configurationIssue);
+      return _buildCompactStatus(
+          context, theme, chatConfig, configurationIssue);
     } else {
-      return _buildDetailedStatus(context, theme, chatConfig, configurationIssue, validatorConfig);
+      return _buildDetailedStatus(
+          context, theme, chatConfig, configurationIssue, validatorConfig);
     }
   }
 
@@ -227,7 +230,8 @@ class ChatConfigurationStatus extends ConsumerWidget {
   }
 
   /// 构建配置摘要
-  Widget _buildConfigurationSummary(ThemeData theme, ChatConfiguration chatConfig) {
+  Widget _buildConfigurationSummary(
+      ThemeData theme, ChatConfiguration chatConfig) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -293,8 +297,10 @@ class ChatConfigurationStatus extends ConsumerWidget {
   }
 
   /// 构建修复建议
-  Widget _buildFixSuggestions(ThemeData theme, config_entity.ChatConfiguration? chatConfig) {
-    final suggestions = ChatConfigurationValidator.getFixSuggestions(chatConfig);
+  Widget _buildFixSuggestions(
+      ThemeData theme, config_entity.ChatConfiguration? chatConfig) {
+    final suggestions =
+        ChatConfigurationValidator.getFixSuggestions(chatConfig);
 
     if (suggestions.isEmpty) {
       return const SizedBox.shrink();
@@ -322,31 +328,31 @@ class ChatConfigurationStatus extends ConsumerWidget {
         ),
         SizedBox(height: DesignConstants.spaceS),
         ...suggestions.map((suggestion) => Padding(
-          padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: EdgeInsets.only(top: 6),
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              SizedBox(width: DesignConstants.spaceS),
-              Expanded(
-                child: Text(
-                  suggestion,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+              padding: EdgeInsets.only(bottom: DesignConstants.spaceXS),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 6),
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
+                  SizedBox(width: DesignConstants.spaceS),
+                  Expanded(
+                    child: Text(
+                      suggestion,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        )),
+            )),
       ],
     );
   }

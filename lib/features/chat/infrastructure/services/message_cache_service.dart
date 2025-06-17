@@ -35,10 +35,10 @@ class _CachedRenderResult {
 }
 
 /// 消息缓存服务
-/// 
+///
 /// 提供智能的消息和消息块缓存机制，
 /// 优化内存使用和访问性能。
-/// 
+///
 /// 功能特性：
 /// - 🧠 **智能缓存**: LRU算法管理缓存
 /// - 📊 **分层缓存**: 消息和消息块分别缓存
@@ -48,10 +48,10 @@ class _CachedRenderResult {
 class MessageCacheService {
   /// 消息缓存
   final LRUCache<String, Message> _messageCache;
-  
+
   /// 消息块缓存
   final LRUCache<String, MessageBlock> _blockCache;
-  
+
   /// 对话消息列表缓存
   final LRUCache<String, List<Message>> _conversationCache;
 
@@ -63,21 +63,21 @@ class MessageCacheService {
 
   /// 缓存统计
   final CacheStatistics _statistics = CacheStatistics();
-  
+
   /// 单例实例
   static MessageCacheService? _instance;
-  
+
   MessageCacheService._({
     int maxMessageCacheSize = 1000,
     int maxBlockCacheSize = 5000,
     int maxConversationCacheSize = 50,
     int maxContentHashCacheSize = 2000,
     int maxRenderCacheSize = 500,
-  }) : _messageCache = LRUCache(maxMessageCacheSize),
-       _blockCache = LRUCache(maxBlockCacheSize),
-       _conversationCache = LRUCache(maxConversationCacheSize),
-       _contentHashCache = LRUCache(maxContentHashCacheSize),
-       _renderCache = LRUCache(maxRenderCacheSize);
+  })  : _messageCache = LRUCache(maxMessageCacheSize),
+        _blockCache = LRUCache(maxBlockCacheSize),
+        _conversationCache = LRUCache(maxConversationCacheSize),
+        _contentHashCache = LRUCache(maxContentHashCacheSize),
+        _renderCache = LRUCache(maxRenderCacheSize);
 
   /// 获取单例实例
   factory MessageCacheService.instance({
@@ -97,28 +97,30 @@ class MessageCacheService {
   void cacheMessage(Message message) {
     _messageCache.put(message.id, message);
     _statistics.recordCacheOperation('message_put');
-    
+
     // 同时缓存消息块
     for (final block in message.blocks) {
       _blockCache.put(block.id, block);
       _statistics.recordCacheOperation('block_put');
     }
-    
+
     ChatLoggerService.logCacheOperation('put', 'message:${message.id}');
   }
 
   /// 获取缓存的消息
   Message? getCachedMessage(String messageId) {
     final message = _messageCache.get(messageId);
-    
+
     if (message != null) {
       _statistics.recordCacheHit('message');
-      ChatLoggerService.logCacheOperation('get', 'message:$messageId', hit: true);
+      ChatLoggerService.logCacheOperation('get', 'message:$messageId',
+          hit: true);
     } else {
       _statistics.recordCacheMiss('message');
-      ChatLoggerService.logCacheOperation('get', 'message:$messageId', hit: false);
+      ChatLoggerService.logCacheOperation('get', 'message:$messageId',
+          hit: false);
     }
-    
+
     return message;
   }
 
@@ -132,7 +134,7 @@ class MessageCacheService {
   /// 获取缓存的消息块
   MessageBlock? getCachedMessageBlock(String blockId) {
     final block = _blockCache.get(blockId);
-    
+
     if (block != null) {
       _statistics.recordCacheHit('block');
       ChatLoggerService.logCacheOperation('get', 'block:$blockId', hit: true);
@@ -140,12 +142,13 @@ class MessageCacheService {
       _statistics.recordCacheMiss('block');
       ChatLoggerService.logCacheOperation('get', 'block:$blockId', hit: false);
     }
-    
+
     return block;
   }
 
   /// 缓存对话消息列表
-  void cacheConversationMessages(String conversationId, List<Message> messages) {
+  void cacheConversationMessages(
+      String conversationId, List<Message> messages) {
     _conversationCache.put(conversationId, List.from(messages));
     _statistics.recordCacheOperation('conversation_put');
     ChatLoggerService.logCacheOperation('put', 'conversation:$conversationId');
@@ -154,14 +157,16 @@ class MessageCacheService {
   /// 获取缓存的对话消息列表
   List<Message>? getCachedConversationMessages(String conversationId) {
     final messages = _conversationCache.get(conversationId);
-    
+
     if (messages != null) {
       _statistics.recordCacheHit('conversation');
-      ChatLoggerService.logCacheOperation('get', 'conversation:$conversationId', hit: true);
+      ChatLoggerService.logCacheOperation('get', 'conversation:$conversationId',
+          hit: true);
       return List.from(messages); // 返回副本避免修改缓存
     } else {
       _statistics.recordCacheMiss('conversation');
-      ChatLoggerService.logCacheOperation('get', 'conversation:$conversationId', hit: false);
+      ChatLoggerService.logCacheOperation('get', 'conversation:$conversationId',
+          hit: false);
       return null;
     }
   }
@@ -171,16 +176,16 @@ class MessageCacheService {
     if (_messageCache.containsKey(message.id)) {
       _messageCache.put(message.id, message);
       _statistics.recordCacheOperation('message_update');
-      
+
       // 更新消息块缓存
       for (final block in message.blocks) {
         _blockCache.put(block.id, block);
         _statistics.recordCacheOperation('block_update');
       }
-      
+
       // 清除相关的对话缓存
       _invalidateConversationCache(message.conversationId);
-      
+
       ChatLoggerService.logCacheOperation('update', 'message:${message.id}');
     }
   }
@@ -190,16 +195,16 @@ class MessageCacheService {
     final message = _messageCache.remove(messageId);
     if (message != null) {
       _statistics.recordCacheOperation('message_remove');
-      
+
       // 删除相关的消息块缓存
       for (final block in message.blocks) {
         _blockCache.remove(block.id);
         _statistics.recordCacheOperation('block_remove');
       }
-      
+
       // 清除相关的对话缓存
       _invalidateConversationCache(message.conversationId);
-      
+
       ChatLoggerService.logCacheOperation('remove', 'message:$messageId');
     }
   }
@@ -208,7 +213,8 @@ class MessageCacheService {
   void _invalidateConversationCache(String conversationId) {
     _conversationCache.remove(conversationId);
     _statistics.recordCacheOperation('conversation_invalidate');
-    ChatLoggerService.logCacheOperation('invalidate', 'conversation:$conversationId');
+    ChatLoggerService.logCacheOperation(
+        'invalidate', 'conversation:$conversationId');
   }
 
   /// 清除所有缓存
@@ -216,12 +222,12 @@ class MessageCacheService {
     final messageCount = _messageCache.length;
     final blockCount = _blockCache.length;
     final conversationCount = _conversationCache.length;
-    
+
     _messageCache.clear();
     _blockCache.clear();
     _conversationCache.clear();
     _statistics.reset();
-    
+
     ChatLoggerService.logDebug(
       'Cache cleared: $messageCount messages, $blockCount blocks, $conversationCount conversations',
     );
@@ -229,13 +235,15 @@ class MessageCacheService {
 
   /// 清理过期缓存
   void cleanup() {
-    final beforeSize = _messageCache.length + _blockCache.length + _conversationCache.length;
-    
+    final beforeSize =
+        _messageCache.length + _blockCache.length + _conversationCache.length;
+
     // LRU缓存会自动清理，这里可以添加额外的清理逻辑
     // 例如：清理超过一定时间的缓存项
-    
-    final afterSize = _messageCache.length + _blockCache.length + _conversationCache.length;
-    
+
+    final afterSize =
+        _messageCache.length + _blockCache.length + _conversationCache.length;
+
     if (beforeSize != afterSize) {
       ChatLoggerService.logDebug(
         'Cache cleanup: ${beforeSize - afterSize} items removed',
@@ -258,7 +266,8 @@ class MessageCacheService {
       message.blocks.length.toString(),
       message.updatedAt?.millisecondsSinceEpoch.toString() ?? '',
       // 包含所有块的内容
-      ...message.blocks.map((block) => '${block.type.name}:${block.content ?? ''}'),
+      ...message.blocks
+          .map((block) => '${block.type.name}:${block.content ?? ''}'),
     ];
     return hashComponents.join('|').hashCode.toString();
   }
@@ -325,7 +334,8 @@ class MessageCacheService {
     }
 
     if (keysToRemove.isNotEmpty) {
-      ChatLoggerService.logDebug('Cleaned up ${keysToRemove.length} expired render cache items');
+      ChatLoggerService.logDebug(
+          'Cleaned up ${keysToRemove.length} expired render cache items');
     }
   }
 

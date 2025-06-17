@@ -83,7 +83,8 @@ class FavoriteModelRepository {
       final result = await (_database.select(_database.favoriteModels)
             ..where(
               (f) =>
-                  f.providerId.equals(providerId) & f.modelName.equals(modelName),
+                  f.providerId.equals(providerId) &
+                  f.modelName.equals(modelName),
             ))
           .getSingleOrNull();
 
@@ -181,7 +182,8 @@ class FavoriteModelRepository {
       final result = await (_database.delete(_database.favoriteModels)
             ..where(
               (f) =>
-                  f.providerId.equals(providerId) & f.modelName.equals(modelName),
+                  f.providerId.equals(providerId) &
+                  f.modelName.equals(modelName),
             ))
           .go();
 

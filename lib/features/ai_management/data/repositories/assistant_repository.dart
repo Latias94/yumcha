@@ -155,7 +155,8 @@ class AssistantRepository {
     try {
       _logger.debug('开始获取启用的助手');
       final allAssistants = await getAllAssistants();
-      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
+      final enabledAssistants =
+          allAssistants.where((a) => a.isEnabled).toList();
 
       _logger.info('启用助手获取成功', {'count': enabledAssistants.length});
       return enabledAssistants;
@@ -212,7 +213,8 @@ class AssistantRepository {
   /// @param assistantIds 助手ID列表
   /// @param isEnabled 新的启用状态
   /// @returns 成功更新的数量
-  Future<int> batchUpdateAssistantStatus(List<String> assistantIds, bool isEnabled) async {
+  Future<int> batchUpdateAssistantStatus(
+      List<String> assistantIds, bool isEnabled) async {
     try {
       _logger.info('开始批量更新助手状态', {
         'count': assistantIds.length,

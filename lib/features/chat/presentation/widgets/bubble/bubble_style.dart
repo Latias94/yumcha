@@ -9,14 +9,16 @@ import 'bubble_animation.dart';
 enum BubbleType {
   /// 传统气泡样式
   bubble,
+
   /// 卡片样式
   card,
+
   /// 列表样式
   list,
 }
 
 /// 气泡样式配置类
-/// 
+///
 /// 统一管理气泡的所有样式配置，包括类型、主题、布局和动画
 class BubbleStyle {
   const BubbleStyle({
@@ -47,9 +49,10 @@ class BubbleStyle {
   }) {
     return BubbleStyle(
       type: BubbleType.bubble,
-      theme: theme ?? (colorScheme != null
-          ? BubbleTheme.bubbleFromColorScheme(colorScheme)
-          : BubbleTheme.fromColorScheme(const ColorScheme.light())),
+      theme: theme ??
+          (colorScheme != null
+              ? BubbleTheme.bubbleFromColorScheme(colorScheme)
+              : BubbleTheme.fromColorScheme(const ColorScheme.light())),
       layout: layout ?? BubbleLayout.bubble(),
       animation: animation ?? BubbleAnimation.standard(),
     );
@@ -64,9 +67,10 @@ class BubbleStyle {
   }) {
     return BubbleStyle(
       type: BubbleType.card,
-      theme: theme ?? (colorScheme != null
-          ? BubbleTheme.cardFromColorScheme(colorScheme)
-          : BubbleTheme.fromColorScheme(const ColorScheme.light())),
+      theme: theme ??
+          (colorScheme != null
+              ? BubbleTheme.cardFromColorScheme(colorScheme)
+              : BubbleTheme.fromColorScheme(const ColorScheme.light())),
       layout: layout ?? BubbleLayout.card(),
       animation: animation ?? BubbleAnimation.standard(),
     );
@@ -81,9 +85,10 @@ class BubbleStyle {
   }) {
     return BubbleStyle(
       type: BubbleType.list,
-      theme: theme ?? (colorScheme != null
-          ? BubbleTheme.listFromColorScheme(colorScheme)
-          : BubbleTheme.fromColorScheme(const ColorScheme.light())),
+      theme: theme ??
+          (colorScheme != null
+              ? BubbleTheme.listFromColorScheme(colorScheme)
+              : BubbleTheme.fromColorScheme(const ColorScheme.light())),
       layout: layout ?? BubbleLayout.list(),
       animation: animation ?? BubbleAnimation.minimal(),
     );

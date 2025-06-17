@@ -54,7 +54,7 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
     try {
       // TODO: 实现实际的存储信息获取逻辑
       await Future.delayed(const Duration(seconds: 1)); // 模拟加载
-      
+
       setState(() {
         _storageInfo = {
           'totalChats': 156,
@@ -97,10 +97,10 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
         setState(() {
           _isLoading = true;
         });
-        
+
         // 实际的清理逻辑 - 需要实现具体的数据库清理功能
         await Future.delayed(const Duration(seconds: 2)); // 模拟清理过程
-        
+
         NotificationService().showSuccess('旧聊天记录已清理');
         await _loadStorageInfo(); // 重新加载存储信息
       } catch (e) {
@@ -140,10 +140,10 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
         setState(() {
           _isLoading = true;
         });
-        
+
         // TODO: 实现实际的清空逻辑
         await Future.delayed(const Duration(seconds: 2)); // 模拟清空过程
-        
+
         NotificationService().showSuccess('所有聊天记录已清空');
         await _loadStorageInfo(); // 重新加载存储信息
       } catch (e) {
@@ -161,21 +161,22 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
       setState(() {
         _isLoading = true;
       });
-      
+
       // TODO: 实现实际的导出逻辑
       await Future.delayed(const Duration(seconds: 3)); // 模拟导出过程
-      
+
       // 模拟创建导出文件
       final directory = await getTemporaryDirectory();
       final file = File('${directory.path}/yumcha_chats_export.json');
-      await file.writeAsString('{"chats": [], "exported_at": "${DateTime.now().toIso8601String()}"}');
-      
+      await file.writeAsString(
+          '{"chats": [], "exported_at": "${DateTime.now().toIso8601String()}"}');
+
       // 分享文件
       await Share.shareXFiles(
         [XFile(file.path)],
         text: 'YumCha 聊天记录导出',
       );
-      
+
       NotificationService().showSuccess('聊天记录已导出');
     } catch (e) {
       NotificationService().showError('导出失败: $e');
@@ -197,10 +198,10 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
         setState(() {
           _isLoading = true;
         });
-        
+
         // TODO: 实现实际的导入逻辑
         await Future.delayed(const Duration(seconds: 2)); // 模拟导入过程
-        
+
         NotificationService().showSuccess('聊天记录已导入');
         await _loadStorageInfo(); // 重新加载存储信息
       }
@@ -283,7 +284,7 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 存储使用情况
             Row(
               children: [
@@ -294,16 +295,19 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
                       Text(
                         '已使用存储',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                       ),
                       SizedBox(height: DesignConstants.spaceXS),
                       Text(
                         '${_storageInfo['storageUsed']?.toStringAsFixed(1) ?? '0.0'} MB',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                       ),
                     ],
                   ),
@@ -314,14 +318,15 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
                   child: CircularProgressIndicator(
                     value: (_storageInfo['storageUsed'] ?? 0) / _maxStorageSize,
                     strokeWidth: 6,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceVariant,
                   ),
                 ),
               ],
             ),
-            
+
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 详细统计
             _buildStatRow('聊天数量', '${_storageInfo['totalChats'] ?? 0}'),
             _buildStatRow('消息数量', '${_storageInfo['totalMessages'] ?? 0}'),
@@ -356,7 +361,6 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -366,7 +370,6 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
               ),
             ),
             SizedBox(height: DesignConstants.spaceM),
-            
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -407,7 +410,6 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             Row(
               children: [
                 Expanded(
@@ -456,7 +458,6 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             SwitchListTile(
               title: const Text('启用自动清理'),
               subtitle: const Text('定期清理旧的聊天记录'),
@@ -468,7 +469,6 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
               },
               contentPadding: EdgeInsets.zero,
             ),
-            
             if (_autoCleanEnabled) ...[
               SizedBox(height: DesignConstants.spaceM),
               ListTile(
@@ -490,7 +490,6 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
                 ),
                 contentPadding: EdgeInsets.zero,
               ),
-              
               ListTile(
                 title: const Text('存储限制'),
                 subtitle: Text('最大存储 $_maxStorageSize MB'),
@@ -527,13 +526,13 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                ),
           ),
           Text(
             value,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-            ),
+                ),
           ),
         ],
       ),

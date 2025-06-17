@@ -111,7 +111,8 @@ class AssistantsScreen extends ConsumerWidget {
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const ProvidersScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const ProvidersScreen()),
                   );
                 },
               ),
@@ -157,9 +158,8 @@ class AssistantsScreen extends ConsumerWidget {
                     children: [
                       Icon(Icons.smart_toy,
                           size: DesignConstants.iconSizeXXL * 1.6, // 64px
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant),
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       SizedBox(height: DesignConstants.spaceL),
                       Text(
                         '暂无助手',
@@ -169,17 +169,15 @@ class AssistantsScreen extends ConsumerWidget {
                                 mobile: 17.0,
                                 tablet: 18.0,
                                 desktop: 18.0),
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       SizedBox(height: DesignConstants.spaceS),
                       Text(
                         '点击右上角的 + 按钮添加助手',
                         style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -216,8 +214,7 @@ class AssistantsScreen extends ConsumerWidget {
                               child: Text(
                                 assistant.avatar,
                                 style: TextStyle(
-                                  fontSize:
-                                      DesignConstants.iconSizeXL, // 32px
+                                  fontSize: DesignConstants.iconSizeXL, // 32px
                                 ),
                               ),
                             ),

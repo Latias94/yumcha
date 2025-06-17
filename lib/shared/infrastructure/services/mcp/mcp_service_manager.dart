@@ -118,7 +118,8 @@ class McpServiceManager {
         settingsNotifierProvider,
         (previous, next) {
           if (previous != next) {
-            final settingsNotifier = _ref!.read(settingsNotifierProvider.notifier);
+            final settingsNotifier =
+                _ref!.read(settingsNotifierProvider.notifier);
             final mcpEnabled = settingsNotifier.getMcpEnabled();
 
             if (_isEnabled != mcpEnabled) {
@@ -166,8 +167,6 @@ class McpServiceManager {
       _logger.warning('同步MCP状态失败', {'error': e.toString()});
     }
   }
-
-
 
   /// 启用MCP服务
   ///
@@ -298,7 +297,8 @@ class McpServiceManager {
   ///
   /// @param assistantMcpServerIds 助手配置的MCP服务器ID列表（可选）
   /// @returns 可用的工具列表
-  Future<List<dynamic>> getAllAvailableTools([List<String>? assistantMcpServerIds]) async {
+  Future<List<dynamic>> getAllAvailableTools(
+      [List<String>? assistantMcpServerIds]) async {
     await _ensureInitialized();
     return await getAvailableTools(assistantMcpServerIds);
   }

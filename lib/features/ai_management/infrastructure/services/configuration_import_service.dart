@@ -29,7 +29,6 @@ import '../../domain/entities/ai_assistant.dart';
 import '../../data/repositories/provider_repository.dart';
 import '../../data/repositories/assistant_repository.dart';
 
-
 /// 配置导入服务
 class ConfigurationImportService {
   ConfigurationImportService(this._ref);
@@ -38,8 +37,10 @@ class ConfigurationImportService {
   final LoggerService _logger = LoggerService();
 
   /// 获取Repository实例
-  ProviderRepository get _providerRepository => _ref.read(providerRepositoryProvider);
-  AssistantRepository get _assistantRepository => _ref.read(assistantRepositoryProvider);
+  ProviderRepository get _providerRepository =>
+      _ref.read(providerRepositoryProvider);
+  AssistantRepository get _assistantRepository =>
+      _ref.read(assistantRepositoryProvider);
 
   /// 从文件导入配置
   Future<ImportResult> importConfiguration(
@@ -50,7 +51,7 @@ class ConfigurationImportService {
     bool createBackupBeforeImport = true,
   }) async {
     final stopwatch = Stopwatch()..start();
-    
+
     try {
       _logger.info('开始导入配置', {
         'filePath': filePath,
@@ -94,7 +95,6 @@ class ConfigurationImportService {
       });
 
       return result;
-
     } catch (error, stackTrace) {
       stopwatch.stop();
       _logger.error('配置导入失败', {
@@ -106,12 +106,13 @@ class ConfigurationImportService {
   }
 
   /// 预览导入内容
-  Future<ImportPreview> previewImport(String filePath, String? decryptionKey) async {
+  Future<ImportPreview> previewImport(
+      String filePath, String? decryptionKey) async {
     try {
       _logger.info('开始预览导入内容', {'filePath': filePath});
 
       final configData = await _readConfigFile(filePath, decryptionKey);
-      
+
       // 分析配置数据
       final providers = await _analyzeProviders(configData.providers);
       final assistants = await _analyzeAssistants(configData.assistants);
@@ -127,13 +128,12 @@ class ConfigurationImportService {
         conflicts: conflicts,
         validation: validation,
       );
-
     } catch (error, stackTrace) {
       _logger.error('预览导入内容失败', {
         'error': error.toString(),
         'stackTrace': stackTrace.toString(),
       });
-      
+
       return ImportPreview(
         statistics: const ConfigurationStatistics(),
         validation: ValidationResult(
@@ -145,17 +145,18 @@ class ConfigurationImportService {
   }
 
   /// 读取配置文件
-  Future<ConfigurationData> _readConfigFile(String filePath, String? decryptionKey) async {
+  Future<ConfigurationData> _readConfigFile(
+      String filePath, String? decryptionKey) async {
     final file = File(filePath);
     if (!await file.exists()) {
       throw Exception('配置文件不存在: $filePath');
     }
 
     final content = await file.readAsString(encoding: utf8);
-    
+
     // 检测文件格式
     final format = _detectFileFormat(filePath, content);
-    
+
     // 解析配置数据
     switch (format) {
       case ExportFormat.json:
@@ -173,7 +174,7 @@ class ConfigurationImportService {
   /// 检测文件格式
   ExportFormat _detectFileFormat(String filePath, String content) {
     final extension = filePath.toLowerCase().split('.').last;
-    
+
     switch (extension) {
       case 'json':
         return ExportFormat.json;
@@ -212,7 +213,8 @@ class ConfigurationImportService {
   }
 
   /// 解析加密配置
-  Future<ConfigurationData> _parseEncryptedConfig(String content, String decryptionKey) async {
+  Future<ConfigurationData> _parseEncryptedConfig(
+      String content, String decryptionKey) async {
     try {
       final encryptedData = base64.decode(content);
       final decryptedData = await _decryptData(encryptedData, decryptionKey);
@@ -231,7 +233,8 @@ class ConfigurationImportService {
   }
 
   /// 验证配置数据
-  Future<ValidationResult> _validateConfiguration(ConfigurationData configData) async {
+  Future<ValidationResult> _validateConfiguration(
+      ConfigurationData configData) async {
     final errors = <String>[];
     final warnings = <String>[];
 
@@ -257,7 +260,8 @@ class ConfigurationImportService {
     }
 
     // 版本兼容性检查
-    final compatibilityWarnings = _checkVersionCompatibility(configData.metadata);
+    final compatibilityWarnings =
+        _checkVersionCompatibility(configData.metadata);
     warnings.addAll(compatibilityWarnings);
 
     return ValidationResult(
@@ -310,12 +314,13 @@ class ConfigurationImportService {
 
     // 这里应该实现实际的版本兼容性检查
     // 暂时返回空列表
-    
+
     return warnings;
   }
 
   /// 分析提供商数据
-  Future<List<ProviderPreview>> _analyzeProviders(List<AiProvider>? providers) async {
+  Future<List<ProviderPreview>> _analyzeProviders(
+      List<AiProvider>? providers) async {
     if (providers == null) return [];
 
     final previews = <ProviderPreview>[];
@@ -337,7 +342,8 @@ class ConfigurationImportService {
   }
 
   /// 分析助手数据
-  Future<List<AssistantPreview>> _analyzeAssistants(List<AiAssistant>? assistants) async {
+  Future<List<AssistantPreview>> _analyzeAssistants(
+      List<AiAssistant>? assistants) async {
     if (assistants == null) return [];
 
     final previews = <AssistantPreview>[];
@@ -358,7 +364,8 @@ class ConfigurationImportService {
   }
 
   /// 检测冲突
-  Future<List<ConflictInfo>> _detectConflicts(ConfigurationData configData) async {
+  Future<List<ConflictInfo>> _detectConflicts(
+      ConfigurationData configData) async {
     final conflicts = <ConflictInfo>[];
 
     // 检测提供商冲突
@@ -439,7 +446,6 @@ class ConfigurationImportService {
         statistics.copyWith(importDuration: stopwatch.elapsed),
         warnings: warnings,
       );
-
     } catch (error) {
       stopwatch.stop();
       errors.add('导入过程中发生错误: $error');
@@ -448,11 +454,12 @@ class ConfigurationImportService {
   }
 
   /// 导入提供商
-  Future<void> _importProviders(List<AiProvider> providers, ConflictResolutionStrategy strategy) async {
+  Future<void> _importProviders(
+      List<AiProvider> providers, ConflictResolutionStrategy strategy) async {
     for (final provider in providers) {
       try {
         final existing = await _providerRepository.getProvider(provider.id);
-        
+
         if (existing != null) {
           // 处理冲突
           switch (strategy) {
@@ -482,11 +489,12 @@ class ConfigurationImportService {
   }
 
   /// 导入助手
-  Future<void> _importAssistants(List<AiAssistant> assistants, ConflictResolutionStrategy strategy) async {
+  Future<void> _importAssistants(
+      List<AiAssistant> assistants, ConflictResolutionStrategy strategy) async {
     for (final assistant in assistants) {
       try {
         final existing = await _assistantRepository.getAssistant(assistant.id);
-        
+
         if (existing != null) {
           // 处理冲突
           switch (strategy) {

@@ -61,15 +61,15 @@ class ConfigurationTemplate {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'description': description,
-    'type': type.name,
-    'templateData': templateData,
-    'tags': tags,
-    'createdAt': createdAt.toIso8601String(),
-    'isBuiltIn': isBuiltIn,
-  };
+        'id': id,
+        'name': name,
+        'description': description,
+        'type': type.name,
+        'templateData': templateData,
+        'tags': tags,
+        'createdAt': createdAt.toIso8601String(),
+        'isBuiltIn': isBuiltIn,
+      };
 
   factory ConfigurationTemplate.fromJson(Map<String, dynamic> json) {
     return ConfigurationTemplate(
@@ -136,9 +136,12 @@ class AdvancedConfigurationService {
   final LoggerService _logger = LoggerService();
 
   /// 获取服务实例
-  ProviderRepository get _providerRepository => _ref.read(providerRepositoryProvider);
-  AssistantRepository get _assistantRepository => _ref.read(assistantRepositoryProvider);
-  ConfigurationImportService get _importService => _ref.read(configurationImportServiceProvider);
+  ProviderRepository get _providerRepository =>
+      _ref.read(providerRepositoryProvider);
+  AssistantRepository get _assistantRepository =>
+      _ref.read(assistantRepositoryProvider);
+  ConfigurationImportService get _importService =>
+      _ref.read(configurationImportServiceProvider);
 
   /// 获取内置配置模板
   List<ConfigurationTemplate> getBuiltInTemplates() {
@@ -175,8 +178,14 @@ class AdvancedConfigurationService {
           'name': 'Anthropic',
           'baseUrl': 'https://api.anthropic.com',
           'models': [
-            {'name': 'claude-3-5-sonnet-20241022', 'displayName': 'Claude 3.5 Sonnet'},
-            {'name': 'claude-3-5-haiku-20241022', 'displayName': 'Claude 3.5 Haiku'},
+            {
+              'name': 'claude-3-5-sonnet-20241022',
+              'displayName': 'Claude 3.5 Sonnet'
+            },
+            {
+              'name': 'claude-3-5-haiku-20241022',
+              'displayName': 'Claude 3.5 Haiku'
+            },
             {'name': 'claude-3-opus-20240229', 'displayName': 'Claude 3 Opus'},
           ],
         },
@@ -255,10 +264,12 @@ class AdvancedConfigurationService {
       }
 
       // 检查API密钥
-      final providersWithoutKey = providers.where((p) => 
-        p.isEnabled && (p.apiKey.isEmpty || p.apiKey == 'your-api-key-here')
-      ).length;
-      
+      final providersWithoutKey = providers
+          .where((p) =>
+              p.isEnabled &&
+              (p.apiKey.isEmpty || p.apiKey == 'your-api-key-here'))
+          .length;
+
       if (providersWithoutKey > 0) {
         warnings.add('有 $providersWithoutKey 个启用的提供商缺少有效的API密钥');
       }
@@ -268,7 +279,8 @@ class AdvancedConfigurationService {
         'providersByType': _groupProvidersByType(providers),
         'assistantsByType': _groupAssistantsByType(assistants),
         'averageTemperature': _calculateAverageTemperature(assistants),
-        'totalModels': providers.fold<int>(0, (sum, p) => sum + p.models.length),
+        'totalModels':
+            providers.fold<int>(0, (sum, p) => sum + p.models.length),
       };
 
       final analysis = ConfigurationAnalysis(
@@ -291,7 +303,6 @@ class AdvancedConfigurationService {
       });
 
       return analysis;
-
     } catch (error, stackTrace) {
       _logger.error('配置分析失败', {
         'error': error.toString(),
@@ -307,7 +318,7 @@ class AdvancedConfigurationService {
     ConflictResolutionStrategy strategy = ConflictResolutionStrategy.ask,
   }) async {
     final stopwatch = Stopwatch()..start();
-    
+
     try {
       _logger.info('开始批量导入配置', {
         'fileCount': filePaths.length,
@@ -355,14 +366,13 @@ class AdvancedConfigurationService {
       });
 
       return result;
-
     } catch (error, stackTrace) {
       stopwatch.stop();
       _logger.error('批量导入失败', {
         'error': error.toString(),
         'stackTrace': stackTrace.toString(),
       });
-      
+
       return BatchOperationResult(
         totalItems: filePaths.length,
         successCount: 0,
@@ -396,7 +406,8 @@ class AdvancedConfigurationService {
       }
 
       // 验证关联关系
-      final relationshipWarnings = _validateRelationships(providers, assistants);
+      final relationshipWarnings =
+          _validateRelationships(providers, assistants);
       warnings.addAll(relationshipWarnings);
 
       final result = ValidationResult(
@@ -412,12 +423,11 @@ class AdvancedConfigurationService {
       });
 
       return result;
-
     } catch (error) {
       _logger.error('配置完整性验证失败', {
         'error': error.toString(),
       });
-      
+
       return ValidationResult(
         isValid: false,
         errors: ['验证失败: $error'],
@@ -461,12 +471,12 @@ class AdvancedConfigurationService {
   /// 计算平均温度
   double _calculateAverageTemperature(List<AiAssistant> assistants) {
     if (assistants.isEmpty) return 0.0;
-    
+
     final totalTemp = assistants.fold<double>(
-      0.0, 
+      0.0,
       (sum, assistant) => sum + assistant.temperature,
     );
-    
+
     return totalTemp / assistants.length;
   }
 
@@ -535,6 +545,7 @@ class AdvancedConfigurationService {
 }
 
 /// 高级配置管理服务Provider
-final advancedConfigurationServiceProvider = Provider<AdvancedConfigurationService>(
+final advancedConfigurationServiceProvider =
+    Provider<AdvancedConfigurationService>(
   (ref) => AdvancedConfigurationService(ref),
 );

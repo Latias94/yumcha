@@ -166,7 +166,8 @@ class MessageIdService {
   String _generateRandomSuffix() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     return String.fromCharCodes(
-      Iterable.generate(4, (_) => chars.codeUnitAt(_random.nextInt(chars.length))),
+      Iterable.generate(
+          4, (_) => chars.codeUnitAt(_random.nextInt(chars.length))),
     );
   }
 
@@ -175,9 +176,11 @@ class MessageIdService {
   /// 验证消息ID格式是否正确（静态方法）
   static bool isValidId(String id) {
     // 匹配格式: prefix_timestamp_counter_random
-    final standardRegex = RegExp(r'^(user|ai|sys|block|req)_\d{13}_\d{3}_[a-z0-9]{4}$');
+    final standardRegex =
+        RegExp(r'^(user|ai|sys|block|req)_\d{13}_\d{3}_[a-z0-9]{4}$');
     // 匹配消息块格式: block_messageId_blockType_index
-    final blockRegex = RegExp(r'^block_[a-z]+_\d{13}_\d{3}_[a-z0-9]{4}_[a-z]+_\d+$');
+    final blockRegex =
+        RegExp(r'^block_[a-z]+_\d{13}_\d{3}_[a-z0-9]{4}_[a-z]+_\d+$');
     return standardRegex.hasMatch(id) || blockRegex.hasMatch(id);
   }
 

@@ -90,7 +90,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         }
         return 0; // 第一页
       },
-      fetchPage: (pageKey) => _searchService?.fetchPage(pageKey) ?? Future.value([]),
+      fetchPage: (pageKey) =>
+          _searchService?.fetchPage(pageKey) ?? Future.value([]),
     );
 
     // 监听助手状态变化
@@ -210,10 +211,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       NotificationService().showInfo('正在重新生成标题...');
 
       // 使用标题管理器重新生成标题
-      final titleNotifier = ref.read(conversationTitleNotifierProvider.notifier);
+      final titleNotifier =
+          ref.read(conversationTitleNotifierProvider.notifier);
 
       // 直接使用conversation.messages，因为现在已经是Message类型
-      await titleNotifier.regenerateTitle(conversation.id, conversation.messages);
+      await titleNotifier.regenerateTitle(
+          conversation.id, conversation.messages);
 
       NotificationService().showSuccess('标题重新生成成功');
 
@@ -274,7 +277,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     return Consumer(
       builder: (context, ref, child) {
         // 监听统一聊天状态变化，当对话列表需要刷新时自动刷新
-        ref.listen(unifiedChatProvider.select((state) => state.conversationState.recentConversations.length), (previous, next) {
+        ref.listen(
+            unifiedChatProvider.select(
+                (state) => state.conversationState.recentConversations.length),
+            (previous, next) {
           // 当对话数量发生变化时，刷新对话列表
           if (mounted && previous != next) {
             _logger.debug('对话数量变化，刷新分页控制器: $previous -> $next');

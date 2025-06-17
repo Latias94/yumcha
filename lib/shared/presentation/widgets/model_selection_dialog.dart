@@ -131,7 +131,10 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                   color: Theme.of(context).colorScheme.errorContainer,
                   borderRadius: DesignConstants.radiusM,
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .error
+                        .withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -146,7 +149,9 @@ class _ModelSelectionDialogState extends State<ModelSelectionDialog> {
                       child: Text(
                         widget.errorMessage!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onErrorContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer,
                             ),
                       ),
                     ),

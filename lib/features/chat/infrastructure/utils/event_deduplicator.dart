@@ -3,61 +3,62 @@ import 'dart:collection';
 import '../../domain/entities/chat_state.dart';
 
 /// 事件去重器
-/// 
+///
 /// 用于防止短时间内的重复事件发送，提升性能和用户体验
 class EventDeduplicator {
   /// 最小事件间隔
   final Duration _minInterval;
-  
+
   /// 最后事件时间记录
   final Map<Type, DateTime> _lastEvents = {};
-  
+
   /// 事件内容哈希记录（用于内容去重）
   final Map<Type, String> _lastEventHashes = {};
-  
+
   /// 待处理的事件队列
   final Map<Type, _PendingEvent> _pendingEvents = {};
-  
+
   /// 清理定时器
   Timer? _cleanupTimer;
-  
+
   /// 最大记录数量，防止内存泄漏
   static const int _maxRecords = 100;
-  
+
   EventDeduplicator({
     Duration minInterval = const Duration(milliseconds: 50),
   }) : _minInterval = minInterval {
     _startCleanupTimer();
   }
-  
+
   /// 检查是否应该发送事件
   bool shouldEmit<T extends ChatEvent>(T event) {
     final eventType = T;
     final now = DateTime.now();
     final lastEvent = _lastEvents[eventType];
-    
+
     // 检查时间间隔
     if (lastEvent != null && now.difference(lastEvent) < _minInterval) {
       return false;
     }
-    
+
     // 检查内容是否相同（避免重复的相同内容事件）
     final eventHash = _generateEventHash(event);
     final lastHash = _lastEventHashes[eventType];
     if (lastHash == eventHash) {
       return false;
     }
-    
+
     // 更新记录
     _lastEvents[eventType] = now;
     _lastEventHashes[eventType] = eventHash;
     _cleanupIfNeeded();
-    
+
     return true;
   }
-  
+
   /// 延迟发送事件（带去重）
-  void scheduleEmit<T extends ChatEvent>(T event, Function(ChatEvent) emitCallback) {
+  void scheduleEmit<T extends ChatEvent>(
+      T event, Function(ChatEvent) emitCallback) {
     final eventType = T;
 
     // 取消之前的待处理事件
@@ -86,9 +87,10 @@ class EventDeduplicator {
       _pendingEvents[eventType] = _PendingEvent(timer, event, emitCallback);
     }
   }
-  
+
   /// 强制发送事件（忽略去重）
-  void forceEmit<T extends ChatEvent>(T event, Function(ChatEvent) emitCallback) {
+  void forceEmit<T extends ChatEvent>(
+      T event, Function(ChatEvent) emitCallback) {
     final eventType = T;
 
     // 取消待处理的事件
@@ -104,25 +106,25 @@ class EventDeduplicator {
 
     _cleanupIfNeeded();
   }
-  
+
   /// 取消待处理的事件
   void cancelPending<T extends ChatEvent>() {
     final eventType = T;
     final pending = _pendingEvents.remove(eventType);
     pending?.timer.cancel();
   }
-  
+
   /// 获取统计信息
   EventDeduplicationStats getStats() {
     return EventDeduplicationStats(
       totalEventTypes: _lastEvents.length,
       pendingEvents: _pendingEvents.length,
-      oldestRecord: _lastEvents.values.isEmpty 
-          ? null 
+      oldestRecord: _lastEvents.values.isEmpty
+          ? null
           : _lastEvents.values.reduce((a, b) => a.isBefore(b) ? a : b),
     );
   }
-  
+
   /// 生成事件哈希
   String _generateEventHash(ChatEvent event) {
     // 根据事件类型生成不同的哈希
@@ -143,37 +145,37 @@ class EventDeduplicator {
         return event.toString().hashCode.toString();
     }
   }
-  
+
   /// 清理过期记录
   void _cleanupIfNeeded() {
     if (_lastEvents.length > _maxRecords) {
       _performCleanup();
     }
   }
-  
+
   /// 执行清理
   void _performCleanup() {
     final now = DateTime.now();
     final cutoff = now.subtract(Duration(minutes: 5)); // 保留5分钟内的记录
-    
+
     _lastEvents.removeWhere((type, time) => time.isBefore(cutoff));
-    
+
     // 清理对应的哈希记录
     final validTypes = _lastEvents.keys.toSet();
     _lastEventHashes.removeWhere((type, hash) => !validTypes.contains(type));
   }
-  
+
   /// 启动定期清理
   void _startCleanupTimer() {
     _cleanupTimer = Timer.periodic(Duration(minutes: 1), (_) {
       _performCleanup();
     });
   }
-  
+
   /// 释放资源
   void dispose() {
     _cleanupTimer?.cancel();
-    
+
     // 取消所有待处理的事件
     for (final pending in _pendingEvents.values) {
       pending.timer.cancel();
@@ -189,7 +191,7 @@ class _PendingEvent {
   final Timer timer;
   final ChatEvent event;
   final Function(ChatEvent) callback;
-  
+
   _PendingEvent(this.timer, this.event, this.callback);
 }
 
@@ -198,13 +200,13 @@ class EventDeduplicationStats {
   final int totalEventTypes;
   final int pendingEvents;
   final DateTime? oldestRecord;
-  
+
   const EventDeduplicationStats({
     required this.totalEventTypes,
     required this.pendingEvents,
     this.oldestRecord,
   });
-  
+
   @override
   String toString() {
     return 'EventDeduplicationStats(totalEventTypes: $totalEventTypes, pendingEvents: $pendingEvents, oldestRecord: $oldestRecord)';
@@ -212,7 +214,7 @@ class EventDeduplicationStats {
 }
 
 /// 智能事件去重器
-/// 
+///
 /// 根据事件类型和重要性调整去重策略
 class IntelligentEventDeduplicator extends EventDeduplicator {
   /// 事件优先级映射
@@ -224,41 +226,42 @@ class IntelligentEventDeduplicator extends EventDeduplicator {
     ConversationChangedEvent: EventPriority.normal,
     StreamingCompletedEvent: EventPriority.high,
   };
-  
-  IntelligentEventDeduplicator() : super(
-    minInterval: const Duration(milliseconds: 50),
-  );
-  
+
+  IntelligentEventDeduplicator()
+      : super(
+          minInterval: const Duration(milliseconds: 50),
+        );
+
   @override
   bool shouldEmit<T extends ChatEvent>(T event) {
     final priority = _eventPriorities[T] ?? EventPriority.normal;
-    
+
     // 关键事件总是发送
     if (priority == EventPriority.critical) {
       _lastEvents[T] = DateTime.now();
       _lastEventHashes[T] = _generateEventHash(event);
       return true;
     }
-    
+
     // 高优先级事件使用更短的间隔
-    final interval = priority == EventPriority.high 
+    final interval = priority == EventPriority.high
         ? Duration(milliseconds: 25)
         : _minInterval;
-    
+
     final now = DateTime.now();
     final lastEvent = _lastEvents[T];
-    
+
     if (lastEvent != null && now.difference(lastEvent) < interval) {
       return false;
     }
-    
+
     // 检查内容去重
     final eventHash = _generateEventHash(event);
     final lastHash = _lastEventHashes[T];
     if (lastHash == eventHash && priority != EventPriority.high) {
       return false;
     }
-    
+
     _lastEvents[T] = now;
     _lastEventHashes[T] = eventHash;
     return true;
@@ -275,11 +278,12 @@ enum EventPriority {
 
 /// 全局事件去重器
 class GlobalEventDeduplicator {
-  static final IntelligentEventDeduplicator _instance = IntelligentEventDeduplicator();
-  
+  static final IntelligentEventDeduplicator _instance =
+      IntelligentEventDeduplicator();
+
   /// 获取全局实例
   static IntelligentEventDeduplicator get instance => _instance;
-  
+
   /// 释放资源
   static void dispose() {
     _instance.dispose();

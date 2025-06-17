@@ -8,7 +8,7 @@ import '../../domain/entities/message_block_status.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 消息块组件
-/// 
+///
 /// 渲染单个消息块，支持不同类型的内容和状态
 class MessageBlockWidget extends ConsumerStatefulWidget {
   const MessageBlockWidget({
@@ -144,10 +144,10 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
   bool _shouldShowBlockHeader() {
     // 对于特殊类型的块，显示头部标识
     return widget.block.type == MessageBlockType.thinking ||
-           widget.block.type == MessageBlockType.code ||
-           widget.block.type == MessageBlockType.tool ||
-           widget.block.type == MessageBlockType.error ||
-           widget.block.type == MessageBlockType.citation;
+        widget.block.type == MessageBlockType.code ||
+        widget.block.type == MessageBlockType.tool ||
+        widget.block.type == MessageBlockType.error ||
+        widget.block.type == MessageBlockType.citation;
   }
 
   /// 构建块头部
@@ -314,7 +314,7 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
   /// 构建代码内容
   Widget _buildCodeContent(ThemeData theme) {
     final language = widget.block.language ?? 'text';
-    
+
     return Container(
       padding: DesignConstants.paddingM,
       decoration: BoxDecoration(
@@ -530,12 +530,14 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
               fontSize: 13,
             ),
           ),
-          if (widget.block.error != null && widget.block.error!['code'] != null) ...[
+          if (widget.block.error != null &&
+              widget.block.error!['code'] != null) ...[
             SizedBox(height: DesignConstants.spaceS),
             Text(
               '错误代码: ${widget.block.error!['code']}',
               style: TextStyle(
-                color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.7),
+                color:
+                    theme.colorScheme.onErrorContainer.withValues(alpha: 0.7),
                 fontSize: 11,
                 fontFamily: 'monospace',
               ),
@@ -706,7 +708,8 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
   }
 
   /// 构建Markdown内容
-  Widget _buildMarkdownContent(String content, Color textColor, ThemeData theme) {
+  Widget _buildMarkdownContent(
+      String content, Color textColor, ThemeData theme) {
     return MarkdownWidget(
       data: content,
       shrinkWrap: true,
@@ -780,8 +783,7 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
       mainAxisSize: MainAxisSize.min,
       children: [
         // 复制按钮（对于可复制的块类型）
-        if (widget.block.type.isCopyable)
-          _buildCopyButton(theme),
+        if (widget.block.type.isCopyable) _buildCopyButton(theme),
 
         // 编辑按钮（对于可编辑的块类型）
         if (widget.block.type.isEditable && widget.onEdit != null)
@@ -830,7 +832,8 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
       icon: Icon(
         _isCopied ? Icons.check_rounded : Icons.copy_rounded,
         size: DesignConstants.iconSizeS,
-        color: _isCopied ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+        color:
+            _isCopied ? theme.colorScheme.primary : theme.colorScheme.onSurface,
       ),
       tooltip: _isCopied ? '已复制' : '复制',
     );
@@ -1173,8 +1176,8 @@ URL: ${widget.block.url ?? 'N/A'}
   void _downloadFile() {
     final url = widget.block.url;
     final fileName = widget.block.metadata?['fileName'] as String? ??
-                    widget.block.content ??
-                    'download_file';
+        widget.block.content ??
+        'download_file';
 
     if (url == null || url.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

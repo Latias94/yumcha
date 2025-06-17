@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// 气泡主题配置类
-/// 
+///
 /// 统一管理气泡的颜色、阴影、边框等视觉样式
 class BubbleTheme {
   const BubbleTheme({

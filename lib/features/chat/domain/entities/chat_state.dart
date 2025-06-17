@@ -94,9 +94,7 @@ class ChatConfiguration {
 
   /// 检查是否有效
   bool get isValid =>
-      isComplete &&
-      selectedAssistant!.isEnabled &&
-      selectedProvider!.isEnabled;
+      isComplete && selectedAssistant!.isEnabled && selectedProvider!.isEnabled;
 
   ChatConfiguration copyWith({
     AiAssistant? selectedAssistant,
@@ -317,10 +315,7 @@ class UnifiedChatState {
   });
 
   /// 检查是否准备就绪（可以发送消息）
-  bool get isReady =>
-      isInitialized &&
-      !isInitializing &&
-      configuration.isValid;
+  bool get isReady => isInitialized && !isInitializing && configuration.isValid;
 
   /// 检查是否有活跃对话
   bool get hasActiveConversation =>
@@ -404,7 +399,8 @@ abstract class ChatOperationResult<T> {
   /// 处理结果
   R when<R>({
     required R Function(T data) success,
-    required R Function(String error, String? code, Object? originalError) failure,
+    required R Function(String error, String? code, Object? originalError)
+        failure,
     required R Function() loading,
   }) {
     if (this is ChatOperationSuccess<T>) {
@@ -603,7 +599,8 @@ class ChatPerformanceMetrics {
       activeSubscriptions: activeSubscriptions ?? this.activeSubscriptions,
       cachedMessages: cachedMessages ?? this.cachedMessages,
       lastOperationTime: lastOperationTime ?? this.lastOperationTime,
-      lastGarbageCollection: lastGarbageCollection ?? this.lastGarbageCollection,
+      lastGarbageCollection:
+          lastGarbageCollection ?? this.lastGarbageCollection,
     );
   }
 }
@@ -616,7 +613,7 @@ class ChatConstants {
   static const Duration streamingTimeout = Duration(minutes: 5);
   static const Duration initializationTimeout = Duration(seconds: 30);
   static const Duration configurationSaveDelay = Duration(milliseconds: 500);
-  
+
   // 性能相关
   static const int maxConcurrentStreams = 3;
   static const int messageCleanupThreshold = 150;

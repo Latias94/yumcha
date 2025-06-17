@@ -189,8 +189,8 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
                                 index == 0;
 
                         // 判断是否可以编辑（用户消息和AI消息都可以编辑）
-                        final canEdit = !isWelcomeMessage &&
-                            widget.onEditMessage != null;
+                        final canEdit =
+                            !isWelcomeMessage && widget.onEditMessage != null;
 
                         // 判断是否可以重新生成（只有AI消息可以重新生成）
                         final canRegenerate = !isWelcomeMessage &&
@@ -202,7 +202,8 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
                           padding: EdgeInsets.only(
                             left: DesignConstants.spaceS,
                             right: DesignConstants.spaceS,
-                            bottom: AdaptiveSpacing.getChatMessageSpacing(context), // 响应式间距
+                            bottom: AdaptiveSpacing.getChatMessageSpacing(
+                                context), // 响应式间距
                           ),
                           child: _OptimizedMessageItem(
                             key: ValueKey(message.id),
@@ -356,8 +357,9 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
     final hasNewMessage = displayMessages.length > _previousMessageCount;
 
     // 获取所有处理中的消息
-    final streamingMessages =
-        messages.where((m) => m.status == msg_status.MessageStatus.aiProcessing).toList();
+    final streamingMessages = messages
+        .where((m) => m.status == msg_status.MessageStatus.aiProcessing)
+        .toList();
     final currentStreamingIds = streamingMessages.map((m) => m.id).toSet();
 
     // 检查是否有新的流式消息或流式消息更新

@@ -141,7 +141,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               ),
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 应用名称
             Text(
               'YumCha',
@@ -150,17 +150,17 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                   ),
             ),
             SizedBox(height: DesignConstants.spaceS),
-            
+
             // 应用描述
             Text(
               '一个现代化的 AI 聊天客户端',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                  ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: DesignConstants.spaceM),
-            
+
             // 特性标签
             Wrap(
               spacing: 8,
@@ -215,7 +215,6 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             if (_packageInfo != null) ...[
               _buildInfoRow('版本号', _packageInfo!.version),
               _buildInfoRow('构建号', _packageInfo!.buildNumber),
@@ -252,7 +251,6 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             _buildInfoRow('开发者', 'YumCha Team'),
             _buildInfoRow('技术栈', 'Flutter + Dart'),
             _buildInfoRow('架构', 'Clean Architecture + Riverpod'),
@@ -285,7 +283,6 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             _buildLinkItem(
               Icons.home,
               '官方网站',
@@ -339,10 +336,8 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             _buildInfoRow('应用许可证', 'AGPL v3'),
             _buildInfoRow('核心库许可证', 'MIT (llm_dart)'),
-            
             SizedBox(height: DesignConstants.spaceM),
             SizedBox(
               width: double.infinity,
@@ -392,13 +387,12 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             Text(
               '感谢所有为 YumCha 项目做出贡献的开发者和用户。'
               '特别感谢 Flutter 团队、Riverpod 团队以及所有开源项目的维护者。',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                  ),
             ),
           ],
         ),
@@ -418,7 +412,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                  ),
             ),
           ),
           Expanded(

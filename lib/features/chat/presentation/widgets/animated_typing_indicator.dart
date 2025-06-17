@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// 动画化的打字指示器组件
-/// 
+///
 /// 用于显示AI正在输入的动画效果，提供更好的用户体验
 class AnimatedTypingIndicator extends StatefulWidget {
   const AnimatedTypingIndicator({
@@ -25,7 +25,8 @@ class AnimatedTypingIndicator extends StatefulWidget {
   final double dotSpacing;
 
   @override
-  State<AnimatedTypingIndicator> createState() => _AnimatedTypingIndicatorState();
+  State<AnimatedTypingIndicator> createState() =>
+      _AnimatedTypingIndicatorState();
 }
 
 class _AnimatedTypingIndicatorState extends State<AnimatedTypingIndicator>
@@ -64,21 +65,21 @@ class _AnimatedTypingIndicatorState extends State<AnimatedTypingIndicator>
     while (mounted) {
       for (int i = 0; i < _controllers.length; i++) {
         if (!mounted) break;
-        
+
         _controllers[i].forward();
         await Future.delayed(Duration(milliseconds: 200));
       }
-      
+
       // 等待所有动画完成
       await Future.delayed(Duration(milliseconds: 400));
-      
+
       // 重置所有动画
       for (var controller in _controllers) {
         if (mounted) {
           controller.reset();
         }
       }
-      
+
       // 短暂暂停后重新开始
       await Future.delayed(Duration(milliseconds: 300));
     }
@@ -128,7 +129,7 @@ class _AnimatedTypingIndicatorState extends State<AnimatedTypingIndicator>
 }
 
 /// 简化版的打字指示器
-/// 
+///
 /// 用于空间受限的场景
 class SimpleTypingIndicator extends StatefulWidget {
   const SimpleTypingIndicator({
@@ -183,7 +184,7 @@ class _SimpleTypingIndicatorState extends State<SimpleTypingIndicator>
             children: List.generate(3, (index) {
               final delay = index * 0.33;
               final progress = (_animation.value + delay) % 1.0;
-              
+
               return Positioned.fill(
                 child: Opacity(
                   opacity: (1.0 - progress) * 0.8,
@@ -195,8 +196,7 @@ class _SimpleTypingIndicatorState extends State<SimpleTypingIndicator>
                         width: 1.0,
                       ),
                     ),
-                    transform: Matrix4.identity()
-                      ..scale(progress * 2.0),
+                    transform: Matrix4.identity()..scale(progress * 2.0),
                   ),
                 ),
               );
@@ -209,7 +209,7 @@ class _SimpleTypingIndicatorState extends State<SimpleTypingIndicator>
 }
 
 /// 脉冲式打字指示器
-/// 
+///
 /// 提供更现代的脉冲动画效果
 class PulseTypingIndicator extends StatefulWidget {
   const PulseTypingIndicator({

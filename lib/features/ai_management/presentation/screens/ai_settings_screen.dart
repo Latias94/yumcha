@@ -38,7 +38,7 @@ class AiSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final deviceType = DesignConstants.getDeviceType(context);
-    
+
     // 监听AI管理状态
     final isLoading = ref.watch(isAiManagementLoadingProvider);
     final hasError = ref.watch(hasAiManagementErrorProvider);
@@ -71,7 +71,7 @@ class AiSettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          
+
           // 内容区域
           if (hasError)
             _buildErrorState(context, theme, ref)
@@ -84,7 +84,8 @@ class AiSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(BuildContext context, ThemeData theme, WidgetRef ref) {
+  Widget _buildErrorState(
+      BuildContext context, ThemeData theme, WidgetRef ref) {
     return SliverToBoxAdapter(
       child: Container(
         height: MediaQuery.of(context).size.height * 0.6,
@@ -160,24 +161,26 @@ class AiSettingsScreen extends ConsumerWidget {
       delegate: SliverChildListDelegate([
         // 统计信息卡片
         const AiManagementStatsCard(),
-        
+
         // 提供商管理区域
         const ProvidersManagementSection(),
-        
+
         // 助手管理区域
         const AssistantsManagementSection(),
-        
+
         // 配置管理区域
         const ConfigurationManagementSection(),
-        
+
         // 底部间距
         SizedBox(height: DesignConstants.spaceXL),
-        
+
         // 版本信息
         _buildVersionInfo(context, theme),
-        
+
         // 底部安全间距
-        SizedBox(height: MediaQuery.of(context).padding.bottom + DesignConstants.spaceL),
+        SizedBox(
+            height:
+                MediaQuery.of(context).padding.bottom + DesignConstants.spaceL),
       ]),
     );
   }

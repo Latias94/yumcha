@@ -4,7 +4,7 @@ import 'user_ai_configuration.dart';
 part 'ai_configuration_state.freezed.dart';
 
 /// AI配置状态聚合模型
-/// 
+///
 /// 统一管理AI配置的所有相关状态信息，包括：
 /// - 配置数据本身
 /// - 验证状态和错误信息
@@ -31,10 +31,12 @@ class AiConfigurationState with _$AiConfigurationState {
   bool get hasWarnings => warnings.isNotEmpty;
 
   /// 是否可以使用
-  bool get isUsable => isValid && !isLoading && status == ConfigurationStatus.ready;
+  bool get isUsable =>
+      isValid && !isLoading && status == ConfigurationStatus.ready;
 
   /// 获取主要错误信息
-  String? get primaryError => validationErrors.isNotEmpty ? validationErrors.first.message : null;
+  String? get primaryError =>
+      validationErrors.isNotEmpty ? validationErrors.first.message : null;
 
   /// 获取错误数量
   int get errorCount => validationErrors.length;
@@ -64,11 +66,11 @@ class AiConfigurationState with _$AiConfigurationState {
 
 /// 配置状态枚举
 enum ConfigurationStatus {
-  notConfigured,  // 未配置
-  configuring,    // 配置中
-  validating,     // 验证中
-  ready,          // 就绪
-  error,          // 错误
+  notConfigured, // 未配置
+  configuring, // 配置中
+  validating, // 验证中
+  ready, // 就绪
+  error, // 错误
 }
 
 /// 验证错误模型
@@ -85,7 +87,9 @@ class ValidationError with _$ValidationError {
   const ValidationError._();
 
   /// 是否为严重错误
-  bool get isCritical => type == ValidationErrorType.required || type == ValidationErrorType.connection;
+  bool get isCritical =>
+      type == ValidationErrorType.required ||
+      type == ValidationErrorType.connection;
 
   /// 获取错误级别
   ErrorLevel get level {
@@ -104,16 +108,16 @@ class ValidationError with _$ValidationError {
 
 /// 验证错误类型
 enum ValidationErrorType {
-  required,       // 必填字段
-  invalid,        // 无效值
-  connection,     // 连接错误
-  permission,     // 权限错误
+  required, // 必填字段
+  invalid, // 无效值
+  connection, // 连接错误
+  permission, // 权限错误
 }
 
 /// 错误级别
 enum ErrorLevel {
-  critical,       // 严重错误
-  high,           // 高级错误
-  medium,         // 中级错误
-  low,            // 低级错误
+  critical, // 严重错误
+  high, // 高级错误
+  medium, // 中级错误
+  low, // 低级错误
 }

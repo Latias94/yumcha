@@ -127,7 +127,8 @@ class DrawerSearchService {
         pageSize: _pageSize,
       );
 
-      final asyncValue = await _ref.read(drawerConversationPageProvider(params).future);
+      final asyncValue =
+          await _ref.read(drawerConversationPageProvider(params).future);
       return asyncValue;
     } catch (e, stackTrace) {
       _logger.error('获取对话列表失败', {
@@ -141,22 +142,22 @@ class DrawerSearchService {
     }
   }
 
-
-
   /// 初始化选中的助手（从设置中恢复）
   Future<void> initializeSelectedAssistant(
       VoidCallback onRefreshConversations) async {
     // 检查助手数据的加载状态
     try {
       final allAssistants = _ref.read(aiAssistantsProvider);
-      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
+      final enabledAssistants =
+          allAssistants.where((a) => a.isEnabled).toList();
 
       if (enabledAssistants.isEmpty) {
         _logger.warning('没有可用助手，等待数据加载...');
 
         // 如果助手数据还在加载中，等待一段时间后重试
         await Future.delayed(const Duration(milliseconds: 500));
-        final retryAssistants = _ref.read(aiAssistantsProvider).where((a) => a.isEnabled).toList();
+        final retryAssistants =
+            _ref.read(aiAssistantsProvider).where((a) => a.isEnabled).toList();
         if (retryAssistants.isEmpty) {
           _logger.error('重试后仍然没有可用助手');
           return;
@@ -170,7 +171,8 @@ class DrawerSearchService {
 
     try {
       final allAssistants = _ref.read(aiAssistantsProvider);
-      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
+      final enabledAssistants =
+          allAssistants.where((a) => a.isEnabled).toList();
 
       // 从设置中读取上次选择的助手
       final settingsNotifier = _ref.read(settingsNotifierProvider.notifier);
@@ -203,7 +205,8 @@ class DrawerSearchService {
       }
 
       // 获取当前选择的助手
-      final currentSelectedAssistant = _ref.read(drawerSelectedAssistantProvider);
+      final currentSelectedAssistant =
+          _ref.read(drawerSelectedAssistantProvider);
 
       // 更新选择的助手
       if (currentSelectedAssistant != targetAssistantId) {
@@ -227,7 +230,8 @@ class DrawerSearchService {
 
       // 出错时使用第一个可用助手
       final allAssistants = _ref.read(aiAssistantsProvider);
-      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
+      final enabledAssistants =
+          allAssistants.where((a) => a.isEnabled).toList();
       if (enabledAssistants.isNotEmpty) {
         await setSelectedAssistant(enabledAssistants.first.id);
         onRefreshConversations();

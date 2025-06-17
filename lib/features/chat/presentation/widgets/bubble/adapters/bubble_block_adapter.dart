@@ -5,11 +5,11 @@ import '../../../../domain/entities/message_block_type.dart';
 import '../bubble_context.dart';
 
 /// 气泡块适配器抽象基类
-/// 
+///
 /// 定义了消息块在气泡中的渲染接口
 abstract class BubbleBlockAdapter {
   /// 在气泡中构建消息块组件
-  /// 
+  ///
   /// [block] 要渲染的消息块
   /// [context] 气泡上下文信息
   /// [isFirst] 是否为第一个块
@@ -22,12 +22,12 @@ abstract class BubbleBlockAdapter {
   });
 
   /// 检查是否可以处理指定类型的消息块
-  /// 
+  ///
   /// [type] 消息块类型
   bool canHandleBlock(MessageBlockType type);
 
   /// 获取消息块的首选高度
-  /// 
+  ///
   /// [block] 消息块
   /// [context] 气泡上下文
   double getPreferredHeight(MessageBlock block, BubbleContext context) {
@@ -36,7 +36,7 @@ abstract class BubbleBlockAdapter {
   }
 
   /// 获取消息块的首选宽度
-  /// 
+  ///
   /// [block] 消息块
   /// [context] 气泡上下文
   double getPreferredWidth(MessageBlock block, BubbleContext context) {
@@ -45,14 +45,14 @@ abstract class BubbleBlockAdapter {
   }
 
   /// 检查消息块是否需要特殊处理
-  /// 
+  ///
   /// [block] 消息块
   bool requiresSpecialHandling(MessageBlock block) {
     return false;
   }
 
   /// 获取适配器的优先级
-  /// 
+  ///
   /// 数值越高优先级越高，用于解决多个适配器都能处理同一类型块的情况
   int get priority => 0;
 
@@ -80,7 +80,7 @@ abstract class BubbleBlockAdapter {
     final lines = content.split('\n').length;
     final baseLineHeight = 20.0;
     final padding = context.padding.vertical;
-    
+
     return (lines * baseLineHeight) + padding + 16.0; // 额外的16像素用于边距
   }
 
@@ -194,7 +194,8 @@ abstract class BubbleBlockAdapter {
     double borderWidth = 1.0,
   }) {
     return BoxDecoration(
-      color: backgroundColor ?? context.theme.colorScheme.surfaceContainerHighest,
+      color:
+          backgroundColor ?? context.theme.colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(borderRadius),
       border: borderColor != null
           ? Border.all(color: borderColor, width: borderWidth)

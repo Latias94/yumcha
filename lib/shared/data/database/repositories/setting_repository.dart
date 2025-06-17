@@ -25,7 +25,8 @@ class SettingRepository {
       _logger.debug('开始获取所有设置');
       final query = _database.select(_database.settings);
       final results = await query.get();
-      final settings = results.map((data) => AppSetting.fromData(data)).toList();
+      final settings =
+          results.map((data) => AppSetting.fromData(data)).toList();
 
       _logger.info('设置获取成功', {'count': settings.length});
       return settings;

@@ -7,11 +7,11 @@ import '../../domain/repositories/message_repository.dart';
 import 'chat_logger_service.dart';
 
 /// 错误恢复服务
-/// 
+///
 /// 提供聊天系统的错误恢复和重试机制
 class ErrorRecoveryService {
   final MessageRepository _messageRepository;
-  
+
   /// 重试配置
   static const int maxRetryAttempts = 3;
   static const Duration retryDelay = Duration(seconds: 2);
@@ -24,8 +24,9 @@ class ErrorRecoveryService {
   /// 恢复失败的消息
   Future<bool> recoverFailedMessage(String messageId) async {
     try {
-      ChatLoggerService.logDebug('Attempting to recover failed message: $messageId');
-      
+      ChatLoggerService.logDebug(
+          'Attempting to recover failed message: $messageId');
+
       final message = await _messageRepository.getMessage(messageId);
       if (message == null) {
         throw MessageException.notFound(messageId);
@@ -45,11 +46,11 @@ class ErrorRecoveryService {
         updatedAt: DateTime.now(),
       );
 
-      await _messageRepository.updateMessageStatus(recoveredMessage.id, recoveredMessage.status);
-      
+      await _messageRepository.updateMessageStatus(
+          recoveredMessage.id, recoveredMessage.status);
+
       ChatLoggerService.logMessageUpdated(recoveredMessage, 'recovered');
       return true;
-      
     } catch (e) {
       ChatLoggerService.logException(
         MessageException(
@@ -65,21 +66,21 @@ class ErrorRecoveryService {
   /// 批量恢复失败的消息
   Future<List<String>> recoverFailedMessages(List<String> messageIds) async {
     final recoveredIds = <String>[];
-    
+
     for (final messageId in messageIds) {
       final recovered = await recoverFailedMessage(messageId);
       if (recovered) {
         recoveredIds.add(messageId);
       }
-      
+
       // 添加延迟避免过于频繁的操作
       await Future.delayed(const Duration(milliseconds: 100));
     }
-    
+
     ChatLoggerService.logDebug(
       'Batch recovery completed: ${recoveredIds.length}/${messageIds.length} messages recovered',
     );
-    
+
     return recoveredIds;
   }
 
@@ -91,38 +92,38 @@ class ErrorRecoveryService {
     String? operationName,
   }) async {
     Exception? lastException;
-    
+
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         ChatLoggerService.logDebug(
           'Attempting operation${operationName != null ? ' ($operationName)' : ''}: attempt $attempt/$maxAttempts',
         );
-        
+
         final result = await operation();
-        
+
         if (attempt > 1) {
           ChatLoggerService.logDebug(
             'Operation${operationName != null ? ' ($operationName)' : ''} succeeded on attempt $attempt',
           );
         }
-        
+
         return result;
-        
       } catch (e) {
         lastException = e is Exception ? e : Exception(e.toString());
-        
+
         ChatLoggerService.logWarning(
           'Operation${operationName != null ? ' ($operationName)' : ''} failed on attempt $attempt: $e',
         );
-        
+
         if (attempt < maxAttempts) {
           final delay = _calculateBackoffDelay(attempt, initialDelay);
-          ChatLoggerService.logDebug('Retrying in ${delay.inMilliseconds}ms...');
+          ChatLoggerService.logDebug(
+              'Retrying in ${delay.inMilliseconds}ms...');
           await Future.delayed(delay);
         }
       }
     }
-    
+
     // 所有重试都失败了
     final finalException = AiServiceException(
       message: 'Operation failed after $maxAttempts attempts',
@@ -133,7 +134,7 @@ class ErrorRecoveryService {
         'maxAttempts': maxAttempts,
       },
     );
-    
+
     ChatLoggerService.logException(finalException);
     throw finalException;
   }
@@ -142,16 +143,16 @@ class ErrorRecoveryService {
   Future<int> cleanupOrphanedBlocks() async {
     try {
       ChatLoggerService.logDebug('Starting cleanup of orphaned message blocks');
-      
+
       // 这里应该实现清理逻辑
       // 1. 查找没有对应消息的消息块
       // 2. 删除这些孤立的块
-      
+
       final cleanedCount = 0; // 实际实现时替换为真实的清理数量
-      
-      ChatLoggerService.logDebug('Cleanup completed: $cleanedCount orphaned blocks removed');
+
+      ChatLoggerService.logDebug(
+          'Cleanup completed: $cleanedCount orphaned blocks removed');
       return cleanedCount;
-      
     } catch (e) {
       ChatLoggerService.logException(
         DatabaseException.operationFailed(
@@ -175,12 +176,14 @@ class ErrorRecoveryService {
 
       // 简化的块顺序检查 - 只检查基本的完整性
       if (message.blocks.isEmpty && message.blockIds.isNotEmpty) {
-        ChatLoggerService.logDebug('Message $messageId has block IDs but no blocks loaded');
+        ChatLoggerService.logDebug(
+            'Message $messageId has block IDs but no blocks loaded');
         return false;
       }
 
       if (message.blocks.isNotEmpty && message.blockIds.isEmpty) {
-        ChatLoggerService.logDebug('Message $messageId has blocks but no block IDs');
+        ChatLoggerService.logDebug(
+            'Message $messageId has blocks but no block IDs');
         return false;
       }
 
@@ -192,9 +195,9 @@ class ErrorRecoveryService {
         }
       }
 
-      ChatLoggerService.logDebug('Message block order check completed for $messageId');
+      ChatLoggerService.logDebug(
+          'Message block order check completed for $messageId');
       return true;
-
     } catch (e) {
       ChatLoggerService.logException(
         MessageException(
@@ -210,7 +213,7 @@ class ErrorRecoveryService {
   /// 验证消息完整性
   Future<List<String>> validateMessageIntegrity(String messageId) async {
     final issues = <String>[];
-    
+
     try {
       final message = await _messageRepository.getMessage(messageId);
       if (message == null) {
@@ -237,7 +240,7 @@ class ErrorRecoveryService {
         if (block.messageId != message.id) {
           issues.add('Block ${block.id} has wrong message ID');
         }
-        
+
         if (block.content == null || block.content!.isEmpty) {
           issues.add('Block ${block.id} has empty content');
         }
@@ -247,7 +250,6 @@ class ErrorRecoveryService {
       if (message.blockIds.length != message.blocks.length) {
         issues.add('Block IDs count does not match blocks count');
       }
-
     } catch (e) {
       issues.add('Validation error: $e');
     }
@@ -267,7 +269,8 @@ class ErrorRecoveryService {
       final issues = await validateMessageIntegrity(messageId);
       if (issues.isEmpty) return true;
 
-      ChatLoggerService.logDebug('Auto-repairing message $messageId: ${issues.length} issues found');
+      ChatLoggerService.logDebug(
+          'Auto-repairing message $messageId: ${issues.length} issues found');
 
       // 尝试修复块顺序问题
       if (issues.any((issue) => issue.contains('order'))) {
@@ -285,7 +288,6 @@ class ErrorRecoveryService {
       }
 
       return remainingIssues.isEmpty;
-      
     } catch (e) {
       ChatLoggerService.logException(
         MessageException(
@@ -301,13 +303,14 @@ class ErrorRecoveryService {
   /// 检查消息是否可以恢复
   bool _canRecoverMessage(Message message) {
     return message.status == MessageStatus.aiError ||
-           message.status == MessageStatus.aiPaused;
+        message.status == MessageStatus.aiPaused;
   }
 
   /// 计算指数退避延迟
   Duration _calculateBackoffDelay(int attempt, Duration initialDelay) {
     final multiplier = attempt - 1;
-    final additionalDelay = exponentialBackoffMultiplier * multiplier * multiplier;
+    final additionalDelay =
+        exponentialBackoffMultiplier * multiplier * multiplier;
     return initialDelay + additionalDelay;
   }
 }

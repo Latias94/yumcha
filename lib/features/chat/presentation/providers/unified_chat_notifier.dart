@@ -9,8 +9,6 @@ import '../../domain/entities/message_block.dart';
 import '../../domain/entities/message_block_type.dart';
 import '../../domain/repositories/message_repository.dart';
 
-
-
 import '../../infrastructure/middleware/error_handling_middleware.dart';
 import '../../infrastructure/utils/batch_state_updater.dart' as batch;
 import '../../infrastructure/utils/streaming_update_manager.dart';
@@ -32,7 +30,7 @@ import '../../../../shared/presentation/providers/conversation_title_notifier.da
 import 'streaming_message_provider.dart';
 
 /// 统一聊天状态管理器
-/// 
+///
 /// 这是聊天功能的核心状态管理器，采用最佳实践：
 /// - 🎯 单一数据源：所有聊天状态统一管理
 /// - 🔄 事件驱动：使用事件系统处理状态变化
@@ -65,10 +63,12 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   late final MessageStateManager _stateManager;
 
   /// 获取消息仓库 - 使用getter符合Riverpod最佳实践
-  MessageRepository get _messageRepository => _ref.read(messageRepositoryProvider);
+  MessageRepository get _messageRepository =>
+      _ref.read(messageRepositoryProvider);
 
   /// 事件流控制器
-  final StreamController<ChatEvent> _eventController = StreamController.broadcast();
+  final StreamController<ChatEvent> _eventController =
+      StreamController.broadcast();
 
   /// 初始化锁
   bool _isInitializing = false;
@@ -82,19 +82,22 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   // 移除去重器，不再使用去重逻辑
 
   /// 批量状态更新器
-  final batch.BatchStateUpdater _batchUpdater = batch.GlobalBatchUpdater.instance;
+  final batch.BatchStateUpdater _batchUpdater =
+      batch.GlobalBatchUpdater.instance;
 
   /// 流式更新管理器
   late final StreamingUpdateManager _streamingManager;
 
   /// 事件去重器
-  final IntelligentEventDeduplicator _eventDeduplicator = GlobalEventDeduplicator.instance;
+  final IntelligentEventDeduplicator _eventDeduplicator =
+      GlobalEventDeduplicator.instance;
 
   /// 事件流
   Stream<ChatEvent> get eventStream => _eventController.stream;
 
   /// 获取服务实例
-  PreferenceService get _preferenceService => _ref.read(preferenceServiceProvider);
+  PreferenceService get _preferenceService =>
+      _ref.read(preferenceServiceProvider);
 
   @override
   void dispose() {
@@ -153,7 +156,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
       _emitEvent(const ConfigurationChangedEvent(null, null, null));
       _logger.info('统一聊天状态管理器初始化完成');
-
     } catch (error, stackTrace) {
       // 使用统一错误处理中间件
       final chatError = ErrorHandlingMiddleware.handleChatError(
@@ -252,7 +254,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
           'assistantsReady': assistantsReady,
           'providersReady': providersReady,
         });
-
       } catch (error) {
         _logger.warning('基础数据检查失败，继续等待', {'error': error.toString()});
       }
@@ -272,7 +273,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
       // 获取助手
       final assistant = await _getDefaultAssistant();
-      
+
       // 获取提供商和模型
       final (provider, model) = await _getDefaultProviderAndModel();
 
@@ -291,7 +292,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         'model': model?.name,
         'isComplete': newConfiguration.isComplete,
       });
-
     } catch (error) {
       state = state.copyWith(
         configuration: state.configuration.copyWith(
@@ -318,7 +318,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       // 不再自动创建对话，只是准备好配置
       // 对话将在用户发送第一条消息时创建
       _logger.info('对话状态初始化完成，等待用户创建对话');
-
     } catch (error) {
       state = state.copyWith(
         conversationState: state.conversationState.copyWith(
@@ -374,8 +373,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   }
 
   /// 内部发送消息实现
-  Future<void> _sendMessageInternal(String content, {bool useStreaming = true}) async {
-
+  Future<void> _sendMessageInternal(String content,
+      {bool useStreaming = true}) async {
     try {
       // 如果没有当前对话，先创建一个
       if (state.conversationState.currentConversation == null) {
@@ -452,7 +451,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
           _logger.info('消息正在流式处理中');
         },
       );
-
     } catch (error) {
       // 使用统一错误处理中间件
       final chatError = ErrorHandlingMiddleware.handleChatError(
@@ -473,7 +471,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   }
 
   /// 内部重新生成响应实现
-  Future<void> _regenerateResponseInternal(String aiMessageId, {bool useStreaming = true}) async {
+  Future<void> _regenerateResponseInternal(String aiMessageId,
+      {bool useStreaming = true}) async {
     try {
       // 如果没有当前对话，先创建一个
       if (state.conversationState.currentConversation == null) {
@@ -490,13 +489,15 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       }
 
       // 找到要重新生成的AI消息
-      final aiMessageIndex = state.messageState.messages.indexWhere((m) => m.id == aiMessageId);
+      final aiMessageIndex =
+          state.messageState.messages.indexWhere((m) => m.id == aiMessageId);
       if (aiMessageIndex == -1) {
         throw Exception('找不到要重新生成的AI消息');
       }
 
       // 获取AI消息之前的所有消息作为上下文
-      final contextMessages = state.messageState.messages.take(aiMessageIndex).toList();
+      final contextMessages =
+          state.messageState.messages.take(aiMessageIndex).toList();
 
       if (contextMessages.isEmpty) {
         throw Exception('没有足够的上下文进行重新生成');
@@ -547,28 +548,34 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       result.when(
         success: (newAiMessage) {
           // 获取原消息
-          final originalMessage = state.messageState.messages.firstWhere((m) => m.id == aiMessageId);
+          final originalMessage = state.messageState.messages
+              .firstWhere((m) => m.id == aiMessageId);
 
           // 用新的AI消息内容替换原消息
-          _updateMessageContent(aiMessageId, newAiMessage.content, MessageStatus.aiSuccess, newAiMessage.metadata);
+          _updateMessageContent(aiMessageId, newAiMessage.content,
+              MessageStatus.aiSuccess, newAiMessage.metadata);
 
           // 获取更新后的消息
-          final updatedMessage = state.messageState.messages.firstWhere((m) => m.id == aiMessageId);
+          final updatedMessage = state.messageState.messages
+              .firstWhere((m) => m.id == aiMessageId);
 
           _emitEvent(MessageUpdatedEvent(originalMessage, updatedMessage));
         },
         failure: (error, code, originalError) {
           // 获取原消息
-          final originalMessage = state.messageState.messages.firstWhere((m) => m.id == aiMessageId);
+          final originalMessage = state.messageState.messages
+              .firstWhere((m) => m.id == aiMessageId);
 
           // 🚀 使用状态机处理重新生成错误
           _handleMessageErrorWithStateMachine(aiMessageId, '重新生成失败: $error');
 
           // 更新消息内容显示错误信息
-          _updateMessageContent(aiMessageId, '重新生成失败: $error', MessageStatus.aiError);
+          _updateMessageContent(
+              aiMessageId, '重新生成失败: $error', MessageStatus.aiError);
 
           // 获取更新后的消息
-          final updatedMessage = state.messageState.messages.firstWhere((m) => m.id == aiMessageId);
+          final updatedMessage = state.messageState.messages
+              .firstWhere((m) => m.id == aiMessageId);
 
           _notificationService.showError(
             '重新生成失败: $error',
@@ -581,7 +588,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
           _logger.info('重新生成正在处理中');
         },
       );
-
     } catch (error) {
       _notificationService.showError(
         '重新生成失败: $error',
@@ -624,7 +630,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     );
 
     state = state.copyWith(configuration: newConfiguration);
-    
+
     _emitEvent(ConfigurationChangedEvent(
       newConfiguration.selectedAssistant,
       provider,
@@ -682,7 +688,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
       _emitEvent(ConversationChangedEvent(newConversation));
       _logger.info('新对话创建完成', {'conversationId': conversationId});
-
     } catch (error) {
       state = state.copyWith(
         conversationState: state.conversationState.copyWith(isLoading: false),
@@ -698,7 +703,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   Future<void> loadConversation(String conversationId) async {
     // 检查是否已经加载了相同的对话，避免重复加载
     final currentConversation = state.conversationState.currentConversation;
-    if (currentConversation != null && currentConversation.id == conversationId) {
+    if (currentConversation != null &&
+        currentConversation.id == conversationId) {
       _logger.debug('对话已加载，跳过重复加载', {'conversationId': conversationId});
       return;
     }
@@ -738,7 +744,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       } else {
         throw Exception('对话不存在');
       }
-
     } catch (error) {
       state = state.copyWith(
         conversationState: state.conversationState.copyWith(
@@ -759,7 +764,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       await _orchestrator.cancelStreaming(messageId);
 
       // 更新状态
-      final updatedStreamingIds = Set<String>.from(state.messageState.streamingMessageIds);
+      final updatedStreamingIds =
+          Set<String>.from(state.messageState.streamingMessageIds);
       updatedStreamingIds.remove(messageId);
 
       state = state.copyWith(
@@ -786,31 +792,28 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     _emitEvent(const ErrorClearedEvent());
   }
 
-
-
   /// 获取统计信息
   ChatStatistics get statistics => _orchestrator.statistics;
 
   /// 获取性能指标
-  ChatPerformanceMetrics get performanceMetrics => _orchestrator.performanceMetrics;
+  ChatPerformanceMetrics get performanceMetrics =>
+      _orchestrator.performanceMetrics;
 
   /// 获取编排服务实例（用于Provider）
   ChatOrchestratorService get orchestrator => _orchestrator;
 
   /// 获取状态机统计信息
-  Map<String, dynamic> get stateTransitionStatistics => _stateManager.getTransitionStatistics();
+  Map<String, dynamic> get stateTransitionStatistics =>
+      _stateManager.getTransitionStatistics();
 
   /// 获取状态转换历史
-  List<StateTransitionRecord> get stateTransitionHistory => _stateManager.getTransitionHistory();
+  List<StateTransitionRecord> get stateTransitionHistory =>
+      _stateManager.getTransitionHistory();
 
   /// 清除状态转换历史
   void clearStateTransitionHistory() => _stateManager.clearTransitionHistory();
 
   // === 私有方法 ===
-
-
-
-
 
   /// 添加消息（简化版本，不使用去重）
   void _addMessage(Message message) {
@@ -863,7 +866,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   }
 
   /// 更新消息内容（简化版本，不使用去重）
-  void _updateMessageContent(String messageId, String content, MessageStatus status, [Map<String, dynamic>? metadata]) {
+  void _updateMessageContent(
+      String messageId, String content, MessageStatus status,
+      [Map<String, dynamic>? metadata]) {
     // 不再使用去重逻辑，直接更新消息内容
     _updateMessageContentWithBatch(messageId, content, status, metadata);
   }
@@ -931,21 +936,28 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   }
 
   /// 批量更新消息内容
-  void _updateMessageContentWithBatch(String messageId, String content, MessageStatus status, [Map<String, dynamic>? metadata]) {
+  void _updateMessageContentWithBatch(
+      String messageId, String content, MessageStatus status,
+      [Map<String, dynamic>? metadata]) {
     final update = batch.MessageContentUpdate(
       messageId: messageId,
       content: content,
       status: status,
       metadata: metadata,
       updateCallback: _updateMessageContentInternal,
-      priority: (status == MessageStatus.aiProcessing || status == MessageStatus.aiStreaming) ? 2 : 1, // 🚀 修复：流式消息优先级更高
+      priority: (status == MessageStatus.aiProcessing ||
+              status == MessageStatus.aiStreaming)
+          ? 2
+          : 1, // 🚀 修复：流式消息优先级更高
     );
 
     _batchUpdater.addUpdate(update);
   }
 
   /// 立即更新消息内容（用于流式完成时避免延迟）
-  void _updateMessageContentImmediately(String messageId, String content, MessageStatus status, [Map<String, dynamic>? metadata]) {
+  void _updateMessageContentImmediately(
+      String messageId, String content, MessageStatus status,
+      [Map<String, dynamic>? metadata]) {
     _logger.debug('立即更新消息内容', {
       'messageId': messageId,
       'status': status.name,
@@ -973,7 +985,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   }
 
   /// 内部消息内容更新逻辑
-  void _updateMessageContentInternal(String messageId, String content, dynamic status, Map<String, dynamic>? metadata) {
+  void _updateMessageContentInternal(String messageId, String content,
+      dynamic status, Map<String, dynamic>? metadata) {
     final updatedMessages = state.messageState.messages.map((message) {
       if (message.id == messageId) {
         // 对于块化消息，我们需要更新主文本块的内容
@@ -986,17 +999,22 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         }).toList();
 
         // 如果没有文本块，创建一个新的
-        if (updatedBlocks.isEmpty || !updatedBlocks.any((b) => b.type == MessageBlockType.mainText)) {
-          updatedBlocks.insert(0, MessageBlock.text(
-            id: '${messageId}_text_block',
-            messageId: messageId,
-            content: content,
-          ));
+        if (updatedBlocks.isEmpty ||
+            !updatedBlocks.any((b) => b.type == MessageBlockType.mainText)) {
+          updatedBlocks.insert(
+              0,
+              MessageBlock.text(
+                id: '${messageId}_text_block',
+                messageId: messageId,
+                content: content,
+              ));
         }
 
         return message.copyWith(
           status: status as MessageStatus,
-          metadata: metadata != null ? {...?message.metadata, ...metadata} : message.metadata,
+          metadata: metadata != null
+              ? {...?message.metadata, ...metadata}
+              : message.metadata,
           blocks: updatedBlocks,
           updatedAt: DateTime.now(),
         );
@@ -1017,7 +1035,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       'isFromUser': userMessage.isFromUser,
       'blocksCount': userMessage.blocks.length,
       'blockIds': userMessage.blockIds,
-      'content': userMessage.content.substring(0, math.min(50, userMessage.content.length)),
+      'content': userMessage.content
+          .substring(0, math.min(50, userMessage.content.length)),
     });
 
     // 验证用户消息的角色
@@ -1039,7 +1058,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     try {
       // 使用智能流式更新管理器处理
       _streamingManager.handleUpdate(update);
-
     } catch (error) {
       _logger.error('处理流式更新失败', {
         'error': error.toString(),
@@ -1116,10 +1134,13 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         );
 
         // 🚀 修复：直接使用StreamingMessageService更新流式内容
-        _ref.read(streamingMessageServiceProvider).updateContent(
-          messageId: update.messageId,
-          fullContent: update.fullContent ?? '',
-        ).catchError((error) {
+        _ref
+            .read(streamingMessageServiceProvider)
+            .updateContent(
+              messageId: update.messageId,
+              fullContent: update.fullContent ?? '',
+            )
+            .catchError((error) {
           _logger.error('更新流式内容失败', {
             'messageId': update.messageId,
             'error': error.toString(),
@@ -1142,7 +1163,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         role: 'assistant',
         assistantId: state.configuration.selectedAssistant?.id ?? '',
         blockIds: ['${update.messageId}_text_block'],
-        status: update.isDone ? MessageStatus.aiSuccess : MessageStatus.aiStreaming, // 🚀 修复：流式消息应该使用aiStreaming状态
+        status: update.isDone
+            ? MessageStatus.aiSuccess
+            : MessageStatus.aiStreaming, // 🚀 修复：流式消息应该使用aiStreaming状态
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         blocks: [
@@ -1182,18 +1205,22 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         _addMessageWithBatch(aiMessage);
 
         // 🚀 修复：直接使用StreamingMessageService初始化流式消息
-        _ref.read(streamingMessageServiceProvider).initializeStreaming(
-          messageId: update.messageId,
-          conversationId: state.conversationState.currentConversation?.id ?? '',
-          assistantId: state.configuration.selectedAssistant?.id ?? '',
-          modelId: state.configuration.selectedModel?.name,
-        ).then((_) {
+        _ref
+            .read(streamingMessageServiceProvider)
+            .initializeStreaming(
+              messageId: update.messageId,
+              conversationId:
+                  state.conversationState.currentConversation?.id ?? '',
+              assistantId: state.configuration.selectedAssistant?.id ?? '',
+              modelId: state.configuration.selectedModel?.name,
+            )
+            .then((_) {
           // 如果有初始内容，更新缓存
           if (update.fullContent?.isNotEmpty == true) {
             return _ref.read(streamingMessageServiceProvider).updateContent(
-              messageId: update.messageId,
-              fullContent: update.fullContent!,
-            );
+                  messageId: update.messageId,
+                  fullContent: update.fullContent!,
+                );
           }
         }).catchError((error) {
           _logger.error('初始化流式消息失败', {
@@ -1229,7 +1256,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       _logger.info('流式更新完成后的最终状态', {
         'messageId': update.messageId,
         'finalStatus': finalMessage.status.name,
-        'inStreamingIds': state.messageState.streamingMessageIds.contains(update.messageId),
+        'inStreamingIds':
+            state.messageState.streamingMessageIds.contains(update.messageId),
         'streamingIdsCount': state.messageState.streamingMessageIds.length,
       });
     }
@@ -1238,7 +1266,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   /// 添加消息ID到streamingMessageIds
   void _addToStreamingIds(String messageId) {
     if (!state.messageState.streamingMessageIds.contains(messageId)) {
-      final updatedStreamingIds = Set<String>.from(state.messageState.streamingMessageIds);
+      final updatedStreamingIds =
+          Set<String>.from(state.messageState.streamingMessageIds);
       updatedStreamingIds.add(messageId);
 
       state = state.copyWith(
@@ -1256,7 +1285,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   /// 从streamingMessageIds中移除消息ID
   void _removeFromStreamingIds(String messageId) {
     if (state.messageState.streamingMessageIds.contains(messageId)) {
-      final updatedStreamingIds = Set<String>.from(state.messageState.streamingMessageIds);
+      final updatedStreamingIds =
+          Set<String>.from(state.messageState.streamingMessageIds);
       updatedStreamingIds.remove(messageId);
 
       state = state.copyWith(
@@ -1289,7 +1319,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         (m) => m.id == messageId,
         orElse: () => throw Exception('消息未找到: $messageId'),
       );
-      final suggestedActions = _stateManager.getSuggestedActionsForMessage(message);
+      final suggestedActions =
+          _stateManager.getSuggestedActionsForMessage(message);
 
       _logger.info('消息错误处理完成', {
         'messageId': messageId,
@@ -1301,7 +1332,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       if (state.messageState.streamingMessageIds.contains(messageId)) {
         _removeFromStreamingIds(messageId);
       }
-
     } catch (e) {
       _logger.error('错误处理失败', {
         'messageId': messageId,
@@ -1339,7 +1369,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         });
 
         // 直接更新状态（已经通过状态机验证）
-        _updateMessageContentInternal(messageId, message.content, resolvedStatus, null);
+        _updateMessageContentInternal(
+            messageId, message.content, resolvedStatus, null);
       }
     } catch (error) {
       _logger.error('状态冲突解决失败', {
@@ -1350,8 +1381,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       });
     }
   }
-
-
 
   /// 清除错误
   void _clearError() {
@@ -1396,9 +1425,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   bool _shouldUpdateLastEvent(ChatEvent event) {
     // 只有重要事件才更新lastEvent，避免不必要的状态变化
     return event is MessageAddedEvent ||
-           event is ErrorOccurredEvent ||
-           event is ConversationChangedEvent ||
-           event is ConfigurationChangedEvent;
+        event is ErrorOccurredEvent ||
+        event is ConversationChangedEvent ||
+        event is ConfigurationChangedEvent;
   }
 
   /// 检查并触发标题生成
@@ -1432,19 +1461,15 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       });
 
       // 调用标题生成器
-      final titleNotifier = _ref.read(conversationTitleNotifierProvider.notifier);
+      final titleNotifier =
+          _ref.read(conversationTitleNotifierProvider.notifier);
       titleNotifier.onAiMessageAdded(currentConversation.id, messages);
-
     } catch (error) {
       _logger.error('标题生成检查失败', {
         'error': error.toString(),
       });
     }
   }
-
-
-
-
 
   /// 获取默认助手
   Future<AiAssistant?> _getDefaultAssistant() async {
@@ -1493,10 +1518,12 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       if (updatedAssistant == null) {
         // 助手不再可用，选择新的助手
         final enabledAssistants = next.where((a) => a.isEnabled).toList();
-        final newAssistant = enabledAssistants.isNotEmpty ? enabledAssistants.first : null;
+        final newAssistant =
+            enabledAssistants.isNotEmpty ? enabledAssistants.first : null;
 
         state = state.copyWith(
-          configuration: state.configuration.copyWith(selectedAssistant: newAssistant),
+          configuration:
+              state.configuration.copyWith(selectedAssistant: newAssistant),
         );
 
         _logger.info('助手已自动切换', {
@@ -1526,7 +1553,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         final enabledProviders = next.where((p) => p.isEnabled).toList();
         if (enabledProviders.isNotEmpty) {
           final newProvider = enabledProviders.first;
-          final newModel = newProvider.models.isNotEmpty ? newProvider.models.first : null;
+          final newModel =
+              newProvider.models.isNotEmpty ? newProvider.models.first : null;
 
           state = state.copyWith(
             configuration: state.configuration.copyWith(
@@ -1593,7 +1621,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     final newTitle = next[conversationId];
 
     // 只在标题真正变化时处理
-    if (newTitle != null && newTitle != previousTitle && newTitle != currentConversation.channelName) {
+    if (newTitle != null &&
+        newTitle != previousTitle &&
+        newTitle != currentConversation.channelName) {
       _logger.info('检测到对话标题变化，更新当前对话状态', {
         'conversationId': conversationId,
         'oldTitle': currentConversation.channelName,
@@ -1601,7 +1631,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       });
 
       // 更新当前对话状态
-      final updatedConversation = currentConversation.copyWith(channelName: newTitle);
+      final updatedConversation =
+          currentConversation.copyWith(channelName: newTitle);
 
       state = state.copyWith(
         conversationState: state.conversationState.copyWith(
@@ -1633,13 +1664,14 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       final config = state.configuration;
       if (config.isComplete) {
         await Future.wait([
-          _preferenceService.saveLastUsedAssistantId(config.selectedAssistant!.id),
+          _preferenceService
+              .saveLastUsedAssistantId(config.selectedAssistant!.id),
           _preferenceService.saveLastUsedModel(
             config.selectedProvider!.id,
             config.selectedModel!.name,
           ),
         ]);
-        
+
         _logger.debug('配置已保存');
       }
     } catch (error) {
@@ -1703,7 +1735,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         'messageId': messageId,
         'messageType': message.isFromUser ? 'user' : 'ai',
       });
-
     } catch (e, stackTrace) {
       _logger.error('编辑消息失败', e, stackTrace);
       _notificationService.showError('编辑消息失败: $e');
@@ -1718,7 +1749,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     final messagesToDelete = <Message>[];
 
     // 收集需要删除的后续AI消息
-    for (int i = messageIndex + 1; i < state.messageState.messages.length; i++) {
+    for (int i = messageIndex + 1;
+        i < state.messageState.messages.length;
+        i++) {
       final nextMessage = state.messageState.messages[i];
       if (nextMessage.isFromUser) {
         break; // 遇到下一个用户消息就停止
@@ -1778,12 +1811,14 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   }
 
   /// 更新用户消息内容
-  Future<void> _updateUserMessageContent(String messageId, String newContent) async {
+  Future<void> _updateUserMessageContent(
+      String messageId, String newContent) async {
     // 更新内存中的消息
     _updateMessageContent(messageId, newContent, MessageStatus.userSuccess);
 
     // 保存到数据库
-    final message = state.messageState.messages.firstWhere((m) => m.id == messageId);
+    final message =
+        state.messageState.messages.firstWhere((m) => m.id == messageId);
     if (message.blocks.isNotEmpty) {
       await _messageRepository.updateBlockContent(
         message.blocks.first.id, // 假设第一个块是主文本块
@@ -1796,7 +1831,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 // === Provider 定义 ===
 
 /// 统一聊天状态Provider
-final unifiedChatProvider = StateNotifierProvider<UnifiedChatNotifier, UnifiedChatState>(
+final unifiedChatProvider =
+    StateNotifierProvider<UnifiedChatNotifier, UnifiedChatState>(
   (ref) => UnifiedChatNotifier(ref),
 );
 
@@ -1809,12 +1845,14 @@ final chatOrchestratorProvider = Provider<ChatOrchestratorService>((ref) {
 
 /// 当前对话Provider（细粒度监听）
 final currentConversationProvider = Provider<ConversationUiState?>((ref) {
-  return ref.watch(unifiedChatProvider.select((state) => state.conversationState.currentConversation));
+  return ref.watch(unifiedChatProvider
+      .select((state) => state.conversationState.currentConversation));
 });
 
 /// 聊天消息Provider（细粒度监听）
 final chatMessagesProvider = Provider<List<Message>>((ref) {
-  return ref.watch(unifiedChatProvider.select((state) => state.messageState.messages));
+  return ref.watch(
+      unifiedChatProvider.select((state) => state.messageState.messages));
 });
 
 /// 当前聊天配置Provider（细粒度监听）
@@ -1839,17 +1877,20 @@ final chatReadyStateProvider = Provider<bool>((ref) {
 
 /// 流式消息Provider（细粒度监听）
 final streamingMessagesProvider = Provider<List<Message>>((ref) {
-  return ref.watch(unifiedChatProvider.select((state) => state.messageState.streamingMessages));
+  return ref.watch(unifiedChatProvider
+      .select((state) => state.messageState.streamingMessages));
 });
 
 /// 是否有流式消息Provider（细粒度监听）
 final hasStreamingMessagesProvider = Provider<bool>((ref) {
-  return ref.watch(unifiedChatProvider.select((state) => state.messageState.hasStreamingMessages));
+  return ref.watch(unifiedChatProvider
+      .select((state) => state.messageState.hasStreamingMessages));
 });
 
 /// 消息数量Provider（细粒度监听）
 final messageCountProvider = Provider<int>((ref) {
-  return ref.watch(unifiedChatProvider.select((state) => state.messageState.messages.length));
+  return ref.watch(unifiedChatProvider
+      .select((state) => state.messageState.messages.length));
 });
 
 /// 聊天事件Provider
@@ -1887,7 +1928,8 @@ final selectedModelProvider = Provider<AiModel?>((ref) {
 
 /// 对话ID Provider（细粒度监听）
 final currentConversationIdProvider = Provider<String?>((ref) {
-  return ref.watch(unifiedChatProvider.select((state) => state.conversationState.currentConversationId));
+  return ref.watch(unifiedChatProvider
+      .select((state) => state.conversationState.currentConversationId));
 });
 
 // === 状态机相关 Provider ===
@@ -1898,7 +1940,8 @@ final stateTransitionStatisticsProvider = Provider<Map<String, dynamic>>((ref) {
 });
 
 /// 状态转换历史Provider
-final stateTransitionHistoryProvider = Provider<List<StateTransitionRecord>>((ref) {
+final stateTransitionHistoryProvider =
+    Provider<List<StateTransitionRecord>>((ref) {
   return ref.watch(unifiedChatProvider.notifier).stateTransitionHistory;
 });
 

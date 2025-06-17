@@ -4,13 +4,15 @@ import '../../domain/entities/message_status.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
 
 /// 流式消息服务Provider
-final streamingMessageServiceProvider = Provider<StreamingMessageService>((ref) {
+final streamingMessageServiceProvider =
+    Provider<StreamingMessageService>((ref) {
   final messageRepository = ref.read(messageRepositoryProvider);
   return StreamingMessageService(messageRepository);
 });
 
 /// 流式消息更新流Provider
-final streamingMessageUpdateStreamProvider = StreamProvider<StreamingMessageUpdate>((ref) {
+final streamingMessageUpdateStreamProvider =
+    StreamProvider<StreamingMessageUpdate>((ref) {
   final streamingService = ref.read(streamingMessageServiceProvider);
   return streamingService.updateStream;
 });
@@ -22,21 +24,23 @@ final activeStreamingCountProvider = Provider<int>((ref) {
 });
 
 /// 特定消息的流式状态Provider
-final messageStreamingStatusProvider = Provider.family<MessageStatus?, String>((ref, messageId) {
+final messageStreamingStatusProvider =
+    Provider.family<MessageStatus?, String>((ref, messageId) {
   final streamingService = ref.read(streamingMessageServiceProvider);
   return streamingService.getStreamingStatus(messageId);
 });
 
 /// 流式消息控制器Provider
-/// 
+///
 /// 提供流式消息的控制方法，如暂停、恢复、取消等
-final streamingMessageControllerProvider = Provider<StreamingMessageController>((ref) {
+final streamingMessageControllerProvider =
+    Provider<StreamingMessageController>((ref) {
   final streamingService = ref.read(streamingMessageServiceProvider);
   return StreamingMessageController(streamingService);
 });
 
 /// 流式消息控制器
-/// 
+///
 /// 封装流式消息的控制操作，提供简洁的API
 class StreamingMessageController {
   final StreamingMessageService _streamingService;

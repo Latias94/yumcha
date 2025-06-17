@@ -50,12 +50,10 @@ class BubbleContent extends ConsumerWidget {
           ..._buildMessageBlocks(ref),
 
           // 消息状态指示器
-          if (_shouldShowStatusIndicator())
-            _buildStatusIndicator(),
+          if (_shouldShowStatusIndicator()) _buildStatusIndicator(),
 
           // 操作按钮（如果需要）
-          if (_shouldShowActions())
-            _buildActionButtons(),
+          if (_shouldShowActions()) _buildActionButtons(),
         ],
       ),
     );
@@ -102,7 +100,9 @@ class BubbleContent extends ConsumerWidget {
     );
 
     // 🚀 修复：如果在流式状态下所有块都返回了空组件，显示流式占位符
-    if ((context.isActiveStreaming || context.isPendingStream || context.isProcessing)) {
+    if ((context.isActiveStreaming ||
+        context.isPendingStream ||
+        context.isProcessing)) {
       final hasVisibleContent = renderedWidgets.any((widget) {
         if (widget is SizedBox) {
           // 检查是否为 SizedBox.shrink() (width=0, height=0)
@@ -222,8 +222,6 @@ class BubbleContent extends ConsumerWidget {
     );
   }
 
-
-
   /// 构建默认空内容占位符
   Widget _buildDefaultEmptyPlaceholder() {
     return Container(
@@ -238,8 +236,6 @@ class BubbleContent extends ConsumerWidget {
       ),
     );
   }
-
-
 
   /// 构建状态指示器
   Widget _buildStatusIndicator() {
@@ -523,8 +519,6 @@ class BubbleContent extends ConsumerWidget {
     );
   }
 
-
-
   /// 是否应该显示状态指示器
   bool _shouldShowStatusIndicator() {
     // 🚀 修复：如果消息块为空且处于流式状态，不显示额外的状态指示器
@@ -541,17 +535,16 @@ class BubbleContent extends ConsumerWidget {
       }
     }
 
-    return context.message.status.showLoadingIndicator || context.message.status.isError;
+    return context.message.status.showLoadingIndicator ||
+        context.message.status.isError;
   }
 
   /// 是否应该显示操作按钮
   bool _shouldShowActions() {
     // 只在非进行中状态下显示操作按钮
     return !context.message.status.isInProgress &&
-           (onEdit != null || onRegenerate != null || onDelete != null);
+        (onEdit != null || onRegenerate != null || onDelete != null);
   }
-
-
 }
 
 /// 气泡内容扩展方法

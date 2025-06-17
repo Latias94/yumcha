@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// 错误显示组件
-/// 
+///
 /// 用于统一显示错误信息和重试按钮
 class ErrorDisplay extends StatelessWidget {
   const ErrorDisplay({
@@ -31,7 +31,7 @@ class ErrorDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),

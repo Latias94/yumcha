@@ -32,7 +32,7 @@ class AssistantsManagementSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final deviceType = DesignConstants.getDeviceType(context);
-    
+
     final assistants = ref.watch(aiAssistantsProvider);
     final enabledAssistants = ref.watch(enabledAiAssistantsProvider);
     final providers = ref.watch(aiProvidersProvider);
@@ -50,9 +50,9 @@ class AssistantsManagementSection extends ConsumerWidget {
           children: [
             // 标题和操作按钮
             _buildHeader(context, theme, ref, providers),
-            
+
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 助手列表或空状态
             if (assistants.isEmpty)
               _buildEmptyState(context, theme, ref, providers)
@@ -71,7 +71,8 @@ class AssistantsManagementSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, ThemeData theme, WidgetRef ref, List<AiProvider> providers) {
+  Widget _buildHeader(BuildContext context, ThemeData theme, WidgetRef ref,
+      List<AiProvider> providers) {
     return Row(
       children: [
         Icon(
@@ -104,17 +105,20 @@ class AssistantsManagementSection extends ConsumerWidget {
         SizedBox(width: DesignConstants.spaceS),
         // 添加按钮
         FilledButton.icon(
-          onPressed: providers.isEmpty ? null : () async {
-            final result = await Navigator.push<bool>(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AssistantEditScreen(providers: providers),
-              ),
-            );
-            if (result == true) {
-              ref.invalidate(unifiedAiManagementProvider);
-            }
-          },
+          onPressed: providers.isEmpty
+              ? null
+              : () async {
+                  final result = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          AssistantEditScreen(providers: providers),
+                    ),
+                  );
+                  if (result == true) {
+                    ref.invalidate(unifiedAiManagementProvider);
+                  }
+                },
           icon: Icon(Icons.add, size: DesignConstants.iconSizeS),
           label: const Text('添加'),
         ),
@@ -122,7 +126,8 @@ class AssistantsManagementSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, ThemeData theme, WidgetRef ref, List<AiProvider> providers) {
+  Widget _buildEmptyState(BuildContext context, ThemeData theme, WidgetRef ref,
+      List<AiProvider> providers) {
     return Container(
       width: double.infinity,
       padding: DesignConstants.paddingXL,
@@ -142,9 +147,7 @@ class AssistantsManagementSection extends ConsumerWidget {
           ),
           SizedBox(height: DesignConstants.spaceS),
           Text(
-            providers.isEmpty 
-                ? '请先添加AI提供商，然后创建助手'
-                : '创建AI助手来个性化您的聊天体验',
+            providers.isEmpty ? '请先添加AI提供商，然后创建助手' : '创建AI助手来个性化您的聊天体验',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -152,17 +155,20 @@ class AssistantsManagementSection extends ConsumerWidget {
           ),
           SizedBox(height: DesignConstants.spaceL),
           FilledButton.icon(
-            onPressed: providers.isEmpty ? null : () async {
-              final result = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AssistantEditScreen(providers: providers),
-                ),
-              );
-              if (result == true) {
-                ref.invalidate(unifiedAiManagementProvider);
-              }
-            },
+            onPressed: providers.isEmpty
+                ? null
+                : () async {
+                    final result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AssistantEditScreen(providers: providers),
+                      ),
+                    );
+                    if (result == true) {
+                      ref.invalidate(unifiedAiManagementProvider);
+                    }
+                  },
             icon: Icon(Icons.add, size: DesignConstants.iconSizeS),
             label: const Text('创建第一个助手'),
           ),
@@ -181,17 +187,16 @@ class AssistantsManagementSection extends ConsumerWidget {
   ) {
     // 显示前3个助手
     final displayAssistants = assistants.take(3).toList();
-    
+
     return Column(
       children: [
         ...displayAssistants.map((assistant) => _buildAssistantItem(
-          context,
-          theme,
-          assistant,
-          enabledAssistants.contains(assistant),
-          ref,
-        )),
-        
+              context,
+              theme,
+              assistant,
+              enabledAssistants.contains(assistant),
+              ref,
+            )),
         if (assistants.length > 3) ...[
           SizedBox(height: DesignConstants.spaceM),
           TextButton(
@@ -244,9 +249,9 @@ class AssistantsManagementSection extends ConsumerWidget {
               ),
             ),
           ),
-          
+
           SizedBox(width: DesignConstants.spaceM),
-          
+
           // 助手信息
           Expanded(
             child: Column(
@@ -260,7 +265,7 @@ class AssistantsManagementSection extends ConsumerWidget {
                 ),
                 SizedBox(height: DesignConstants.spaceXS),
                 Text(
-                  assistant.description.isNotEmpty 
+                  assistant.description.isNotEmpty
                       ? assistant.description
                       : '暂无描述',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -272,7 +277,7 @@ class AssistantsManagementSection extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           // 状态指示器
           Container(
             padding: EdgeInsets.symmetric(
@@ -295,9 +300,9 @@ class AssistantsManagementSection extends ConsumerWidget {
               ),
             ),
           ),
-          
+
           SizedBox(width: DesignConstants.spaceS),
-          
+
           // 快速操作按钮
           IconButton(
             onPressed: () async {

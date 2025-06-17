@@ -273,7 +273,9 @@ class _ChatViewState extends ConsumerState<ChatView>
         await _onSendMessage(result.processedText + contentInfo);
 
         // 显示处理结果信息
-        if (mounted && result.attachments != null && result.attachments!.isNotEmpty) {
+        if (mounted &&
+            result.attachments != null &&
+            result.attachments!.isNotEmpty) {
           NotificationService()
               .showInfo('已处理 ${result.attachments!.length} 个附件');
         }
@@ -299,7 +301,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     final assistants = ref.read(aiAssistantsProvider);
     bool isStreaming = true; // 默认使用流式输出
 
-    final assistant = assistants.where((a) => a.id == widget.assistantId).firstOrNull;
+    final assistant =
+        assistants.where((a) => a.id == widget.assistantId).firstOrNull;
     if (assistant != null) {
       isStreaming = assistant.streamOutput;
     }
@@ -405,7 +408,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     final assistants = ref.read(aiAssistantsProvider);
     bool isStreaming = true; // 默认使用流式输出
 
-    final assistant = assistants.where((a) => a.id == widget.assistantId).firstOrNull;
+    final assistant =
+        assistants.where((a) => a.id == widget.assistantId).firstOrNull;
     if (assistant != null) {
       isStreaming = assistant.streamOutput;
     }

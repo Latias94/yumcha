@@ -6,7 +6,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 文本块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染文本类型的消息块
 class TextBubbleAdapter extends BubbleBlockAdapter {
   @override
@@ -19,7 +19,9 @@ class TextBubbleAdapter extends BubbleBlockAdapter {
     if (!block.hasContent) {
       // 🚀 修复：在流式状态下，不显示"文本内容为空"，返回空组件
       // 让上层的 BubbleContent 处理流式占位符的显示
-      if (context.isActiveStreaming || context.isPendingStream || context.isProcessing) {
+      if (context.isActiveStreaming ||
+          context.isPendingStream ||
+          context.isProcessing) {
         return const SizedBox.shrink();
       }
       return buildEmptyWidget(context, message: '文本内容为空');
@@ -43,14 +45,14 @@ class TextBubbleAdapter extends BubbleBlockAdapter {
     final content = block.content!;
     final lines = content.split('\n').length;
     final baseLineHeight = getResponsiveFontSize(context, 16.0) * 1.4;
-    
+
     return (lines * baseLineHeight) + 16.0; // 额外的16像素用于内边距
   }
 
   /// 构建文本内容
   Widget _buildTextContent(MessageBlock block, BubbleContext context) {
     final content = block.content!;
-    
+
     // 检查是否包含Markdown格式
     if (_containsMarkdown(content)) {
       return _buildMarkdownContent(content, context);
@@ -83,8 +85,6 @@ class TextBubbleAdapter extends BubbleBlockAdapter {
     );
   }
 
-
-
   /// 检查内容是否包含Markdown格式
   bool _containsMarkdown(String content) {
     // 简单的Markdown检测
@@ -103,8 +103,6 @@ class TextBubbleAdapter extends BubbleBlockAdapter {
 
     return markdownPatterns.any((pattern) => pattern.hasMatch(content));
   }
-
-
 
   @override
   String get name => 'TextBubbleAdapter';

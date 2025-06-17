@@ -6,7 +6,7 @@ import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
 /// 错误块气泡适配器
-/// 
+///
 /// 负责在气泡中渲染错误类型的消息块
 class ErrorBubbleAdapter extends BubbleBlockAdapter {
   @override
@@ -22,7 +22,8 @@ class ErrorBubbleAdapter extends BubbleBlockAdapter {
       ),
       decoration: buildContainerDecoration(
         context,
-        backgroundColor: context.theme.colorScheme.errorContainer.withValues(alpha: 0.1),
+        backgroundColor:
+            context.theme.colorScheme.errorContainer.withValues(alpha: 0.1),
         borderColor: context.theme.colorScheme.error.withValues(alpha: 0.3),
         borderRadius: 8.0,
       ),

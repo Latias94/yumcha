@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 气泡布局配置类
-/// 
+///
 /// 管理气泡的尺寸、间距、圆角等布局相关配置
 class BubbleLayout {
   const BubbleLayout({
@@ -136,17 +136,17 @@ class BubbleLayout {
     if (DesignConstants.isMobile(context)) {
       return EdgeInsets.symmetric(
         horizontal: DesignConstants.spaceM, // 12px
-        vertical: DesignConstants.spaceS,   // 8px
+        vertical: DesignConstants.spaceS, // 8px
       );
     } else if (DesignConstants.isTablet(context)) {
       return EdgeInsets.symmetric(
-        horizontal: DesignConstants.spaceL,  // 16px
-        vertical: DesignConstants.spaceM,    // 12px
+        horizontal: DesignConstants.spaceL, // 16px
+        vertical: DesignConstants.spaceM, // 12px
       );
     } else {
       return EdgeInsets.symmetric(
         horizontal: DesignConstants.spaceXL, // 20px
-        vertical: DesignConstants.spaceL,    // 16px
+        vertical: DesignConstants.spaceL, // 16px
       );
     }
   }
@@ -156,17 +156,17 @@ class BubbleLayout {
     if (DesignConstants.isMobile(context)) {
       return EdgeInsets.symmetric(
         horizontal: DesignConstants.spaceXS, // 4px - 减少水平间距
-        vertical: DesignConstants.spaceXS,   // 4px - 减少垂直间距
+        vertical: DesignConstants.spaceXS, // 4px - 减少垂直间距
       );
     } else if (DesignConstants.isTablet(context)) {
       return EdgeInsets.symmetric(
-        horizontal: DesignConstants.spaceS,  // 8px
-        vertical: DesignConstants.spaceXS,   // 4px
+        horizontal: DesignConstants.spaceS, // 8px
+        vertical: DesignConstants.spaceXS, // 4px
       );
     } else {
       return EdgeInsets.symmetric(
-        horizontal: DesignConstants.spaceM,  // 12px
-        vertical: DesignConstants.spaceS,    // 8px
+        horizontal: DesignConstants.spaceM, // 12px
+        vertical: DesignConstants.spaceS, // 8px
       );
     }
   }

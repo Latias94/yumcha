@@ -13,7 +13,7 @@ class IntegratedThemeTestPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final themeSettings = ref.watch(themeProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('集成主题设置测试'),
@@ -27,11 +27,11 @@ class IntegratedThemeTestPage extends ConsumerWidget {
             // 当前主题状态卡片
             _buildThemeStatusCard(theme, themeSettings),
             SizedBox(height: DesignConstants.spaceXXL),
-            
+
             // 集成的主题选择器
             const EnhancedThemeSelector(),
             SizedBox(height: DesignConstants.spaceXXL),
-            
+
             // 主题效果预览
             _buildThemePreview(theme),
           ],
@@ -63,12 +63,11 @@ class IntegratedThemeTestPage extends ConsumerWidget {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
             _buildStatusRow('主题方案', themeSettings.themeSchemeDisplayName),
             _buildStatusRow('颜色模式', themeSettings.colorModeDisplayName),
             _buildStatusRow('对比度', themeSettings.contrastLevelDisplayName),
-            _buildStatusRow('动态颜色', themeSettings.dynamicColorEnabled ? '已启用' : '已禁用'),
-            
+            _buildStatusRow(
+                '动态颜色', themeSettings.dynamicColorEnabled ? '已启用' : '已禁用'),
             if (themeSettings.themeScheme == AppThemeScheme.custom) ...[
               const Divider(),
               SizedBox(height: DesignConstants.spaceS),
@@ -145,7 +144,7 @@ class IntegratedThemeTestPage extends ConsumerWidget {
               ),
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 按钮组预览
             Wrap(
               spacing: 8,
@@ -170,7 +169,7 @@ class IntegratedThemeTestPage extends ConsumerWidget {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 输入框预览
             TextField(
               decoration: InputDecoration(
@@ -184,7 +183,7 @@ class IntegratedThemeTestPage extends ConsumerWidget {
               ),
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 芯片预览
             Wrap(
               spacing: 8,
@@ -205,7 +204,7 @@ class IntegratedThemeTestPage extends ConsumerWidget {
               ],
             ),
             SizedBox(height: DesignConstants.spaceL),
-            
+
             // 列表项预览
             ListTile(
               leading: CircleAvatar(

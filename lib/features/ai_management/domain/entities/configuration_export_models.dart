@@ -61,12 +61,12 @@ class ConfigurationData {
   });
 
   Map<String, dynamic> toJson() => {
-    'providers': providers?.map((p) => p.toJson()).toList(),
-    'assistants': assistants?.map((a) => a.toJson()).toList(),
-    'preferences': preferences?.toJson(),
-    'settings': settings?.toJson(),
-    'metadata': metadata.toJson(),
-  };
+        'providers': providers?.map((p) => p.toJson()).toList(),
+        'assistants': assistants?.map((a) => a.toJson()).toList(),
+        'preferences': preferences?.toJson(),
+        'settings': settings?.toJson(),
+        'metadata': metadata.toJson(),
+      };
 
   factory ConfigurationData.fromJson(Map<String, dynamic> json) {
     return ConfigurationData(
@@ -77,23 +77,25 @@ class ConfigurationData {
           ?.map((a) => AiAssistant.fromJson(a as Map<String, dynamic>))
           .toList(),
       preferences: json['preferences'] != null
-          ? UserPreferences.fromJson(json['preferences'] as Map<String, dynamic>)
+          ? UserPreferences.fromJson(
+              json['preferences'] as Map<String, dynamic>)
           : null,
       settings: json['settings'] != null
           ? AppSettings.fromJson(json['settings'] as Map<String, dynamic>)
           : null,
-      metadata: ExportMetadata.fromJson(json['metadata'] as Map<String, dynamic>),
+      metadata:
+          ExportMetadata.fromJson(json['metadata'] as Map<String, dynamic>),
     );
   }
 
   /// 获取配置数据的统计信息
   ConfigurationStatistics get statistics => ConfigurationStatistics(
-    providerCount: providers?.length ?? 0,
-    assistantCount: assistants?.length ?? 0,
-    hasPreferences: preferences != null,
-    hasSettings: settings != null,
-    totalSize: _calculateSize(),
-  );
+        providerCount: providers?.length ?? 0,
+        assistantCount: assistants?.length ?? 0,
+        hasPreferences: preferences != null,
+        hasSettings: settings != null,
+        totalSize: _calculateSize(),
+      );
 
   int _calculateSize() {
     // 简单的大小估算
@@ -124,12 +126,12 @@ class ExportMetadata {
   });
 
   Map<String, dynamic> toJson() => {
-    'version': version,
-    'timestamp': timestamp.toIso8601String(),
-    'appVersion': appVersion,
-    'platform': platform,
-    'customData': customData,
-  };
+        'version': version,
+        'timestamp': timestamp.toIso8601String(),
+        'appVersion': appVersion,
+        'platform': platform,
+        'customData': customData,
+      };
 
   factory ExportMetadata.fromJson(Map<String, dynamic> json) {
     return ExportMetadata(
@@ -195,7 +197,8 @@ class ExportStatistics {
 
   String get formattedFileSize {
     if (fileSizeBytes < 1024) return '${fileSizeBytes}B';
-    if (fileSizeBytes < 1024 * 1024) return '${(fileSizeBytes / 1024).toStringAsFixed(1)}KB';
+    if (fileSizeBytes < 1024 * 1024)
+      return '${(fileSizeBytes / 1024).toStringAsFixed(1)}KB';
     return '${(fileSizeBytes / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 }
@@ -215,7 +218,8 @@ class ImportResult {
     required this.statistics,
   });
 
-  factory ImportResult.success(ImportStatistics statistics, {List<String>? warnings}) {
+  factory ImportResult.success(ImportStatistics statistics,
+      {List<String>? warnings}) {
     return ImportResult(
       success: true,
       warnings: warnings ?? [],
@@ -417,16 +421,17 @@ class UserPreferences {
   });
 
   Map<String, dynamic> toJson() => {
-    'defaultTheme': defaultTheme,
-    'defaultLanguage': defaultLanguage,
-    'customSettings': customSettings,
-  };
+        'defaultTheme': defaultTheme,
+        'defaultLanguage': defaultLanguage,
+        'customSettings': customSettings,
+      };
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
       defaultTheme: json['defaultTheme'] as String?,
       defaultLanguage: json['defaultLanguage'] as String?,
-      customSettings: Map<String, dynamic>.from(json['customSettings'] as Map? ?? {}),
+      customSettings:
+          Map<String, dynamic>.from(json['customSettings'] as Map? ?? {}),
     );
   }
 }
@@ -445,16 +450,17 @@ class AppSettings {
   });
 
   Map<String, dynamic> toJson() => {
-    'enableAnalytics': enableAnalytics,
-    'enableCrashReporting': enableCrashReporting,
-    'advancedSettings': advancedSettings,
-  };
+        'enableAnalytics': enableAnalytics,
+        'enableCrashReporting': enableCrashReporting,
+        'advancedSettings': advancedSettings,
+      };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     return AppSettings(
       enableAnalytics: json['enableAnalytics'] as bool? ?? false,
       enableCrashReporting: json['enableCrashReporting'] as bool? ?? false,
-      advancedSettings: Map<String, dynamic>.from(json['advancedSettings'] as Map? ?? {}),
+      advancedSettings:
+          Map<String, dynamic>.from(json['advancedSettings'] as Map? ?? {}),
     );
   }
 }

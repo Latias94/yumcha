@@ -344,7 +344,8 @@ class McpServiceNotifier extends StateNotifier<McpServiceState> {
         // 如果状态显示已连接，验证连接并获取工具
         if (currentStatus == McpServerStatus.connected) {
           try {
-            final availableTools = await _mcpService.getAvailableTools([serverId]);
+            final availableTools =
+                await _mcpService.getAvailableTools([serverId]);
             statuses[serverId] = McpServerStatus.connected;
             errors[serverId] = _mcpService.getServerError(serverId);
             tools[serverId] = availableTools;
@@ -440,7 +441,8 @@ final mcpServerToolsProvider =
 });
 
 /// 获取所有可用工具的 Provider
-final mcpAllToolsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
+final mcpAllToolsProvider =
+    FutureProvider.autoDispose<List<dynamic>>((ref) async {
   final notifier = ref.read(mcpServiceProvider.notifier);
   return await notifier.getAllAvailableTools();
 });

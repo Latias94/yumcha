@@ -54,9 +54,7 @@ class ProvidersScreen extends ConsumerWidget {
 
   Future<void> _toggleProvider(WidgetRef ref, String id) async {
     try {
-      await ref
-          .read(aiManagementActionsProvider)
-          .toggleProviderEnabled(id);
+      await ref.read(aiManagementActionsProvider).toggleProviderEnabled(id);
     } catch (e) {
       NotificationService().showError('切换状态失败: $e');
     }
@@ -131,7 +129,6 @@ class ProvidersScreen extends ConsumerWidget {
     final isLoading = ref.watch(aiManagementLoadingProvider);
     final isInitialized = ref.watch(aiManagementInitializedProvider);
 
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -149,7 +146,8 @@ class ProvidersScreen extends ConsumerWidget {
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const AssistantsScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const AssistantsScreen()),
                   );
                 },
               ),
@@ -198,10 +196,7 @@ class ProvidersScreen extends ConsumerWidget {
                       SizedBox(height: DesignConstants.spaceL),
                       Text(
                         '暂无提供商',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurfaceVariant,
@@ -210,10 +205,7 @@ class ProvidersScreen extends ConsumerWidget {
                       SizedBox(height: DesignConstants.spaceS),
                       Text(
                         '点击右上角的 + 按钮添加一个',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurfaceVariant,
@@ -224,110 +216,110 @@ class ProvidersScreen extends ConsumerWidget {
                 ),
               ),
             ),
-        if (isInitialized && !isLoading && providers.isNotEmpty)
+          if (isInitialized && !isLoading && providers.isNotEmpty)
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 final provider = providers[index];
-                  final colorScheme = Theme.of(context).colorScheme;
+                final colorScheme = Theme.of(context).colorScheme;
 
-                  return Card(
-                    elevation: 1,
-                    color: colorScheme.surfaceContainerHighest,
-                    margin: EdgeInsets.symmetric(
-                      vertical: DesignConstants.spaceS,
-                      horizontal: DesignConstants.spaceL,
+                return Card(
+                  elevation: 1,
+                  color: colorScheme.surfaceContainerHighest,
+                  margin: EdgeInsets.symmetric(
+                    vertical: DesignConstants.spaceS,
+                    horizontal: DesignConstants.spaceL,
+                  ),
+                  child: Padding(
+                    padding: DesignConstants.paddingL,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              _getProviderIcon(provider.type),
+                              size: DesignConstants.iconSizeXL,
+                              color: colorScheme.primary,
+                            ),
+                            SizedBox(width: DesignConstants.spaceL),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    provider.name,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                  Text(
+                                    '类型: ${_getProviderTypeDisplayName(provider.type)}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                  Text(
+                                    '模型: ${provider.supportedModels.length} 个',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: provider.isEnabled,
+                              onChanged: (_) =>
+                                  _toggleProvider(ref, provider.id),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: DesignConstants.spaceS),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton.icon(
+                              icon: const Icon(Icons.edit_outlined),
+                              label: const Text('编辑'),
+                              onPressed: () async {
+                                final result = await Navigator.push<bool>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProviderEditScreen(
+                                      provider: provider,
+                                    ),
+                                  ),
+                                );
+                                if (result == true) {
+                                  ref.invalidate(unifiedAiManagementProvider);
+                                }
+                              },
+                            ),
+                            SizedBox(width: DesignConstants.spaceS),
+                            TextButton.icon(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: colorScheme.error,
+                              ),
+                              label: Text(
+                                '删除',
+                                style: TextStyle(color: colorScheme.error),
+                              ),
+                              onPressed: () =>
+                                  _showDeleteDialog(context, ref, provider),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    child: Padding(
-                      padding: DesignConstants.paddingL,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _getProviderIcon(provider.type),
-                                size: DesignConstants.iconSizeXL,
-                                color: colorScheme.primary,
-                              ),
-                              SizedBox(width: DesignConstants.spaceL),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      provider.name,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
-                                    ),
-                                    Text(
-                                      '类型: ${_getProviderTypeDisplayName(provider.type)}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                    Text(
-                                      '模型: ${provider.supportedModels.length} 个',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Switch(
-                                value: provider.isEnabled,
-                                onChanged: (_) =>
-                                    _toggleProvider(ref, provider.id),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: DesignConstants.spaceS),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton.icon(
-                                icon: const Icon(Icons.edit_outlined),
-                                label: const Text('编辑'),
-                                onPressed: () async {
-                                  final result = await Navigator.push<bool>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ProviderEditScreen(
-                                        provider: provider,
-                                      ),
-                                    ),
-                                  );
-                                  if (result == true) {
-                                    ref.invalidate(unifiedAiManagementProvider);
-                                  }
-                                },
-                              ),
-                              SizedBox(width: DesignConstants.spaceS),
-                              TextButton.icon(
-                                icon: Icon(
-                                  Icons.delete_outline,
-                                  color: colorScheme.error,
-                                ),
-                                label: Text(
-                                  '删除',
-                                  style: TextStyle(color: colorScheme.error),
-                                ),
-                                onPressed: () =>
-                                    _showDeleteDialog(context, ref, provider),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  ),
+                );
               }, childCount: providers.length),
             ),
         ],

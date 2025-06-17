@@ -2,13 +2,13 @@ import '../../../../shared/infrastructure/services/message_id_service.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 
 /// 消息ID管理器
-/// 
+///
 /// 🎯 **核心职责**：
 /// - 统一管理聊天系统中的所有ID生成和关联
 /// - 提供高级ID管理功能，如ID追踪、关联管理等
 /// - 简化上层业务代码的ID操作
 /// - 确保ID的一致性和可追溯性
-/// 
+///
 /// 🔧 **设计原则**：
 /// - 封装复杂性：隐藏底层ID生成的复杂逻辑
 /// - 业务导向：提供面向聊天业务的ID管理方法
@@ -34,15 +34,17 @@ class MessageIdManager {
     Map<String, dynamic>? metadata,
   }) {
     final messageId = _idService.generateUserMessageId();
-    
-    _recordIdState(messageId, MessageIdState(
-      id: messageId,
-      type: MessageIdType.userMessage,
-      status: MessageIdStatus.created,
-      conversationId: conversationId,
-      metadata: metadata,
-      createdAt: DateTime.now(),
-    ));
+
+    _recordIdState(
+        messageId,
+        MessageIdState(
+          id: messageId,
+          type: MessageIdType.userMessage,
+          status: MessageIdStatus.created,
+          conversationId: conversationId,
+          metadata: metadata,
+          createdAt: DateTime.now(),
+        ));
 
     _logger.debug('生成用户消息ID', {
       'messageId': messageId,
@@ -60,17 +62,19 @@ class MessageIdManager {
     Map<String, dynamic>? metadata,
   }) {
     final messageId = _idService.generateAiMessageId();
-    
-    _recordIdState(messageId, MessageIdState(
-      id: messageId,
-      type: MessageIdType.aiMessage,
-      status: MessageIdStatus.created,
-      conversationId: conversationId,
-      assistantId: assistantId,
-      modelId: modelId,
-      metadata: metadata,
-      createdAt: DateTime.now(),
-    ));
+
+    _recordIdState(
+        messageId,
+        MessageIdState(
+          id: messageId,
+          type: MessageIdType.aiMessage,
+          status: MessageIdStatus.created,
+          conversationId: conversationId,
+          assistantId: assistantId,
+          modelId: modelId,
+          metadata: metadata,
+          createdAt: DateTime.now(),
+        ));
 
     _logger.debug('生成AI消息ID', {
       'messageId': messageId,
@@ -97,17 +101,19 @@ class MessageIdManager {
     // 建立消息和块的关联关系
     _idService.linkIds(messageId, blockId);
 
-    _recordIdState(blockId, MessageIdState(
-      id: blockId,
-      type: MessageIdType.messageBlock,
-      status: MessageIdStatus.created,
-      parentId: messageId,
-      metadata: {
-        'blockType': blockType,
-        'index': index,
-      },
-      createdAt: DateTime.now(),
-    ));
+    _recordIdState(
+        blockId,
+        MessageIdState(
+          id: blockId,
+          type: MessageIdType.messageBlock,
+          status: MessageIdStatus.created,
+          parentId: messageId,
+          metadata: {
+            'blockType': blockType,
+            'index': index,
+          },
+          createdAt: DateTime.now(),
+        ));
 
     _logger.debug('生成消息块ID', {
       'blockId': blockId,
@@ -209,7 +215,7 @@ class MessageIdManager {
   void cleanupMessageIds(String messageId) {
     // 获取相关联的所有ID
     final relatedIds = _idService.getRelatedIds(messageId);
-    
+
     // 清理状态记录
     _idStates.remove(messageId);
     for (final relatedId in relatedIds) {
@@ -230,13 +236,14 @@ class MessageIdManager {
 
   /// 清理过期的ID状态（超过指定时间的已完成或已取消状态）
   void cleanupExpiredIds({Duration? maxAge}) {
-    final cutoffTime = DateTime.now().subtract(maxAge ?? const Duration(hours: 24));
+    final cutoffTime =
+        DateTime.now().subtract(maxAge ?? const Duration(hours: 24));
     final expiredIds = <String>[];
 
     for (final entry in _idStates.entries) {
       final state = entry.value;
-      if ((state.status == MessageIdStatus.completed || 
-           state.status == MessageIdStatus.cancelled) &&
+      if ((state.status == MessageIdStatus.completed ||
+              state.status == MessageIdStatus.cancelled) &&
           state.updatedAt.isBefore(cutoffTime)) {
         expiredIds.add(entry.key);
       }
@@ -259,7 +266,8 @@ class MessageIdManager {
 
     for (final state in _idStates.values) {
       typeStats[state.type.name] = (typeStats[state.type.name] ?? 0) + 1;
-      statusStats[state.status.name] = (statusStats[state.status.name] ?? 0) + 1;
+      statusStats[state.status.name] =
+          (statusStats[state.status.name] ?? 0) + 1;
     }
 
     return {
@@ -276,7 +284,7 @@ class MessageIdManager {
     _idStates.clear();
     _streamingIdMap.clear();
     _idService.clearAllRelations();
-    
+
     _logger.info('MessageIdManager已清理');
   }
 }

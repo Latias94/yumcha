@@ -29,7 +29,7 @@ class _ConfigurationImportExportScreenState
     extends ConsumerState<ConfigurationImportExportScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  
+
   // 导出选项
   bool _includeProviders = true;
   bool _includeAssistants = true;
@@ -104,25 +104,29 @@ class _ConfigurationImportExportScreenState
                     title: const Text('AI提供商'),
                     subtitle: const Text('包括API密钥和配置信息'),
                     value: _includeProviders,
-                    onChanged: (value) => setState(() => _includeProviders = value!),
+                    onChanged: (value) =>
+                        setState(() => _includeProviders = value!),
                   ),
                   CheckboxListTile(
                     title: const Text('AI助手'),
                     subtitle: const Text('包括提示词和参数设置'),
                     value: _includeAssistants,
-                    onChanged: (value) => setState(() => _includeAssistants = value!),
+                    onChanged: (value) =>
+                        setState(() => _includeAssistants = value!),
                   ),
                   CheckboxListTile(
                     title: const Text('用户偏好'),
                     subtitle: const Text('主题、语言等个人设置'),
                     value: _includePreferences,
-                    onChanged: (value) => setState(() => _includePreferences = value!),
+                    onChanged: (value) =>
+                        setState(() => _includePreferences = value!),
                   ),
                   CheckboxListTile(
                     title: const Text('应用设置'),
                     subtitle: const Text('高级设置和功能开关'),
                     value: _includeSettings,
-                    onChanged: (value) => setState(() => _includeSettings = value!),
+                    onChanged: (value) =>
+                        setState(() => _includeSettings = value!),
                   ),
                 ],
               ),
@@ -143,13 +147,15 @@ class _ConfigurationImportExportScreenState
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 16),
-                  ...ExportFormat.values.map((format) => RadioListTile<ExportFormat>(
-                    title: Text(format.displayName),
-                    subtitle: Text('文件扩展名: ${format.extension}'),
-                    value: format,
-                    groupValue: _exportFormat,
-                    onChanged: (value) => setState(() => _exportFormat = value!),
-                  )),
+                  ...ExportFormat.values
+                      .map((format) => RadioListTile<ExportFormat>(
+                            title: Text(format.displayName),
+                            subtitle: Text('文件扩展名: ${format.extension}'),
+                            value: format,
+                            groupValue: _exportFormat,
+                            onChanged: (value) =>
+                                setState(() => _exportFormat = value!),
+                          )),
                 ],
               ),
             ),
@@ -173,7 +179,8 @@ class _ConfigurationImportExportScreenState
                     title: const Text('启用加密'),
                     subtitle: const Text('使用密码保护导出文件'),
                     value: _enableEncryption,
-                    onChanged: (value) => setState(() => _enableEncryption = value),
+                    onChanged: (value) =>
+                        setState(() => _enableEncryption = value),
                   ),
                   if (_enableEncryption) ...[
                     const SizedBox(height: 16),
@@ -287,20 +294,23 @@ class _ConfigurationImportExportScreenState
                           child: Text(strategy.displayName),
                         );
                       }).toList(),
-                      onChanged: (value) => setState(() => _conflictStrategy = value!),
+                      onChanged: (value) =>
+                          setState(() => _conflictStrategy = value!),
                     ),
                     const SizedBox(height: 16),
                     CheckboxListTile(
                       title: const Text('导入前验证'),
                       subtitle: const Text('验证配置文件的完整性和兼容性'),
                       value: _validateBeforeImport,
-                      onChanged: (value) => setState(() => _validateBeforeImport = value!),
+                      onChanged: (value) =>
+                          setState(() => _validateBeforeImport = value!),
                     ),
                     CheckboxListTile(
                       title: const Text('导入前备份'),
                       subtitle: const Text('在导入前自动创建当前配置的备份'),
                       value: _createBackupBeforeImport,
-                      onChanged: (value) => setState(() => _createBackupBeforeImport = value!),
+                      onChanged: (value) =>
+                          setState(() => _createBackupBeforeImport = value!),
                     ),
                   ],
                 ),
@@ -330,7 +340,7 @@ class _ConfigurationImportExportScreenState
   /// 构建导入预览
   Widget _buildImportPreview() {
     final preview = _importPreview!;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -342,16 +352,18 @@ class _ConfigurationImportExportScreenState
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            
+
             // 统计信息
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard('提供商', preview.statistics.providerCount),
+                  child:
+                      _buildStatCard('提供商', preview.statistics.providerCount),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _buildStatCard('助手', preview.statistics.assistantCount),
+                  child:
+                      _buildStatCard('助手', preview.statistics.assistantCount),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -409,7 +421,8 @@ class _ConfigurationImportExportScreenState
                         Text(
                           '验证失败',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -417,11 +430,12 @@ class _ConfigurationImportExportScreenState
                     ),
                     const SizedBox(height: 8),
                     ...preview.validation.errors.map((error) => Text(
-                      '• $error',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                    )),
+                          '• $error',
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
+                          ),
+                        )),
                   ],
                 ),
               ),
@@ -445,15 +459,15 @@ class _ConfigurationImportExportScreenState
           Text(
             count.toString(),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
         ],
       ),
@@ -462,22 +476,23 @@ class _ConfigurationImportExportScreenState
 
   /// 检查是否可以导出
   bool _canExport() {
-    if (!_includeProviders && !_includeAssistants && 
-        !_includePreferences && !_includeSettings) {
+    if (!_includeProviders &&
+        !_includeAssistants &&
+        !_includePreferences &&
+        !_includeSettings) {
       return false;
     }
-    
+
     if (_enableEncryption && _encryptionKey.isEmpty) {
       return false;
     }
-    
+
     return true;
   }
 
   /// 检查是否可以导入
   bool _canImport() {
-    return _selectedFilePath != null && 
-           (_importPreview?.isValid ?? false);
+    return _selectedFilePath != null && (_importPreview?.isValid ?? false);
   }
 
   /// 选择导入文件
@@ -536,9 +551,10 @@ class _ConfigurationImportExportScreenState
   /// 预览导入内容
   Future<void> _previewImport(String filePath) async {
     try {
-      final preview = await ref.read(configurationImportServiceProvider)
+      final preview = await ref
+          .read(configurationImportServiceProvider)
           .previewImport(filePath, null);
-      
+
       setState(() {
         _importPreview = preview;
       });
@@ -554,15 +570,16 @@ class _ConfigurationImportExportScreenState
   /// 执行导出
   Future<void> _performExport() async {
     try {
-      final result = await ref.read(configurationExportServiceProvider)
+      final result = await ref
+          .read(configurationExportServiceProvider)
           .exportConfiguration(
-        includeProviders: _includeProviders,
-        includeAssistants: _includeAssistants,
-        includePreferences: _includePreferences,
-        includeSettings: _includeSettings,
-        encryptionKey: _enableEncryption ? _encryptionKey : null,
-        format: _exportFormat,
-      );
+            includeProviders: _includeProviders,
+            includeAssistants: _includeAssistants,
+            includePreferences: _includePreferences,
+            includeSettings: _includeSettings,
+            encryptionKey: _enableEncryption ? _encryptionKey : null,
+            format: _exportFormat,
+          );
 
       if (mounted) {
         if (result.success) {
@@ -596,13 +613,14 @@ class _ConfigurationImportExportScreenState
   /// 执行导入
   Future<void> _performImport() async {
     try {
-      final result = await ref.read(configurationImportServiceProvider)
+      final result = await ref
+          .read(configurationImportServiceProvider)
           .importConfiguration(
-        _selectedFilePath!,
-        strategy: _conflictStrategy,
-        validateBeforeImport: _validateBeforeImport,
-        createBackupBeforeImport: _createBackupBeforeImport,
-      );
+            _selectedFilePath!,
+            strategy: _conflictStrategy,
+            validateBeforeImport: _validateBeforeImport,
+            createBackupBeforeImport: _createBackupBeforeImport,
+          );
 
       if (mounted) {
         if (result.success) {
@@ -612,7 +630,7 @@ class _ConfigurationImportExportScreenState
               backgroundColor: Colors.green,
             ),
           );
-          
+
           // 清除选择的文件
           setState(() {
             _selectedFilePath = null;

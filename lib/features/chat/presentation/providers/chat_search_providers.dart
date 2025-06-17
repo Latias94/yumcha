@@ -11,7 +11,8 @@ final searchQueryProvider = StateProvider.autoDispose<String>((ref) => '');
 enum SearchType { all, conversations, messages }
 
 // 搜索类型状态 - 使用autoDispose避免内存泄漏
-final searchTypeProvider = StateProvider.autoDispose<SearchType>((ref) => SearchType.all);
+final searchTypeProvider =
+    StateProvider.autoDispose<SearchType>((ref) => SearchType.all);
 
 // 搜索结果Provider
 final searchResultsProvider =

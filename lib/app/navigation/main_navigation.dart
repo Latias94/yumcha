@@ -295,15 +295,17 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     });
 
     // 创建一个虚拟的对话状态用于显示聊天界面
-    final displayConversation = conversation ?? ConversationUiState(
-      id: '', // 空ID表示还没有真正的对话
-      channelName: "新对话",
-      channelMembers: 1,
-      assistantId: chatState.configuration.selectedAssistant?.id ?? '',
-      selectedProviderId: chatState.configuration.selectedProvider?.id ?? '',
-      selectedModelId: chatState.configuration.selectedModel?.name ?? '',
-      messages: [],
-    );
+    final displayConversation = conversation ??
+        ConversationUiState(
+          id: '', // 空ID表示还没有真正的对话
+          channelName: "新对话",
+          channelMembers: 1,
+          assistantId: chatState.configuration.selectedAssistant?.id ?? '',
+          selectedProviderId:
+              chatState.configuration.selectedProvider?.id ?? '',
+          selectedModelId: chatState.configuration.selectedModel?.name ?? '',
+          messages: [],
+        );
 
     return ChatScreen(
       conversationState: displayConversation,
