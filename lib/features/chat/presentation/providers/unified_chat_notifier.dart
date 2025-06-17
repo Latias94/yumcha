@@ -815,8 +815,11 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
   /// 更新消息内容（优化版本，支持去重和批量处理）
   void _updateMessageContent(String messageId, String content, MessageStatus status, [Map<String, dynamic>? metadata]) {
+    // 🚀 修复：对于流式消息，优先保证内容完整性
+    final isStreaming = state.messageState.streamingMessageIds.contains(messageId);
+
     // 使用去重器检查是否应该更新
-    if (!_messageDeduplicator.shouldUpdateMessageContent(messageId, content)) {
+    if (!isStreaming && !_messageDeduplicator.shouldUpdateMessageContent(messageId, content)) {
       _logger.debug('消息内容更新被去重器跳过', {'messageId': messageId});
       return;
     }
@@ -1090,6 +1093,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         ),
       );
 
+      // 🚀 修复：标记消息为流式状态，使用更宽松的去重策略
+      _messageDeduplicator.markAsStreaming(messageId);
+
       _logger.debug('消息添加到流式集合', {'messageId': messageId});
     }
   }
@@ -1105,6 +1111,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
           streamingMessageIds: updatedStreamingIds,
         ),
       );
+
+      // 🚀 修复：取消流式状态标记，恢复正常去重策略
+      _messageDeduplicator.unmarkAsStreaming(messageId);
 
       _logger.info('消息从流式集合中移除', {'messageId': messageId});
       _emitEvent(StreamingCompletedEvent(messageId));

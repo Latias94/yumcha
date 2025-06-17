@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/message_status.dart' as msg_status;
+import '../../domain/entities/message_block_type.dart';
 import '../../domain/entities/chat_bubble_style.dart';
 import '../providers/chat_style_provider.dart';
+import '../providers/chat_providers.dart';
 import 'bubble/message_bubble.dart';
 import 'bubble/bubble_style.dart';
 import 'message_block_widget.dart';
@@ -310,7 +312,20 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
       ];
     }
 
-    return widget.message.blocks.map((block) {
+    // 获取聊天设置
+    final chatSettings = ref.watch(chatSettingsProvider);
+
+    // 根据用户设置过滤消息块
+    final filteredBlocks = widget.message.blocks.where((block) {
+      // 如果是思考过程块，检查用户是否启用了显示思考过程
+      if (block.type == MessageBlockType.thinking) {
+        return chatSettings.showThinkingProcess;
+      }
+      // 其他类型的块正常显示
+      return true;
+    }).toList();
+
+    return filteredBlocks.map((block) {
       return MessageBlockWidget(
         key: ValueKey(block.id),
         block: block,

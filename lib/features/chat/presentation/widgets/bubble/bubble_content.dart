@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/message.dart';
+import '../../../domain/entities/message_status.dart';
+import '../../../domain/entities/message_block_type.dart';
+import '../../providers/chat_providers.dart';
 import '../../../../../shared/presentation/design_system/design_constants.dart';
+import '../animated_typing_indicator.dart';
 import 'bubble_context.dart';
 import 'bubble_style.dart';
 import 'bubble_block_renderer.dart';
 
 /// 气泡内容组件
-/// 
+///
 /// 负责渲染气泡内的所有消息块内容
-class BubbleContent extends StatelessWidget {
+class BubbleContent extends ConsumerWidget {
   const BubbleContent({
     super.key,
     required this.message,
@@ -35,7 +40,7 @@ class BubbleContent extends StatelessWidget {
   final VoidCallback? onDelete;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: this.context.padding,
       child: Column(
@@ -43,7 +48,7 @@ class BubbleContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // 消息块内容
-          ..._buildMessageBlocks(),
+          ..._buildMessageBlocks(ref),
 
           // 消息状态指示器
           if (_shouldShowStatusIndicator())
@@ -58,18 +63,35 @@ class BubbleContent extends StatelessWidget {
   }
 
   /// 构建消息块列表
-  List<Widget> _buildMessageBlocks() {
+  List<Widget> _buildMessageBlocks(WidgetRef ref) {
     if (message.blocks.isEmpty) {
+      return [_buildEmptyContent()];
+    }
+
+    // 获取聊天设置
+    final chatSettings = ref.watch(chatSettingsProvider);
+
+    // 根据用户设置过滤消息块
+    final filteredBlocks = message.blocks.where((block) {
+      // 如果是思考过程块，检查用户是否启用了显示思考过程
+      if (block.type == MessageBlockType.thinking) {
+        return chatSettings.showThinkingProcess;
+      }
+      // 其他类型的块正常显示
+      return true;
+    }).toList();
+
+    if (filteredBlocks.isEmpty) {
       return [_buildEmptyContent()];
     }
 
     final renderer = BubbleBlockRenderer.instance;
     final blocks = <Widget>[];
 
-    for (int i = 0; i < message.blocks.length; i++) {
-      final block = message.blocks[i];
+    for (int i = 0; i < filteredBlocks.length; i++) {
+      final block = filteredBlocks[i];
       final isFirst = i == 0;
-      final isLast = i == message.blocks.length - 1;
+      final isLast = i == filteredBlocks.length - 1;
 
       final blockWidget = renderer.renderBlock(
         block,
@@ -93,6 +115,108 @@ class BubbleContent extends StatelessWidget {
 
   /// 构建空内容占位符
   Widget _buildEmptyContent() {
+    // 根据消息状态显示不同的占位符
+    if (context.isPendingStream) {
+      return _buildPendingStreamPlaceholder();
+    } else if (context.isActiveStreaming) {
+      return _buildActiveStreamingPlaceholder();
+    } else if (context.isProcessing) {
+      return _buildProcessingPlaceholder();
+    } else {
+      return _buildDefaultEmptyPlaceholder();
+    }
+  }
+
+  /// 构建等待流式开始的占位符
+  Widget _buildPendingStreamPlaceholder() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                context.theme.colorScheme.primary.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '正在准备回复...',
+            style: TextStyle(
+              color: context.theme.colorScheme.primary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建流式传输中的占位符
+  Widget _buildActiveStreamingPlaceholder() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedTypingIndicator(
+            dotColor: context.theme.colorScheme.primary,
+            dotSize: 5.0,
+            dotSpacing: 4.0,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '正在输入...',
+            style: TextStyle(
+              color: context.theme.colorScheme.primary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建处理中的占位符
+  Widget _buildProcessingPlaceholder() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                context.theme.colorScheme.secondary.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '正在思考...',
+            style: TextStyle(
+              color: context.theme.colorScheme.secondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建默认空内容占位符
+  Widget _buildDefaultEmptyPlaceholder() {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Text(
@@ -106,11 +230,13 @@ class BubbleContent extends StatelessWidget {
     );
   }
 
+
+
   /// 构建状态指示器
   Widget _buildStatusIndicator() {
-    if (context.isStreaming) {
+    if (context.message.status.showLoadingIndicator) {
       return _buildStreamingIndicator();
-    } else if (context.isError) {
+    } else if (context.message.status.isError) {
       return _buildErrorIndicator();
     }
     return const SizedBox.shrink();
@@ -118,6 +244,109 @@ class BubbleContent extends StatelessWidget {
 
   /// 构建流式状态指示器
   Widget _buildStreamingIndicator() {
+    if (context.isPendingStream) {
+      return _buildPendingIndicator();
+    } else if (context.isActiveStreaming) {
+      return _buildActiveStreamingIndicator();
+    } else if (context.isProcessing) {
+      return _buildProcessingIndicator();
+    } else {
+      return _buildDefaultStreamingIndicator();
+    }
+  }
+
+  /// 构建等待状态指示器
+  Widget _buildPendingIndicator() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                context.theme.colorScheme.primary.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '等待回复...',
+            style: TextStyle(
+              fontSize: 12,
+              color: context.theme.colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建活跃流式指示器
+  Widget _buildActiveStreamingIndicator() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedTypingIndicator(
+            dotColor: context.theme.colorScheme.primary,
+            dotSize: 3.0,
+            dotSpacing: 3.0,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '正在输入...',
+            style: TextStyle(
+              fontSize: 12,
+              color: context.theme.colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildBlinkingCursor(),
+        ],
+      ),
+    );
+  }
+
+  /// 构建处理中指示器
+  Widget _buildProcessingIndicator() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                context.theme.colorScheme.secondary.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '正在思考...',
+            style: TextStyle(
+              fontSize: 12,
+              color: context.theme.colorScheme.secondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建默认流式指示器
+  Widget _buildDefaultStreamingIndicator() {
     return Container(
       margin: const EdgeInsets.only(top: 8),
       child: Row(
@@ -143,6 +372,28 @@ class BubbleContent extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// 构建闪烁光标
+  Widget _buildBlinkingCursor() {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 1000),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return AnimatedOpacity(
+          opacity: (value * 2) % 2 > 1 ? 1.0 : 0.3,
+          duration: const Duration(milliseconds: 100),
+          child: Container(
+            width: 2,
+            height: 14,
+            decoration: BoxDecoration(
+              color: this.context.theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -278,13 +529,13 @@ class BubbleContent extends StatelessWidget {
 
   /// 是否应该显示状态指示器
   bool _shouldShowStatusIndicator() {
-    return context.isStreaming || context.isError;
+    return context.message.status.showLoadingIndicator || context.message.status.isError;
   }
 
   /// 是否应该显示操作按钮
   bool _shouldShowActions() {
-    // 只在非流式状态下显示操作按钮
-    return !context.isStreaming &&
+    // 只在非进行中状态下显示操作按钮
+    return !context.message.status.isInProgress &&
            (onEdit != null || onRegenerate != null || onDelete != null);
   }
 

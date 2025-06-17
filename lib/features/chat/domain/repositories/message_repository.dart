@@ -99,13 +99,10 @@ abstract class MessageRepository {
   
   /// 更新消息块内容
   Future<void> updateBlockContent(String blockId, String content);
-  
+
   /// 更新消息块状态
   Future<void> updateBlockStatus(String blockId, MessageBlockStatus status);
-  
-  /// 追加内容到文本块（用于流式处理）
-  Future<void> appendToTextBlock(String blockId, String content);
-  
+
   /// 删除消息块
   Future<void> deleteMessageBlock(String blockId);
   

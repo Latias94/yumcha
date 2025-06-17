@@ -77,45 +77,6 @@ class BlockChatParams {
   }
 }
 
-/// 块化聊天Provider - 单次请求
-final blockChatProvider = FutureProvider.autoDispose.family<Message, BlockChatParams>((
-  ref,
-  params,
-) async {
-  final blockChatService = ref.read(blockBasedChatServiceProvider);
-
-  return await blockChatService.sendBlockMessage(
-    conversationId: params.conversationId,
-    provider: params.provider,
-    assistant: params.assistant,
-    modelName: params.modelName,
-    chatHistory: params.chatHistory,
-    userMessage: params.userMessage,
-    autoGenerateImages: params.autoGenerateImages,
-    autoGenerateTts: params.autoGenerateTts,
-    enableImageAnalysis: params.enableImageAnalysis,
-  );
-});
-
-/// 块化聊天流式Provider
-final blockChatStreamProvider = StreamProvider.autoDispose.family<Message, BlockChatParams>((
-  ref,
-  params,
-) {
-  final blockChatService = ref.read(blockBasedChatServiceProvider);
-
-  return blockChatService.sendBlockMessageStream(
-    conversationId: params.conversationId,
-    provider: params.provider,
-    assistant: params.assistant,
-    modelName: params.modelName,
-    chatHistory: params.chatHistory,
-    userMessage: params.userMessage,
-    autoGenerateImages: params.autoGenerateImages,
-    autoGenerateTts: params.autoGenerateTts,
-  );
-});
-
 // ============================================================================
 // 工具函数
 // ============================================================================

@@ -5,6 +5,7 @@ import '../../../domain/entities/message.dart';
 import '../../../domain/entities/chat_message_content.dart';
 import '../../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../../shared/presentation/providers/dependency_providers.dart';
+import '../../../../../shared/presentation/providers/providers.dart';
 import '../../../../ai_management/domain/entities/ai_assistant.dart';
 import '../../providers/unified_chat_notifier.dart';
 import '../../widgets/chat_configuration_status.dart';
@@ -112,7 +113,6 @@ class _ChatInputState extends ConsumerState<ChatInput>
   Future<void> _initializeDefaultAssistant() async {
     try {
       final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
-      final assistantRepository = ref.read(assistantRepositoryProvider);
       final preferenceService = ref.read(preferenceServiceProvider);
 
       // 检查当前是否已经有有效的助手配置
@@ -134,10 +134,14 @@ class _ChatInputState extends ConsumerState<ChatInput>
           return;
         }
 
-        final assistant = await assistantRepository.getAssistant(
-          widget.initialAssistantId!,
+        // ✅ 修复：通过provider获取助手，而不是直接使用repository
+        final allAssistants = ref.read(aiAssistantsProvider);
+        final assistant = allAssistants.firstWhere(
+          (a) => a.id == widget.initialAssistantId,
+          orElse: () => throw StateError('Assistant not found'),
         );
-        if (assistant != null) {
+
+        if (assistant.isEnabled) {
           // 使用统一聊天状态管理选择助手
           await unifiedChatNotifier.selectAssistant(assistant);
           return;
@@ -153,13 +157,17 @@ class _ChatInputState extends ConsumerState<ChatInput>
           return;
         }
 
-        final assistant = await assistantRepository.getAssistant(
-          lastUsedAssistantId,
-        );
-        if (assistant != null && assistant.isEnabled) {
+        // ✅ 修复：通过provider获取助手
+        final allAssistants = ref.read(aiAssistantsProvider);
+        try {
+          final assistant = allAssistants.firstWhere(
+            (a) => a.id == lastUsedAssistantId && a.isEnabled,
+          );
           // 选择助手
           await unifiedChatNotifier.selectAssistant(assistant);
           return;
+        } catch (e) {
+          // 助手不存在或未启用，继续下一步
         }
       }
 
@@ -184,13 +192,14 @@ class _ChatInputState extends ConsumerState<ChatInput>
   /// 选择第一个可用的助手
   Future<bool> _selectFirstAvailableAssistant() async {
     try {
-      final assistantRepository = ref.read(assistantRepositoryProvider);
-      final assistants = await assistantRepository.getEnabledAssistants();
+      // ✅ 修复：通过provider获取助手列表，而不是直接使用repository
+      final allAssistants = ref.read(aiAssistantsProvider);
+      final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
 
-      if (assistants.isNotEmpty) {
+      if (enabledAssistants.isNotEmpty) {
         // 使用统一聊天状态管理选择助手
         final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
-        await unifiedChatNotifier.selectAssistant(assistants.first);
+        await unifiedChatNotifier.selectAssistant(enabledAssistants.first);
         return true;
       }
       return false;
@@ -428,9 +437,8 @@ class _ChatInputState extends ConsumerState<ChatInput>
       selectedModelName: chatConfig.selectedModel?.name,
       onModelSelected: (selection) {
         // 使用统一聊天状态管理来选择模型
-        // TODO: 实现模型选择功能
-        // final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
-        // unifiedChatNotifier.selectModel(selection.provider, selection.model);
+        final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+        unifiedChatNotifier.selectModel(selection.provider, selection.model);
 
         // 通知父组件模型已改变
         final chatConfig = ref.read(chatConfigurationProvider);

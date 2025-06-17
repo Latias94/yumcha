@@ -7,6 +7,7 @@ import '../../domain/entities/message_status.dart';
 import '../../domain/entities/message_block_status.dart';
 import '../../domain/entities/message_block_type.dart';
 import '../../domain/repositories/message_repository.dart';
+import 'message_search_result.dart';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -146,116 +147,107 @@ class ConversationRepository {
     return await _database.updateConversation(conversation.id, companion);
   }
 
-  // 保存对话（创建或更新）
+  // 🚀 阶段5重构：简化重复检查逻辑的保存对话方法
   Future<bool> saveConversation(ConversationUiState conversation) async {
     try {
-      // 检查对话是否已存在
-      final existingConversation = await _database.getConversation(
-        conversation.id,
-      );
+      // 使用事务确保对话和消息的原子性保存
+      await _database.transaction(() async {
+        // 检查对话是否已存在
+        final existingConversation = await _database.getConversation(conversation.id);
 
-      if (existingConversation == null) {
-        // 创建新对话
-        final companion = ConversationsCompanion(
-          id: Value(conversation.id),
-          title: Value(conversation.channelName),
-          assistantId: Value(conversation.assistantId ?? ''),
-          providerId: Value(conversation.selectedProviderId),
-          modelId: Value(conversation.selectedModelId),
-          lastMessageAt: Value(
-            conversation.messages.isNotEmpty
-                ? conversation.messages.last.createdAt
-                : DateTime.now(),
-          ),
-          createdAt: Value(DateTime.now()),
-          updatedAt: Value(DateTime.now()),
-        );
-
-        await _database.insertConversation(companion);
-
-        // 保存所有消息（跳过不应持久化的消息）
-        for (final message in conversation.messages) {
-          // 跳过不应持久化的消息（错误、临时、发送中等状态）
-          if (!message.shouldPersist) {
-            continue;
-          }
-
-          // 跳过空内容的AI消息（流式传输的占位符）
-          if (!message.isFromUser && message.content.trim().isEmpty) {
-            continue;
-          }
-
-          // 使用MessageRepository统一保存消息
-          await _messageRepository.saveMessage(message);
-        }
-        _logger.info('创建新对话: ${conversation.id}');
-      } else {
-        // 更新现有对话
-        final companion = ConversationsCompanion(
-          title: Value(conversation.channelName),
-          assistantId: Value(conversation.assistantId ?? ''),
-          providerId: Value(conversation.selectedProviderId),
-          modelId: Value(conversation.selectedModelId),
-          lastMessageAt: Value(
-            conversation.messages.isNotEmpty
-                ? conversation.messages.last.createdAt
-                : DateTime.now(),
-          ),
-          updatedAt: Value(DateTime.now()),
-        );
-        await _database.updateConversation(conversation.id, companion);
-
-        // 获取数据库中现有的消息
-        final existingMessages = await getMessagesByConversation(
-          conversation.id,
-        );
-
-        // 找出新增的消息（基于ID和时间戳比较）
-        final newMessages = <Message>[];
-        for (final message in conversation.messages) {
-          // 跳过空内容的AI消息（流式传输的占位符）
-          if (!message.isFromUser && message.content.trim().isEmpty) {
-            continue;
-          }
-
-          final exists = existingMessages.any(
-            (existing) =>
-                existing.id == message.id ||
-                (existing.content == message.content &&
-                existing.role == message.role &&
-                existing.createdAt
-                        .difference(message.createdAt)
-                        .abs()
-                        .inSeconds <
-                    2), // 2秒内的时间差认为是同一条消息
-          );
-          if (!exists) {
-            newMessages.add(message);
-          }
-        }
-
-        // 只保存新增的消息（且应该持久化的消息）
-        for (final message in newMessages) {
-          // 跳过不应持久化的消息
-          if (!message.shouldPersist) {
-            continue;
-          }
-
-          // 使用MessageRepository统一保存消息
-          await _messageRepository.saveMessage(message);
-        }
-
-        if (newMessages.isNotEmpty) {
-          _logger.info('更新对话 ${conversation.id}，新增 ${newMessages.length} 条消息');
+        if (existingConversation == null) {
+          // 创建新对话
+          await _createNewConversation(conversation);
         } else {
-          _logger.info('更新对话信息: ${conversation.id}');
+          // 更新现有对话
+          await _updateExistingConversation(conversation);
         }
-      }
+
+        // 🚀 简化：批量保存消息，让MessageRepository处理重复检查
+        await _batchSaveMessages(conversation.messages);
+      });
 
       return true;
     } catch (e) {
       _logger.error('保存对话失败: $e');
       return false;
+    }
+  }
+
+  /// 🚀 阶段5新增：创建新对话的私有方法
+  Future<void> _createNewConversation(ConversationUiState conversation) async {
+    final companion = ConversationsCompanion(
+      id: Value(conversation.id),
+      title: Value(conversation.channelName),
+      assistantId: Value(conversation.assistantId ?? ''),
+      providerId: Value(conversation.selectedProviderId),
+      modelId: Value(conversation.selectedModelId),
+      lastMessageAt: Value(
+        conversation.messages.isNotEmpty
+            ? conversation.messages.last.createdAt
+            : DateTime.now(),
+      ),
+      createdAt: Value(DateTime.now()),
+      updatedAt: Value(DateTime.now()),
+    );
+
+    await _database.insertConversation(companion);
+    _logger.info('创建新对话: ${conversation.id}');
+  }
+
+  /// 🚀 阶段5新增：更新现有对话的私有方法
+  Future<void> _updateExistingConversation(ConversationUiState conversation) async {
+    final companion = ConversationsCompanion(
+      title: Value(conversation.channelName),
+      assistantId: Value(conversation.assistantId ?? ''),
+      providerId: Value(conversation.selectedProviderId),
+      modelId: Value(conversation.selectedModelId),
+      lastMessageAt: Value(
+        conversation.messages.isNotEmpty
+            ? conversation.messages.last.createdAt
+            : DateTime.now(),
+      ),
+      updatedAt: Value(DateTime.now()),
+    );
+
+    await _database.updateConversation(conversation.id, companion);
+    _logger.info('更新对话信息: ${conversation.id}');
+  }
+
+  /// 🚀 阶段5新增：批量保存消息（简化版）
+  /// 移除复杂的重复检查逻辑，依赖MessageRepository的UPSERT机制
+  Future<void> _batchSaveMessages(List<Message> messages) async {
+    final stopwatch = Stopwatch()..start();
+    int savedCount = 0;
+    int skippedCount = 0;
+
+    for (final message in messages) {
+      // 🚀 简化：只检查基本条件
+      if (!message.shouldPersist) {
+        skippedCount++;
+        continue;
+      }
+
+      // 跳过空内容的AI消息（流式传输的占位符）
+      if (!message.isFromUser && message.content.trim().isEmpty) {
+        skippedCount++;
+        continue;
+      }
+
+      // 🚀 移除复杂的重复检查，让MessageRepository的UPSERT处理
+      // MessageRepository已经在阶段4中实现了完善的事务处理和重复检查
+      await _messageRepository.saveMessage(message);
+      savedCount++;
+    }
+
+    stopwatch.stop();
+
+    if (savedCount > 0 || skippedCount > 0) {
+      _logger.info('批量保存消息完成', {
+        'savedCount': savedCount,
+        'skippedCount': skippedCount,
+        'duration': stopwatch.elapsedMilliseconds,
+      });
     }
   }
 
@@ -500,19 +492,4 @@ class ConversationRepository {
   }
 
 
-}
-
-// 搜索结果模型
-class MessageSearchResult {
-  final Message message;
-  final String conversationId;
-  final String conversationTitle;
-  final String assistantId;
-
-  const MessageSearchResult({
-    required this.message,
-    required this.conversationId,
-    required this.conversationTitle,
-    required this.assistantId,
-  });
 }

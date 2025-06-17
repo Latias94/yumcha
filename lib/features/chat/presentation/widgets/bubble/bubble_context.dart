@@ -89,15 +89,23 @@ class BubbleContext {
   /// 是否为AI消息
   bool get isFromAI => !message.isFromUser;
 
-  /// 是否为错误消息
-  bool get isError => message.isError;
+  /// 是否为错误消息（使用MessageStatus的扩展方法）
+  bool get isError => message.status.isError;
 
-  /// 是否为流式消息
-  bool get isStreaming => message.status == MessageStatus.aiProcessing;
+  /// 是否为流式消息（使用MessageStatus的扩展方法）
+  bool get isStreaming => message.status.isInProgress;
 
-  /// 是否为完成的消息
-  bool get isCompleted => message.status == MessageStatus.aiSuccess || 
-                         message.status == MessageStatus.userSuccess;
+  /// 是否为等待流式开始状态
+  bool get isPendingStream => message.status == MessageStatus.aiPending;
+
+  /// 是否为流式传输中状态
+  bool get isActiveStreaming => message.status == MessageStatus.aiStreaming;
+
+  /// 是否为AI处理中状态
+  bool get isProcessing => message.status == MessageStatus.aiProcessing;
+
+  /// 是否为完成的消息（使用MessageStatus的扩展方法）
+  bool get isCompleted => message.status.isCompleted;
 
   /// 获取消息块数量
   int get blockCount => message.blocks.length;

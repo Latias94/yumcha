@@ -2,49 +2,43 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../features/chat/domain/entities/conversation_ui_state.dart';
-import '../../../../features/chat/data/repositories/conversation_repository.dart';
 import '../../../infrastructure/services/logger_service.dart';
 import '../../providers/providers.dart';
 import '../../../../features/settings/domain/entities/app_setting.dart';
 import '../../../../features/settings/presentation/providers/settings_notifier.dart';
 import 'drawer_constants.dart';
+import 'drawer_search_providers.dart';
 
 /// 侧边栏搜索服务
 ///
+/// ✅ 重构后的版本 - 遵循Riverpod最佳实践
+///
 /// 提供搜索相关的业务逻辑，包括：
 /// - 防抖搜索
-/// - 综合搜索（标题+内容）
 /// - 搜索状态管理
-/// - 分页数据获取
+/// - 通过Provider访问数据（不直接依赖Repository）
 class DrawerSearchService {
-  final ConversationRepository _conversationRepository;
   final LoggerService _logger = LoggerService();
   final WidgetRef _ref;
 
   // 搜索防抖Timer
   Timer? _searchDebounce;
 
-  // 搜索状态
-  String _searchQuery = "";
-  String _selectedAssistant = "ai";
-
   // 分页配置
   static const int _pageSize = DrawerConstants.pageSize;
 
   DrawerSearchService({
-    required ConversationRepository conversationRepository,
     required WidgetRef ref,
-  })  : _conversationRepository = conversationRepository,
-        _ref = ref;
+  }) : _ref = ref;
 
   /// 设置当前搜索查询
   void setSearchQuery(String query) {
-    _searchQuery = query;
+    _ref.read(drawerSearchQueryProvider.notifier).state = query;
   }
 
   /// 设置当前选中的助手并保存到设置
   Future<void> setSelectedAssistant(String assistantId) async {
-    _selectedAssistant = assistantId;
+    _ref.read(drawerSelectedAssistantProvider.notifier).state = assistantId;
 
     // 保存到设置中
     try {
@@ -64,10 +58,10 @@ class DrawerSearchService {
   }
 
   /// 获取当前搜索查询
-  String get searchQuery => _searchQuery;
+  String get searchQuery => _ref.read(drawerSearchQueryProvider);
 
   /// 获取当前选中的助手
-  String get selectedAssistant => _selectedAssistant;
+  String get selectedAssistant => _ref.read(drawerSelectedAssistantProvider);
 
   /// 防抖搜索
   void performDebouncedSearch({
@@ -80,8 +74,8 @@ class DrawerSearchService {
     // 取消之前的防抖Timer
     _searchDebounce?.cancel();
 
-    // 更新搜索查询
-    _searchQuery = query;
+    // 更新搜索查询到Provider
+    setSearchQuery(query);
 
     // 如果搜索查询为空，立即完成
     if (query.trim().isEmpty) {
@@ -94,25 +88,30 @@ class DrawerSearchService {
 
     // 设置防抖Timer
     _searchDebounce = Timer(debounceDelay, () {
-      _logger.debug('执行搜索: $_searchQuery');
+      _logger.debug('执行搜索: $query');
       onSearchComplete();
     });
   }
 
-  /// 获取分页数据
+  /// 获取分页数据 - 通过Provider访问
   Future<List<ConversationUiState>> fetchPage(int pageKey) async {
+    final searchQuery = _ref.read(drawerSearchQueryProvider);
+    final selectedAssistant = _ref.read(drawerSelectedAssistantProvider);
+
     _logger.debug(
-      '开始获取分页数据: pageKey=$pageKey, searchQuery="$_searchQuery", assistant=$_selectedAssistant',
+      '开始获取分页数据: pageKey=$pageKey, searchQuery="$searchQuery", assistant=$selectedAssistant',
     );
 
     // 确保有有效的助手选择
-    if (_selectedAssistant == "ai" || _selectedAssistant.isEmpty) {
+    String assistantId = selectedAssistant;
+    if (assistantId == "ai" || assistantId.isEmpty) {
       // 尝试重新初始化助手选择
       final assistants = _ref.read(aiAssistantsProvider);
       final enabledAssistants = assistants.where((a) => a.isEnabled).toList();
       if (enabledAssistants.isNotEmpty) {
-        _selectedAssistant = enabledAssistants.first.id;
-        _logger.debug('重新初始化助手选择: $_selectedAssistant');
+        assistantId = enabledAssistants.first.id;
+        setSelectedAssistant(assistantId); // 更新到Provider
+        _logger.debug('重新初始化助手选择: $assistantId');
       } else {
         _logger.warning('没有可用助手');
         return []; // 没有可用助手时返回空列表
@@ -120,133 +119,29 @@ class DrawerSearchService {
     }
 
     try {
-      List<ConversationUiState> results;
+      // 使用Provider获取数据
+      final params = DrawerPageParams(
+        pageKey: pageKey,
+        searchQuery: searchQuery,
+        assistantId: assistantId,
+        pageSize: _pageSize,
+      );
 
-      // 如果有搜索查询，使用综合搜索方法
-      if (_searchQuery.trim().isNotEmpty) {
-        _logger.debug(
-          '执行综合搜索: query="$_searchQuery", assistantId=$_selectedAssistant',
-        );
-        results = await performComprehensiveSearch(
-          _searchQuery,
-          _selectedAssistant,
-          limit: _pageSize,
-          offset: pageKey,
-        );
-        _logger.debug('搜索结果数量: ${results.length}');
-      } else {
-        // 否则使用正常的分页获取
-        _logger.debug('获取正常对话列表: assistantId=$_selectedAssistant');
-
-        // 添加超时保护，避免无限等待
-        results = await _conversationRepository
-            .getConversationsByAssistantWithPagination(
-          _selectedAssistant,
-          limit: _pageSize,
-          offset: pageKey,
-          includeMessages: false, // 不包含完整消息内容，提高性能
-        ).timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            _logger.warning('获取对话列表超时，返回空列表');
-            return <ConversationUiState>[];
-          },
-        );
-
-        _logger.debug('对话列表数量: ${results.length}');
-      }
-
-      return results;
+      final asyncValue = await _ref.read(drawerConversationPageProvider(params).future);
+      return asyncValue;
     } catch (e, stackTrace) {
       _logger.error('获取对话列表失败', {
         'error': e.toString(),
         'stackTrace': stackTrace.toString(),
         'pageKey': pageKey,
-        'searchQuery': _searchQuery,
-        'selectedAssistant': _selectedAssistant,
+        'searchQuery': searchQuery,
+        'selectedAssistant': assistantId,
       });
       return []; // 出错时返回空列表而不是抛出异常
     }
   }
 
-  /// 执行综合搜索（搜索对话标题和消息内容）
-  Future<List<ConversationUiState>> performComprehensiveSearch(
-    String query,
-    String assistantId, {
-    int limit = 20,
-    int offset = 0,
-  }) async {
-    final trimmedQuery = query.trim();
-    if (trimmedQuery.isEmpty) {
-      return [];
-    }
 
-    try {
-      // 1. 搜索对话标题
-      final conversationResults =
-          await _conversationRepository.searchConversationsByTitle(
-        trimmedQuery,
-        assistantId: assistantId,
-        limit: limit,
-        offset: offset,
-      );
-
-      // 2. 搜索消息内容
-      final messageResults = await _conversationRepository.searchMessages(
-        trimmedQuery,
-        assistantId: assistantId,
-        limit: limit,
-        offset: offset,
-      );
-
-      // 3. 合并结果，去重（优先显示标题匹配的对话）
-      final Map<String, ConversationUiState> uniqueConversations = {};
-
-      // 先添加标题匹配的对话
-      for (final conversation in conversationResults) {
-        uniqueConversations[conversation.id] = conversation;
-      }
-
-      // 再添加消息匹配的对话（如果不存在的话）
-      for (final messageResult in messageResults) {
-        final conversationId = messageResult.conversationId;
-        if (!uniqueConversations.containsKey(conversationId)) {
-          // 获取完整的对话信息
-          final conversation =
-              await _conversationRepository.getConversation(conversationId);
-          if (conversation != null) {
-            uniqueConversations[conversationId] = conversation;
-          }
-        }
-      }
-
-      // 4. 按最后消息时间排序
-      final sortedResults = uniqueConversations.values.toList();
-      sortedResults.sort((a, b) {
-        final aTime = a.messages.isNotEmpty
-            ? a.messages.last.createdAt
-            : DateTime.fromMillisecondsSinceEpoch(0);
-        final bTime = b.messages.isNotEmpty
-            ? b.messages.last.createdAt
-            : DateTime.fromMillisecondsSinceEpoch(0);
-        return bTime.compareTo(aTime); // 降序排列
-      });
-
-      _logger.debug(
-        '综合搜索完成: 标题匹配=${conversationResults.length}, 消息匹配=${messageResults.length}, 去重后=${sortedResults.length}',
-      );
-
-      return sortedResults;
-    } catch (e, stackTrace) {
-      _logger.error('综合搜索失败', {
-        'error': e.toString(),
-        'stackTrace': stackTrace.toString(),
-        'query': trimmedQuery,
-        'assistantId': assistantId,
-      });
-      return [];
-    }
-  }
 
   /// 初始化选中的助手（从设置中恢复）
   Future<void> initializeSelectedAssistant(
@@ -254,12 +149,7 @@ class DrawerSearchService {
     // 检查助手数据的加载状态
     try {
       final allAssistants = _ref.read(aiAssistantsProvider);
-      // _logger.debug('所有助手数量: ${allAssistants.length}');
       final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
-      // _logger.debug('启用的助手数量: ${enabledAssistants.length}');
-      // for (final assistant in enabledAssistants) {
-        // _logger.debug('启用的助手: ${assistant.id} - ${assistant.name}');
-      // }
 
       if (enabledAssistants.isEmpty) {
         _logger.warning('没有可用助手，等待数据加载...');
@@ -312,9 +202,12 @@ class DrawerSearchService {
         _logger.debug('没有保存的助手选择，选择第一个可用助手: $targetAssistantId');
       }
 
+      // 获取当前选择的助手
+      final currentSelectedAssistant = _ref.read(drawerSelectedAssistantProvider);
+
       // 更新选择的助手
-      if (_selectedAssistant != targetAssistantId) {
-        _selectedAssistant = targetAssistantId;
+      if (currentSelectedAssistant != targetAssistantId) {
+        await setSelectedAssistant(targetAssistantId);
 
         // 保存新的选择到设置（如果是从默认值或无效值切换过来的）
         if (lastUsedAssistantId != targetAssistantId) {
@@ -336,7 +229,7 @@ class DrawerSearchService {
       final allAssistants = _ref.read(aiAssistantsProvider);
       final enabledAssistants = allAssistants.where((a) => a.isEnabled).toList();
       if (enabledAssistants.isNotEmpty) {
-        _selectedAssistant = enabledAssistants.first.id;
+        await setSelectedAssistant(enabledAssistants.first.id);
         onRefreshConversations();
       }
     }

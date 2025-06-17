@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/repositories/conversation_repository.dart';
+import '../../data/repositories/message_search_result.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
 

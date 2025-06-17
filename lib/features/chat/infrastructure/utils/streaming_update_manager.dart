@@ -131,18 +131,17 @@ class StreamingUpdateManager {
     final existing = _pendingUpdates[update.messageId];
     if (existing == null) return false;
 
-    // 如果内容变化很小且时间间隔很短，跳过更新
+    // 🚀 修复：对于流式消息，优先保证内容完整性而不是性能
     final timeDiff = DateTime.now().difference(existing.timestamp).inMilliseconds;
-    if (timeDiff < 50) { // 50ms内的重复更新
+
+    // 只有在极短时间内（20ms）且内容完全相同时才跳过
+    if (timeDiff < 20) {
       final oldContent = existing.update.fullContent ?? '';
       final newContent = update.fullContent ?? '';
 
-      // 如果内容变化小于5%，跳过
-      if (oldContent.isNotEmpty && newContent.isNotEmpty) {
-        final changeRatio = (newContent.length - oldContent.length).abs() / oldContent.length;
-        if (changeRatio < 0.05) {
-          return true;
-        }
+      // 只有内容完全相同时才跳过，确保不丢失任何增量内容
+      if (oldContent == newContent) {
+        return true;
       }
     }
 

@@ -73,12 +73,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   void _initializeServices() {
     if (!mounted) return;
 
-    // ✅ 正确：通过 ref.watch 获取 Repository，确保响应式更新
-    final conversationRepository = ref.read(conversationRepositoryProvider);
-
-    // 初始化搜索服务
+    // ✅ 正确：通过Provider架构，不直接传递Repository
     _searchService = DrawerSearchService(
-      conversationRepository: conversationRepository,
       ref: ref,
     );
 

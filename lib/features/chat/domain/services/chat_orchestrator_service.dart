@@ -16,6 +16,7 @@ import '../../data/repositories/conversation_repository.dart';
 import '../repositories/message_repository.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
 import '../../../../shared/infrastructure/services/ai/providers/block_chat_provider.dart';
+import '../../../../shared/infrastructure/services/message_id_service.dart';
 
 /// 流式传输上下文 - 管理单个流式消息的完整生命周期
 class _StreamingContext {
@@ -81,6 +82,9 @@ class ChatOrchestratorService {
   final LoggerService _logger = LoggerService();
   final MessageFactory _messageFactory = MessageFactory();
   final MessageStateMachine _stateMachine = MessageStateMachine();
+
+  /// 获取消息ID服务
+  MessageIdService get _messageIdService => _ref.read(messageIdServiceProvider);
 
   /// 统一消息创建器（延迟初始化）
   UnifiedMessageCreator? _unifiedMessageCreator;
@@ -310,27 +314,24 @@ class ChatOrchestratorService {
     }
 
     try {
+      // 🚀 使用统一的消息ID生成器
+      final messageId = _messageIdService.generateAiMessageId();
+
       // 获取聊天历史
       final chatHistory = await _getChatHistory(params.conversationId);
 
-      // 创建AI消息占位符
-      final aiMessage = _messageFactory.createAiMessagePlaceholder(
-        conversationId: params.conversationId,
-        assistantId: params.assistant.id,
-        modelId: params.model.name,
-      );
-
-      // 初始化流式消息服务
+      // 初始化流式消息服务时传入统一ID
       await _streamingMessageService.initializeStreaming(
-        messageId: aiMessage.id,
+        messageId: messageId,
         conversationId: params.conversationId,
         assistantId: params.assistant.id,
         modelId: params.model.name,
         metadata: params.metadata,
       );
 
-      // 开始流式传输
+      // 开始流式传输，传递统一ID
       final stream = _blockChatService.sendBlockMessageStream(
+        messageId: messageId,
         conversationId: params.conversationId,
         provider: params.provider,
         assistant: params.assistant,
@@ -346,19 +347,29 @@ class ChatOrchestratorService {
       subscription = stream.listen(
         (message) async {
           lastMessage = message;
-          // 使用aiMessage.id而不是message.id来保持一致性
-          await _handleStreamingMessageFromBlock(message, aiMessage.id, completer);
+          // 使用统一的messageId而不是message.id来保持一致性
+          await _handleStreamingMessageFromBlock(message, messageId, completer);
         },
         onError: (error) async {
-          await _streamingMessageService.cancelStreaming(aiMessage.id);
-          _handleStreamingError(error, lastMessage ?? aiMessage, params.conversationId, completer);
+          await _streamingMessageService.cancelStreaming(messageId);
+          // 创建临时消息用于错误处理
+          final tempMessage = _messageFactory.createErrorMessage(
+            conversationId: params.conversationId,
+            assistantId: params.assistant.id,
+            errorMessage: error.toString(),
+          );
+          _handleStreamingError(error, lastMessage ?? tempMessage, params.conversationId, completer);
         },
         onDone: () async {
           if (!completer.isCompleted && lastMessage != null) {
+            // 🚀 修复：正确计算流式传输持续时间
+            final streamContext = _activeStreams[messageId];
+            final duration = streamContext?.duration ?? Duration.zero;
+
             await _streamingMessageService.completeStreaming(
-              messageId: aiMessage.id, // 使用aiMessage.id
+              messageId: messageId, // 使用统一的messageId
               metadata: {
-                'duration': DateTime.now().difference(DateTime.now()).inMilliseconds,
+                'duration': duration.inMilliseconds,
               },
             );
             completer.complete(ChatOperationSuccess(lastMessage!));
@@ -367,10 +378,10 @@ class ChatOrchestratorService {
       );
 
       // 注册到活跃流管理
-      _activeStreams[aiMessage.id] = _StreamingContext(
+      _activeStreams[messageId] = _StreamingContext(
         subscription: subscription,
         startTime: DateTime.now(),
-        messageId: aiMessage.id,
+        messageId: messageId,
         completer: completer,
       );
 
@@ -378,8 +389,8 @@ class ChatOrchestratorService {
       Timer(ChatConstants.streamingTimeout, () async {
         if (!completer.isCompleted) {
           await subscription?.cancel();
-          await _streamingMessageService.cancelStreaming(aiMessage.id);
-          _activeStreams.remove(aiMessage.id);
+          await _streamingMessageService.cancelStreaming(messageId);
+          _activeStreams.remove(messageId);
           completer.complete(const ChatOperationFailure('流式传输超时'));
         }
       });
@@ -400,13 +411,17 @@ class ChatOrchestratorService {
     SendMessageParams params,
   ) async {
     try {
+      // 🚀 使用统一的消息ID生成器
+      final messageId = _messageIdService.generateAiMessageId();
+
       // 获取聊天历史
       final chatHistory = await _getChatHistory(params.conversationId);
 
       final startTime = DateTime.now();
 
-      // 发送请求
+      // 发送请求，传递统一ID
       final aiMessage = await _blockChatService.sendBlockMessage(
+        messageId: messageId, // 🚀 传递统一的消息ID
         conversationId: params.conversationId,
         provider: params.provider,
         assistant: params.assistant,

@@ -4,15 +4,17 @@
 // 用户可以根据个人偏好选择最适合的聊天界面样式。
 //
 // 🎯 **主要功能**:
-// - 🎨 **样式选择**: 在气泡样式和列表样式之间切换
+// - 🎨 **样式选择**: 在三种消息显示样式之间切换
+// - 🧩 **块化模式**: 启用/禁用新的块化消息架构
 // - 👀 **实时预览**: 提供样式效果的实时预览
 // - 💾 **偏好保存**: 自动保存用户的样式偏好设置
 // - 📱 **响应式设计**: 适配不同屏幕尺寸的显示效果
 // - ✅ **即时反馈**: 切换样式时提供操作成功提示
 //
 // 🎨 **支持的样式**:
-// - **气泡样式**: 传统聊天气泡，有背景色和圆角，类似微信、QQ
 // - **列表样式**: 无背景色，占满宽度，适合长文本阅读
+// - **现代卡片**: 带阴影和边框，适合桌面端使用
+// - **聊天气泡**: 传统聊天气泡，有背景色和圆角，类似微信、QQ
 //
 // 📱 **界面特点**:
 // - 使用 SliverAppBar 提供大标题效果
@@ -182,21 +184,6 @@ class DisplaySettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
-
-        SwitchListTile(
-          title: const Text("默认启用流式传输"),
-          subtitle: const Text("新对话默认使用流式传输模式"),
-          value: chatSettings.enableStreamingByDefault,
-          onChanged: (value) {
-            ref.read(chatSettingsProvider.notifier).toggleStreamingByDefault();
-          },
-          secondary: Icon(
-            Icons.stream_rounded,
-            color: chatSettings.enableStreamingByDefault
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
       ],
     );
   }

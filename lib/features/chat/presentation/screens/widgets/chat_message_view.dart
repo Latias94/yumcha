@@ -8,6 +8,7 @@ import '../../../domain/entities/message_block.dart';
 import '../../../domain/entities/message_block_type.dart';
 import '../../../domain/entities/chat_bubble_style.dart';
 import '../../providers/chat_style_provider.dart';
+import '../../providers/chat_providers.dart';
 import '../../widgets/bubble/message_bubble.dart';
 import '../../widgets/bubble/bubble_style.dart';
 import 'thinking_process_widget.dart';
@@ -108,6 +109,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
   /// 构建列表布局（无头像）
   Widget _buildListLayout(BuildContext context, ThemeData theme) {
+    final chatSettings = ref.watch(chatSettingsProvider);
+
     // 解析思考过程
     final thinkingResult = ThinkingProcessParser.parseMessage(
       widget.message.content,
@@ -158,9 +161,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
           ),
           SizedBox(height: DesignConstants.spaceM),
 
-          // 思考过程（仅AI消息且包含思考过程时显示）
+          // 思考过程（仅AI消息且包含思考过程时显示，并且用户启用了显示思考过程）
           if (!widget.message.isFromUser &&
-              thinkingResult.hasThinkingProcess) ...[
+              thinkingResult.hasThinkingProcess &&
+              chatSettings.showThinkingProcess) ...[
             ThinkingProcessWidget(
               thinkingContent: thinkingResult.thinkingContent,
               duration: widget.message.thinkingDuration ??
@@ -217,6 +221,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
   /// 构建现代卡片布局
   Widget _buildCardLayout(BuildContext context, ThemeData theme) {
+    final chatSettings = ref.watch(chatSettingsProvider);
+
     // 解析思考过程
     final thinkingResult = ThinkingProcessParser.parseMessage(
       widget.message.content,
@@ -319,9 +325,10 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
 
               SizedBox(height: DesignConstants.spaceL),
 
-              // 思考过程（仅AI消息且包含思考过程时显示）
+              // 思考过程（仅AI消息且包含思考过程时显示，并且用户启用了显示思考过程）
               if (!widget.message.isFromUser &&
-                  thinkingResult.hasThinkingProcess) ...[
+                  thinkingResult.hasThinkingProcess &&
+                  chatSettings.showThinkingProcess) ...[
                 ThinkingProcessWidget(
                   thinkingContent: thinkingResult.thinkingContent,
                   duration: widget.message.thinkingDuration ??

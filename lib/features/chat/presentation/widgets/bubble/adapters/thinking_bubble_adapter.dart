@@ -72,24 +72,68 @@ class ThinkingBubbleAdapter extends BubbleBlockAdapter {
         dividerColor: Colors.transparent,
       ),
       child: ExpansionTile(
-        leading: Icon(
-          Icons.psychology_rounded,
-          size: getResponsiveSpacing(context, 20.0),
-          color: context.theme.colorScheme.primary,
-        ),
-        title: Text(
-          '思考过程',
-          style: TextStyle(
-            fontSize: getResponsiveFontSize(context, 14.0),
-            fontWeight: FontWeight.w600,
+        leading: Container(
+          padding: EdgeInsets.all(getResponsiveSpacing(context, 6.0)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                context.theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
+                context.theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(8.0),
+            boxShadow: [
+              BoxShadow(
+                color: context.theme.colorScheme.primary.withValues(alpha: 0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.psychology_rounded,
+            size: getResponsiveSpacing(context, 18.0),
             color: context.theme.colorScheme.primary,
           ),
+        ),
+        title: Row(
+          children: [
+            Text(
+              '思考过程',
+              style: TextStyle(
+                fontSize: getResponsiveFontSize(context, 14.0),
+                fontWeight: FontWeight.w600,
+                color: context.theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: context.theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: context.theme.colorScheme.primary.withValues(alpha: 0.3),
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                'AI推理',
+                style: TextStyle(
+                  fontSize: getResponsiveFontSize(context, 10.0),
+                  fontWeight: FontWeight.w500,
+                  color: context.theme.colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
         ),
         subtitle: Text(
           _getThinkingSummary(content),
           style: TextStyle(
             fontSize: getResponsiveFontSize(context, 12.0),
             color: context.theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            fontStyle: FontStyle.italic,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -103,7 +147,16 @@ class ThinkingBubbleAdapter extends BubbleBlockAdapter {
         children: [
           Container(
             width: double.infinity,
+            margin: EdgeInsets.all(getResponsiveSpacing(context, 8.0)),
             padding: EdgeInsets.all(getResponsiveSpacing(context, 12.0)),
+            decoration: BoxDecoration(
+              color: context.theme.colorScheme.surface.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(
+                color: context.theme.colorScheme.outline.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
             child: _buildThinkingText(content, context),
           ),
         ],

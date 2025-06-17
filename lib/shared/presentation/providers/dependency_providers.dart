@@ -13,6 +13,7 @@ import '../../../features/chat/infrastructure/services/chat_error_handler.dart';
 
 import '../../data/database/repositories/setting_repository.dart';
 import '../../infrastructure/services/media/media_storage_service.dart';
+import '../../infrastructure/services/message_id_service.dart';
 
 /// 🗄️ 依赖注入Providers
 ///
@@ -112,6 +113,13 @@ final messageRepositoryProvider = Provider<MessageRepository>((ref) {
 /// 提供多媒体文件的存储和管理服务。
 final mediaStorageServiceProvider = Provider<MediaStorageService>((ref) {
   return MediaStorageService();
+});
+
+/// 消息ID服务Provider
+///
+/// 提供统一的消息ID生成和管理服务。
+final messageIdServiceProvider = Provider<MessageIdService>((ref) {
+  return MessageIdService();
 });
 
 

@@ -5,6 +5,7 @@ import '../../../../features/chat/domain/entities/message_block_status.dart';
 import '../../../../features/chat/domain/entities/message_status.dart';
 import '../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../../../../features/ai_management/domain/entities/ai_provider.dart' as models;
+import '../../../../features/chat/domain/services/message_factory.dart';
 import '../media/media_storage_service.dart';
 import 'ai_service_manager.dart';
 import '../logger_service.dart';
@@ -37,6 +38,7 @@ class BlockBasedChatService {
   final AiServiceManager _serviceManager;
   final MediaStorageService _mediaService;
   final LoggerService _logger = LoggerService();
+  final MessageFactory _messageFactory = MessageFactory();
 
   // 图片生成关键词检测
   static const List<String> _imageGenerationKeywords = [
@@ -61,6 +63,7 @@ class BlockBasedChatService {
 
   /// 发送块化聊天消息（支持多媒体生成）
   Future<Message> sendBlockMessage({
+    required String messageId, // 🚀 阶段清理：必需的外部消息ID
     required String conversationId,
     required models.AiProvider provider,
     required AiAssistant assistant,
@@ -73,11 +76,11 @@ class BlockBasedChatService {
   }) async {
     final startTime = DateTime.now();
     final requestId = _generateRequestId();
-    final messageId = _generateMessageId();
+    final finalMessageId = messageId; // 🚀 直接使用外部传入的ID
 
     _logger.info('开始块化聊天请求', {
       'requestId': requestId,
-      'messageId': messageId,
+      'messageId': finalMessageId,
       'provider': provider.name,
       'model': modelName,
       'autoGenerateImages': autoGenerateImages,
@@ -99,28 +102,17 @@ class BlockBasedChatService {
       );
 
       if (!chatResponse.isSuccess) {
-        // 如果聊天失败，返回错误消息
-        return Message(
-          id: messageId,
+        // 🚀 使用MessageFactory创建错误消息
+        return _messageFactory.createErrorMessage(
           conversationId: conversationId,
-          role: 'assistant',
           assistantId: assistant.id,
-          status: MessageStatus.aiError,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          blocks: [
-            MessageBlock.error(
-              id: '${messageId}_error',
-              messageId: messageId,
-              content: chatResponse.error ?? '聊天请求失败',
-              error: {'originalError': chatResponse.error},
-            ),
-          ],
+          errorMessage: chatResponse.error ?? '聊天请求失败',
           metadata: {
             'modelName': modelName,
             'errorInfo': chatResponse.error,
+            'messageId': finalMessageId, // 保持外部传入的ID
           },
-        );
+        ).copyWith(id: finalMessageId); // 确保使用外部传入的ID
       }
 
       final aiContent = chatResponse.content;
@@ -128,8 +120,8 @@ class BlockBasedChatService {
 
       // 3. 创建主文本块
       blocks.add(MessageBlock.text(
-        id: '${messageId}_text',
-        messageId: messageId,
+        id: '${finalMessageId}_text',
+        messageId: finalMessageId,
         content: aiContent,
         status: MessageBlockStatus.success,
         createdAt: DateTime.now(),
@@ -139,10 +131,10 @@ class BlockBasedChatService {
 
       // 4. 处理图片生成（异步块）
       if (shouldGenerateImage) {
-        final imageBlockId = '${messageId}_image';
+        final imageBlockId = '${finalMessageId}_image';
         blocks.add(MessageBlock(
           id: imageBlockId,
-          messageId: messageId,
+          messageId: finalMessageId,
           type: MessageBlockType.image,
           status: MessageBlockStatus.pending,
           createdAt: DateTime.now(),
@@ -152,7 +144,7 @@ class BlockBasedChatService {
         // 异步生成图片并更新块
         _generateImageBlock(
           blockId: imageBlockId,
-          messageId: messageId,
+          messageId: finalMessageId,
           provider: provider,
           aiResponse: aiContent,
           userPrompt: userMessage,
@@ -170,10 +162,10 @@ class BlockBasedChatService {
 
       // 5. 处理TTS生成（异步块）
       if (autoGenerateTts && _shouldGenerateTts(aiContent, userMessage)) {
-        final audioBlockId = '${messageId}_audio';
+        final audioBlockId = '${finalMessageId}_audio';
         blocks.add(MessageBlock(
           id: audioBlockId,
-          messageId: messageId,
+          messageId: finalMessageId,
           type: MessageBlockType.file,
           status: MessageBlockStatus.pending,
           createdAt: DateTime.now(),
@@ -184,7 +176,7 @@ class BlockBasedChatService {
         // 异步生成TTS并更新块
         _generateTtsBlock(
           blockId: audioBlockId,
-          messageId: messageId,
+          messageId: finalMessageId,
           provider: provider,
           text: aiContent,
         ).then((audioBlock) {
@@ -197,30 +189,30 @@ class BlockBasedChatService {
         });
       }
 
-      // 6. 创建块化消息
-      final blockMessage = Message(
-        id: messageId,
+      // 6. 🚀 使用MessageFactory创建AI消息
+      final blockMessage = _messageFactory.createAiMessage(
         conversationId: conversationId,
-        role: 'assistant',
         assistantId: assistant.id,
-        status: MessageStatus.aiSuccess,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        blocks: blocks,
+        content: aiContent,
+        modelId: modelName,
         metadata: {
           'modelName': modelName,
           'totalDurationMs': DateTime.now().difference(startTime).inMilliseconds,
+          'messageId': finalMessageId, // 保持外部传入的ID
         },
+      ).copyWith(
+        id: finalMessageId, // 确保使用外部传入的ID
+        blocks: blocks, // 使用我们创建的块
       );
 
       _logger.info('块化聊天请求完成', {
         'requestId': requestId,
-        'messageId': messageId,
+        'messageId': finalMessageId,
         'duration': '${DateTime.now().difference(startTime).inMilliseconds}ms',
         'blocksCount': blocks.length,
         'textBlocks': blocks.where((b) => b.type == MessageBlockType.mainText).length,
         'imageBlocks': blocks.where((b) => b.type == MessageBlockType.image).length,
-        'audioBlocks': blocks.where((b) => b.type == MessageBlockType.file && 
+        'audioBlocks': blocks.where((b) => b.type == MessageBlockType.file &&
             b.metadata?['fileType'] == 'audio').length,
       });
 
@@ -229,36 +221,28 @@ class BlockBasedChatService {
     } catch (e) {
       _logger.error('块化聊天请求失败', {
         'requestId': requestId,
-        'messageId': messageId,
+        'messageId': finalMessageId,
         'error': e.toString(),
       });
 
-      return Message(
-        id: messageId,
+      // 🚀 使用MessageFactory创建错误消息
+      return _messageFactory.createErrorMessage(
         conversationId: conversationId,
-        role: 'assistant',
         assistantId: assistant.id,
-        status: MessageStatus.aiError,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        blocks: [
-          MessageBlock.error(
-            id: '${messageId}_error',
-            messageId: messageId,
-            content: '抱歉，处理您的请求时出现了错误。',
-            error: {'exception': e.toString()},
-          ),
-        ],
+        errorMessage: '抱歉，处理您的请求时出现了错误。',
         metadata: {
           'modelName': modelName,
           'errorInfo': e.toString(),
+          'exception': e.toString(),
+          'messageId': finalMessageId, // 保持外部传入的ID
         },
-      );
+      ).copyWith(id: finalMessageId); // 确保使用外部传入的ID
     }
   }
 
   /// 流式发送块化聊天消息
   Stream<Message> sendBlockMessageStream({
+    required String messageId, // 🚀 阶段清理：必需的外部消息ID
     required String conversationId,
     required models.AiProvider provider,
     required AiAssistant assistant,
@@ -269,12 +253,12 @@ class BlockBasedChatService {
     bool autoGenerateTts = true,
   }) async* {
     final requestId = _generateRequestId();
-    final messageId = _generateMessageId();
+    final finalMessageId = messageId; // 🚀 直接使用外部传入的ID
     final startTime = DateTime.now();
 
     _logger.info('开始块化流式聊天请求', {
       'requestId': requestId,
-      'messageId': messageId,
+      'messageId': finalMessageId,
       'provider': provider.name,
       'model': modelName,
     });
@@ -286,12 +270,12 @@ class BlockBasedChatService {
 
       var accumulatedContent = '';
       final blocks = <MessageBlock>[];
-      
+
       // 创建初始文本块
-      final textBlockId = '${messageId}_text';
+      final textBlockId = '${finalMessageId}_text';
       var textBlock = MessageBlock.text(
         id: textBlockId,
-        messageId: messageId,
+        messageId: finalMessageId,
         content: '',
         status: MessageBlockStatus.streaming,
         createdAt: DateTime.now(),
@@ -300,18 +284,18 @@ class BlockBasedChatService {
       );
       blocks.add(textBlock);
 
-      var currentMessage = Message(
-        id: messageId,
+      // 🚀 使用MessageFactory创建流式消息
+      var currentMessage = _messageFactory.createStreamingMessage(
         conversationId: conversationId,
-        role: 'assistant',
         assistantId: assistant.id,
-        status: MessageStatus.aiProcessing,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        blocks: blocks,
+        modelId: modelName,
         metadata: {
           'modelName': modelName,
+          'messageId': finalMessageId, // 保持外部传入的ID
         },
+      ).copyWith(
+        id: finalMessageId, // 确保使用外部传入的ID
+        blocks: blocks, // 使用我们创建的块
       );
 
       yield currentMessage;
@@ -353,8 +337,8 @@ class BlockBasedChatService {
           // 添加多媒体块（如果需要）
           if (shouldGenerateImage) {
             finalBlocks.add(MessageBlock(
-              id: '${messageId}_image',
-              messageId: messageId,
+              id: '${finalMessageId}_image',
+              messageId: finalMessageId,
               type: MessageBlockType.image,
               status: MessageBlockStatus.pending,
               createdAt: DateTime.now(),
@@ -364,8 +348,8 @@ class BlockBasedChatService {
 
           if (autoGenerateTts && _shouldGenerateTts(accumulatedContent, userMessage)) {
             finalBlocks.add(MessageBlock(
-              id: '${messageId}_audio',
-              messageId: messageId,
+              id: '${finalMessageId}_audio',
+              messageId: finalMessageId,
               type: MessageBlockType.file,
               status: MessageBlockStatus.pending,
               createdAt: DateTime.now(),
@@ -412,31 +396,22 @@ class BlockBasedChatService {
     } catch (e) {
       _logger.error('块化流式聊天请求失败', {
         'requestId': requestId,
-        'messageId': messageId,
+        'messageId': finalMessageId,
         'error': e.toString(),
       });
 
-      yield Message(
-        id: messageId,
+      // 🚀 使用MessageFactory创建错误消息
+      yield _messageFactory.createErrorMessage(
         conversationId: conversationId,
-        role: 'assistant',
         assistantId: assistant.id,
-        status: MessageStatus.aiError,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        blocks: [
-          MessageBlock.error(
-            id: '${messageId}_error',
-            messageId: messageId,
-            content: '抱歉，处理您的请求时出现了错误。',
-            error: {'exception': e.toString()},
-          ),
-        ],
+        errorMessage: '抱歉，处理您的请求时出现了错误。',
         metadata: {
           'modelName': modelName,
           'errorInfo': e.toString(),
+          'exception': e.toString(),
+          'messageId': finalMessageId, // 保持外部传入的ID
         },
-      );
+      ).copyWith(id: finalMessageId); // 确保使用外部传入的ID
     }
   }
 
@@ -634,8 +609,6 @@ class BlockBasedChatService {
     return 'req_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
   }
 
-  /// 生成消息ID
-  String _generateMessageId() {
-    return 'msg_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
-  }
+  // 🚀 阶段清理：移除老式的消息ID生成方法
+  // 现在所有消息ID都通过MessageIdService统一生成并从外部传入
 }

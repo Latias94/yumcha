@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../features/chat/presentation/providers/chat_search_providers.dart';
-import '../../../features/chat/data/repositories/conversation_repository.dart';
+import '../../../features/chat/data/repositories/message_search_result.dart';
 import '../design_system/design_constants.dart';
 
 // 消息搜索结果项

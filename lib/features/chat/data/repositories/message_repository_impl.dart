@@ -9,12 +9,51 @@ import '../../domain/entities/message_status.dart' as msg_status;
 import '../../domain/entities/message_block_status.dart';
 import '../../domain/services/message_factory.dart';
 import '../../../../shared/data/database/database.dart';
+import '../../../../shared/infrastructure/services/logger_service.dart';
+import '../../../../shared/infrastructure/services/message_id_service.dart';
+
+/// 错误严重程度枚举
+enum ErrorSeverity {
+  low,      // 低严重程度，通常可以重试
+  medium,   // 中等严重程度，需要注意
+  high,     // 高严重程度，需要立即处理
+  critical, // 严重错误，可能需要人工干预
+}
+
+/// 错误类型枚举
+enum TransactionErrorType {
+  networkTimeout,     // 网络超时
+  databaseLock,      // 数据库锁定
+  constraintViolation, // 约束违反
+  diskSpace,         // 磁盘空间不足
+  corruption,        // 数据损坏
+  unknown,           // 未知错误
+}
+
+/// 事务错误上下文
+class TransactionErrorContext {
+  final TransactionErrorType type;
+  final ErrorSeverity severity;
+  final bool retryable;
+  final String suggestedAction;
+  final Map<String, dynamic> details;
+
+  const TransactionErrorContext({
+    required this.type,
+    required this.severity,
+    required this.retryable,
+    required this.suggestedAction,
+    this.details = const {},
+  });
+}
 
 /// 消息仓库实现类
 class MessageRepositoryImpl implements MessageRepository {
   final AppDatabase _database;
-  final _uuid = Uuid();
+  final _uuid = Uuid(); // 🚀 保留用于消息块ID生成
   final _messageFactory = MessageFactory();
+  final _messageIdService = MessageIdService(); // 🚀 阶段4优化：统一消息ID生成
+  final _logger = LoggerService();
 
   MessageRepositoryImpl(this._database);
 
@@ -58,7 +97,10 @@ class MessageRepositoryImpl implements MessageRepository {
     String? modelId,
     Map<String, dynamic>? metadata,
   }) async {
-    final messageId = _uuid.v4();
+    // 🚀 阶段4优化：使用MessageIdService统一生成消息ID
+    final messageId = role == 'user'
+        ? _messageIdService.generateUserMessageId()
+        : _messageIdService.generateAiMessageId();
     final now = DateTime.now();
 
     await _database.insertMessage(MessagesCompanion.insert(
@@ -245,21 +287,7 @@ class MessageRepositoryImpl implements MessageRepository {
     ));
   }
 
-  @override
-  Future<void> appendToTextBlock(String blockId, String content) async {
-    final blockData = await _database.getMessageBlock(blockId);
-    if (blockData == null) {
-      throw Exception('消息块不存在: $blockId');
-    }
 
-    final currentContent = blockData.content ?? '';
-    final newContent = currentContent + content;
-
-    await _database.updateMessageBlock(blockId, MessageBlocksCompanion(
-      content: Value(newContent),
-      updatedAt: Value(DateTime.now()),
-    ));
-  }
 
   @override
   Future<void> deleteMessageBlock(String blockId) async {
@@ -309,24 +337,177 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<void> saveMessage(Message message) async {
-    // 使用UPSERT操作，避免先查询再插入/更新的模式
-    await _upsertMessageWithBlocks(message);
+    final stopwatch = Stopwatch()..start();
+
+    // 🚀 阶段4重构：使用事务确保消息和消息块的原子性保存
+    await _database.transaction(() async {
+      try {
+        _logger.debug('开始保存消息事务', {
+          'messageId': message.id,
+          'blocksCount': message.blocks.length,
+          'conversationId': message.conversationId,
+        });
+
+        // 1. 保存或更新消息
+        await _upsertMessage(message);
+
+        // 2. 批量保存消息块（在同一事务中）
+        if (message.blocks.isNotEmpty) {
+          await _batchUpsertMessageBlocks(message.blocks);
+        }
+
+        // 3. 更新消息的blockIds字段
+        await _updateMessageBlockIds(message.id);
+
+        stopwatch.stop();
+        _logger.debug('消息事务保存成功', {
+          'messageId': message.id,
+          'duration': stopwatch.elapsedMilliseconds,
+          'blocksCount': message.blocks.length,
+        });
+
+        // 记录性能指标
+        _recordTransactionMetrics(
+          operation: 'saveMessage',
+          duration: stopwatch.elapsedMilliseconds,
+          success: true,
+          messageId: message.id,
+          blocksCount: message.blocks.length,
+        );
+
+        // 记录操作性能统计
+        _recordOperationPerformance('saveMessage', stopwatch.elapsedMilliseconds);
+
+      } catch (e) {
+        stopwatch.stop();
+
+        // 🚀 阶段4增强：详细的错误分类和处理
+        final errorContext = _analyzeTransactionError(e, message);
+
+        _logger.error('保存消息失败，事务回滚', {
+          'messageId': message.id,
+          'error': e.toString(),
+          'errorType': errorContext.type,
+          'errorSeverity': errorContext.severity,
+          'duration': stopwatch.elapsedMilliseconds,
+          'blocksCount': message.blocks.length,
+          'retryable': errorContext.retryable,
+          'suggestedAction': errorContext.suggestedAction,
+        });
+
+        // 记录失败指标
+        _recordTransactionMetrics(
+          operation: 'saveMessage',
+          duration: stopwatch.elapsedMilliseconds,
+          success: false,
+          messageId: message.id,
+          blocksCount: message.blocks.length,
+          error: e.toString(),
+          errorType: errorContext.type,
+        );
+
+        // 根据错误类型决定是否重试或抛出特定异常
+        if (errorContext.retryable && errorContext.severity != ErrorSeverity.critical) {
+          _logger.info('错误可重试，建议稍后重试', {
+            'messageId': message.id,
+            'errorType': errorContext.type,
+          });
+        }
+
+        rethrow; // 事务会自动回滚
+      }
+    });
   }
 
-  /// 使用优化的保存策略保存或更新消息及其块
-  Future<void> _upsertMessageWithBlocks(Message message) async {
-    try {
-      // 1. 尝试插入消息，如果失败则更新
-      await _upsertMessage(message);
+  /// 记录事务性能指标
+  void _recordTransactionMetrics({
+    required String operation,
+    required int duration,
+    required bool success,
+    required String messageId,
+    required int blocksCount,
+    String? error,
+    TransactionErrorType? errorType,
+  }) {
+    // 记录到日志系统，便于性能分析
+    _logger.info('事务性能指标', {
+      'operation': operation,
+      'messageId': messageId,
+      'duration_ms': duration,
+      'success': success,
+      'blocks_count': blocksCount,
+      'error': error,
+      'error_type': errorType?.name,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
 
-      // 2. 批量处理消息块
-      if (message.blocks.isNotEmpty) {
-        await _batchUpsertMessageBlocks(message.blocks);
-      }
-    } catch (e) {
-      // 如果优化方式失败，回退到传统方式
-      await _fallbackSaveMessage(message);
+    // TODO: 可以在这里添加更详细的性能监控，如发送到监控系统
+    // 例如：发送到Prometheus、DataDog等监控系统
+  }
+
+  /// 分析事务错误并返回错误上下文
+  TransactionErrorContext _analyzeTransactionError(dynamic error, Message message) {
+    final errorString = error.toString().toLowerCase();
+
+    // 网络超时错误
+    if (errorString.contains('timeout') || errorString.contains('connection')) {
+      return const TransactionErrorContext(
+        type: TransactionErrorType.networkTimeout,
+        severity: ErrorSeverity.medium,
+        retryable: true,
+        suggestedAction: '检查网络连接，稍后重试',
+      );
     }
+
+    // 数据库锁定错误
+    if (errorString.contains('lock') || errorString.contains('busy')) {
+      return const TransactionErrorContext(
+        type: TransactionErrorType.databaseLock,
+        severity: ErrorSeverity.medium,
+        retryable: true,
+        suggestedAction: '数据库繁忙，建议稍后重试',
+      );
+    }
+
+    // 约束违反错误
+    if (errorString.contains('constraint') || errorString.contains('unique')) {
+      return TransactionErrorContext(
+        type: TransactionErrorType.constraintViolation,
+        severity: ErrorSeverity.high,
+        retryable: false,
+        suggestedAction: '数据约束违反，检查消息ID是否重复',
+        details: {'messageId': message.id, 'blocksCount': message.blocks.length},
+      );
+    }
+
+    // 磁盘空间不足
+    if (errorString.contains('disk') || errorString.contains('space')) {
+      return const TransactionErrorContext(
+        type: TransactionErrorType.diskSpace,
+        severity: ErrorSeverity.critical,
+        retryable: false,
+        suggestedAction: '磁盘空间不足，需要清理存储空间',
+      );
+    }
+
+    // 数据损坏错误
+    if (errorString.contains('corrupt') || errorString.contains('malformed')) {
+      return const TransactionErrorContext(
+        type: TransactionErrorType.corruption,
+        severity: ErrorSeverity.critical,
+        retryable: false,
+        suggestedAction: '数据库可能损坏，需要检查数据完整性',
+      );
+    }
+
+    // 未知错误
+    return TransactionErrorContext(
+      type: TransactionErrorType.unknown,
+      severity: ErrorSeverity.medium,
+      retryable: true,
+      suggestedAction: '未知错误，建议检查日志并重试',
+      details: {'originalError': error.toString()},
+    );
   }
 
   /// 单个消息的UPSERT操作
@@ -356,10 +537,87 @@ class MessageRepositoryImpl implements MessageRepository {
     }
   }
 
-  /// 批量UPSERT消息块
+  /// 批量UPSERT消息块 - 优化版本
   Future<void> _batchUpsertMessageBlocks(List<MessageBlock> blocks) async {
-    for (final block in blocks) {
-      await _upsertMessageBlock(block);
+    if (blocks.isEmpty) return;
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      // 🚀 阶段4优化：批量处理，减少数据库往返次数
+      _logger.debug('开始批量保存消息块', {
+        'blocksCount': blocks.length,
+        'messageId': blocks.first.messageId,
+      });
+
+      // 分批处理，避免单次事务过大
+      const batchSize = 50; // 每批最多50个块
+      for (int i = 0; i < blocks.length; i += batchSize) {
+        final batch = blocks.skip(i).take(batchSize).toList();
+        await _processBatchBlocks(batch);
+      }
+
+      stopwatch.stop();
+      _logger.debug('批量保存消息块完成', {
+        'blocksCount': blocks.length,
+        'duration': stopwatch.elapsedMilliseconds,
+        'messageId': blocks.first.messageId,
+      });
+
+      // 记录批量操作性能
+      _recordOperationPerformance('batchUpsert', stopwatch.elapsedMilliseconds);
+
+    } catch (e) {
+      stopwatch.stop();
+      _logger.error('批量保存消息块失败', {
+        'blocksCount': blocks.length,
+        'error': e.toString(),
+        'duration': stopwatch.elapsedMilliseconds,
+      });
+      rethrow;
+    }
+  }
+
+  /// 处理单批消息块
+  Future<void> _processBatchBlocks(List<MessageBlock> batch) async {
+    // 先尝试批量插入，失败的再单独处理
+    final failedBlocks = <MessageBlock>[];
+
+    for (final block in batch) {
+      try {
+        // 尝试插入
+        await _database.insertMessageBlock(MessageBlocksCompanion.insert(
+          id: block.id,
+          messageId: block.messageId,
+          type: block.type.name,
+          createdAt: block.createdAt,
+          updatedAt: block.updatedAt ?? block.createdAt,
+          content: Value(block.content),
+          status: Value(block.status.name),
+          orderIndex: Value(0),
+          metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+        ));
+      } catch (e) {
+        // 插入失败，标记为需要更新
+        failedBlocks.add(block);
+      }
+    }
+
+    // 批量更新失败的块
+    for (final block in failedBlocks) {
+      await _database.updateMessageBlock(block.id, MessageBlocksCompanion(
+        content: Value(block.content),
+        status: Value(block.status.name),
+        updatedAt: Value(block.updatedAt ?? DateTime.now()),
+        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
+      ));
+    }
+
+    if (failedBlocks.isNotEmpty) {
+      _logger.debug('批量处理中有块需要更新', {
+        'totalBlocks': batch.length,
+        'updatedBlocks': failedBlocks.length,
+      });
     }
   }
 
@@ -389,99 +647,70 @@ class MessageRepositoryImpl implements MessageRepository {
     }
   }
 
-  /// 回退保存方式（兼容性保证）
-  Future<void> _fallbackSaveMessage(Message message) async {
-    final existingMessage = await _database.getMessage(message.id);
-    if (existingMessage != null) {
-      await _updateExistingMessage(message);
-    } else {
-      await _saveMessageToDatabase(message);
+
+
+  // 🚀 阶段4：性能监控相关方法
+
+  /// 事务性能统计
+  static final Map<String, List<int>> _performanceStats = {
+    'saveMessage': [],
+    'batchUpsert': [],
+    'streamingFinish': [],
+  };
+
+  /// 获取性能统计信息
+  Map<String, Map<String, dynamic>> getPerformanceStats() {
+    final stats = <String, Map<String, dynamic>>{};
+
+    for (final entry in _performanceStats.entries) {
+      final durations = entry.value;
+      if (durations.isNotEmpty) {
+        durations.sort();
+        final count = durations.length;
+        final sum = durations.reduce((a, b) => a + b);
+        final avg = sum / count;
+        final median = count % 2 == 0
+            ? (durations[count ~/ 2 - 1] + durations[count ~/ 2]) / 2
+            : durations[count ~/ 2].toDouble();
+        final p95Index = (count * 0.95).ceil() - 1;
+        final p95 = durations[p95Index.clamp(0, count - 1)].toDouble();
+
+        stats[entry.key] = {
+          'count': count,
+          'avg_ms': avg.round(),
+          'median_ms': median.round(),
+          'p95_ms': p95.round(),
+          'min_ms': durations.first,
+          'max_ms': durations.last,
+        };
+      }
     }
+
+    return stats;
   }
 
-  /// 更新已存在的消息（保留用于兼容性）
-  Future<void> _updateExistingMessage(Message message) async {
-    // 更新消息记录
-    await _database.updateMessage(message.id, MessagesCompanion(
-      status: Value(message.status.name),
-      updatedAt: Value(message.updatedAt),
-      metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
-    ));
+  /// 记录操作性能
+  void _recordOperationPerformance(String operation, int durationMs) {
+    final stats = _performanceStats[operation];
+    if (stats != null) {
+      stats.add(durationMs);
 
-    // 使用增量更新替代删除重建
-    await _incrementalUpdateBlocks(message.id, message.blocks);
-  }
-
-  /// 增量更新消息块
-  Future<void> _incrementalUpdateBlocks(String messageId, List<MessageBlock> newBlocks) async {
-    final existingBlocks = await _database.getMessageBlocks(messageId);
-    final existingBlockIds = existingBlocks.map((b) => b.id).toSet();
-    final newBlockIds = newBlocks.map((b) => b.id).toSet();
-
-    // 删除不再存在的块
-    final blocksToDelete = existingBlockIds.difference(newBlockIds);
-    for (final blockId in blocksToDelete) {
-      await _database.deleteMessageBlock(blockId);
-    }
-
-    // 更新或插入新块
-    for (final block in newBlocks) {
-      if (existingBlockIds.contains(block.id)) {
-        // 更新现有块
-        await _database.updateMessageBlock(block.id, MessageBlocksCompanion(
-          content: Value(block.content),
-          status: Value(block.status.name),
-          updatedAt: Value(block.updatedAt ?? DateTime.now()),
-          metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
-        ));
-      } else {
-        // 插入新块
-        await _database.insertMessageBlock(MessageBlocksCompanion.insert(
-          id: block.id,
-          messageId: block.messageId,
-          type: block.type.name,
-          createdAt: block.createdAt,
-          updatedAt: block.updatedAt ?? block.createdAt,
-          content: Value(block.content),
-          status: Value(block.status.name),
-          orderIndex: Value(0),
-          metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
-        ));
+      // 保持最近1000条记录，避免内存泄漏
+      if (stats.length > 1000) {
+        stats.removeRange(0, stats.length - 1000);
       }
     }
   }
 
-  /// 保存完整消息到数据库（包括消息和所有块）
-  Future<void> _saveMessageToDatabase(Message message) async {
-    // 1. 保存消息
-    await _database.insertMessage(MessagesCompanion.insert(
-      id: message.id,
-      conversationId: message.conversationId,
-      role: message.role,
-      assistantId: message.assistantId,
-      createdAt: message.createdAt,
-      updatedAt: message.updatedAt,
-      status: Value(message.status.name),
-      modelId: Value(message.modelId),
-      metadata: Value(message.metadata != null ? _encodeJson(message.metadata!) : null),
-      blockIds: Value(message.blockIds),
-    ));
-
-    // 2. 保存所有消息块
-    for (final block in message.blocks) {
-      await _database.insertMessageBlock(MessageBlocksCompanion.insert(
-        id: block.id,
-        messageId: block.messageId,
-        type: block.type.name,
-        createdAt: block.createdAt,
-        updatedAt: block.updatedAt ?? block.createdAt,
-        content: Value(block.content),
-        status: Value(block.status.name),
-        orderIndex: Value(0), // MessageBlock没有orderIndex字段，使用默认值
-        metadata: Value(block.metadata != null ? _encodeJson(block.metadata!) : null),
-      ));
+  /// 清理性能统计
+  void clearPerformanceStats() {
+    for (final stats in _performanceStats.values) {
+      stats.clear();
     }
   }
+
+  /// 🚀 阶段4优化：移除重复的保存方法，统一使用saveMessage的事务逻辑
+  /// 此方法已被移除，所有保存操作统一使用saveMessage方法
 
   /// 将数据库数据转换为Message实体
   Message _dataToMessage(MessageData data, List<MessageBlockData> blockDataList) {
@@ -574,8 +803,8 @@ class MessageRepositoryImpl implements MessageRepository {
       imageUrls: imageUrls,
     );
 
-    // 保存消息到数据库
-    await _saveMessageToDatabase(message);
+    // 🚀 阶段4优化：使用统一的事务性保存方法
+    await saveMessage(message);
 
     return message;
   }
@@ -593,8 +822,8 @@ class MessageRepositoryImpl implements MessageRepository {
       modelId: modelId,
     );
 
-    // 保存消息到数据库
-    await _saveMessageToDatabase(message);
+    // 🚀 阶段4优化：使用统一的事务性保存方法
+    await saveMessage(message);
 
     return message;
   }
