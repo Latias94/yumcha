@@ -1044,9 +1044,16 @@ class MessageRepositoryImpl implements MessageRepository {
     // 获取缓存的块信息
     final cachedBlocks = _streamingBlocksCache[messageId];
     if (cachedBlocks == null || cachedBlocks.isEmpty) {
-      // 🚀 修复：如果没有缓存，检查是否是重新打开对话的情况
+      // 🚀 修复：如果没有缓存，这是一个严重问题，应该记录错误
+      _logger.error('流式消息完成时没有缓存的块信息', {
+        'messageId': messageId,
+        'hasInfoCache': _streamingMessageInfoCache.containsKey(messageId),
+        'hasContentCache': _streamingContentCache.containsKey(messageId),
+        'reason': '可能是updateStreamingContent没有被正确调用',
+      });
+
+      // 检查消息是否已存在于数据库中
       try {
-        // 检查消息是否已存在于数据库中
         final existingMessage = await getMessage(messageId);
         if (existingMessage != null) {
           // 如果消息已存在，只更新状态
@@ -1058,22 +1065,17 @@ class MessageRepositoryImpl implements MessageRepository {
           if (metadata != null) {
             await updateMessageMetadata(messageId, metadata);
           }
-        } else {
-          // 🚀 修复：如果消息不存在且没有缓存信息，这可能是应用重启后的情况
-          // 记录警告但不抛出异常，避免阻塞用户操作
-          _logger.warning('流式消息不存在且无缓存信息，可能是应用重启导致', {
-            'messageId': messageId,
-            'action': '跳过完成操作',
-          });
+          return;
         }
       } catch (error) {
-        _logger.error('完成流式消息时发生错误', {
+        _logger.error('检查现有消息时发生错误', {
           'messageId': messageId,
           'error': error.toString(),
         });
-        // 🚀 修复：不再重新抛出异常，避免阻塞用户界面
       }
-      return;
+
+      // 如果没有缓存也没有现有消息，抛出异常以便上层处理
+      throw Exception('流式消息完成失败：没有缓存的内容且消息不存在于数据库中 (messageId: $messageId)');
     }
 
     // 使用事务确保数据一致性

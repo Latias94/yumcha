@@ -32,6 +32,35 @@ enum MessageStateEvent {
   cancel,
 }
 
+/// 状态转换记录（用于历史追踪和调试）
+@immutable
+class StateTransitionRecord {
+  final MessageStatus fromStatus;
+  final MessageStatus toStatus;
+  final MessageStateEvent? event;
+  final bool isSuccess;
+  final String? errorMessage;
+  final DateTime timestamp;
+  final Map<String, dynamic>? metadata;
+
+  const StateTransitionRecord({
+    required this.fromStatus,
+    required this.toStatus,
+    this.event,
+    required this.isSuccess,
+    this.errorMessage,
+    required this.timestamp,
+    this.metadata,
+  });
+
+  @override
+  String toString() {
+    final eventStr = event != null ? ' (${event!.name})' : '';
+    final statusStr = isSuccess ? '✅' : '❌';
+    return '$statusStr ${fromStatus.name} -> ${toStatus.name}$eventStr @ ${timestamp.toIso8601String()}';
+  }
+}
+
 /// 状态转换结果
 @immutable
 class StateTransitionResult {
@@ -61,11 +90,24 @@ class StateTransitionResult {
 }
 
 /// 消息状态机
-/// 
+///
 /// 管理消息状态的转换，确保状态转换的合法性和一致性
 /// 特别适用于AI聊天场景中的复杂状态管理
+///
+/// 核心功能：
+/// - 🔄 状态转换验证：确保只允许合法的状态转换
+/// - 📊 状态优先级管理：处理并发状态冲突
+/// - 🎯 事件驱动：通过事件触发状态转换
+/// - 🛡️ 错误处理：提供详细的错误信息和恢复建议
+/// - 📈 状态分析：提供状态统计和分析功能
 class MessageStateMachine {
   final LoggerService _logger = LoggerService();
+
+  /// 状态转换历史记录（用于调试和分析）
+  final List<StateTransitionRecord> _transitionHistory = [];
+
+  /// 最大历史记录数量
+  static const int _maxHistorySize = 100;
   
   /// 状态转换映射表
   static const Map<MessageStatus, Set<MessageStatus>> _allowedTransitions = {
@@ -166,16 +208,46 @@ class MessageStateMachine {
   }) {
     final targetStatus = _eventToStatus[event];
     if (targetStatus == null) {
+      final record = StateTransitionRecord(
+        fromStatus: currentStatus,
+        toStatus: currentStatus, // 保持原状态
+        event: event,
+        isSuccess: false,
+        errorMessage: '未知的状态事件: ${event.name}',
+        timestamp: DateTime.now(),
+        metadata: metadata,
+      );
+      _addTransitionRecord(record);
       return StateTransitionResult.invalid('未知的状态事件: ${event.name}');
     }
 
     if (!canTransition(currentStatus, targetStatus)) {
-      return StateTransitionResult.invalid(
-        '不允许的状态转换: ${currentStatus.name} -> ${targetStatus.name}',
+      final errorMessage = '不允许的状态转换: ${currentStatus.name} -> ${targetStatus.name}';
+      final record = StateTransitionRecord(
+        fromStatus: currentStatus,
+        toStatus: targetStatus,
+        event: event,
+        isSuccess: false,
+        errorMessage: errorMessage,
+        timestamp: DateTime.now(),
+        metadata: metadata,
       );
+      _addTransitionRecord(record);
+      return StateTransitionResult.invalid(errorMessage);
     }
 
-    _logger.debug('消息状态转换', {
+    // 记录成功的状态转换
+    final record = StateTransitionRecord(
+      fromStatus: currentStatus,
+      toStatus: targetStatus,
+      event: event,
+      isSuccess: true,
+      timestamp: DateTime.now(),
+      metadata: metadata,
+    );
+    _addTransitionRecord(record);
+
+    _logger.debug('消息状态转换成功', {
       'from': currentStatus.name,
       'to': targetStatus.name,
       'event': event.name,
@@ -183,6 +255,31 @@ class MessageStateMachine {
     });
 
     return StateTransitionResult.success(targetStatus, metadata: metadata);
+  }
+
+  /// 添加状态转换记录
+  void _addTransitionRecord(StateTransitionRecord record) {
+    _transitionHistory.add(record);
+
+    // 限制历史记录大小
+    if (_transitionHistory.length > _maxHistorySize) {
+      _transitionHistory.removeAt(0);
+    }
+  }
+
+  /// 获取状态转换历史
+  List<StateTransitionRecord> getTransitionHistory() {
+    return List.unmodifiable(_transitionHistory);
+  }
+
+  /// 清除状态转换历史
+  void clearTransitionHistory() {
+    _transitionHistory.clear();
+  }
+
+  /// 获取最近的状态转换记录
+  StateTransitionRecord? getLastTransition() {
+    return _transitionHistory.isNotEmpty ? _transitionHistory.last : null;
   }
 
   /// 根据事件获取目标状态
@@ -253,5 +350,180 @@ class MessageStateMachine {
       default:
         return [];
     }
+  }
+
+  /// 批量状态转换（用于处理多个消息的状态变化）
+  Map<String, StateTransitionResult> batchTransition({
+    required Map<String, MessageStatus> currentStatuses,
+    required MessageStateEvent event,
+    Map<String, dynamic>? metadata,
+  }) {
+    final results = <String, StateTransitionResult>{};
+
+    for (final entry in currentStatuses.entries) {
+      final messageId = entry.key;
+      final currentStatus = entry.value;
+
+      results[messageId] = transition(
+        currentStatus: currentStatus,
+        event: event,
+        metadata: metadata,
+      );
+    }
+
+    return results;
+  }
+
+  /// 状态冲突解决（当多个状态转换同时发生时）
+  MessageStatus resolveStateConflict({
+    required MessageStatus currentStatus,
+    required List<MessageStatus> candidateStatuses,
+    String? reason,
+  }) {
+    if (candidateStatuses.isEmpty) return currentStatus;
+    if (candidateStatuses.length == 1) return candidateStatuses.first;
+
+    // 按优先级排序
+    final sortedCandidates = List<MessageStatus>.from(candidateStatuses);
+    sortedCandidates.sort((a, b) => getStatusPriority(b).compareTo(getStatusPriority(a)));
+
+    // 选择第一个合法的转换
+    for (final candidate in sortedCandidates) {
+      if (canTransition(currentStatus, candidate)) {
+        _logger.info('状态冲突解决', {
+          'currentStatus': currentStatus.name,
+          'candidates': candidateStatuses.map((s) => s.name).toList(),
+          'resolved': candidate.name,
+          'reason': reason,
+        });
+        return candidate;
+      }
+    }
+
+    // 如果没有合法转换，保持当前状态
+    _logger.warning('无法解决状态冲突，保持当前状态', {
+      'currentStatus': currentStatus.name,
+      'candidates': candidateStatuses.map((s) => s.name).toList(),
+      'reason': reason,
+    });
+    return currentStatus;
+  }
+
+  /// 获取状态转换统计信息
+  Map<String, dynamic> getTransitionStatistics() {
+    if (_transitionHistory.isEmpty) {
+      return {
+        'totalTransitions': 0,
+        'successfulTransitions': 0,
+        'failedTransitions': 0,
+        'successRate': 0.0,
+        'mostCommonTransition': null,
+        'mostCommonError': null,
+      };
+    }
+
+    final successful = _transitionHistory.where((r) => r.isSuccess).length;
+    final failed = _transitionHistory.length - successful;
+
+    // 统计最常见的转换
+    final transitionCounts = <String, int>{};
+    final errorCounts = <String, int>{};
+
+    for (final record in _transitionHistory) {
+      final transitionKey = '${record.fromStatus.name}->${record.toStatus.name}';
+      transitionCounts[transitionKey] = (transitionCounts[transitionKey] ?? 0) + 1;
+
+      if (!record.isSuccess && record.errorMessage != null) {
+        errorCounts[record.errorMessage!] = (errorCounts[record.errorMessage!] ?? 0) + 1;
+      }
+    }
+
+    String? mostCommonTransition;
+    int maxTransitionCount = 0;
+    for (final entry in transitionCounts.entries) {
+      if (entry.value > maxTransitionCount) {
+        maxTransitionCount = entry.value;
+        mostCommonTransition = entry.key;
+      }
+    }
+
+    String? mostCommonError;
+    int maxErrorCount = 0;
+    for (final entry in errorCounts.entries) {
+      if (entry.value > maxErrorCount) {
+        maxErrorCount = entry.value;
+        mostCommonError = entry.key;
+      }
+    }
+
+    return {
+      'totalTransitions': _transitionHistory.length,
+      'successfulTransitions': successful,
+      'failedTransitions': failed,
+      'successRate': successful / _transitionHistory.length,
+      'mostCommonTransition': mostCommonTransition,
+      'mostCommonTransitionCount': maxTransitionCount,
+      'mostCommonError': mostCommonError,
+      'mostCommonErrorCount': maxErrorCount,
+    };
+  }
+
+  /// 验证状态转换路径是否可达
+  bool canReachState({
+    required MessageStatus fromStatus,
+    required MessageStatus toStatus,
+    int maxDepth = 5,
+  }) {
+    if (fromStatus == toStatus) return true;
+    if (maxDepth <= 0) return false;
+
+    final allowedNext = _allowedTransitions[fromStatus] ?? {};
+    if (allowedNext.contains(toStatus)) return true;
+
+    // 递归检查是否可以通过中间状态到达目标状态
+    for (final nextStatus in allowedNext) {
+      if (canReachState(
+        fromStatus: nextStatus,
+        toStatus: toStatus,
+        maxDepth: maxDepth - 1,
+      )) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// 获取到达目标状态的最短路径
+  List<MessageStatus>? getShortestPath({
+    required MessageStatus fromStatus,
+    required MessageStatus toStatus,
+    int maxDepth = 5,
+  }) {
+    if (fromStatus == toStatus) return [fromStatus];
+
+    final queue = <List<MessageStatus>>[[fromStatus]];
+    final visited = <MessageStatus>{fromStatus};
+
+    while (queue.isNotEmpty) {
+      final currentPath = queue.removeAt(0);
+      final currentStatus = currentPath.last;
+
+      if (currentPath.length > maxDepth) continue;
+
+      final allowedNext = _allowedTransitions[currentStatus] ?? {};
+      for (final nextStatus in allowedNext) {
+        if (nextStatus == toStatus) {
+          return [...currentPath, nextStatus];
+        }
+
+        if (!visited.contains(nextStatus)) {
+          visited.add(nextStatus);
+          queue.add([...currentPath, nextStatus]);
+        }
+      }
+    }
+
+    return null; // 无法到达
   }
 }

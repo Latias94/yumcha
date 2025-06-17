@@ -49,13 +49,13 @@ class _TimerPool {
 /// 确保流式消息的完整性和实时性
 class StreamingUpdateManager {
   /// 更新回调
-  final Function(StreamingUpdate) _onUpdate;
+  final dynamic _onUpdate;
 
   /// 统计信息
   int _totalUpdates = 0;
 
   StreamingUpdateManager({
-    required Function(StreamingUpdate) onUpdate,
+    required dynamic onUpdate,
     Duration? debounceDelay, // 保留参数以兼容现有代码，但不使用
     int? maxBatchSize, // 保留参数以兼容现有代码，但不使用
   }) : _onUpdate = onUpdate;
@@ -83,7 +83,13 @@ class StreamingUpdateManager {
   /// 处理单个更新
   void _processUpdate(StreamingUpdate update) {
     try {
-      _onUpdate(update);
+      final result = _onUpdate(update);
+      // 如果返回Future，等待完成但不阻塞
+      if (result is Future) {
+        result.catchError((error) {
+          developer.log('Error in async streaming update: $error', name: 'StreamingUpdateManager');
+        });
+      }
     } catch (error) {
       // 记录错误但继续处理
       developer.log('Error processing streaming update: $error', name: 'StreamingUpdateManager');

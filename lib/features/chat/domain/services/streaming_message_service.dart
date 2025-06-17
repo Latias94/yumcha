@@ -259,11 +259,15 @@ class StreamingMessageService {
       // 确保状态为流式传输中
       context.updateStatus(MessageStateEvent.streaming);
 
-      // 🚀 移除：不再调用Repository的updateStreamingContent
-      // 只在内存中缓存，减少数据库操作频率
-      // await _messageRepository.updateStreamingContent(...);
+      // 🚀 修复：必须调用Repository的updateStreamingContent来缓存内容
+      // 这样在流式完成时才有内容可以保存到数据库
+      await _messageRepository.updateStreamingContent(
+        messageId: messageId,
+        content: context.fullContent,
+        thinkingContent: context.fullThinking.isNotEmpty ? context.fullThinking : null,
+      );
 
-      // 🚀 只发送UI更新事件
+      // 发送UI更新事件
       _updateController.add(StreamingMessageUpdate.contentUpdate(
         messageId: messageId,
         contentDelta: contentDelta,
