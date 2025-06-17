@@ -408,8 +408,8 @@ class _ChatMessageViewState extends ConsumerState<ChatMessageView>
       ),
     );
 
-    // 编辑按钮 - 仅用户消息显示
-    if (widget.onEdit != null && widget.message.isFromUser) {
+    // 编辑按钮 - 用户消息和AI消息都可以编辑
+    if (widget.onEdit != null) {
       actionButtons.add(
         _buildActionButton(
           context,

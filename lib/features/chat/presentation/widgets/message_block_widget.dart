@@ -116,22 +116,21 @@ class _MessageBlockWidgetState extends ConsumerState<MessageBlockWidget>
       return _cachedContent!;
     }
 
-    final builtWidget = Container(
-      margin: EdgeInsets.only(bottom: DesignConstants.spaceS),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 块类型标识（仅在调试模式或特定类型时显示）
-          if (_shouldShowBlockHeader()) _buildBlockHeader(theme),
+    // 优化布局：移除不必要的外层容器和间距
+    final builtWidget = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 块类型标识（仅在调试模式或特定类型时显示）
+        if (_shouldShowBlockHeader()) _buildBlockHeader(theme),
 
-          // 块内容
-          _buildBlockContent(theme),
+        // 块内容
+        _buildBlockContent(theme),
 
-          // 块状态指示器
-          if (widget.block.status != MessageBlockStatus.success)
-            _buildStatusIndicator(theme),
-        ],
-      ),
+        // 块状态指示器
+        if (widget.block.status != MessageBlockStatus.success)
+          _buildStatusIndicator(theme),
+      ],
     );
 
     // 缓存构建的内容

@@ -5,11 +5,10 @@ import '../../../domain/entities/message.dart';
 import '../../../domain/entities/message_status.dart';
 import '../../../domain/entities/message_block_type.dart';
 import '../../providers/chat_providers.dart';
-import '../../../../../shared/presentation/design_system/design_constants.dart';
 import '../animated_typing_indicator.dart';
 import 'bubble_context.dart';
-import 'bubble_style.dart';
 import 'bubble_block_renderer.dart';
+import 'block_layout_manager.dart';
 
 /// 气泡内容组件
 ///
@@ -85,32 +84,22 @@ class BubbleContent extends ConsumerWidget {
       return [_buildEmptyContent()];
     }
 
+    // 使用新的布局管理器构建优化的块列表
+    final layoutManager = BlockLayoutManager.instance;
     final renderer = BubbleBlockRenderer.instance;
-    final blocks = <Widget>[];
 
-    for (int i = 0; i < filteredBlocks.length; i++) {
-      final block = filteredBlocks[i];
-      final isFirst = i == 0;
-      final isLast = i == filteredBlocks.length - 1;
-
-      final blockWidget = renderer.renderBlock(
-        block,
-        context.copyWith(
-          // 可以根据需要传递额外的上下文信息
-        ),
-        isFirst: isFirst,
-        isLast: isLast,
-      );
-
-      blocks.add(blockWidget);
-
-      // 在块之间添加间距（除了最后一个）
-      if (!isLast) {
-        blocks.add(SizedBox(height: _getBlockSpacing()));
-      }
-    }
-
-    return blocks;
+    return layoutManager.buildOptimizedBlockList(
+      filteredBlocks,
+      context,
+      (block, bubbleContext, {required bool isFirst, required bool isLast}) {
+        return renderer.renderBlock(
+          block,
+          bubbleContext,
+          isFirst: isFirst,
+          isLast: isLast,
+        );
+      },
+    );
   }
 
   /// 构建空内容占位符
@@ -514,18 +503,7 @@ class BubbleContent extends ConsumerWidget {
     );
   }
 
-  /// 获取块之间的间距
-  double _getBlockSpacing() {
-    // 使用设计系统常量，确保一致性
-    switch (context.style.type) {
-      case BubbleType.bubble:
-        return DesignConstants.spaceS; // 8.0
-      case BubbleType.card:
-        return DesignConstants.spaceM; // 12.0
-      case BubbleType.list:
-        return DesignConstants.spaceXS; // 4.0 - 减少列表模式的块间距
-    }
-  }
+
 
   /// 是否应该显示状态指示器
   bool _shouldShowStatusIndicator() {

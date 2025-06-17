@@ -7,9 +7,10 @@ import '../../domain/entities/message.dart';
 import '../../domain/entities/message_status.dart';
 import '../../domain/entities/message_block.dart';
 import '../../domain/entities/message_block_type.dart';
+import '../../domain/repositories/message_repository.dart';
 
 
-import '../../infrastructure/utils/state_update_deduplicator.dart';
+
 import '../../infrastructure/middleware/error_handling_middleware.dart';
 import '../../infrastructure/utils/batch_state_updater.dart' as batch;
 import '../../infrastructure/utils/streaming_update_manager.dart';
@@ -26,6 +27,7 @@ import '../../../../shared/presentation/providers/dependency_providers.dart';
 import '../../../../shared/infrastructure/services/preference_service.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/conversation_title_notifier.dart';
+import 'streaming_message_provider.dart';
 
 /// 统一聊天状态管理器
 /// 
@@ -37,12 +39,9 @@ import '../../../../shared/presentation/providers/conversation_title_notifier.da
 /// - 🧪 可测试：依赖注入和清晰的业务逻辑分离
 class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   UnifiedChatNotifier(this._ref) : super(const UnifiedChatState()) {
-    // 初始化流式更新管理器 - 优化性能参数
-    _streamingManager = IntelligentStreamingUpdateManager(
+    // 初始化流式更新管理器 - 简化版本，不使用防抖和批处理
+    _streamingManager = StreamingUpdateManager(
       onUpdate: _processStreamingUpdate,
-      debounceDelay: const Duration(milliseconds: 200), // 优化：增加防抖延迟，减少频繁更新
-      maxBatchSize: 15, // 优化：增加批量大小，提高批处理效率
-      contentChangeThreshold: 0.08, // 优化：提高变化阈值，减少微小变化的更新
     );
 
     // 异步初始化，避免在构造函数中直接实例化依赖
@@ -60,6 +59,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     return _orchestratorInstance!;
   }
 
+  /// 获取消息仓库 - 使用getter符合Riverpod最佳实践
+  MessageRepository get _messageRepository => _ref.read(messageRepositoryProvider);
+
   /// 事件流控制器
   final StreamController<ChatEvent> _eventController = StreamController.broadcast();
 
@@ -72,9 +74,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
   /// 性能监控定时器
   Timer? _performanceTimer;
 
-  /// 状态更新去重器
-  final MessageStateDeduplicator _messageDeduplicator = GlobalDeduplicators.message;
-  final StreamingUpdateDeduplicator _streamingDeduplicator = GlobalDeduplicators.streaming;
+  // 移除去重器，不再使用去重逻辑
 
   /// 批量状态更新器
   final batch.BatchStateUpdater _batchUpdater = batch.GlobalBatchUpdater.instance;
@@ -758,14 +758,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
 
 
 
-  /// 添加消息（优化版本，支持去重）
+  /// 添加消息（简化版本，不使用去重）
   void _addMessage(Message message) {
-    // 使用去重器检查是否应该添加
-    if (!_messageDeduplicator.shouldUpdateMessageContent(message.id, message.content)) {
-      _logger.debug('消息添加被去重器跳过', {'messageId': message.id});
-      return;
-    }
-
+    // 不再使用去重逻辑，直接添加消息
     _addMessageInternal(message);
   }
 
@@ -813,17 +808,9 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     );
   }
 
-  /// 更新消息内容（优化版本，支持去重和批量处理）
+  /// 更新消息内容（简化版本，不使用去重）
   void _updateMessageContent(String messageId, String content, MessageStatus status, [Map<String, dynamic>? metadata]) {
-    // 🚀 修复：对于流式消息，优先保证内容完整性
-    final isStreaming = state.messageState.streamingMessageIds.contains(messageId);
-
-    // 使用去重器检查是否应该更新
-    if (!isStreaming && !_messageDeduplicator.shouldUpdateMessageContent(messageId, content)) {
-      _logger.debug('消息内容更新被去重器跳过', {'messageId': messageId});
-      return;
-    }
-
+    // 不再使用去重逻辑，直接更新消息内容
     _updateMessageContentWithBatch(messageId, content, status, metadata);
   }
 
@@ -990,8 +977,11 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
           MessageStatus.aiProcessing,
         );
 
-        // 🚀 修复：异步更新流式内容，但不等待完成以避免阻塞UI
-        _orchestrator.updateStreamingContent(update.messageId, update.fullContent ?? '').catchError((error) {
+        // 🚀 修复：直接使用StreamingMessageService更新流式内容
+        _ref.read(streamingMessageServiceProvider).updateContent(
+          messageId: update.messageId,
+          fullContent: update.fullContent ?? '',
+        ).catchError((error) {
           _logger.error('更新流式内容失败', {
             'messageId': update.messageId,
             'error': error.toString(),
@@ -1038,14 +1028,21 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         // 流式进行中时使用批量更新
         _addMessageWithBatch(aiMessage);
 
-        // 🚀 修复：异步初始化流式消息，但不等待完成以避免阻塞UI
-        _orchestrator.initializeStreamingMessage(
-          update.messageId,
-          update.fullContent ?? '',
+        // 🚀 修复：直接使用StreamingMessageService初始化流式消息
+        _ref.read(streamingMessageServiceProvider).initializeStreaming(
+          messageId: update.messageId,
           conversationId: state.conversationState.currentConversation?.id ?? '',
           assistantId: state.configuration.selectedAssistant?.id ?? '',
           modelId: state.configuration.selectedModel?.name,
-        ).catchError((error) {
+        ).then((_) {
+          // 如果有初始内容，更新缓存
+          if (update.fullContent?.isNotEmpty == true) {
+            return _ref.read(streamingMessageServiceProvider).updateContent(
+              messageId: update.messageId,
+              fullContent: update.fullContent!,
+            );
+          }
+        }).catchError((error) {
           _logger.error('初始化流式消息失败', {
             'messageId': update.messageId,
             'error': error.toString(),
@@ -1093,8 +1090,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         ),
       );
 
-      // 🚀 修复：标记消息为流式状态，使用更宽松的去重策略
-      _messageDeduplicator.markAsStreaming(messageId);
+      // 不再需要标记流式状态，因为不使用去重逻辑
 
       _logger.debug('消息添加到流式集合', {'messageId': messageId});
     }
@@ -1112,8 +1108,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         ),
       );
 
-      // 🚀 修复：取消流式状态标记，恢复正常去重策略
-      _messageDeduplicator.unmarkAsStreaming(messageId);
+      // 不再需要取消流式状态标记，因为不使用去重逻辑
 
       _logger.info('消息从流式集合中移除', {'messageId': messageId});
       _emitEvent(StreamingCompletedEvent(messageId));
@@ -1394,6 +1389,125 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     if (messageCount > ChatConstants.messageCleanupThreshold) {
       _logger.info('触发消息清理', {'messageCount': messageCount});
       // 这里可以实现更智能的清理策略
+    }
+  }
+
+  /// 编辑消息内容
+  ///
+  /// 支持编辑用户消息和AI消息
+  /// 对于用户消息，会删除后续的AI回复并重新生成
+  /// 对于AI消息，直接更新内容
+  Future<void> editMessage(String messageId, String newContent) async {
+    _logger.debug('编辑消息', {
+      'messageId': messageId,
+      'contentLength': newContent.length,
+    });
+
+    try {
+      // 获取要编辑的消息
+      final message = state.messageState.messages.firstWhere(
+        (m) => m.id == messageId,
+        orElse: () => throw Exception('消息不存在'),
+      );
+
+      if (message.isFromUser) {
+        // 编辑用户消息：删除后续AI回复并重新发送
+        await _editUserMessage(message, newContent);
+      } else {
+        // 编辑AI消息：直接更新内容
+        await _editAiMessage(message, newContent);
+      }
+
+      _logger.debug('消息编辑完成', {
+        'messageId': messageId,
+        'messageType': message.isFromUser ? 'user' : 'ai',
+      });
+
+    } catch (e, stackTrace) {
+      _logger.error('编辑消息失败', e, stackTrace);
+      _notificationService.showError('编辑消息失败: $e');
+      rethrow;
+    }
+  }
+
+  /// 编辑用户消息
+  Future<void> _editUserMessage(Message userMessage, String newContent) async {
+    // 找到该用户消息后的所有AI回复
+    final messageIndex = state.messageState.messages.indexOf(userMessage);
+    final messagesToDelete = <Message>[];
+
+    // 收集需要删除的后续AI消息
+    for (int i = messageIndex + 1; i < state.messageState.messages.length; i++) {
+      final nextMessage = state.messageState.messages[i];
+      if (nextMessage.isFromUser) {
+        break; // 遇到下一个用户消息就停止
+      }
+      messagesToDelete.add(nextMessage);
+    }
+
+    // 删除后续的AI消息
+    for (final message in messagesToDelete) {
+      await _messageRepository.deleteMessage(message.id);
+    }
+
+    // 更新用户消息内容
+    await _updateUserMessageContent(userMessage.id, newContent);
+
+    // 重新发送消息以获取新的AI回复
+    final params = SendMessageParams(
+      content: newContent,
+      conversationId: userMessage.conversationId,
+      provider: state.configuration.selectedProvider!,
+      model: state.configuration.selectedModel!,
+      assistant: state.configuration.selectedAssistant!,
+      useStreaming: true, // 默认使用流式
+    );
+
+    // 发送新的AI回复
+    final result = await _orchestrator.sendMessage(params);
+    result.when(
+      success: (aiMessage) {
+        _logger.debug('用户消息编辑后重新生成AI回复成功', {
+          'userMessageId': userMessage.id,
+          'newAiMessageId': aiMessage.id,
+        });
+      },
+      failure: (error, code, originalError) {
+        _logger.error('用户消息编辑后重新生成AI回复失败', originalError);
+        _notificationService.showError('重新生成AI回复失败: $error');
+      },
+      loading: () {
+        _logger.info('用户消息编辑后正在重新生成AI回复');
+      },
+    );
+  }
+
+  /// 编辑AI消息
+  Future<void> _editAiMessage(Message aiMessage, String newContent) async {
+    // 直接更新AI消息内容
+    _updateMessageContent(aiMessage.id, newContent, MessageStatus.aiSuccess);
+
+    // 保存到数据库
+    if (aiMessage.blocks.isNotEmpty) {
+      await _messageRepository.updateBlockContent(
+        aiMessage.blocks.first.id, // 假设第一个块是主文本块
+        newContent,
+      );
+    }
+  }
+
+  /// 更新用户消息内容
+  Future<void> _updateUserMessageContent(String messageId, String newContent) async {
+    // 更新内存中的消息
+    _updateMessageContent(messageId, newContent, MessageStatus.userSuccess);
+
+    // 保存到数据库
+    final message = state.messageState.messages.firstWhere((m) => m.id == messageId);
+    if (message.blocks.isNotEmpty) {
+      await _messageRepository.updateBlockContent(
+        message.blocks.first.id, // 假设第一个块是主文本块
+        newContent,
+      );
     }
   }
 }

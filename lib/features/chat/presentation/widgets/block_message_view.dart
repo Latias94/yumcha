@@ -460,8 +460,8 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
       ),
     );
 
-    // 编辑按钮（仅用户消息）
-    if (widget.message.isFromUser && widget.onEdit != null) {
+    // 编辑按钮（用户消息和AI消息都可以编辑）
+    if (widget.onEdit != null) {
       actionButtons.add(
         IconButton(
           onPressed: widget.onEdit,

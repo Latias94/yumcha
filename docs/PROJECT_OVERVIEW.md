@@ -130,13 +130,14 @@ YumCha 是一个基于 Flutter 开发的跨平台 AI 聊天应用，支持桌面
 
 #### 正确的访问方式
 ```dart
-// ✅ 正确：通过 Riverpod Notifier 访问数据
-final providers = ref.watch(aiProviderNotifierProvider);
-final assistants = ref.watch(aiAssistantNotifierProvider);
+// ✅ 正确：通过统一AI管理Provider访问数据
+final providers = ref.watch(aiProvidersProvider);
+final assistants = ref.watch(aiAssistantsProvider);
 
-// ✅ 正确：在 Notifier 中调用方法
-ref.read(aiProviderNotifierProvider.notifier).addProvider(provider);
-ref.read(aiAssistantNotifierProvider.notifier).updateAssistant(assistant);
+// ✅ 正确：在统一AI管理Notifier中调用方法
+final aiManagement = ref.read(unifiedAiManagementProvider.notifier);
+await aiManagement.addCustomProvider(name: 'Custom', apiKey: 'key', baseUrl: 'url');
+await aiManagement.addCustomAssistant(name: 'Assistant', description: 'desc');
 ```
 
 #### 错误的访问方式

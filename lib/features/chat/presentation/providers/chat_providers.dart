@@ -4,6 +4,9 @@ import '../../domain/repositories/message_repository.dart';
 import '../../../ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../../shared/presentation/providers/dependency_providers.dart';
 
+// 导出新的聊天状态摘要Provider
+export 'chat_status_summary_provider.dart';
+
 /// 消息仓库Provider
 /// 提供消息数据访问功能
 final messageRepositoryProvider = Provider<MessageRepository>((ref) {

@@ -83,24 +83,24 @@
 
 #### 🔧 迁移策略
 
-1. **UI组件迁移**
+1. **UI组件迁移** ✅ **已完成**
    ```dart
-   // 旧代码
+   // ❌ 旧代码（已废弃）
    final assistants = ref.watch(aiAssistantNotifierProvider);
    final selectedAssistant = ref.watch(aiAssistantProvider(assistantId));
-   
-   // 新代码
+
+   // ✅ 新代码（已迁移）
    final assistants = ref.watch(aiAssistantsProvider);
    final selectedAssistant = ref.watch(specificAssistantProvider(assistantId));
    ```
 
-2. **服务层迁移**
+2. **服务层迁移** ✅ **已完成**
    ```dart
-   // 旧代码
+   // ❌ 旧代码（已废弃）
    final providersAsync = ref.watch(aiProviderNotifierProvider);
    final assistantsAsync = ref.watch(aiAssistantNotifierProvider);
-   
-   // 新代码
+
+   // ✅ 新代码（已迁移）
    final providers = ref.watch(aiProvidersProvider);
    final assistants = ref.watch(aiAssistantsProvider);
    final isReady = ref.watch(hasCompleteConfigurationProvider);

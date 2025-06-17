@@ -43,176 +43,42 @@ class _TimerPool {
   int get activeCount => _timers.length;
 }
 
-/// 优化的流式更新管理器
+/// 简化的流式更新管理器
 ///
-/// 专门用于管理流式消息更新，提供防抖、批处理和优化功能
-/// 使用单一Timer池和智能批量更新机制
+/// 专门用于管理流式消息更新，直接处理所有更新，不使用防抖和批处理
+/// 确保流式消息的完整性和实时性
 class StreamingUpdateManager {
-  /// 防抖延迟时间
-  final Duration _debounceDelay;
-
-  /// 最大批处理大小
-  final int _maxBatchSize;
-
-  /// 待处理的更新映射
-  final Map<String, _PendingStreamingUpdate> _pendingUpdates = {};
-
-  /// 单一Timer池管理器
-  static final _TimerPool _timerPool = _TimerPool();
-
-  /// 批处理定时器ID
-  String? _batchTimerId;
-
   /// 更新回调
   final Function(StreamingUpdate) _onUpdate;
 
   /// 统计信息
   int _totalUpdates = 0;
-  int _debouncedUpdates = 0;
-  int _batchedUpdates = 0;
-  int _skippedUpdates = 0;
-  
+
   StreamingUpdateManager({
     required Function(StreamingUpdate) onUpdate,
-    Duration debounceDelay = const Duration(milliseconds: 100),
-    int maxBatchSize = 10,
-  }) : _onUpdate = onUpdate,
-       _debounceDelay = debounceDelay,
-       _maxBatchSize = maxBatchSize;
-  
-  /// 防抖定时器ID映射
-  final Map<String, String> _debounceTimerIds = {};
+    Duration? debounceDelay, // 保留参数以兼容现有代码，但不使用
+    int? maxBatchSize, // 保留参数以兼容现有代码，但不使用
+  }) : _onUpdate = onUpdate;
 
   /// 处理流式更新
   void handleUpdate(StreamingUpdate update) {
     _totalUpdates++;
 
-    // 如果是完成状态，立即处理
-    if (update.isDone) {
-      _flushUpdate(update.messageId);
-      _processUpdate(update);
-      return;
-    }
-
-    // 检查是否应该跳过此更新（智能防抖）
-    if (_shouldSkipUpdate(update)) {
-      _skippedUpdates++;
-      return;
-    }
-
-    // 更新待处理的更新
-    _pendingUpdates[update.messageId] = _PendingStreamingUpdate(
-      update: update,
-      timestamp: DateTime.now(),
-    );
-
-    // 取消之前的防抖定时器
-    final oldTimerId = _debounceTimerIds[update.messageId];
-    if (oldTimerId != null) {
-      _timerPool.cancelTimer(oldTimerId);
-    }
-
-    // 设置新的防抖定时器
-    final newTimerId = _timerPool.createTimer(_debounceDelay, () {
-      _flushUpdate(update.messageId);
-    });
-    _debounceTimerIds[update.messageId] = newTimerId;
-
-    // 如果批次过大，立即处理
-    if (_pendingUpdates.length >= _maxBatchSize) {
-      _processBatch();
-    } else {
-      _scheduleBatch();
-    }
+    // 直接处理所有更新，不使用防抖或批处理
+    _processUpdate(update);
   }
 
-  /// 智能判断是否应该跳过更新
-  bool _shouldSkipUpdate(StreamingUpdate update) {
-    final existing = _pendingUpdates[update.messageId];
-    if (existing == null) return false;
-
-    // 🚀 修复：对于流式消息，优先保证内容完整性而不是性能
-    final timeDiff = DateTime.now().difference(existing.timestamp).inMilliseconds;
-
-    // 只有在极短时间内（20ms）且内容完全相同时才跳过
-    if (timeDiff < 20) {
-      final oldContent = existing.update.fullContent ?? '';
-      final newContent = update.fullContent ?? '';
-
-      // 只有内容完全相同时才跳过，确保不丢失任何增量内容
-      if (oldContent == newContent) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-  
-  /// 强制完成指定消息的更新
+  /// 强制完成指定消息的更新（保留接口兼容性）
   void forceComplete(String messageId) {
-    _flushUpdate(messageId);
+    // 在简化版本中，所有更新都是立即处理的，所以这个方法不需要做任何事情
   }
-  
-  /// 强制处理所有待处理的更新
+
+  /// 强制处理所有待处理的更新（保留接口兼容性）
   void flushAll() {
-    if (_batchTimerId != null) {
-      _timerPool.cancelTimer(_batchTimerId!);
-      _batchTimerId = null;
-    }
-    _processBatch();
+    // 在简化版本中，所有更新都是立即处理的，所以这个方法不需要做任何事情
   }
 
-  /// 刷新指定消息的更新
-  void _flushUpdate(String messageId) {
-    final timerId = _debounceTimerIds.remove(messageId);
-    if (timerId != null) {
-      _timerPool.cancelTimer(timerId);
-    }
 
-    final pending = _pendingUpdates.remove(messageId);
-    if (pending != null) {
-      _processUpdate(pending.update);
-    }
-  }
-
-  /// 调度批处理
-  void _scheduleBatch() {
-    if (_batchTimerId != null && _timerPool.hasTimer(_batchTimerId!)) return;
-
-    // 优化：增加批处理间隔，减少频繁的批处理操作
-    _batchTimerId = _timerPool.createTimer(const Duration(milliseconds: 32), () {
-      _processBatch();
-    });
-  }
-
-  /// 处理批次
-  void _processBatch() {
-    if (_batchTimerId != null) {
-      _timerPool.cancelTimer(_batchTimerId!);
-      _batchTimerId = null;
-    }
-
-    if (_pendingUpdates.isEmpty) return;
-
-    // 按时间戳排序，确保更新顺序
-    final updates = _pendingUpdates.values.toList();
-    updates.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-    // 清理待处理的更新和定时器
-    for (final update in updates) {
-      final timerId = _debounceTimerIds.remove(update.update.messageId);
-      if (timerId != null) {
-        _timerPool.cancelTimer(timerId);
-      }
-    }
-    _pendingUpdates.clear();
-
-    // 批量处理更新
-    _batchedUpdates += updates.length;
-    for (final pending in updates) {
-      _processUpdate(pending.update);
-    }
-  }
   
   /// 处理单个更新
   void _processUpdate(StreamingUpdate update) {
@@ -223,56 +89,33 @@ class StreamingUpdateManager {
       developer.log('Error processing streaming update: $error', name: 'StreamingUpdateManager');
     }
   }
-  
+
   /// 获取统计信息
   StreamingUpdateStats getStats() {
     return StreamingUpdateStats(
       totalUpdates: _totalUpdates,
-      debouncedUpdates: _debouncedUpdates,
-      batchedUpdates: _batchedUpdates,
-      skippedUpdates: _skippedUpdates,
-      pendingUpdates: _pendingUpdates.length,
-      activeTimers: _timerPool.activeCount,
-      debounceRatio: _totalUpdates > 0 ? _debouncedUpdates / _totalUpdates : 0.0,
-      skipRatio: _totalUpdates > 0 ? _skippedUpdates / _totalUpdates : 0.0,
+      debouncedUpdates: 0, // 不再使用防抖
+      batchedUpdates: 0, // 不再使用批处理
+      skippedUpdates: 0, // 不再跳过更新
+      pendingUpdates: 0, // 不再有待处理的更新
+      activeTimers: 0, // 不再使用定时器
+      debounceRatio: 0.0, // 不再使用防抖
+      skipRatio: 0.0, // 不再跳过更新
     );
   }
 
   /// 重置统计信息
   void resetStats() {
     _totalUpdates = 0;
-    _debouncedUpdates = 0;
-    _batchedUpdates = 0;
-    _skippedUpdates = 0;
   }
 
   /// 释放资源
   void dispose() {
-    // 取消批处理定时器
-    if (_batchTimerId != null) {
-      _timerPool.cancelTimer(_batchTimerId!);
-      _batchTimerId = null;
-    }
-
-    // 取消所有防抖定时器
-    for (final timerId in _debounceTimerIds.values) {
-      _timerPool.cancelTimer(timerId);
-    }
-    _debounceTimerIds.clear();
-    _pendingUpdates.clear();
+    // 简化版本中没有需要清理的资源
   }
 }
 
-/// 待处理的流式更新
-class _PendingStreamingUpdate {
-  final StreamingUpdate update;
-  final DateTime timestamp;
-  
-  _PendingStreamingUpdate({
-    required this.update,
-    required this.timestamp,
-  });
-}
+
 
 /// 流式更新统计信息
 class StreamingUpdateStats {
@@ -311,95 +154,31 @@ class StreamingUpdateStats {
   }
 }
 
-/// 智能流式更新管理器
-/// 
-/// 提供更智能的更新策略，根据内容变化程度调整更新频率
+/// 智能流式更新管理器（简化版本）
+///
+/// 现在直接继承基础管理器，不再使用智能过滤逻辑
+/// 确保所有流式更新都被及时处理
 class IntelligentStreamingUpdateManager extends StreamingUpdateManager {
-  /// 内容变化阈值
-  final double _contentChangeThreshold;
-  
-  /// 最后处理的内容映射
-  final Map<String, String> _lastContent = {};
-  
-  /// 内容变化历史
-  final Map<String, List<double>> _changeHistory = {};
-  
   IntelligentStreamingUpdateManager({
     required super.onUpdate,
-    super.debounceDelay = const Duration(milliseconds: 100),
-    super.maxBatchSize = 10,
-    double contentChangeThreshold = 0.1, // 10%的内容变化才触发更新
-  }) : _contentChangeThreshold = contentChangeThreshold;
-  
-  @override
-  void handleUpdate(StreamingUpdate update) {
-    // 如果是完成状态，直接处理
-    if (update.isDone) {
-      _lastContent.remove(update.messageId);
-      _changeHistory.remove(update.messageId);
-      super.handleUpdate(update);
-      return;
-    }
-    
-    // 计算内容变化程度
-    final currentContent = update.fullContent ?? '';
-    final lastContent = _lastContent[update.messageId] ?? '';
-    final changeRatio = _calculateChangeRatio(lastContent, currentContent);
-    
-    // 记录变化历史
-    _changeHistory.putIfAbsent(update.messageId, () => []).add(changeRatio);
-    if (_changeHistory[update.messageId]!.length > 10) {
-      _changeHistory[update.messageId]!.removeAt(0);
-    }
-    
-    // 根据变化程度决定是否更新
-    if (changeRatio >= _contentChangeThreshold || _shouldForceUpdate(update.messageId)) {
-      _lastContent[update.messageId] = currentContent;
-      super.handleUpdate(update);
-    }
-  }
-  
-  /// 计算内容变化比例
-  double _calculateChangeRatio(String oldContent, String newContent) {
-    if (oldContent.isEmpty) return 1.0;
-    if (newContent.isEmpty) return 1.0;
-    
-    final lengthDiff = (newContent.length - oldContent.length).abs();
-    final maxLength = oldContent.length > newContent.length ? oldContent.length : newContent.length;
-    
-    return lengthDiff / maxLength;
-  }
-  
-  /// 判断是否应该强制更新
-  bool _shouldForceUpdate(String messageId) {
-    final history = _changeHistory[messageId];
-    if (history == null || history.length < 5) return false;
-    
-    // 如果最近的变化都很小，强制更新一次
-    final recentChanges = history.take(5);
-    final avgChange = recentChanges.reduce((a, b) => a + b) / recentChanges.length;
-    
-    return avgChange < _contentChangeThreshold * 0.5;
-  }
-  
-  @override
-  void dispose() {
-    _lastContent.clear();
-    _changeHistory.clear();
-    super.dispose();
-  }
+    super.debounceDelay, // 保留参数兼容性，但不使用
+    super.maxBatchSize, // 保留参数兼容性，但不使用
+    double? contentChangeThreshold, // 保留参数兼容性，但不使用
+  });
+
+  // 不再重写handleUpdate方法，直接使用父类的简化实现
 }
 
 /// 全局流式更新管理器
 class GlobalStreamingUpdateManager {
   static StreamingUpdateManager? _instance;
-  
-  /// 获取全局实例
+
+  /// 获取全局实例（现在使用简化的管理器）
   static StreamingUpdateManager getInstance(Function(StreamingUpdate) onUpdate) {
-    _instance ??= IntelligentStreamingUpdateManager(onUpdate: onUpdate);
+    _instance ??= StreamingUpdateManager(onUpdate: onUpdate);
     return _instance!;
   }
-  
+
   /// 释放全局实例
   static void dispose() {
     _instance?.dispose();

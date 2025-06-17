@@ -4,11 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/infrastructure/services/logger_service.dart';
 import '../entities/chat_state.dart';
 import '../entities/message.dart';
-import '../entities/message_status.dart';
+
 import '../entities/message_block_type.dart';
 import 'message_factory.dart';
 import 'unified_message_creator.dart';
-import 'message_state_machine.dart';
 import 'streaming_message_service.dart';
 
 import '../../../../shared/infrastructure/services/ai/block_based_chat_service.dart';
@@ -81,7 +80,6 @@ class ChatOrchestratorService {
   final Ref _ref;
   final LoggerService _logger = LoggerService();
   final MessageFactory _messageFactory = MessageFactory();
-  final MessageStateMachine _stateMachine = MessageStateMachine();
 
   /// 获取消息ID服务
   MessageIdService get _messageIdService => _ref.read(messageIdServiceProvider);
@@ -243,12 +241,18 @@ class ChatOrchestratorService {
         'model': params.model.name,
       });
 
-      // 🚀 优化：使用统一消息创建器，自动处理保存
+      // 📝 第一步：创建并保存用户消息
+      //
+      // 用户消息需要立即保存到数据库，原因：
+      // 1. 确保用户输入不丢失，即使AI处理失败也能保留用户消息
+      // 2. 为AI处理提供完整的对话历史上下文
+      // 3. 支持对话恢复和消息重发功能
+      // 4. 符合聊天应用的标准业务流程：用户发送 → 立即显示 → AI处理
       final userMessage = await _messageCreator.createUserMessage(
         content: params.content,
         conversationId: params.conversationId,
         assistantId: params.assistant.id,
-        saveToDatabase: true, // 用户消息立即保存
+        saveToDatabase: true, // 用户消息必须立即保存，确保不丢失
       );
 
       // 通知UI添加用户消息
@@ -358,7 +362,7 @@ class ChatOrchestratorService {
             assistantId: params.assistant.id,
             errorMessage: error.toString(),
           );
-          _handleStreamingError(error, lastMessage ?? tempMessage, params.conversationId, completer);
+          _handleStreamingError(error, lastMessage ?? tempMessage, params.conversationId, messageId, completer, params);
         },
         onDone: () async {
           if (!completer.isCompleted && lastMessage != null) {
@@ -420,7 +424,7 @@ class ChatOrchestratorService {
       final startTime = DateTime.now();
 
       // 发送请求，传递统一ID
-      final aiMessage = await _blockChatService.sendBlockMessage(
+      final blockMessage = await _blockChatService.sendBlockMessage(
         messageId: messageId, // 🚀 传递统一的消息ID
         conversationId: params.conversationId,
         provider: params.provider,
@@ -432,29 +436,53 @@ class ChatOrchestratorService {
 
       final duration = DateTime.now().difference(startTime);
 
-      // 块化消息已经包含了完整的消息结构，直接使用
-      final completedMessage = aiMessage.copyWith(
-        status: MessageStatus.aiSuccess,
-        updatedAt: DateTime.now(),
-        metadata: {
-          ...?aiMessage.metadata,
+      // 📝 第二步：创建并保存AI响应消息
+      //
+      // AI消息与用户消息分别保存是正常的业务逻辑，原因：
+      // 1. 时间差异：用户消息立即保存，AI消息在处理完成后保存
+      // 2. 状态不同：用户消息状态固定，AI消息状态需要根据处理结果设置
+      // 3. 内容结构：AI消息包含复杂的块结构（文本、思考、工具调用等）
+      // 4. 元数据差异：AI消息包含处理时长、模型信息等额外元数据
+      // 5. 错误处理：AI消息可能失败，需要保存错误状态和部分内容
+      final finalMessage = await _messageCreator.createAiMessageFromBlockService(
+        blockMessage: blockMessage,
+        conversationId: params.conversationId,
+        assistantId: params.assistant.id,
+        additionalMetadata: {
           'duration': duration.inMilliseconds,
         },
+        saveToDatabase: true, // AI消息在处理完成后保存，包含完整的响应内容
       );
 
-      await _persistMessage(completedMessage, params.conversationId);
       _updateStatistics(duration: duration);
 
       _logger.info('普通消息处理成功', {
         'conversationId': params.conversationId,
-        'messageId': completedMessage.id,
-        'blocksCount': completedMessage.blocks.length,
+        'messageId': finalMessage.id,
+        'blocksCount': finalMessage.blocks.length,
         'duration': duration.inMilliseconds,
       });
 
-      return ChatOperationSuccess(completedMessage);
+      return ChatOperationSuccess(finalMessage);
     } catch (error) {
       _updateStatistics(failed: true);
+
+      // 🚀 优化：使用统一错误处理
+      try {
+        await _messageCreator.createUnifiedErrorMessage(
+          conversationId: params.conversationId,
+          assistantId: params.assistant.id,
+          error: error,
+          isStreaming: false,
+          saveToDatabase: true,
+        );
+      } catch (errorHandlingError) {
+        _logger.error('错误处理失败', {
+          'originalError': error.toString(),
+          'errorHandlingError': errorHandlingError.toString(),
+        });
+      }
+
       rethrow;
     }
   }
@@ -525,55 +553,58 @@ class ChatOrchestratorService {
     Object error,
     Message aiMessage,
     String conversationId,
+    String streamingMessageId,
     Completer<ChatOperationResult<Message>> completer,
+    SendMessageParams params,
   ) async {
     // 防止重复处理错误
     if (completer.isCompleted) {
       _logger.warning('错误处理时发现completer已完成', {
-        'messageId': aiMessage.id,
+        'streamingMessageId': streamingMessageId,
+        'originalMessageId': aiMessage.id,
         'error': error.toString(),
       });
       return;
     }
 
-    // 分析错误类型并提供用户友好的错误信息
-    final errorMessage = _getUserFriendlyErrorMessage(error);
-
     _logger.error('流式传输错误', {
-      'messageId': aiMessage.id,
+      'streamingMessageId': streamingMessageId,
+      'originalMessageId': aiMessage.id,
       'error': error.toString(),
-      'userMessage': errorMessage,
     });
 
-    // 🚀 修复：确保流式错误时消息被正确保存到数据库
+    // 🚀 优化：使用统一错误处理
     try {
-      // 提取部分内容（如果有的话）
       final partialContent = _extractContentFromMessage(aiMessage);
-
-      await _messageRepository.handleStreamingError(
-        messageId: aiMessage.id,
-        errorMessage: errorMessage,
+      await _messageCreator.createUnifiedErrorMessage(
+        conversationId: conversationId,
+        assistantId: params.assistant.id,
+        error: error,
+        messageId: streamingMessageId,
         partialContent: partialContent.isNotEmpty ? partialContent : null,
+        isStreaming: true,
+        saveToDatabase: true,
       );
-    } catch (error) {
-      _logger.error('处理流式错误保存失败', {
-        'messageId': aiMessage.id,
-        'error': error.toString(),
+    } catch (handlingError) {
+      _logger.error('统一错误处理失败', {
+        'streamingMessageId': streamingMessageId,
+        'originalError': error.toString(),
+        'handlingError': handlingError.toString(),
       });
-      // 继续执行，不因保存失败而中断流程
     }
 
-    // 清理订阅 - 直接使用消息ID作为key
-    final streamContext = _activeStreams[aiMessage.id];
+    // 🚀 修复：清理订阅 - 使用统一的streamingMessageId作为key
+    final streamContext = _activeStreams[streamingMessageId];
     if (streamContext != null) {
       await streamContext.cancel();
-      _activeStreams.remove(aiMessage.id);
+      _activeStreams.remove(streamingMessageId);
     }
 
     _updateStatistics(failed: true);
 
     // 确保只完成一次
     if (!completer.isCompleted) {
+      final errorMessage = _getUserFriendlyErrorMessage(error);
       completer.complete(
         ChatOperationFailure(errorMessage),
       );
@@ -699,52 +730,9 @@ class ChatOrchestratorService {
     }
   }
 
-  /// 持久化消息 - 简化版本，统一在Repository层处理重复检测
-  Future<void> _persistMessage(Message message, String conversationId) async {
-    try {
-      _logger.info('开始持久化消息', {
-        'messageId': message.id,
-        'conversationId': conversationId,
-        'role': message.role,
-        'contentLength': message.content.length,
-      });
 
-      // 使用MessageRepository统一保存消息，Repository层会处理重复检测
-      await _messageRepository.saveMessage(message);
 
-      _logger.info('消息持久化成功', {
-        'messageId': message.id,
-        'conversationId': conversationId,
-      });
-    } catch (error) {
-      _logger.error('消息持久化失败', {
-        'messageId': message.id,
-        'conversationId': conversationId,
-        'error': error.toString(),
-      });
 
-      // 重新抛出错误，让上层处理
-      rethrow;
-    }
-  }
-
-  /// 通知流式更新
-  void _notifyStreamingUpdate(StreamingUpdate update) {
-    // _logger.info('通知流式更新', {
-    //   'messageId': update.messageId,
-    //   'hasCallback': _onStreamingUpdate != null,
-    //   'isDone': update.isDone,
-    //   'contentLength': update.fullContent?.length ?? 0,
-    //   'callbackType': _onStreamingUpdate?.runtimeType.toString(),
-    // });
-
-    if (_onStreamingUpdate != null) {
-      _onStreamingUpdate!(update);
-      // _logger.info('流式更新回调已调用', {'messageId': update.messageId});
-    } else {
-      _logger.warning('流式更新回调为空', {'messageId': update.messageId});
-    }
-  }
 
   /// 更新统计信息
   void _updateStatistics({Duration? duration, bool failed = false}) {
@@ -765,64 +753,9 @@ class ChatOrchestratorService {
   /// 获取性能指标
   ChatPerformanceMetrics get performanceMetrics => _performanceMetrics;
 
-  /// 使用状态机验证消息状态转换
-  bool _validateStatusTransition(MessageStatus from, MessageStatus to) {
-    return _stateMachine.canTransition(from, to);
-  }
 
-  /// 执行消息状态转换
-  StateTransitionResult _transitionMessageStatus({
-    required MessageStatus currentStatus,
-    required MessageStateEvent event,
-    Map<String, dynamic>? metadata,
-  }) {
-    return _stateMachine.transition(
-      currentStatus: currentStatus,
-      event: event,
-      metadata: metadata,
-    );
-  }
 
-  /// 初始化流式消息 - 代理方法，保持向后兼容
-  Future<void> initializeStreamingMessage(
-    String messageId,
-    String content, {
-    required String conversationId,
-    required String assistantId,
-    String? modelId,
-    Map<String, dynamic>? metadata,
-  }) async {
-    await _streamingMessageService.initializeStreaming(
-      messageId: messageId,
-      conversationId: conversationId,
-      assistantId: assistantId,
-      modelId: modelId,
-      metadata: metadata,
-    );
 
-    // 如果有初始内容，更新缓存
-    if (content.isNotEmpty) {
-      await _streamingMessageService.updateContent(
-        messageId: messageId,
-        fullContent: content,
-      );
-    }
-  }
-
-  /// 更新流式消息内容 - 代理方法，保持向后兼容
-  Future<void> updateStreamingContent(String messageId, String content) async {
-    await _streamingMessageService.updateContent(
-      messageId: messageId,
-      fullContent: content,
-    );
-  }
-
-  /// 完成流式消息 - 代理方法，保持向后兼容
-  Future<void> finishStreamingMessage(String messageId) async {
-    await _streamingMessageService.completeStreaming(
-      messageId: messageId,
-    );
-  }
 
 
 

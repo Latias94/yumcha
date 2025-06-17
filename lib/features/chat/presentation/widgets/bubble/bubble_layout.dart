@@ -119,16 +119,56 @@ class BubbleLayout {
 
   /// 创建优化的响应式布局（减少间距浪费）
   factory BubbleLayout.optimizedResponsive(BuildContext context) {
+    final isMobile = DesignConstants.isMobile(context);
+    final isTablet = DesignConstants.isTablet(context);
+
     return BubbleLayout(
-      padding: AdaptiveSpacing.getChatBubblePadding(context),
-      margin: EdgeInsets.symmetric(
-        horizontal: DesignConstants.spaceS,
-        vertical: AdaptiveSpacing.getChatMessageSpacing(context) / 2, // 减半避免双重间距
-      ),
+      padding: _getOptimizedPadding(context),
+      margin: _getOptimizedMargin(context),
       borderRadius: DesignConstants.radiusL.topLeft.x,
-      maxWidthRatio: DesignConstants.isMobile(context) ? 0.85 : 0.75,
-      minWidth: DesignConstants.isMobile(context) ? 60.0 : 80.0,
+      maxWidthRatio: isMobile ? 0.9 : (isTablet ? 0.8 : 0.75), // 更宽的移动端布局
+      minWidth: isMobile ? 40.0 : (isTablet ? 60.0 : 80.0), // 更小的最小宽度
     );
+  }
+
+  /// 获取优化的内边距
+  static EdgeInsets _getOptimizedPadding(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceM, // 12px
+        vertical: DesignConstants.spaceS,   // 8px
+      );
+    } else if (DesignConstants.isTablet(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceL,  // 16px
+        vertical: DesignConstants.spaceM,    // 12px
+      );
+    } else {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceXL, // 20px
+        vertical: DesignConstants.spaceL,    // 16px
+      );
+    }
+  }
+
+  /// 获取优化的外边距
+  static EdgeInsets _getOptimizedMargin(BuildContext context) {
+    if (DesignConstants.isMobile(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceXS, // 4px - 减少水平间距
+        vertical: DesignConstants.spaceXS,   // 4px - 减少垂直间距
+      );
+    } else if (DesignConstants.isTablet(context)) {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceS,  // 8px
+        vertical: DesignConstants.spaceXS,   // 4px
+      );
+    } else {
+      return EdgeInsets.symmetric(
+        horizontal: DesignConstants.spaceM,  // 12px
+        vertical: DesignConstants.spaceS,    // 8px
+      );
+    }
   }
 
   /// 复制并修改布局

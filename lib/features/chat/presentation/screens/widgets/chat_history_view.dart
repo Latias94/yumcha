@@ -188,17 +188,14 @@ class _ChatHistoryViewState extends ConsumerState<ChatHistoryView> {
                                 messages.isEmpty &&
                                 index == 0;
 
-                        // 判断是否可以编辑（只有最后一条用户消息可以编辑）
+                        // 判断是否可以编辑（用户消息和AI消息都可以编辑）
                         final canEdit = !isWelcomeMessage &&
-                            message.isFromUser &&
-                            widget.onEditMessage != null &&
-                            index == displayMessages.length - 1;
+                            widget.onEditMessage != null;
 
-                        // 判断是否可以重新生成（只有最后一条AI消息可以重新生成）
+                        // 判断是否可以重新生成（只有AI消息可以重新生成）
                         final canRegenerate = !isWelcomeMessage &&
                             !message.isFromUser &&
-                            widget.onRegenerateMessage != null &&
-                            index == displayMessages.length - 1;
+                            widget.onRegenerateMessage != null;
 
                         return Padding(
                           // 使用响应式聊天消息间距，优化不同设备的显示效果

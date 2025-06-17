@@ -7,6 +7,7 @@ import '../../domain/services/message_processor.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
 import '../providers/unified_chat_notifier.dart';
+import '../widgets/message_edit_dialog.dart';
 import 'widgets/chat_history_view.dart';
 import 'widgets/chat_input.dart';
 
@@ -352,26 +353,34 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   void _onEditMessage(Message message) {
-    if (!message.isFromUser) return;
+    // 显示编辑对话框
+    _showEditMessageDialog(message);
+  }
 
-    // 获取当前消息状态
-    final chatState = ref.read(unifiedChatProvider);
+  /// 显示消息编辑对话框
+  void _showEditMessageDialog(Message message) {
+    showDialog(
+      context: context,
+      builder: (context) => MessageEditDialog(
+        message: message,
+        onSave: (newContent) => _handleMessageEdit(message, newContent),
+      ),
+    );
+  }
 
-    // 找到对应的AI回复消息
-    final messageIndex = chatState.messageState.messages.indexOf(message);
-    Message? associatedResponse;
+  /// 处理消息编辑（新方法名避免冲突）
+  void _handleMessageEdit(Message message, String newContent) async {
+    try {
+      final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+      await unifiedChatNotifier.editMessage(message.id, newContent);
 
-    if (messageIndex != -1 && messageIndex < chatState.messageState.messages.length - 1) {
-      final nextMessage = chatState.messageState.messages[messageIndex + 1];
-      if (!nextMessage.isFromUser) {
-        associatedResponse = nextMessage;
+      // 通知消息变化
+      _notifyMessagesChanged();
+    } catch (e) {
+      if (mounted) {
+        NotificationService().showError('编辑消息失败: $e');
       }
     }
-
-    setState(() {
-      _editingMessage = message;
-      _originalAssistantMessage = associatedResponse;
-    });
   }
 
   void _onCancelEdit() {

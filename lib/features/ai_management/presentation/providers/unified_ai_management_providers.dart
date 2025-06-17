@@ -8,6 +8,9 @@ import '../../domain/entities/ai_assistant.dart';
 import '../../domain/entities/ai_model.dart';
 import 'unified_ai_management_notifier.dart';
 
+// 导出新的AI配置状态Provider
+export 'ai_configuration_state_provider.dart';
+
 /// 统一AI管理Provider
 final unifiedAiManagementProvider = StateNotifierProvider<UnifiedAiManagementNotifier, UnifiedAiManagementState>(
   (ref) => UnifiedAiManagementNotifier(ref),

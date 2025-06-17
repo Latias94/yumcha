@@ -145,7 +145,6 @@ abstract class MessageRepository {
   
   // 流式处理
   Future<void> updateBlockStatus(String blockId, MessageBlockStatus status);
-  Future<void> appendToTextBlock(String blockId, String content);
   
   // 复合操作
   Future<Message> getMessageWithBlocks(String messageId);
