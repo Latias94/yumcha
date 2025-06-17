@@ -4,7 +4,6 @@ import '../../infrastructure/services/logger_service.dart';
 import 'dependency_providers.dart';
 
 import '../../infrastructure/services/ai/providers/ai_service_provider.dart';
-import '../../../features/chat/presentation/providers/unified_chat_notifier.dart';
 import '../../../features/settings/presentation/providers/settings_notifier.dart';
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/ai_management/domain/entities/ai_provider.dart';
@@ -184,8 +183,7 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
   ///
   /// 优先级：
   /// 1. 用户设置的专门标题生成模型
-  /// 2. 当前聊天配置的模型
-  /// 3. 任何可用的有效模型
+  /// 2. 任何可用的有效模型（避免循环依赖，不使用当前聊天配置）
   ({
     AiProvider provider,
     AiModel model,
@@ -214,21 +212,10 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
       }
     }
 
-    // 2. 使用当前聊天配置的模型
-    final currentChatConfig = _ref.read(currentChatConfigurationProvider);
-    if (currentChatConfig.isValid) {
-      _logger.info('使用当前聊天配置的模型', {
-        'providerId': currentChatConfig.selectedProvider!.id,
-        'modelName': currentChatConfig.selectedModel!.name,
-      });
-      return (
-        provider: currentChatConfig.selectedProvider!,
-        model: currentChatConfig.selectedModel!,
-        assistant: currentChatConfig.selectedAssistant!,
-      );
-    }
-
-    // 3. 兜底：使用任何可用的有效模型
+    // 2. 兜底：使用任何可用的有效模型
+    // 注意：不使用 currentChatConfigurationProvider 以避免循环依赖
+    // currentChatConfigurationProvider 来自 unifiedChatProvider，
+    // 而 unifiedChatProvider 监听了 conversationTitleNotifierProvider
     final providers = _ref.read(aiProvidersProvider);
     final assistants = _ref.read(aiAssistantsProvider);
 
