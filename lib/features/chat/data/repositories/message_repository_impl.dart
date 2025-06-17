@@ -60,6 +60,9 @@ class MessageRepositoryImpl implements MessageRepository {
   @override
   Future<List<Message>> getMessagesByConversation(String conversationId) async {
     try {
+      // 🚀 修复：在加载对话消息时清理可能残留的流式缓存
+      cleanupStreamingCache();
+
       final messageDataList = await _database.getMessagesByConversation(conversationId);
       final messages = <Message>[];
 
@@ -892,6 +895,11 @@ class MessageRepositoryImpl implements MessageRepository {
     // 🚀 修复：流式消息在开始时不保存到数据库，只初始化内存缓存
     // 只有在流式结束或错误时才保存到数据库
 
+    _logger.debug('开始流式消息', {
+      'messageId': messageId,
+      'existingCache': _streamingBlocksCache.containsKey(messageId),
+    });
+
     // 初始化流式消息的块缓存和内容缓存
     _streamingBlocksCache[messageId] = [];
     _streamingContentCache[messageId] = {};
@@ -909,6 +917,12 @@ class MessageRepositoryImpl implements MessageRepository {
     String? modelId,
     Map<String, dynamic>? metadata,
   }) {
+    _logger.debug('设置流式消息信息', {
+      'messageId': messageId,
+      'conversationId': conversationId,
+      'assistantId': assistantId,
+    });
+
     _streamingMessageInfoCache[messageId] = {
       'conversationId': conversationId,
       'assistantId': assistantId,
@@ -916,6 +930,26 @@ class MessageRepositoryImpl implements MessageRepository {
       'metadata': metadata,
       'createdAt': DateTime.now().toIso8601String(),
     };
+  }
+
+  /// 清理过期的流式消息缓存
+  /// 在应用重启或对话加载时调用，清理可能残留的流式状态
+  void cleanupStreamingCache() {
+    final cacheCount = _streamingBlocksCache.length +
+                      _streamingContentCache.length +
+                      _streamingMessageInfoCache.length;
+
+    if (cacheCount > 0) {
+      _logger.info('清理流式消息缓存', {
+        'blocksCache': _streamingBlocksCache.length,
+        'contentCache': _streamingContentCache.length,
+        'infoCache': _streamingMessageInfoCache.length,
+      });
+
+      _streamingBlocksCache.clear();
+      _streamingContentCache.clear();
+      _streamingMessageInfoCache.clear();
+    }
   }
 
   @override
@@ -1001,25 +1035,43 @@ class MessageRepositoryImpl implements MessageRepository {
     // 🚀 修复：流式结束时一次性将缓存内容写入数据库
     // 这是流式消息第一次真正保存到数据库
 
+    _logger.debug('开始完成流式消息', {
+      'messageId': messageId,
+      'hasCache': _streamingBlocksCache.containsKey(messageId),
+      'hasInfoCache': _streamingMessageInfoCache.containsKey(messageId),
+    });
+
     // 获取缓存的块信息
     final cachedBlocks = _streamingBlocksCache[messageId];
     if (cachedBlocks == null || cachedBlocks.isEmpty) {
-      // 🚀 修复：如果没有缓存，说明流式消息没有内容，创建空的成功消息
+      // 🚀 修复：如果没有缓存，检查是否是重新打开对话的情况
       try {
         // 检查消息是否已存在于数据库中
         final existingMessage = await getMessage(messageId);
         if (existingMessage != null) {
           // 如果消息已存在，只更新状态
+          _logger.info('流式消息已存在于数据库，更新状态为成功', {
+            'messageId': messageId,
+            'currentStatus': existingMessage.status.name,
+          });
           await updateMessageStatus(messageId, msg_status.MessageStatus.aiSuccess);
           if (metadata != null) {
             await updateMessageMetadata(messageId, metadata);
           }
         } else {
-          // 如果消息不存在，说明这是一个异常情况
-          throw Exception('流式消息不存在，无法完成: $messageId');
+          // 🚀 修复：如果消息不存在且没有缓存信息，这可能是应用重启后的情况
+          // 记录警告但不抛出异常，避免阻塞用户操作
+          _logger.warning('流式消息不存在且无缓存信息，可能是应用重启导致', {
+            'messageId': messageId,
+            'action': '跳过完成操作',
+          });
         }
       } catch (error) {
-        rethrow;
+        _logger.error('完成流式消息时发生错误', {
+          'messageId': messageId,
+          'error': error.toString(),
+        });
+        // 🚀 修复：不再重新抛出异常，避免阻塞用户界面
       }
       return;
     }

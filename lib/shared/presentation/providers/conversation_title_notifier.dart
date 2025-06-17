@@ -4,8 +4,12 @@ import '../../infrastructure/services/logger_service.dart';
 import 'dependency_providers.dart';
 
 import '../../infrastructure/services/ai/providers/ai_service_provider.dart';
-import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
 import '../../../features/chat/presentation/providers/unified_chat_notifier.dart';
+import '../../../features/settings/presentation/providers/settings_notifier.dart';
+import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
+import '../../../features/ai_management/domain/entities/ai_provider.dart';
+import '../../../features/ai_management/domain/entities/ai_model.dart';
+import '../../../features/ai_management/domain/entities/ai_assistant.dart';
 
 /// 对话标题管理器 - 专门负责对话标题的生成和管理
 ///
@@ -139,41 +143,23 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
   Future<String?> _generateTitleWithSimpleChat(List<Message> messages) async {
     if (messages.isEmpty) return null;
 
-    // 从统一聊天配置获取默认配置
-    final chatConfig = _ref.read(chatConfigurationProvider);
-    final selectedProvider = chatConfig.selectedProvider;
-    final selectedModel = chatConfig.selectedModel;
-
-    if (selectedProvider == null || selectedModel == null) {
-      _logger.debug('没有可用的提供商和模型配置，无法生成标题');
-      return null;
-    }
-
-    final providerId = selectedProvider.id;
-    final modelName = selectedModel.name;
-
     // 构建标题生成提示
     final titlePrompt = _buildTitleGenerationPrompt(messages);
 
+    // 按优先级选择模型配置
+    final modelConfig = _selectModelForTitleGeneration();
+    if (modelConfig == null) {
+      _logger.warning('无法找到有效的模型配置用于标题生成');
+      return null;
+    }
+
     try {
-      // 使用sendChatMessageProvider，它不包含工具调用功能
-      final providers = _ref.read(aiProvidersProvider);
-      final assistants = _ref.read(aiAssistantsProvider);
-
-      final provider = providers.where((p) => p.id == providerId).firstOrNull;
-      final assistant = assistants.where((a) => a.isEnabled).firstOrNull;
-
-      if (provider == null || assistant == null) {
-        _logger.warning('找不到有效的提供商或助手配置');
-        return null;
-      }
-
       final response = await _ref.read(
         sendChatMessageProvider(
           SendChatMessageParams(
-            provider: provider,
-            assistant: assistant,
-            modelName: modelName,
+            provider: modelConfig.provider,
+            assistant: modelConfig.assistant,
+            modelName: modelConfig.model.name,
             chatHistory: [], // 标题生成不需要历史消息
             userMessage: titlePrompt,
           ),
@@ -185,10 +171,82 @@ class ConversationTitleNotifier extends StateNotifier<Map<String, String>> {
       }
     } catch (e) {
       _logger.warning('生成标题失败', {
-        'providerId': providerId,
-        'modelName': modelName,
+        'providerId': modelConfig.provider.id,
+        'modelName': modelConfig.model.name,
         'error': e.toString(),
       });
+    }
+
+    return null;
+  }
+
+  /// 按优先级选择标题生成的模型配置
+  ///
+  /// 优先级：
+  /// 1. 用户设置的专门标题生成模型
+  /// 2. 当前聊天配置的模型
+  /// 3. 任何可用的有效模型
+  ({
+    AiProvider provider,
+    AiModel model,
+    AiAssistant assistant,
+  })? _selectModelForTitleGeneration() {
+    // 1. 优先使用专门的标题生成模型设置
+    final titleModelConfig = _ref.read(defaultTitleModelProvider);
+    if (titleModelConfig?.isConfigured == true) {
+      final providers = _ref.read(aiProvidersProvider);
+      final assistants = _ref.read(aiAssistantsProvider);
+
+      final provider = providers
+          .where((p) => p.id == titleModelConfig!.providerId && p.isEnabled)
+          .firstOrNull;
+      final model = provider?.models
+          .where((m) => m.name == titleModelConfig!.modelName)
+          .firstOrNull;
+      final assistant = assistants.where((a) => a.isEnabled).firstOrNull;
+
+      if (provider != null && model != null && assistant != null) {
+        _logger.info('使用专门的标题生成模型', {
+          'providerId': provider.id,
+          'modelName': model.name,
+        });
+        return (provider: provider, model: model, assistant: assistant);
+      }
+    }
+
+    // 2. 使用当前聊天配置的模型
+    final currentChatConfig = _ref.read(currentChatConfigurationProvider);
+    if (currentChatConfig.isValid) {
+      _logger.info('使用当前聊天配置的模型', {
+        'providerId': currentChatConfig.selectedProvider!.id,
+        'modelName': currentChatConfig.selectedModel!.name,
+      });
+      return (
+        provider: currentChatConfig.selectedProvider!,
+        model: currentChatConfig.selectedModel!,
+        assistant: currentChatConfig.selectedAssistant!,
+      );
+    }
+
+    // 3. 兜底：使用任何可用的有效模型
+    final providers = _ref.read(aiProvidersProvider);
+    final assistants = _ref.read(aiAssistantsProvider);
+
+    for (final provider in providers) {
+      if (provider.isEnabled && provider.models.isNotEmpty) {
+        final assistant = assistants.where((a) => a.isEnabled).firstOrNull;
+        if (assistant != null) {
+          _logger.info('使用兜底模型配置', {
+            'providerId': provider.id,
+            'modelName': provider.models.first.name,
+          });
+          return (
+            provider: provider,
+            model: provider.models.first,
+            assistant: assistant,
+          );
+        }
+      }
     }
 
     return null;
@@ -245,13 +303,9 @@ $conversationSummary
         final updatedConversation = conversation.copyWith(channelName: title);
         await repository.saveConversation(updatedConversation);
 
-        // 通知统一聊天系统更新对话状态
-        final chatNotifier = _ref.read(unifiedChatProvider.notifier);
-        // 如果是当前对话，更新当前对话状态
-        final currentConversation = _ref.read(currentConversationProvider);
-        if (currentConversation?.id == conversationId) {
-          await chatNotifier.loadConversation(conversationId);
-        }
+        // ✅ 符合最佳实践：不直接调用其他模块，让UnifiedChatNotifier通过监听响应
+        // UnifiedChatNotifier会监听conversationTitleNotifierProvider的变化
+        // 当标题更新后，会自动触发相应的状态更新
 
         _logger.info('标题保存成功', {
           'conversationId': conversationId,

@@ -34,7 +34,7 @@ class ChatConfigurationStatus extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chatConfig = ref.watch(chatConfigurationProvider);
+    final chatConfig = ref.watch(currentChatConfigurationProvider);
     final theme = Theme.of(context);
 
     // 同时监听提供商数据变化，确保配置状态能实时更新

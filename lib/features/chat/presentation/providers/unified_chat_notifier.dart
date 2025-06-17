@@ -194,6 +194,11 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       _handleProvidersChanged(previous, next);
     });
 
+    // ✅ 符合最佳实践：监听对话标题变化
+    _ref.listen(conversationTitleNotifierProvider, (previous, next) {
+      _handleTitleChanged(previous, next);
+    });
+
     // 设置ChatOrchestratorService的回调
     _setupChatOrchestratorCallbacks();
 
@@ -674,8 +679,15 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     }
 
     try {
+      // 🚀 修复：在加载新对话前清理流式状态，避免残留状态干扰
+      _ref.read(streamingMessageServiceProvider).cleanupAllActiveContexts();
+
       state = state.copyWith(
         conversationState: state.conversationState.copyWith(isLoading: true),
+        // 清理之前的流式消息ID
+        messageState: state.messageState.copyWith(
+          streamingMessageIds: const {},
+        ),
       );
 
       final repository = _ref.read(conversationRepositoryProvider);
@@ -742,6 +754,8 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     _clearError();
     _emitEvent(const ErrorClearedEvent());
   }
+
+
 
   /// 获取统计信息
   ChatStatistics get statistics => _orchestrator.statistics;
@@ -822,7 +836,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
       status: status,
       metadata: metadata,
       updateCallback: _updateMessageContentInternal,
-      priority: status == MessageStatus.aiProcessing ? 2 : 1, // 处理中的消息优先级更高
+      priority: (status == MessageStatus.aiProcessing || status == MessageStatus.aiStreaming) ? 2 : 1, // 🚀 修复：流式消息优先级更高
     );
 
     _batchUpdater.addUpdate(update);
@@ -974,7 +988,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         _updateMessageContentWithBatch(
           update.messageId,
           update.fullContent ?? '',
-          MessageStatus.aiProcessing,
+          MessageStatus.aiStreaming, // 🚀 修复：流式消息应该使用aiStreaming状态
         );
 
         // 🚀 修复：直接使用StreamingMessageService更新流式内容
@@ -1004,7 +1018,7 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
         role: 'assistant',
         assistantId: state.configuration.selectedAssistant?.id ?? '',
         blockIds: ['${update.messageId}_text_block'],
-        status: update.isDone ? MessageStatus.aiSuccess : MessageStatus.aiProcessing,
+        status: update.isDone ? MessageStatus.aiSuccess : MessageStatus.aiStreaming, // 🚀 修复：流式消息应该使用aiStreaming状态
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         blocks: [
@@ -1338,6 +1352,51 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     }
   }
 
+  /// 处理对话标题变化
+  ///
+  /// ✅ 符合最佳实践：响应式监听标题变化，自动更新当前对话状态
+  /// 当ConversationTitleNotifier中的标题更新后，自动同步到当前对话状态
+  void _handleTitleChanged(
+    Map<String, String>? previous,
+    Map<String, String> next,
+  ) {
+    final currentConversation = state.conversationState.currentConversation;
+    if (currentConversation == null) {
+      return; // 没有当前对话，无需处理
+    }
+
+    // 检查当前对话的标题是否有变化
+    final conversationId = currentConversation.id;
+    final previousTitle = previous?[conversationId];
+    final newTitle = next[conversationId];
+
+    // 只在标题真正变化时处理
+    if (newTitle != null && newTitle != previousTitle && newTitle != currentConversation.channelName) {
+      _logger.info('检测到对话标题变化，更新当前对话状态', {
+        'conversationId': conversationId,
+        'oldTitle': currentConversation.channelName,
+        'newTitle': newTitle,
+      });
+
+      // 更新当前对话状态
+      final updatedConversation = currentConversation.copyWith(channelName: newTitle);
+
+      state = state.copyWith(
+        conversationState: state.conversationState.copyWith(
+          currentConversation: updatedConversation,
+        ),
+      );
+
+      // 发出对话变更事件
+      _emitEvent(ConversationChangedEvent(updatedConversation));
+
+      _logger.info('对话标题更新完成', {
+        'conversationId': conversationId,
+        'newTitle': newTitle,
+      });
+    }
+  }
+
   /// 调度配置保存
   void _scheduleConfigurationSave() {
     _configSaveTimer?.cancel();
@@ -1536,8 +1595,8 @@ final chatMessagesProvider = Provider<List<Message>>((ref) {
   return ref.watch(unifiedChatProvider.select((state) => state.messageState.messages));
 });
 
-/// 聊天配置Provider（细粒度监听）
-final chatConfigurationProvider = Provider<ChatConfiguration>((ref) {
+/// 当前聊天配置Provider（细粒度监听）
+final currentChatConfigurationProvider = Provider<ChatConfiguration>((ref) {
   return ref.watch(unifiedChatProvider.select((state) => state.configuration));
 });
 

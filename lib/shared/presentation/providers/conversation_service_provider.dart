@@ -6,7 +6,7 @@ import '../../../features/ai_management/domain/entities/ai_provider.dart';
 import 'dependency_providers.dart';
 
 import '../../../features/ai_management/presentation/providers/unified_ai_management_providers.dart';
-import '../../../features/chat/presentation/providers/chat_configuration_notifier.dart';
+import '../../../features/chat/presentation/providers/unified_chat_notifier.dart';
 
 /// 对话服务 - 封装对话相关的复杂业务逻辑
 ///
@@ -20,7 +20,7 @@ class ConversationService {
   /// 获取默认配置
   Future<ConversationConfig> getDefaultConfiguration() async {
     // 从多个Provider获取配置信息
-    final chatConfig = _ref.read(chatConfigurationProvider);
+    final chatConfig = _ref.read(currentChatConfigurationProvider);
 
     // 使用新的统一AI管理Provider
     final providers = _ref.read(aiProvidersProvider);
@@ -29,7 +29,7 @@ class ConversationService {
     return ConversationConfig(
       assistant: assistants.firstOrNull,
       provider: providers.firstOrNull,
-      modelName: chatConfig.defaultConfiguration.modelName,
+      modelName: chatConfig.selectedModel?.name,
     );
   }
 

@@ -299,7 +299,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
     if ((hasText || hasAttachments) && widget.onSendMessage != null) {
       // 检查配置状态
-      final chatConfig = ref.read(chatConfigurationProvider);
+      final chatConfig = ref.read(currentChatConfigurationProvider);
       if (!chatConfig.isComplete) {
         // 显示配置问题对话框
         showDialog(
@@ -427,7 +427,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
   }
 
   void _showModelSelector() async {
-    final chatConfig = ref.read(chatConfigurationProvider);
+    final chatConfig = ref.read(currentChatConfigurationProvider);
     final preferenceService = ref.read(preferenceServiceProvider);
 
     await showModelSelector(
@@ -441,7 +441,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
         unifiedChatNotifier.selectModel(selection.provider, selection.model);
 
         // 通知父组件模型已改变
-        final chatConfig = ref.read(chatConfigurationProvider);
+        final chatConfig = ref.read(currentChatConfigurationProvider);
         if (chatConfig.selectedAssistant != null) {
           widget.onAssistantChanged?.call(chatConfig.selectedAssistant!);
         }
@@ -610,7 +610,7 @@ class _ChatInputState extends ConsumerState<ChatInput>
 
   Widget _buildConfigurationStatusIndicator(
       BuildContext context, ThemeData theme) {
-    final chatConfig = ref.watch(chatConfigurationProvider);
+    final chatConfig = ref.watch(currentChatConfigurationProvider);
 
     // 只在配置不完整时显示
     if (chatConfig.isComplete) {

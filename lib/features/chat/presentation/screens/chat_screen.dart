@@ -146,7 +146,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final assistants = ref.read(aiAssistantsProvider);
       final providers = ref.read(aiProvidersProvider);
       final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
-      final currentConfig = ref.read(chatConfigurationProvider);
+      final currentConfig = ref.read(currentChatConfigurationProvider);
 
       final assistant = assistants
           .where((a) => a.id == _conversationState.assistantId)
@@ -434,7 +434,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await unifiedChatNotifier.selectAssistant(assistant);
 
       // 获取更新后的配置
-      final chatConfig = ref.read(chatConfigurationProvider);
+      final chatConfig = ref.read(currentChatConfigurationProvider);
 
       // 更新本地对话状态
       setState(() {

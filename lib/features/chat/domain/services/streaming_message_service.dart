@@ -289,7 +289,25 @@ class StreamingMessageService {
   }) async {
     final context = _activeContexts[messageId];
     if (context == null) {
-      _logger.warning('流式上下文不存在', {'messageId': messageId});
+      _logger.warning('流式上下文不存在，可能是应用重启导致', {
+        'messageId': messageId,
+        'action': '尝试直接完成Repository层处理',
+      });
+
+      // 🚀 修复：即使没有上下文，也尝试完成Repository层的处理
+      // 这种情况可能发生在应用重启后
+      try {
+        await _messageRepository.finishStreamingMessage(
+          messageId: messageId,
+          metadata: metadata,
+        );
+        _logger.info('无上下文情况下完成流式消息', {'messageId': messageId});
+      } catch (error) {
+        _logger.error('无上下文情况下完成流式消息失败', {
+          'messageId': messageId,
+          'error': error.toString(),
+        });
+      }
       return;
     }
 
@@ -405,6 +423,20 @@ class StreamingMessageService {
   /// 获取流式消息状态
   MessageStatus? getStreamingStatus(String messageId) {
     return _activeContexts[messageId]?.status;
+  }
+
+  /// 清理所有活跃的流式上下文
+  /// 在应用重启或需要重置状态时调用
+  void cleanupAllActiveContexts() {
+    final activeCount = _activeContexts.length;
+    if (activeCount > 0) {
+      _logger.info('清理所有活跃的流式上下文', {
+        'activeContextsCount': activeCount,
+        'messageIds': _activeContexts.keys.toList(),
+      });
+
+      _activeContexts.clear();
+    }
   }
 
   /// 清理资源

@@ -409,7 +409,7 @@ class MessageFactory {
       id: messageId,
       conversationId: conversationId,
       assistantId: assistantId,
-      status: MessageStatus.aiProcessing,
+      status: MessageStatus.aiStreaming, // 🚀 修复：流式消息应该使用aiStreaming状态
       blockIds: [textBlock.id],
       createdAt: now,
       modelId: modelId,
@@ -432,7 +432,7 @@ class MessageFactory {
     required String content,
     bool isComplete = false,
   }) {
-    if (message.status != MessageStatus.aiProcessing) {
+    if (message.status != MessageStatus.aiStreaming) { // 🚀 修复：检查正确的流式状态
       throw ArgumentError('只能更新流式消息');
     }
 
@@ -449,7 +449,7 @@ class MessageFactory {
     }).toList();
 
     final updatedMessage = message.copyWith(
-      status: isComplete ? MessageStatus.aiSuccess : MessageStatus.aiProcessing,
+      status: isComplete ? MessageStatus.aiSuccess : MessageStatus.aiStreaming, // 🚀 修复：流式进行中应该使用aiStreaming状态
       blocks: updatedBlocks,
       updatedAt: DateTime.now(),
       metadata: {
