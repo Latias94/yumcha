@@ -3,12 +3,11 @@
 /// 用于调试流式消息丢字问题，提供详细的日志记录和内容验证功能
 library;
 
-import 'dart:async';
-import 'package:logging/logging.dart';
+import '../../../../shared/infrastructure/services/logger_service.dart';
 
 /// 流式消息调试辅助类
 class StreamingDebugHelper {
-  static final Logger _logger = Logger('StreamingDebugHelper');
+  static final LoggerService _logger = LoggerService();
 
   /// 流式消息内容跟踪
   static final Map<String, List<String>> _contentHistory = {};
@@ -21,10 +20,7 @@ class StreamingDebugHelper {
     _contentHistory[messageId] = [];
     _timestampHistory[messageId] = [];
 
-    _logger.info('开始跟踪流式消息', {
-      'messageId': messageId,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
+    _logger.info('开始跟踪流式消息: messageId=$messageId, timestamp=${DateTime.now().toIso8601String()}');
   }
 
   /// 记录内容更新
@@ -40,21 +36,12 @@ class StreamingDebugHelper {
     history.add(content);
     timestamps.add(DateTime.now());
 
-    _logger.debug('记录内容更新', {
-      'messageId': messageId,
-      'source': source ?? 'unknown',
-      'updateIndex': history.length - 1,
-      'contentLength': content.length,
-      'contentEnding': content.length > 20
-          ? '...${content.substring(content.length - 20)}'
-          : content,
-      'previousLength':
-          history.length > 1 ? history[history.length - 2].length : 0,
-      'lengthDiff': history.length > 1
-          ? content.length - history[history.length - 2].length
-          : content.length,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
+    _logger.debug('记录内容更新: messageId=$messageId, source=${source ?? 'unknown'}, '
+        'updateIndex=${history.length - 1}, contentLength=${content.length}, '
+        'contentEnding=${content.length > 20 ? '...${content.substring(content.length - 20)}' : content}, '
+        'previousLength=${history.length > 1 ? history[history.length - 2].length : 0}, '
+        'lengthDiff=${history.length > 1 ? content.length - history[history.length - 2].length : content.length}, '
+        'timestamp=${DateTime.now().toIso8601String()}');
   }
 
   /// 完成跟踪并生成报告
@@ -63,7 +50,7 @@ class StreamingDebugHelper {
     final timestamps = _timestampHistory[messageId] ?? [];
 
     if (history.isEmpty) {
-      _logger.warning('完成跟踪但没有历史记录', {'messageId': messageId});
+      _logger.warning('完成跟踪但没有历史记录: messageId=$messageId');
       return {'error': 'No history found'};
     }
 
@@ -77,17 +64,10 @@ class StreamingDebugHelper {
       'potentialIssues': _detectPotentialIssues(history, timestamps),
     };
 
-    _logger.info('流式消息跟踪完成', {
-      'messageId': messageId,
-      'totalUpdates': history.length,
-      'finalLength': history.last.length,
-      'finalEnding': history.last.length > 30
-          ? '...${history.last.substring(history.last.length - 30)}'
-          : history.last,
-      'duration': timestamps.isNotEmpty && timestamps.length > 1
-          ? timestamps.last.difference(timestamps.first).inMilliseconds
-          : 0,
-    });
+    _logger.info('流式消息跟踪完成: messageId=$messageId, totalUpdates=${history.length}, '
+        'finalLength=${history.last.length}, '
+        'finalEnding=${history.last.length > 30 ? '...${history.last.substring(history.last.length - 30)}' : history.last}, '
+        'duration=${timestamps.isNotEmpty && timestamps.length > 1 ? timestamps.last.difference(timestamps.first).inMilliseconds : 0}ms');
 
     // 清理历史记录
     _contentHistory.remove(messageId);
