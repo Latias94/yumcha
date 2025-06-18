@@ -199,33 +199,53 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       _logger.info('开始重新生成标题', {
         'conversationId': conversation.id,
         'currentTitle': conversation.channelName,
+        'previewMessageCount': conversation.messages.length,
       });
-
-      // 检查是否有足够的消息
-      if (conversation.messages.length < 2) {
-        NotificationService().showWarning('消息数量不足，无法生成标题');
-        return;
-      }
 
       // 显示加载提示
       NotificationService().showInfo('正在重新生成标题...');
 
-      // 使用标题管理器重新生成标题
-      final titleNotifier =
-          ref.read(conversationTitleNotifierProvider.notifier);
+      final conversationRepository = ref.read(conversationRepositoryProvider);
 
-      // 直接使用conversation.messages，因为现在已经是Message类型
+      // 获取完整的对话消息（因为对话列表中只包含预览消息）
+      final fullConversation = await conversationRepository.getConversation(conversation.id);
+
+      if (fullConversation == null) {
+        _logger.warning('对话不存在', {'conversationId': conversation.id});
+        NotificationService().showError('对话不存在');
+        return;
+      }
+
+      // 检查是否有足够的消息
+      if (fullConversation.messages.length < 2) {
+        _logger.info('消息数量不足，无法生成标题', {
+          'conversationId': conversation.id,
+          'messageCount': fullConversation.messages.length,
+          'requiredCount': 2,
+        });
+        NotificationService().showWarning('消息数量不足，无法生成标题，当前消息数量: ${fullConversation.messages.length}');
+        return;
+      }
+
+      final titleNotifier = ref.read(conversationTitleNotifierProvider.notifier);
+
+      // 使用完整的消息列表进行标题生成
       await titleNotifier.regenerateTitle(
-          conversation.id, conversation.messages);
+          conversation.id, fullConversation.messages);
+
+      _logger.info('标题重新生成成功', {
+        'conversationId': conversation.id,
+        'messageCount': fullConversation.messages.length,
+      });
 
       NotificationService().showSuccess('标题重新生成成功');
 
-      // 刷新对话列表以显示新标题
       _refreshConversations();
-    } catch (e) {
+    } catch (e, stackTrace) {
       _logger.error('重新生成标题失败', {
         'conversationId': conversation.id,
         'error': e.toString(),
+        'stackTrace': stackTrace.toString(),
       });
       NotificationService().showError('重新生成标题失败: $e');
     }
