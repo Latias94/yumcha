@@ -31,7 +31,7 @@ class _SimplePrinter extends LogPrinter {
         '${time.second.toString().padLeft(2, '0')}.'
         '${(time.millisecond ~/ 10).toString().padLeft(2, '0')}';
 
-    final message = event.message;
+    final message = event.message.toString();
     final error = event.error;
 
     // 提取代码位置信息
@@ -39,16 +39,33 @@ class _SimplePrinter extends LogPrinter {
 
     final output = <String>[];
 
-    // 主日志行: 时间 级别 位置 消息
-    // 格式类似: 14:32:15.45 INFO  chat_service:42: User message sent
+    // 处理多行消息
+    final messageLines = message.split('\n');
     final locationStr = location.isNotEmpty ? '$location: ' : '';
-    output.add('${color('$timeStr $levelName')} $locationStr$message');
+
+    // 计算缩进长度：时间(11) + 空格(1) + 级别(5) + 空格(1) + 位置 = 18 + 位置长度
+    final indentLength = 18 + locationStr.length;
+    final indent = ' ' * indentLength;
+
+    // 第一行：完整的日志头 + 第一行消息
+    output.add('${color('$timeStr $levelName')} $locationStr${messageLines.first}');
+
+    // 后续行：使用缩进对齐
+    if (messageLines.length > 1) {
+      for (int i = 1; i < messageLines.length; i++) {
+        output.add('$indent${messageLines[i]}');
+      }
+    }
 
     // 如果有错误信息，添加到下一行
     if (error != null) {
       final errorStr = error.toString();
       if (errorStr.isNotEmpty && errorStr != message) {
-        output.add('${color('     └─')} $errorStr');
+        final errorLines = errorStr.split('\n');
+        for (int i = 0; i < errorLines.length; i++) {
+          final prefix = i == 0 ? '     └─ ' : '        ';
+          output.add('${color(prefix)}${errorLines[i]}');
+        }
       }
     }
 
@@ -61,7 +78,7 @@ class _SimplePrinter extends LogPrinter {
 
       for (final line in relevantLines) {
         final cleanLine = line.trim().replaceAll(RegExp(r'#\d+\s+'), '');
-        output.add('${color('     └─')} $cleanLine');
+        output.add('${color('     └─ ')}$cleanLine');
       }
     }
 
@@ -120,6 +137,33 @@ class _SimplePrinter extends LogPrinter {
   }
 }
 
+/// 自定义日志过滤器 - 支持在发布模式下也显示日志
+class _CustomLogFilter extends LogFilter {
+  _CustomLogFilter({
+    this.enableInReleaseMode = false,
+  });
+
+  final bool enableInReleaseMode;
+
+  @override
+  bool shouldLog(LogEvent event) {
+    // 如果启用了发布模式日志，总是显示
+    if (enableInReleaseMode) {
+      return event.level.index >= Logger.level.index;
+    }
+
+    // 否则使用默认的开发模式过滤器行为
+    bool inDebugMode = false;
+    assert(inDebugMode = true);
+
+    if (inDebugMode) {
+      return event.level.index >= Logger.level.index;
+    }
+
+    return false;
+  }
+}
+
 /// 日志记录服务 - 统一的应用日志管理系统
 ///
 /// 提供彩色、结构化的日志输出，支持debug/info/warning/error/fatal五个级别
@@ -145,19 +189,27 @@ class LoggerService {
   ///
   /// @param enableInReleaseMode 是否在生产环境启用日志
   /// @param enableHttpLogging 是否启用 HTTP 日志记录
+  /// @param logLevel 日志级别，默认为debug级别
   void initialize({
     bool enableInReleaseMode = false,
     bool enableHttpLogging = true,
+    Level logLevel = Level.debug,
   }) {
+    // 设置全局日志级别
+    Logger.level = logLevel;
+
     _logger = Logger(
       printer: _SimplePrinter(),
-      filter: DevelopmentFilter(),
+      filter: _CustomLogFilter(enableInReleaseMode: enableInReleaseMode),
     );
 
     // 配置 llm_dart HTTP 日志集成
     if (enableHttpLogging) {
       _setupHttpLogging();
     }
+
+    // 输出当前日志配置信息
+    _logger!.i('📋 日志服务已初始化 - 级别: ${logLevel.name}, HTTP日志: $enableHttpLogging, 发布模式: $enableInReleaseMode');
   }
 
   /// 配置 llm_dart HTTP 日志集成
@@ -234,6 +286,32 @@ class LoggerService {
     }
 
     return sanitized;
+  }
+
+  // 日志级别管理
+
+  /// 设置日志级别
+  ///
+  /// 可用级别：
+  /// - Level.trace: 最详细的日志
+  /// - Level.debug: 调试日志
+  /// - Level.info: 信息日志
+  /// - Level.warning: 警告日志
+  /// - Level.error: 错误日志
+  /// - Level.fatal: 致命错误日志
+  void setLevel(Level level) {
+    Logger.level = level;
+    logger.i('📋 日志级别已更改为: ${level.name}');
+  }
+
+  /// 获取当前日志级别
+  Level get currentLevel => Logger.level;
+
+  /// 检查当前是否在调试模式
+  bool get isDebugMode {
+    bool inDebugMode = false;
+    assert(inDebugMode = true);
+    return inDebugMode;
   }
 
   // 基础日志方法

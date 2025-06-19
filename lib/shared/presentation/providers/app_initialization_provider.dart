@@ -12,6 +12,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
 import '../../infrastructure/services/logger_service.dart';
 import '../../infrastructure/services/preference_service.dart';
 import '../../infrastructure/services/data_initialization_service.dart';
@@ -193,9 +194,13 @@ class AppInitializationNotifier extends StateNotifier<AppInitializationState> {
     state = state.copyWith(currentStep: '正在初始化基础服务...');
 
     try {
-      // 1. 初始化日志服务（启用HTTP日志记录）
+      // 1. 初始化日志服务（启用HTTP日志记录，设置debug级别）
       _logger.info('⚙️ 初始化日志服务');
-      LoggerService().initialize(enableHttpLogging: true);
+      LoggerService().initialize(
+        enableHttpLogging: true,
+        logLevel: Level.debug, // 明确设置为debug级别，确保debug消息可见
+        enableInReleaseMode: true, // 在发布模式下也启用日志（开发阶段）
+      );
       _logger.info('✅ 日志服务初始化完成');
 
       // 2. 初始化偏好设置服务
