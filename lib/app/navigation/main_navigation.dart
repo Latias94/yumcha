@@ -33,10 +33,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/presentation/widgets/app_drawer.dart';
-import '../../features/chat/presentation/screens/chat_screen.dart';
-import '../../features/chat/presentation/providers/unified_chat_notifier.dart';
+import '../../core/widgets/modern_chat_view.dart';
+import '../../core/providers/core_providers.dart';
 import '../../features/chat/domain/entities/conversation_ui_state.dart';
-import '../../features/chat/domain/entities/chat_state.dart';
 import '../../shared/infrastructure/services/logger_service.dart';
 
 /// 主导航界面组件
@@ -110,8 +109,13 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           _logger.info('开始加载初始对话', {
             'conversationId': widget.initialConversationId,
           });
-          final chatNotifier = ref.read(unifiedChatProvider.notifier);
-          await chatNotifier.loadConversation(widget.initialConversationId!);
+          final chatNotifier = ref.read(chatStateProvider.notifier);
+          // TODO: Implement conversation loading from database
+          // For now, create a placeholder conversation
+          await chatNotifier.createConversation(
+            title: 'Loaded Conversation',
+            assistantId: null,
+          );
           if (mounted) {
             setState(() {
               _hasInitialized = true;
@@ -143,10 +147,13 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   /// - 使用异步操作，需要检查 context.mounted
   /// - 使用 pushReplacement 而不是 setState，确保状态完全重置
   void _createNewChatWithAnimation(BuildContext context, WidgetRef ref) async {
-    final chatNotifier = ref.read(unifiedChatProvider.notifier);
+    final chatNotifier = ref.read(chatStateProvider.notifier);
 
     // 先创建新对话
-    await chatNotifier.createNewConversation();
+    await chatNotifier.createConversation(
+      title: 'New Chat',
+      assistantId: null,
+    );
 
     // 检查 context 是否仍然有效
     if (!context.mounted) return;
@@ -161,8 +168,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     final conversation = ref.watch(currentConversationProvider);
-    final chatState = ref.watch(unifiedChatProvider);
-    final chatNotifier = ref.read(unifiedChatProvider.notifier);
+    final chatState = ref.watch(chatStateProvider);
+    final chatNotifier = ref.read(chatStateProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -179,7 +186,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       ),
       drawer: AppDrawer(
         selectedMenu: conversation?.id ?? 'new_chat',
-        onChatClicked: (chatId) {
+        onChatClicked: (chatId) async {
           _logger.info('MainNavigation 收到聊天点击事件', {
             'chatId': chatId,
             'currentConversationId': conversation?.id,
@@ -190,11 +197,20 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           if (!chatState.isLoading) {
             _logger.info('开始切换对话', {'targetChatId': chatId});
             if (chatId == "new_chat") {
-              chatNotifier.createNewConversation();
+              await chatNotifier.createConversation(
+                title: 'New Chat',
+                assistantId: null,
+              );
             } else {
-              chatNotifier.loadConversation(chatId);
+              // TODO: Implement conversation loading from database
+              await chatNotifier.createConversation(
+                title: 'Loaded Chat',
+                assistantId: null,
+              );
             }
-            Navigator.of(context).pop(); // Close drawer
+            if (context.mounted) {
+              Navigator.of(context).pop(); // Close drawer
+            }
           } else {
             _logger.warning('对话正在加载中，忽略点击事件');
           }
@@ -256,8 +272,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   /// - 返回要显示的 Widget 组件
   Widget _getCurrentScreen(
     ConversationUiState? conversation,
-    UnifiedChatState chatState,
-    UnifiedChatNotifier chatNotifier,
+    ChatState chatState,
+    ChatStateNotifier chatNotifier,
   ) {
     // _logger.debug('MainNavigation 渲染屏幕', {
     //   'isLoading': chatState.isLoading,
@@ -294,38 +310,24 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       'messageCount': conversation?.messages.length ?? 0,
     });
 
-    // 创建一个虚拟的对话状态用于显示聊天界面
-    final displayConversation = conversation ??
-        ConversationUiState(
-          id: '', // 空ID表示还没有真正的对话
-          channelName: "新对话",
-          channelMembers: 1,
-          assistantId: chatState.configuration.selectedAssistant?.id ?? '',
-          selectedProviderId:
-              chatState.configuration.selectedProvider?.id ?? '',
-          selectedModelId: chatState.configuration.selectedModel?.name ?? '',
-          messages: [],
-        );
-
-    return ChatScreen(
-      conversationState: displayConversation,
+    // Use the modern chat view with new architecture
+    return ModernChatView(
+      conversationId: conversation?.id,
+      assistantId: conversation?.assistantId,
       showAppBar: false,
-      onAssistantConfigChanged: (assistantId, providerId, modelName) {
-        // 处理助手配置变更 - 这里可以添加额外的逻辑
-        _logger.info('助手配置已变更', {
-          'assistantId': assistantId,
-          'providerId': providerId,
-          'modelName': modelName,
+      enableInput: true,
+      onMessageSent: (message) {
+        _logger.info('消息已发送', {
+          'message': message,
+          'conversationId': conversation?.id,
         });
       },
-      onConversationUpdated: (updatedConversation) {
-        // 处理对话更新 - 这里可以添加额外的逻辑
+      onConversationChanged: (updatedConversation) {
         _logger.info('对话已更新', {
-          'conversationId': updatedConversation.id,
-          'messageCount': updatedConversation.messages.length,
+          'conversationId': updatedConversation?.id,
+          'messageCount': updatedConversation?.messages.length ?? 0,
         });
       },
-      initialMessageId: widget.initialMessageId,
     );
   }
 }

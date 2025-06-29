@@ -20,7 +20,8 @@ class StreamingDebugHelper {
     _contentHistory[messageId] = [];
     _timestampHistory[messageId] = [];
 
-    _logger.info('开始跟踪流式消息: messageId=$messageId, timestamp=${DateTime.now().toIso8601String()}');
+    _logger.info(
+        '开始跟踪流式消息: messageId=$messageId, timestamp=${DateTime.now().toIso8601String()}');
   }
 
   /// 记录内容更新
@@ -36,7 +37,8 @@ class StreamingDebugHelper {
     history.add(content);
     timestamps.add(DateTime.now());
 
-    _logger.debug('记录内容更新: messageId=$messageId, source=${source ?? 'unknown'}, '
+    _logger.debug(
+        '记录内容更新: messageId=$messageId, source=${source ?? 'unknown'}, '
         'updateIndex=${history.length - 1}, contentLength=${content.length}, '
         'contentEnding=${content.length > 20 ? '...${content.substring(content.length - 20)}' : content}, '
         'previousLength=${history.length > 1 ? history[history.length - 2].length : 0}, '
@@ -64,7 +66,8 @@ class StreamingDebugHelper {
       'potentialIssues': _detectPotentialIssues(history, timestamps),
     };
 
-    _logger.info('流式消息跟踪完成: messageId=$messageId, totalUpdates=${history.length}, '
+    _logger.info(
+        '流式消息跟踪完成: messageId=$messageId, totalUpdates=${history.length}, '
         'finalLength=${history.last.length}, '
         'finalEnding=${history.last.length > 30 ? '...${history.last.substring(history.last.length - 30)}' : history.last}, '
         'duration=${timestamps.isNotEmpty && timestamps.length > 1 ? timestamps.last.difference(timestamps.first).inMilliseconds : 0}ms');

@@ -48,7 +48,8 @@ class _SimplePrinter extends LogPrinter {
     final indent = ' ' * indentLength;
 
     // 第一行：完整的日志头 + 第一行消息
-    output.add('${color('$timeStr $levelName')} $locationStr${messageLines.first}');
+    output.add(
+        '${color('$timeStr $levelName')} $locationStr${messageLines.first}');
 
     // 后续行：使用缩进对齐
     if (messageLines.length > 1) {
@@ -73,7 +74,8 @@ class _SimplePrinter extends LogPrinter {
     if (event.stackTrace != null && event.level.index >= Level.error.index) {
       final stackLines = event.stackTrace.toString().split('\n');
       final relevantLines = stackLines
-          .where((line) => line.contains('package:') && !line.contains('logger'))
+          .where(
+              (line) => line.contains('package:') && !line.contains('logger'))
           .take(2);
 
       for (final line in relevantLines) {
@@ -106,7 +108,8 @@ class _SimplePrinter extends LogPrinter {
       if (line.contains('package:')) {
         // 提取文件名和行号
         // 格式通常是: #1      method (package:app/path/file.dart:123:45)
-        final match = RegExp(r'package:[^/]+/([^/]+/)*([^/:]+\.dart):(\d+)').firstMatch(line);
+        final match = RegExp(r'package:[^/]+/([^/]+/)*([^/:]+\.dart):(\d+)')
+            .firstMatch(line);
         if (match != null) {
           final filename = match.group(2)?.replaceAll('.dart', '') ?? '';
           final lineNumber = match.group(3) ?? '';
@@ -183,8 +186,6 @@ class LoggerService {
     return _logger!;
   }
 
-
-
   /// 初始化日志服务
   ///
   /// @param enableInReleaseMode 是否在生产环境启用日志
@@ -209,7 +210,8 @@ class LoggerService {
     }
 
     // 输出当前日志配置信息
-    _logger!.i('📋 日志服务已初始化 - 级别: ${logLevel.name}, HTTP日志: $enableHttpLogging, 发布模式: $enableInReleaseMode');
+    _logger!.i(
+        '📋 日志服务已初始化 - 级别: ${logLevel.name}, HTTP日志: $enableHttpLogging, 发布模式: $enableInReleaseMode');
   }
 
   /// 配置 llm_dart HTTP 日志集成

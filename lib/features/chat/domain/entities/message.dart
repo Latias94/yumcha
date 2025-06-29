@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'message_metadata.dart';
 import 'message_block.dart';
 import 'message_block_type.dart';
 import 'message_status.dart';

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/message.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
+import '../../../../core/providers/message_operation_state_provider.dart';
+import '../../../../core/providers/runtime_state_provider.dart';
 
 /// 消息编辑对话框
 ///
@@ -59,10 +61,14 @@ class _MessageEditDialogState extends ConsumerState<MessageEditDialog> {
     setState(() => _isLoading = true);
 
     try {
-      widget.onSave(content);
+      // Use the new message operation state management
+      await ref
+          .read(messageOperationStateProvider.notifier)
+          .editMessage(widget.message.id, content);
+
       if (mounted) {
         Navigator.of(context).pop();
-        NotificationService().showSuccess('消息已更新');
+        // Success notification is handled by the service
       }
     } catch (e) {
       if (mounted) {

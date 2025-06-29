@@ -1,5 +1,5 @@
-import 'message_state_machine.dart';
-import '../entities/message_status.dart';
+import '../../../../../lib/features/chat/domain/services/message_state_machine.dart';
+import '../../../../../lib/features/chat/domain/entities/message_status.dart';
 
 /// 消息状态机测试
 ///
@@ -62,12 +62,20 @@ void _testStreamingFlow(MessageStateMachine stateMachine) {
   _printTransitionResult('aiPending -> aiStreaming', result);
   if (result.isValid) currentStatus = result.newStatus;
 
-  // aiStreaming -> aiStreaming (流式更新)
+  // aiStreaming -> aiStreamingPaused
   result = stateMachine.transition(
     currentStatus: currentStatus,
-    event: MessageStateEvent.streaming,
+    event: MessageStateEvent.pauseStreaming,
   );
-  _printTransitionResult('aiStreaming -> aiStreaming', result);
+  _printTransitionResult('aiStreaming -> aiStreamingPaused', result);
+  if (result.isValid) currentStatus = result.newStatus;
+
+  // aiStreamingPaused -> aiStreaming
+  result = stateMachine.transition(
+    currentStatus: currentStatus,
+    event: MessageStateEvent.resumeStreaming,
+  );
+  _printTransitionResult('aiStreamingPaused -> aiStreaming', result);
   if (result.isValid) currentStatus = result.newStatus;
 
   // aiStreaming -> aiSuccess
@@ -100,83 +108,69 @@ void _testErrorFlow(MessageStateMachine stateMachine) {
 void _testPauseResumeFlow(MessageStateMachine stateMachine) {
   var currentStatus = MessageStatus.aiStreaming;
 
-  // aiStreaming -> aiPaused
+  // aiStreaming -> aiStreamingPaused
   var result = stateMachine.transition(
     currentStatus: currentStatus,
-    event: MessageStateEvent.pause,
+    event: MessageStateEvent.pauseStreaming,
   );
-  _printTransitionResult('aiStreaming -> aiPaused', result);
+  _printTransitionResult('aiStreaming -> aiStreamingPaused', result);
   if (result.isValid) currentStatus = result.newStatus;
 
-  // aiPaused -> aiProcessing (恢复)
+  // aiStreamingPaused -> aiStreaming
   result = stateMachine.transition(
     currentStatus: currentStatus,
-    event: MessageStateEvent.resume,
+    event: MessageStateEvent.resumeStreaming,
   );
-  _printTransitionResult('aiPaused -> aiProcessing (恢复)', result);
+  _printTransitionResult('aiStreamingPaused -> aiStreaming', result);
+  if (result.isValid) currentStatus = result.newStatus;
+
+  // aiStreaming -> aiStreamingCancelled
+  result = stateMachine.transition(
+    currentStatus: currentStatus,
+    event: MessageStateEvent.cancel,
+  );
+  _printTransitionResult('aiStreaming -> aiStreamingCancelled', result);
 }
 
 void _testInvalidTransitions(MessageStateMachine stateMachine) {
-  // 尝试从用户成功状态转换到AI处理状态（应该失败）
+  // 尝试从 aiSuccess 转换到 aiPending (无效)
   var result = stateMachine.transition(
-    currentStatus: MessageStatus.userSuccess,
+    currentStatus: MessageStatus.aiSuccess,
     event: MessageStateEvent.startAiProcessing,
   );
-  _printTransitionResult('userSuccess -> aiProcessing (应该失败)', result);
+  _printTransitionResult('aiSuccess -> aiPending (应该无效)', result);
 
-  // 尝试从AI成功状态转换到流式状态（应该失败）
+  // 尝试从 userSent 转换到 aiStreaming (无效)
   result = stateMachine.transition(
-    currentStatus: MessageStatus.aiSuccess,
+    currentStatus: MessageStatus.userSent,
     event: MessageStateEvent.startStreaming,
   );
-  _printTransitionResult('aiSuccess -> aiStreaming (应该失败)', result);
+  _printTransitionResult('userSent -> aiStreaming (应该无效)', result);
+
+  // 尝试从 aiPending 暂停流式传输 (无效)
+  result = stateMachine.transition(
+    currentStatus: MessageStatus.aiPending,
+    event: MessageStateEvent.pauseStreaming,
+  );
+  _printTransitionResult('aiPending -> pauseStreaming (应该无效)', result);
 }
 
-void _printTransitionResult(String description, StateTransitionResult result) {
+void _printTransitionResult(
+    String description, MessageStateTransitionResult result) {
   if (result.isValid) {
-    print('✅ $description: ${result.newStatus.name}');
+    print('✅ $description: ${result.currentStatus} -> ${result.newStatus}');
+    if (result.sideEffects.isNotEmpty) {
+      print('   副作用: ${result.sideEffects.join(', ')}');
+    }
   } else {
-    print('❌ $description: ${result.errorMessage}');
+    print('❌ $description: 转换无效');
+    if (result.reason != null) {
+      print('   原因: ${result.reason}');
+    }
   }
 }
 
-/// 测试状态机的辅助方法
-void testStateMachineHelpers() {
-  final stateMachine = MessageStateMachine();
-
-  print('\n=== 状态机辅助方法测试 ===');
-
-  // 测试状态检查方法
-  print('\n状态检查方法:');
-  print(
-      'aiStreaming是否为终态: ${stateMachine.isFinalState(MessageStatus.aiStreaming)}');
-  print(
-      'aiSuccess是否为终态: ${stateMachine.isFinalState(MessageStatus.aiSuccess)}');
-  print('aiError是否为错误态: ${stateMachine.isErrorState(MessageStatus.aiError)}');
-  print(
-      'aiStreaming是否为活跃态: ${stateMachine.isActiveState(MessageStatus.aiStreaming)}');
-
-  // 测试优先级
-  print('\n状态优先级:');
-  print('aiError优先级: ${stateMachine.getStatusPriority(MessageStatus.aiError)}');
-  print(
-      'aiStreaming优先级: ${stateMachine.getStatusPriority(MessageStatus.aiStreaming)}');
-  print(
-      'aiSuccess优先级: ${stateMachine.getStatusPriority(MessageStatus.aiSuccess)}');
-
-  // 测试建议操作
-  print('\n建议操作:');
-  final errorActions = stateMachine.getSuggestedActions(MessageStatus.aiError);
-  print('aiError状态的建议操作: ${errorActions.map((e) => e.name).join(', ')}');
-
-  final streamingActions =
-      stateMachine.getSuggestedActions(MessageStatus.aiStreaming);
-  print(
-      'aiStreaming状态的建议操作: ${streamingActions.map((e) => e.name).join(', ')}');
-}
-
-/// 运行所有测试
-void runAllTests() {
+// 运行测试的主函数
+void main() {
   testMessageStateMachine();
-  testStateMachineHelpers();
 }

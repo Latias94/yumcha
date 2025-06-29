@@ -208,7 +208,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       final conversationRepository = ref.read(conversationRepositoryProvider);
 
       // 获取完整的对话消息（因为对话列表中只包含预览消息）
-      final fullConversation = await conversationRepository.getConversation(conversation.id);
+      final fullConversation =
+          await conversationRepository.getConversation(conversation.id);
 
       if (fullConversation == null) {
         _logger.warning('对话不存在', {'conversationId': conversation.id});
@@ -223,11 +224,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           'messageCount': fullConversation.messages.length,
           'requiredCount': 2,
         });
-        NotificationService().showWarning('消息数量不足，无法生成标题，当前消息数量: ${fullConversation.messages.length}');
+        NotificationService().showWarning(
+            '消息数量不足，无法生成标题，当前消息数量: ${fullConversation.messages.length}');
         return;
       }
 
-      final titleNotifier = ref.read(conversationTitleNotifierProvider.notifier);
+      final titleNotifier =
+          ref.read(conversationTitleNotifierProvider.notifier);
 
       // 使用完整的消息列表进行标题生成
       await titleNotifier.regenerateTitle(
