@@ -319,7 +319,7 @@ class _ChatStorageScreenState extends ConsumerState<ChatStorageScreen> {
                     value: (_storageInfo['storageUsed'] ?? 0) / _maxStorageSize,
                     strokeWidth: 6,
                     backgroundColor:
-                        Theme.of(context).colorScheme.surfaceVariant,
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                   ),
                 ),
               ],

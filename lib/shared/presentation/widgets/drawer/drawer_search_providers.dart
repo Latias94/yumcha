@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../features/chat/domain/entities/conversation_ui_state.dart';
-import '../../../../features/chat/data/repositories/message_search_result.dart';
 import '../../providers/dependency_providers.dart';
 import '../../../infrastructure/services/logger_service.dart';
 

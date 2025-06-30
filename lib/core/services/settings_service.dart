@@ -108,7 +108,7 @@ class SettingsService {
         backupLocation: _getString('backupLocation'),
 
         // Feature flags and experimental features
-        featureFlags: _getMap('featureFlags', {}),
+        featureFlags: _getBoolMap('featureFlags', {}),
         enabledExperimentalFeatures:
             _getStringSet('enabledExperimentalFeatures', {}),
 
@@ -159,16 +159,12 @@ class SettingsService {
   }
 
   /// Get a setting value
-  T? getSetting<T>(String key, [T? defaultValue]) {
+  dynamic getSetting(String key, [dynamic defaultValue]) {
     if (_prefs == null) return defaultValue;
 
     try {
       final value = _prefs!.get(key);
-      if (value == null) return defaultValue;
-
-      if (value is T) return value;
-
-      return defaultValue;
+      return value ?? defaultValue;
     } catch (error) {
       return defaultValue;
     }
@@ -225,6 +221,27 @@ class SettingsService {
       final decoded = jsonDecode(jsonString);
       return decoded is Map<String, dynamic> ? decoded : defaultValue;
     } catch (error) {
+      return defaultValue;
+    }
+  }
+
+  Map<String, bool> _getBoolMap(String key, Map<String, bool> defaultValue) {
+    final jsonString = _prefs?.getString(key);
+    if (jsonString == null) return defaultValue;
+
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is Map<String, dynamic>) {
+        final result = <String, bool>{};
+        decoded.forEach((k, v) {
+          if (v is bool) {
+            result[k] = v;
+          }
+        });
+        return result;
+      }
+      return defaultValue;
+    } catch (e) {
       return defaultValue;
     }
   }

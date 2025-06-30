@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/theme_provider.dart';
-import '../../../../app/theme/theme_color_schemes.dart';
 import '../../../../shared/presentation/design_system/design_constants.dart';
 
 /// 主题快速操作组件
@@ -83,9 +82,11 @@ class ThemeQuickActions extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected ? primaryColor.withOpacity(0.1) : null,
+              color: isSelected ? primaryColor.withValues(alpha: 0.1) : null,
               border: Border.all(
-                color: isSelected ? primaryColor : Colors.grey.withOpacity(0.3),
+                color: isSelected
+                    ? primaryColor
+                    : Colors.grey.withValues(alpha: 0.3),
                 width: isSelected ? 2 : 1,
               ),
               borderRadius: DesignConstants.radiusM,
@@ -175,7 +176,7 @@ class ThemeQuickActions extends ConsumerWidget {
                   color: color,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),

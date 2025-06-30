@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/chat_message_content.dart';
-import '../../domain/entities/chat_state.dart';
 import '../../domain/services/message_processor.dart';
 import '../../../../shared/infrastructure/services/notification_service.dart';
 import '../../../../shared/presentation/providers/providers.dart';
@@ -225,20 +224,6 @@ class _ChatViewState extends ConsumerState<ChatView>
     );
   }
 
-  /// 构建错误状态
-  Widget _buildErrorState(String errorMessage) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: 16),
-          Text(errorMessage),
-        ],
-      ),
-    );
-  }
-
   void _onSelectSuggestion(String suggestion) {
     _onSendMessage(suggestion);
   }
@@ -333,8 +318,8 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   void _handleEditMessage(String content) {
-    // 使用统一聊天状态管理删除消息
-    final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
+    // TODO: 实现消息编辑功能
+    // final unifiedChatNotifier = ref.read(unifiedChatProvider.notifier);
 
     if (_editingMessage != null) {
       // 消息删除功能将在后续版本中实现
@@ -434,7 +419,7 @@ class _ChatViewState extends ConsumerState<ChatView>
 
       // 4. 使用AI消息ID直接重新生成响应
       await unifiedChatNotifier.regenerateResponse(
-        aiMessageId: aiMessage.id!,
+        aiMessageId: aiMessage.id,
         useStreaming: isStreaming,
       );
 

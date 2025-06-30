@@ -102,7 +102,7 @@ class AssistantState with _$AssistantState {
     @Default(0) int totalAssistants,
 
     /// Number of enabled assistants
-    @Default(0) int enabledAssistants,
+    @Default(0) int enabledAssistantCount,
 
     /// Number of custom assistants
     @Default(0) int customAssistants,

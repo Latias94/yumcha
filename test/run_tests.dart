@@ -81,7 +81,7 @@ void main(List<String> args) async {
   }
 
   // Summary
-  print('\n' + '=' * 50);
+  print('\n${'=' * 50}');
   print('📊 TEST SUMMARY');
   print('=' * 50);
   print('Total Tests: $totalTests');

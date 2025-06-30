@@ -15,7 +15,7 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
-mixin _$SearchResult {
+mixin _$RuntimeSearchResult {
   /// Result ID
   String get id => throw _privateConstructorUsedError;
 
@@ -37,18 +37,18 @@ mixin _$SearchResult {
   /// Additional metadata
   Map<String, dynamic> get metadata => throw _privateConstructorUsedError;
 
-  /// Create a copy of SearchResult
+  /// Create a copy of RuntimeSearchResult
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $SearchResultCopyWith<SearchResult> get copyWith =>
+  $RuntimeSearchResultCopyWith<RuntimeSearchResult> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $SearchResultCopyWith<$Res> {
-  factory $SearchResultCopyWith(
-          SearchResult value, $Res Function(SearchResult) then) =
-      _$SearchResultCopyWithImpl<$Res, SearchResult>;
+abstract class $RuntimeSearchResultCopyWith<$Res> {
+  factory $RuntimeSearchResultCopyWith(
+          RuntimeSearchResult value, $Res Function(RuntimeSearchResult) then) =
+      _$RuntimeSearchResultCopyWithImpl<$Res, RuntimeSearchResult>;
   @useResult
   $Res call(
       {String id,
@@ -61,16 +61,16 @@ abstract class $SearchResultCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$SearchResultCopyWithImpl<$Res, $Val extends SearchResult>
-    implements $SearchResultCopyWith<$Res> {
-  _$SearchResultCopyWithImpl(this._value, this._then);
+class _$RuntimeSearchResultCopyWithImpl<$Res, $Val extends RuntimeSearchResult>
+    implements $RuntimeSearchResultCopyWith<$Res> {
+  _$RuntimeSearchResultCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of SearchResult
+  /// Create a copy of RuntimeSearchResult
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -118,7 +118,7 @@ class _$SearchResultCopyWithImpl<$Res, $Val extends SearchResult>
 
 /// @nodoc
 abstract class _$$SearchResultImplCopyWith<$Res>
-    implements $SearchResultCopyWith<$Res> {
+    implements $RuntimeSearchResultCopyWith<$Res> {
   factory _$$SearchResultImplCopyWith(
           _$SearchResultImpl value, $Res Function(_$SearchResultImpl) then) =
       __$$SearchResultImplCopyWithImpl<$Res>;
@@ -136,13 +136,13 @@ abstract class _$$SearchResultImplCopyWith<$Res>
 
 /// @nodoc
 class __$$SearchResultImplCopyWithImpl<$Res>
-    extends _$SearchResultCopyWithImpl<$Res, _$SearchResultImpl>
+    extends _$RuntimeSearchResultCopyWithImpl<$Res, _$SearchResultImpl>
     implements _$$SearchResultImplCopyWith<$Res> {
   __$$SearchResultImplCopyWithImpl(
       _$SearchResultImpl _value, $Res Function(_$SearchResultImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of SearchResult
+  /// Create a copy of RuntimeSearchResult
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -242,7 +242,7 @@ class _$SearchResultImpl implements _SearchResult {
 
   @override
   String toString() {
-    return 'SearchResult(id: $id, type: $type, content: $content, context: $context, score: $score, highlightedContent: $highlightedContent, metadata: $metadata)';
+    return 'RuntimeSearchResult(id: $id, type: $type, content: $content, context: $context, score: $score, highlightedContent: $highlightedContent, metadata: $metadata)';
   }
 
   @override
@@ -271,7 +271,7 @@ class _$SearchResultImpl implements _SearchResult {
       highlightedContent,
       const DeepCollectionEquality().hash(_metadata));
 
-  /// Create a copy of SearchResult
+  /// Create a copy of RuntimeSearchResult
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
@@ -280,7 +280,7 @@ class _$SearchResultImpl implements _SearchResult {
       __$$SearchResultImplCopyWithImpl<_$SearchResultImpl>(this, _$identity);
 }
 
-abstract class _SearchResult implements SearchResult {
+abstract class _SearchResult implements RuntimeSearchResult {
   const factory _SearchResult(
       {required final String id,
       required final SearchResultType type,
@@ -318,7 +318,7 @@ abstract class _SearchResult implements SearchResult {
   @override
   Map<String, dynamic> get metadata;
 
-  /// Create a copy of SearchResult
+  /// Create a copy of RuntimeSearchResult
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -366,7 +366,8 @@ mixin _$RuntimeState {
   String get searchQuery => throw _privateConstructorUsedError;
 
   /// Search results
-  List<SearchResult> get searchResults => throw _privateConstructorUsedError;
+  List<RuntimeSearchResult> get searchResults =>
+      throw _privateConstructorUsedError;
 
   /// Current search result index (for navigation)
   int get currentSearchIndex => throw _privateConstructorUsedError;
@@ -461,7 +462,7 @@ abstract class $RuntimeStateCopyWith<$Res> {
       bool isEditing,
       bool isSearching,
       String searchQuery,
-      List<SearchResult> searchResults,
+      List<RuntimeSearchResult> searchResults,
       int currentSearchIndex,
       bool isSearchLoading,
       String? searchError,
@@ -589,7 +590,7 @@ class _$RuntimeStateCopyWithImpl<$Res, $Val extends RuntimeState>
       searchResults: null == searchResults
           ? _value.searchResults
           : searchResults // ignore: cast_nullable_to_non_nullable
-              as List<SearchResult>,
+              as List<RuntimeSearchResult>,
       currentSearchIndex: null == currentSearchIndex
           ? _value.currentSearchIndex
           : currentSearchIndex // ignore: cast_nullable_to_non_nullable
@@ -703,7 +704,7 @@ abstract class _$$RuntimeStateImplCopyWith<$Res>
       bool isEditing,
       bool isSearching,
       String searchQuery,
-      List<SearchResult> searchResults,
+      List<RuntimeSearchResult> searchResults,
       int currentSearchIndex,
       bool isSearchLoading,
       String? searchError,
@@ -829,7 +830,7 @@ class __$$RuntimeStateImplCopyWithImpl<$Res>
       searchResults: null == searchResults
           ? _value._searchResults
           : searchResults // ignore: cast_nullable_to_non_nullable
-              as List<SearchResult>,
+              as List<RuntimeSearchResult>,
       currentSearchIndex: null == currentSearchIndex
           ? _value.currentSearchIndex
           : currentSearchIndex // ignore: cast_nullable_to_non_nullable
@@ -938,7 +939,7 @@ class _$RuntimeStateImpl extends _RuntimeState {
       this.isEditing = false,
       this.isSearching = false,
       this.searchQuery = '',
-      final List<SearchResult> searchResults = const [],
+      final List<RuntimeSearchResult> searchResults = const [],
       this.currentSearchIndex = 0,
       this.isSearchLoading = false,
       this.searchError = null,
@@ -1060,12 +1061,12 @@ class _$RuntimeStateImpl extends _RuntimeState {
   final String searchQuery;
 
   /// Search results
-  final List<SearchResult> _searchResults;
+  final List<RuntimeSearchResult> _searchResults;
 
   /// Search results
   @override
   @JsonKey()
-  List<SearchResult> get searchResults {
+  List<RuntimeSearchResult> get searchResults {
     if (_searchResults is EqualUnmodifiableListView) return _searchResults;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_searchResults);
@@ -1385,7 +1386,7 @@ abstract class _RuntimeState extends RuntimeState {
       final bool isEditing,
       final bool isSearching,
       final String searchQuery,
-      final List<SearchResult> searchResults,
+      final List<RuntimeSearchResult> searchResults,
       final int currentSearchIndex,
       final bool isSearchLoading,
       final String? searchError,
@@ -1459,7 +1460,7 @@ abstract class _RuntimeState extends RuntimeState {
 
   /// Search results
   @override
-  List<SearchResult> get searchResults;
+  List<RuntimeSearchResult> get searchResults;
 
   /// Current search result index (for navigation)
   @override

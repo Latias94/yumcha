@@ -400,65 +400,6 @@ class _BlockMessageViewState extends ConsumerState<BlockMessageView> {
     );
   }
 
-  /// 构建气泡块列表
-  List<Widget> _buildBubbleBlocks(ThemeData theme, double maxWidth) {
-    if (widget.message.blocks.isEmpty) {
-      // 🚀 修复：如果消息处于流式状态，显示流式占位符
-      if (widget.message.status.showLoadingIndicator) {
-        return [_buildStreamingPlaceholder()];
-      }
-
-      return [
-        Container(
-          padding: DesignConstants.paddingM,
-          decoration: BoxDecoration(
-            color: widget.message.isFromUser
-                ? theme.colorScheme.primaryContainer
-                : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: _getBubbleBorderRadius(),
-          ),
-          child: Text(
-            '消息内容为空',
-            style: TextStyle(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ),
-      ];
-    }
-
-    // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，显示流式占位符
-    if (widget.message.status.showLoadingIndicator) {
-      final hasAnyContent =
-          widget.message.blocks.any((block) => block.hasContent);
-      if (!hasAnyContent) {
-        return [_buildStreamingPlaceholder()];
-      }
-    }
-
-    return widget.message.blocks.map((block) {
-      return Container(
-        margin: EdgeInsets.only(bottom: DesignConstants.spaceXS),
-        child: MessageBlockWidget(
-          key: ValueKey(block.id),
-          block: block,
-          isEditable: widget.isEditable,
-          onEdit: widget.onBlockEdit != null
-              ? () => widget.onBlockEdit!(block.id)
-              : null,
-          onDelete: widget.onBlockDelete != null
-              ? () => widget.onBlockDelete!(block.id)
-              : null,
-          onRegenerate: widget.onBlockRegenerate != null
-              ? () => widget.onBlockRegenerate!(block.id)
-              : null,
-        ),
-      );
-    }).toList();
-  }
-
   /// 构建消息状态指示器
   Widget _buildMessageStatusIndicator(ThemeData theme) {
     // 🚀 修复：如果消息处于流式状态且所有消息块都没有内容，

@@ -209,10 +209,8 @@ class MessageViewConfig {
 
 /// 消息视图配置管理器
 class MessageViewConfigNotifier extends StateNotifier<MessageViewConfig> {
-  final ChatSettings _chatSettings;
-
-  MessageViewConfigNotifier(this._chatSettings)
-      : super(MessageViewConfig(useBlockView: _chatSettings.enableBlockView));
+  MessageViewConfigNotifier(ChatSettings chatSettings)
+      : super(MessageViewConfig(useBlockView: chatSettings.enableBlockView));
 
   /// 切换视图模式
   void toggleViewMode() {

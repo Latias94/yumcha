@@ -189,7 +189,7 @@ class MessageOperationStateNotifier
 
   /// Edit a message
   Future<void> editMessage(String messageId, String newContent) async {
-    await startOperation(messageId, MessageOperationType.editing, {
+    await startOperation(messageId, MessageOperationType.editing, options: {
       'newContent': newContent,
     });
   }
@@ -211,11 +211,12 @@ class MessageOperationStateNotifier
     String? assistantId,
     Map<String, dynamic>? options,
   }) async {
-    await startOperation(messageId, MessageOperationType.regenerating, {
-      'modelId': modelId,
-      'assistantId': assistantId,
-      ...?options,
-    });
+    await startOperation(messageId, MessageOperationType.regenerating,
+        options: {
+          'modelId': modelId,
+          'assistantId': assistantId,
+          ...?options,
+        });
   }
 
   /// Translate a message
@@ -224,7 +225,7 @@ class MessageOperationStateNotifier
     String targetLanguage, {
     String? sourceLanguage,
   }) async {
-    await startOperation(messageId, MessageOperationType.translating, {
+    await startOperation(messageId, MessageOperationType.translating, options: {
       'targetLanguage': targetLanguage,
       'sourceLanguage': sourceLanguage,
     });
@@ -237,7 +238,7 @@ class MessageOperationStateNotifier
 
   /// Export a message
   Future<void> exportMessage(String messageId, String format) async {
-    await startOperation(messageId, MessageOperationType.exporting, {
+    await startOperation(messageId, MessageOperationType.exporting, options: {
       'format': format,
     });
   }

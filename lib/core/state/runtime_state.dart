@@ -4,8 +4,8 @@ part 'runtime_state.freezed.dart';
 
 /// Search result for message/conversation search
 @freezed
-class SearchResult with _$SearchResult {
-  const factory SearchResult({
+class RuntimeSearchResult with _$RuntimeSearchResult {
+  const factory RuntimeSearchResult({
     /// Result ID
     required String id,
 
@@ -92,7 +92,7 @@ class RuntimeState with _$RuntimeState {
     @Default('') String searchQuery,
 
     /// Search results
-    @Default([]) List<SearchResult> searchResults,
+    @Default([]) List<RuntimeSearchResult> searchResults,
 
     /// Current search result index (for navigation)
     @Default(0) int currentSearchIndex,
@@ -185,7 +185,7 @@ class RuntimeState with _$RuntimeState {
       hasSearchResults && currentSearchIndex < searchResults.length;
 
   /// Get current search result
-  SearchResult? get currentSearchResult =>
+  RuntimeSearchResult? get currentSearchResult =>
       hasCurrentSearchResult ? searchResults[currentSearchIndex] : null;
 
   /// Whether any message operations are in progress

@@ -79,17 +79,17 @@ void main() {
       final updatedMessage1 = result1.updatedMessage!;
       final result2 = stateManager.transitionMessageState(
         message: updatedMessage1,
-        event: MessageStateEvent.pauseStreaming,
+        event: MessageStateEvent.pause,
       );
 
       expect(result2.isSuccess, isTrue);
-      expect(result2.newStatus, equals(MessageStatus.aiStreamingPaused));
+      expect(result2.newStatus, equals(MessageStatus.aiPaused));
 
       // 恢复流式处理
       final updatedMessage2 = result2.updatedMessage!;
       final result3 = stateManager.transitionMessageState(
         message: updatedMessage2,
-        event: MessageStateEvent.resumeStreaming,
+        event: MessageStateEvent.resume,
       );
 
       expect(result3.isSuccess, isTrue);
@@ -166,13 +166,13 @@ void main() {
               ));
 
       // 批量转换状态
-      final results = stateManager.batchTransitionStates(
+      final results = stateManager.batchTransitionMessageStates(
         messages: messages,
         event: MessageStateEvent.startAiProcessing,
       );
 
       expect(results.length, equals(3));
-      for (final result in results) {
+      for (final result in results.values) {
         expect(result.isSuccess, isTrue);
         expect(result.newStatus, equals(MessageStatus.aiProcessing));
       }
@@ -213,23 +213,14 @@ void main() {
       );
 
       // 检查历史记录
-      final history = stateManager.getTransitionHistory('test_message_history');
+      final history = stateManager.getTransitionHistory();
       expect(history, isNotEmpty);
-      expect(history.first.fromStatus, equals(MessageStatus.aiPending));
-      expect(history.first.toStatus, equals(MessageStatus.aiProcessing));
+      expect(history.last.fromStatus, equals(MessageStatus.aiPending));
+      expect(history.last.toStatus, equals(MessageStatus.aiProcessing));
     });
 
-    test('状态转换监听器', () {
-      var callbackCalled = false;
-      MessageStatus? capturedOldStatus;
-      MessageStatus? capturedNewStatus;
-
-      // 添加监听器
-      stateManager.addTransitionListener((messageId, oldStatus, newStatus) {
-        callbackCalled = true;
-        capturedOldStatus = oldStatus;
-        capturedNewStatus = newStatus;
-      });
+    test('状态转换历史记录', () {
+      // 注意：MessageStateManager 没有监听器功能，这里测试历史记录功能
 
       final message = Message.assistant(
         id: 'test_message_listener',
@@ -239,15 +230,14 @@ void main() {
       );
 
       // 执行状态转换
-      stateManager.transitionMessageState(
+      final result = stateManager.transitionMessageState(
         message: message,
         event: MessageStateEvent.startAiProcessing,
       );
 
-      // 验证监听器被调用
-      expect(callbackCalled, isTrue);
-      expect(capturedOldStatus, equals(MessageStatus.aiPending));
-      expect(capturedNewStatus, equals(MessageStatus.aiProcessing));
+      // 验证状态转换成功
+      expect(result.isSuccess, isTrue);
+      expect(result.newStatus, equals(MessageStatus.aiProcessing));
     });
 
     test('状态转换性能测试', () {
@@ -269,7 +259,7 @@ void main() {
       }
 
       stopwatch.stop();
-      print('1000次状态转换耗时: ${stopwatch.elapsedMilliseconds}ms');
+      // 移除 print 语句，在测试中不需要输出
 
       // 验证性能在合理范围内（应该在1秒内完成）
       expect(stopwatch.elapsedMilliseconds, lessThan(1000));

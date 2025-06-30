@@ -62,20 +62,20 @@ void _testStreamingFlow(MessageStateMachine stateMachine) {
   _printTransitionResult('aiPending -> aiStreaming', result);
   if (result.isValid) currentStatus = result.newStatus;
 
-  // aiStreaming -> aiStreamingPaused
+  // aiStreaming -> aiPaused
   result = stateMachine.transition(
     currentStatus: currentStatus,
-    event: MessageStateEvent.pauseStreaming,
+    event: MessageStateEvent.pause,
   );
-  _printTransitionResult('aiStreaming -> aiStreamingPaused', result);
+  _printTransitionResult('aiStreaming -> aiPaused', result);
   if (result.isValid) currentStatus = result.newStatus;
 
-  // aiStreamingPaused -> aiStreaming
+  // aiPaused -> aiStreaming
   result = stateMachine.transition(
     currentStatus: currentStatus,
-    event: MessageStateEvent.resumeStreaming,
+    event: MessageStateEvent.resume,
   );
-  _printTransitionResult('aiStreamingPaused -> aiStreaming', result);
+  _printTransitionResult('aiPaused -> aiStreaming', result);
   if (result.isValid) currentStatus = result.newStatus;
 
   // aiStreaming -> aiSuccess
@@ -108,28 +108,28 @@ void _testErrorFlow(MessageStateMachine stateMachine) {
 void _testPauseResumeFlow(MessageStateMachine stateMachine) {
   var currentStatus = MessageStatus.aiStreaming;
 
-  // aiStreaming -> aiStreamingPaused
+  // aiStreaming -> aiPaused
   var result = stateMachine.transition(
     currentStatus: currentStatus,
-    event: MessageStateEvent.pauseStreaming,
+    event: MessageStateEvent.pause,
   );
-  _printTransitionResult('aiStreaming -> aiStreamingPaused', result);
+  _printTransitionResult('aiStreaming -> aiPaused', result);
   if (result.isValid) currentStatus = result.newStatus;
 
-  // aiStreamingPaused -> aiStreaming
+  // aiPaused -> aiProcessing
   result = stateMachine.transition(
     currentStatus: currentStatus,
-    event: MessageStateEvent.resumeStreaming,
+    event: MessageStateEvent.resume,
   );
-  _printTransitionResult('aiStreamingPaused -> aiStreaming', result);
+  _printTransitionResult('aiPaused -> aiProcessing', result);
   if (result.isValid) currentStatus = result.newStatus;
 
-  // aiStreaming -> aiStreamingCancelled
+  // aiProcessing -> aiError (cancelled)
   result = stateMachine.transition(
     currentStatus: currentStatus,
     event: MessageStateEvent.cancel,
   );
-  _printTransitionResult('aiStreaming -> aiStreamingCancelled', result);
+  _printTransitionResult('aiProcessing -> aiError (cancelled)', result);
 }
 
 void _testInvalidTransitions(MessageStateMachine stateMachine) {
@@ -140,32 +140,31 @@ void _testInvalidTransitions(MessageStateMachine stateMachine) {
   );
   _printTransitionResult('aiSuccess -> aiPending (应该无效)', result);
 
-  // 尝试从 userSent 转换到 aiStreaming (无效)
+  // 尝试从 userSuccess 转换到 aiStreaming (无效)
   result = stateMachine.transition(
-    currentStatus: MessageStatus.userSent,
+    currentStatus: MessageStatus.userSuccess,
     event: MessageStateEvent.startStreaming,
   );
-  _printTransitionResult('userSent -> aiStreaming (应该无效)', result);
+  _printTransitionResult('userSuccess -> aiStreaming (应该无效)', result);
 
   // 尝试从 aiPending 暂停流式传输 (无效)
   result = stateMachine.transition(
     currentStatus: MessageStatus.aiPending,
-    event: MessageStateEvent.pauseStreaming,
+    event: MessageStateEvent.pause,
   );
-  _printTransitionResult('aiPending -> pauseStreaming (应该无效)', result);
+  _printTransitionResult('aiPending -> pause (应该无效)', result);
 }
 
-void _printTransitionResult(
-    String description, MessageStateTransitionResult result) {
+void _printTransitionResult(String description, StateTransitionResult result) {
   if (result.isValid) {
-    print('✅ $description: ${result.currentStatus} -> ${result.newStatus}');
-    if (result.sideEffects.isNotEmpty) {
-      print('   副作用: ${result.sideEffects.join(', ')}');
+    print('✅ $description: -> ${result.newStatus}');
+    if (result.metadata != null && result.metadata!.isNotEmpty) {
+      print('   元数据: ${result.metadata}');
     }
   } else {
     print('❌ $description: 转换无效');
-    if (result.reason != null) {
-      print('   原因: ${result.reason}');
+    if (result.errorMessage != null) {
+      print('   原因: ${result.errorMessage}');
     }
   }
 }

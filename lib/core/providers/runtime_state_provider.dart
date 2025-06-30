@@ -159,7 +159,7 @@ class RuntimeStateNotifier extends StateNotifier<RuntimeState> {
   }
 
   /// Set search results
-  void setSearchResults(List<SearchResult> results) {
+  void setSearchResults(List<RuntimeSearchResult> results) {
     state = state.copyWith(
       searchResults: results,
       currentSearchIndex: 0,
@@ -502,7 +502,7 @@ final runtimeSearchQueryProvider = Provider<String>((ref) {
 
 /// Search results provider (legacy - use search_state_provider instead)
 @Deprecated('Use searchResultsProvider from search_state_provider instead')
-final runtimeSearchResultsProvider = Provider<List<SearchResult>>((ref) {
+final runtimeSearchResultsProvider = Provider<List<RuntimeSearchResult>>((ref) {
   return ref.watch(runtimeStateProvider).searchResults;
 });
 
@@ -515,7 +515,8 @@ final runtimeHasSearchResultsProvider = Provider<bool>((ref) {
 /// Current search result provider (legacy - use search_state_provider instead)
 @Deprecated(
     'Use currentSearchResultProvider from search_state_provider instead')
-final runtimeCurrentSearchResultProvider = Provider<SearchResult?>((ref) {
+final runtimeCurrentSearchResultProvider =
+    Provider<RuntimeSearchResult?>((ref) {
   return ref.watch(runtimeStateProvider).currentSearchResult;
 });
 

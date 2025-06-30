@@ -102,7 +102,7 @@ mixin _$AssistantState {
   int get totalAssistants => throw _privateConstructorUsedError;
 
   /// Number of enabled assistants
-  int get enabledAssistants => throw _privateConstructorUsedError;
+  int get enabledAssistantCount => throw _privateConstructorUsedError;
 
   /// Number of custom assistants
   int get customAssistants => throw _privateConstructorUsedError;
@@ -170,7 +170,7 @@ abstract class $AssistantStateCopyWith<$Res> {
       bool showOnlyEnabled,
       bool showOnlyFavorites,
       int totalAssistants,
-      int enabledAssistants,
+      int enabledAssistantCount,
       int customAssistants,
       Map<String, AssistantUsageStats> usageStats,
       bool isImportExportInProgress,
@@ -227,7 +227,7 @@ class _$AssistantStateCopyWithImpl<$Res, $Val extends AssistantState>
     Object? showOnlyEnabled = null,
     Object? showOnlyFavorites = null,
     Object? totalAssistants = null,
-    Object? enabledAssistants = null,
+    Object? enabledAssistantCount = null,
     Object? customAssistants = null,
     Object? usageStats = null,
     Object? isImportExportInProgress = null,
@@ -350,9 +350,9 @@ class _$AssistantStateCopyWithImpl<$Res, $Val extends AssistantState>
           ? _value.totalAssistants
           : totalAssistants // ignore: cast_nullable_to_non_nullable
               as int,
-      enabledAssistants: null == enabledAssistants
-          ? _value.enabledAssistants
-          : enabledAssistants // ignore: cast_nullable_to_non_nullable
+      enabledAssistantCount: null == enabledAssistantCount
+          ? _value.enabledAssistantCount
+          : enabledAssistantCount // ignore: cast_nullable_to_non_nullable
               as int,
       customAssistants: null == customAssistants
           ? _value.customAssistants
@@ -455,7 +455,7 @@ abstract class _$$AssistantStateImplCopyWith<$Res>
       bool showOnlyEnabled,
       bool showOnlyFavorites,
       int totalAssistants,
-      int enabledAssistants,
+      int enabledAssistantCount,
       int customAssistants,
       Map<String, AssistantUsageStats> usageStats,
       bool isImportExportInProgress,
@@ -512,7 +512,7 @@ class __$$AssistantStateImplCopyWithImpl<$Res>
     Object? showOnlyEnabled = null,
     Object? showOnlyFavorites = null,
     Object? totalAssistants = null,
-    Object? enabledAssistants = null,
+    Object? enabledAssistantCount = null,
     Object? customAssistants = null,
     Object? usageStats = null,
     Object? isImportExportInProgress = null,
@@ -635,9 +635,9 @@ class __$$AssistantStateImplCopyWithImpl<$Res>
           ? _value.totalAssistants
           : totalAssistants // ignore: cast_nullable_to_non_nullable
               as int,
-      enabledAssistants: null == enabledAssistants
-          ? _value.enabledAssistants
-          : enabledAssistants // ignore: cast_nullable_to_non_nullable
+      enabledAssistantCount: null == enabledAssistantCount
+          ? _value.enabledAssistantCount
+          : enabledAssistantCount // ignore: cast_nullable_to_non_nullable
               as int,
       customAssistants: null == customAssistants
           ? _value.customAssistants
@@ -707,7 +707,7 @@ class _$AssistantStateImpl extends _AssistantState {
       this.showOnlyEnabled = false,
       this.showOnlyFavorites = false,
       this.totalAssistants = 0,
-      this.enabledAssistants = 0,
+      this.enabledAssistantCount = 0,
       this.customAssistants = 0,
       final Map<String, AssistantUsageStats> usageStats = const {},
       this.isImportExportInProgress = false,
@@ -983,7 +983,7 @@ class _$AssistantStateImpl extends _AssistantState {
   /// Number of enabled assistants
   @override
   @JsonKey()
-  final int enabledAssistants;
+  final int enabledAssistantCount;
 
   /// Number of custom assistants
   @override
@@ -1035,7 +1035,7 @@ class _$AssistantStateImpl extends _AssistantState {
 
   @override
   String toString() {
-    return 'AssistantState(isLoading: $isLoading, isInitialized: $isInitialized, error: $error, assistants: $assistants, selectedAssistant: $selectedAssistant, defaultAssistant: $defaultAssistant, recentAssistantIds: $recentAssistantIds, favoriteAssistantIds: $favoriteAssistantIds, availableTags: $availableTags, tagOrder: $tagOrder, collapsedTags: $collapsedTags, sortBy: $sortBy, sortAscending: $sortAscending, creatingAssistants: $creatingAssistants, updatingAssistants: $updatingAssistants, deletingAssistants: $deletingAssistants, operationErrors: $operationErrors, availableModels: $availableModels, selectedModelId: $selectedModelId, isLoadingModels: $isLoadingModels, templates: $templates, templateCategories: $templateCategories, isLoadingTemplates: $isLoadingTemplates, searchQuery: $searchQuery, activeFilterTags: $activeFilterTags, showOnlyEnabled: $showOnlyEnabled, showOnlyFavorites: $showOnlyFavorites, totalAssistants: $totalAssistants, enabledAssistants: $enabledAssistants, customAssistants: $customAssistants, usageStats: $usageStats, isImportExportInProgress: $isImportExportInProgress, importExportProgress: $importExportProgress, importExportError: $importExportError, lastUpdated: $lastUpdated, cacheExpiry: $cacheExpiry, isCacheValid: $isCacheValid)';
+    return 'AssistantState(isLoading: $isLoading, isInitialized: $isInitialized, error: $error, assistants: $assistants, selectedAssistant: $selectedAssistant, defaultAssistant: $defaultAssistant, recentAssistantIds: $recentAssistantIds, favoriteAssistantIds: $favoriteAssistantIds, availableTags: $availableTags, tagOrder: $tagOrder, collapsedTags: $collapsedTags, sortBy: $sortBy, sortAscending: $sortAscending, creatingAssistants: $creatingAssistants, updatingAssistants: $updatingAssistants, deletingAssistants: $deletingAssistants, operationErrors: $operationErrors, availableModels: $availableModels, selectedModelId: $selectedModelId, isLoadingModels: $isLoadingModels, templates: $templates, templateCategories: $templateCategories, isLoadingTemplates: $isLoadingTemplates, searchQuery: $searchQuery, activeFilterTags: $activeFilterTags, showOnlyEnabled: $showOnlyEnabled, showOnlyFavorites: $showOnlyFavorites, totalAssistants: $totalAssistants, enabledAssistantCount: $enabledAssistantCount, customAssistants: $customAssistants, usageStats: $usageStats, isImportExportInProgress: $isImportExportInProgress, importExportProgress: $importExportProgress, importExportError: $importExportError, lastUpdated: $lastUpdated, cacheExpiry: $cacheExpiry, isCacheValid: $isCacheValid)';
   }
 
   @override
@@ -1096,8 +1096,8 @@ class _$AssistantStateImpl extends _AssistantState {
                 other.showOnlyFavorites == showOnlyFavorites) &&
             (identical(other.totalAssistants, totalAssistants) ||
                 other.totalAssistants == totalAssistants) &&
-            (identical(other.enabledAssistants, enabledAssistants) ||
-                other.enabledAssistants == enabledAssistants) &&
+            (identical(other.enabledAssistantCount, enabledAssistantCount) ||
+                other.enabledAssistantCount == enabledAssistantCount) &&
             (identical(other.customAssistants, customAssistants) ||
                 other.customAssistants == customAssistants) &&
             const DeepCollectionEquality()
@@ -1148,7 +1148,7 @@ class _$AssistantStateImpl extends _AssistantState {
         showOnlyEnabled,
         showOnlyFavorites,
         totalAssistants,
-        enabledAssistants,
+        enabledAssistantCount,
         customAssistants,
         const DeepCollectionEquality().hash(_usageStats),
         isImportExportInProgress,
@@ -1199,7 +1199,7 @@ abstract class _AssistantState extends AssistantState {
       final bool showOnlyEnabled,
       final bool showOnlyFavorites,
       final int totalAssistants,
-      final int enabledAssistants,
+      final int enabledAssistantCount,
       final int customAssistants,
       final Map<String, AssistantUsageStats> usageStats,
       final bool isImportExportInProgress,
@@ -1318,7 +1318,7 @@ abstract class _AssistantState extends AssistantState {
 
   /// Number of enabled assistants
   @override
-  int get enabledAssistants;
+  int get enabledAssistantCount;
 
   /// Number of custom assistants
   @override

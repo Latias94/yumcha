@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../../../../domain/entities/message_block.dart';
 import '../../../../domain/entities/message_block_type.dart';
-import '../../../../../../shared/presentation/design_system/design_constants.dart';
 import '../bubble_context.dart';
 import 'bubble_block_adapter.dart';
 
@@ -188,13 +187,15 @@ class CodeBubbleAdapter extends BubbleBlockAdapter {
     if (content.contains('#include')) return 'c';
     if (content.contains('fn main()')) return 'rust';
     if (content.contains('func main()')) return 'go';
-    if (content.contains('SELECT ') || content.contains('INSERT '))
+    if (content.contains('SELECT ') || content.contains('INSERT ')) {
       return 'sql';
+    }
     if (content.contains('<html') || content.contains('<div')) return 'html';
     if (content.contains('{') && content.contains('color:')) return 'css';
     if (content.contains('```')) return 'markdown';
-    if (content.contains('"scripts"') && content.contains('"dependencies"'))
+    if (content.contains('"scripts"') && content.contains('"dependencies"')) {
       return 'json';
+    }
 
     return 'code';
   }

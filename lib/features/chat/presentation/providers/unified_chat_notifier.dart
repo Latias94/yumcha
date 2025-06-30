@@ -1341,47 +1341,6 @@ class UnifiedChatNotifier extends StateNotifier<UnifiedChatState> {
     }
   }
 
-  /// 解决消息状态冲突
-  void _resolveMessageStateConflict(
-    String messageId,
-    List<MessageStatus> candidateStatuses,
-    String reason,
-  ) {
-    try {
-      final message = state.messageState.messages.firstWhere(
-        (m) => m.id == messageId,
-        orElse: () => throw Exception('消息未找到: $messageId'),
-      );
-
-      final resolvedStatus = _stateManager.resolveMessageStateConflict(
-        message: message,
-        candidateStatuses: candidateStatuses,
-        reason: reason,
-      );
-
-      if (resolvedStatus != message.status) {
-        _logger.info('状态冲突已解决', {
-          'messageId': messageId,
-          'originalStatus': message.status.name,
-          'candidates': candidateStatuses.map((s) => s.name).toList(),
-          'resolvedStatus': resolvedStatus.name,
-          'reason': reason,
-        });
-
-        // 直接更新状态（已经通过状态机验证）
-        _updateMessageContentInternal(
-            messageId, message.content, resolvedStatus, null);
-      }
-    } catch (error) {
-      _logger.error('状态冲突解决失败', {
-        'messageId': messageId,
-        'candidates': candidateStatuses.map((s) => s.name).toList(),
-        'reason': reason,
-        'error': error.toString(),
-      });
-    }
-  }
-
   /// 清除错误
   void _clearError() {
     // 清除全局错误状态（如果有的话）

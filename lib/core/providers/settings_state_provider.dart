@@ -53,7 +53,7 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
   /// Set custom theme
   Future<void> setCustomTheme(CustomThemeConfig? customTheme) async {
     state = state.copyWith(customTheme: customTheme);
-    await _persistSetting('customTheme', customTheme?.toJson());
+    await _persistSetting('customTheme', customTheme?.toString());
   }
 
   /// Set use system accent color
@@ -110,7 +110,7 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
   /// Set sidebar icon configuration
   Future<void> setSidebarIconConfig(SidebarIconConfig config) async {
     state = state.copyWith(sidebarIconConfig: config);
-    await _persistSetting('sidebarIconConfig', config.toJson());
+    await _persistSetting('sidebarIconConfig', config.toString());
   }
 
   /// Set pin topics to top
@@ -248,7 +248,7 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
   /// Set export menu options
   Future<void> setExportMenuOptions(ExportMenuOptions exportMenuOptions) async {
     state = state.copyWith(exportMenuOptions: exportMenuOptions);
-    await _persistSetting('exportMenuOptions', exportMenuOptions.toJson());
+    await _persistSetting('exportMenuOptions', exportMenuOptions.toString());
   }
 
   // === Update Settings ===
@@ -303,13 +303,13 @@ class SettingsStateNotifier extends StateNotifier<SettingsState> {
   Future<void> setMcpServers(List<McpServerConfig> mcpServers) async {
     state = state.copyWith(mcpServers: mcpServers);
     await _persistSetting(
-        'mcpServers', mcpServers.map((s) => s.toJson()).toList());
+        'mcpServers', mcpServers.map((s) => s.toString()).toList());
   }
 
   /// Set knowledge base settings
   Future<void> setKnowledgeBaseSettings(KnowledgeBaseSettings settings) async {
     state = state.copyWith(knowledgeBaseSettings: settings);
-    await _persistSetting('knowledgeBaseSettings', settings.toJson());
+    await _persistSetting('knowledgeBaseSettings', settings.toString());
   }
 
   /// Set integrations

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/message_block.dart';
 import '../../domain/entities/message_block_type.dart';
-import '../../domain/entities/message_block_status.dart';
 import 'message_block_widget.dart';
 
 /// 懒加载消息块组件
@@ -347,15 +346,14 @@ class _LazyMessageBlockState extends ConsumerState<LazyMessageBlock> {
 
 /// 可见性检测器（简化版实现）
 class VisibilityDetector extends StatefulWidget {
-  final Key key;
   final Widget child;
   final void Function(VisibilityInfo info) onVisibilityChanged;
 
   const VisibilityDetector({
-    required this.key,
+    super.key,
     required this.child,
     required this.onVisibilityChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<VisibilityDetector> createState() => _VisibilityDetectorState();

@@ -34,7 +34,7 @@ class ToolCallResult {
   final Duration? executionTime;
   final Map<String, dynamic> metadata;
 
-  const ToolCallResult({
+  ToolCallResult({
     required this.toolCallId,
     required this.toolName,
     required this.arguments,

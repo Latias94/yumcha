@@ -3,7 +3,6 @@ import '../../../../../features/ai_management/domain/entities/ai_provider.dart'
     as models;
 import '../../../../../features/ai_management/domain/entities/ai_assistant.dart';
 import '../core/ai_service_base.dart';
-import '../core/ai_response_models.dart';
 import 'package:llm_dart/llm_dart.dart';
 
 /// Web搜索服务 - 处理AI Web搜索功能
@@ -298,7 +297,7 @@ class WebSearchService extends AiServiceBase {
       title: '搜索结果',
       url: 'https://example.com',
       snippet: responseText.length > 200
-          ? responseText.substring(0, 200) + '...'
+          ? '${responseText.substring(0, 200)}...'
           : responseText,
       publishDate: DateTime.now(),
     ));

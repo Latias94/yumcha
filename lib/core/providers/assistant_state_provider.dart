@@ -53,7 +53,7 @@ class AssistantStateNotifier extends StateNotifier<AssistantState> {
         availableModels: models,
         templates: templates,
         totalAssistants: assistants.length,
-        enabledAssistants: assistants.where((a) => a.isEnabled).length,
+        enabledAssistantCount: assistants.where((a) => a.isEnabled).length,
         customAssistants: assistants.where((a) => a.isCustom).length,
         lastUpdated: DateTime.now(),
       );
@@ -137,7 +137,8 @@ class AssistantStateNotifier extends StateNotifier<AssistantState> {
       state = state.copyWith(
         assistants: updatedAssistants,
         totalAssistants: updatedAssistants.length,
-        enabledAssistants: updatedAssistants.where((a) => a.isEnabled).length,
+        enabledAssistantCount:
+            updatedAssistants.where((a) => a.isEnabled).length,
         customAssistants: updatedAssistants.where((a) => a.isCustom).length,
         creatingAssistants: state.creatingAssistants..remove(assistantId),
         lastUpdated: DateTime.now(),
@@ -182,7 +183,8 @@ class AssistantStateNotifier extends StateNotifier<AssistantState> {
         defaultAssistant: state.defaultAssistant?.id == assistant.id
             ? updatedAssistant
             : state.defaultAssistant,
-        enabledAssistants: updatedAssistants.where((a) => a.isEnabled).length,
+        enabledAssistantCount:
+            updatedAssistants.where((a) => a.isEnabled).length,
         updatingAssistants: state.updatingAssistants..remove(assistant.id),
         lastUpdated: DateTime.now(),
       );
@@ -231,7 +233,8 @@ class AssistantStateNotifier extends StateNotifier<AssistantState> {
         selectedAssistant: newSelection,
         defaultAssistant: newDefault,
         totalAssistants: updatedAssistants.length,
-        enabledAssistants: updatedAssistants.where((a) => a.isEnabled).length,
+        enabledAssistantCount:
+            updatedAssistants.where((a) => a.isEnabled).length,
         customAssistants: updatedAssistants.where((a) => a.isCustom).length,
         deletingAssistants: state.deletingAssistants..remove(assistantId),
         recentAssistantIds:
@@ -531,7 +534,7 @@ final assistantStatsProvider = Provider<Map<String, int>>((ref) {
   final state = ref.watch(assistantStateProvider);
   return {
     'total': state.totalAssistants,
-    'enabled': state.enabledAssistants,
+    'enabled': state.enabledAssistantCount,
     'custom': state.customAssistants,
     'favorites': state.favoriteAssistantIds.length,
   };

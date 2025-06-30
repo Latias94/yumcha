@@ -4,8 +4,11 @@ import '../providers/chat_state_provider.dart';
 import '../adapters/chat_migration_adapter.dart';
 import '../../features/chat/domain/entities/conversation_ui_state.dart';
 import '../../features/chat/domain/entities/message.dart';
-import 'message_list_widget.dart';
-import 'chat_input_widget.dart';
+import '../../features/chat/domain/entities/chat_message_content.dart';
+import '../../shared/infrastructure/services/notification_service.dart';
+import '../../features/chat/presentation/screens/widgets/chat_history_view.dart';
+import '../../features/chat/presentation/screens/widgets/chat_input.dart';
+import '../../shared/presentation/providers/providers.dart';
 
 /// Modern chat view using new state management system
 ///
@@ -121,24 +124,72 @@ class _ModernChatViewState extends ConsumerState<ModernChatView> {
     widget.onConversationChanged?.call(conversation);
   }
 
+  // 添加老界面需要的回调方法
+  void _onEditMessage(Message message) {
+    // 编辑消息功能
+    // TODO: 实现消息编辑功能
+  }
+
+  void _onRegenerateMessage(Message message) {
+    // 重新生成消息功能
+    // TODO: 实现消息重新生成功能
+  }
+
+  void _onSelectSuggestion(String suggestion) {
+    // 选择建议功能
+    widget.onMessageSent?.call(suggestion);
+  }
+
+  Future<void> _onSendMessageRequest(ChatMessageRequest request) async {
+    // 处理发送消息请求
+    try {
+      // 简化处理，直接发送文本内容
+      String content = '';
+      if (request.content is TextContent) {
+        content = (request.content as TextContent).text;
+      } else if (request.content is MixedContent) {
+        content = (request.content as MixedContent).text ?? '';
+      }
+
+      if (content.trim().isNotEmpty) {
+        widget.onMessageSent?.call(content);
+      }
+    } catch (e) {
+      NotificationService().showError('发送消息失败: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: widget.showAppBar ? _buildAppBar() : null,
       body: Column(
         children: [
-          // Chat messages
+          // Chat messages - 使用老界面的精美ChatHistoryView
           Expanded(
-            child: _buildMessageArea(),
+            child: ChatHistoryView(
+              conversationId: widget.conversationId ?? '',
+              onEditMessage: _onEditMessage,
+              onRegenerateMessage: _onRegenerateMessage,
+              onSelectSuggestion: _onSelectSuggestion,
+              isLoading: false,
+              isStreaming: false,
+              welcomeMessage: null,
+              suggestions: const [],
+            ),
           ),
 
-          // Message input
+          // Message input - 使用老界面的精美ChatInput
           if (widget.enableInput)
-            ChatInputWidget(
-              placeholder: 'Type a message...',
-              onMessageSent: (message) {
-                widget.onMessageSent?.call(message);
-              },
+            ChatInput(
+              autofocus: false,
+              onSendMessage: _onSendMessageRequest,
+              onCancelMessage: null,
+              onCancelEdit: null,
+              isLoading: false,
+              onAssistantChanged: null,
+              initialAssistantId: widget.assistantId,
+              onStartTyping: null,
             ),
         ],
       ),
@@ -171,20 +222,7 @@ class _ModernChatViewState extends ConsumerState<ModernChatView> {
     );
   }
 
-  Widget _buildMessageArea() {
-    final error = ref.watch(chatStateProvider.select((state) => state.error));
-
-    if (error != null) {
-      return _buildErrorWidget(error);
-    }
-
-    return MessageListWidget(
-      conversationId: widget.conversationId,
-      onMessageTap: _onMessageTap,
-      onMessageLongPress: _onMessageLongPress,
-      onLoadMore: _onLoadMoreMessages,
-    );
-  }
+  // 移除_buildMessageArea方法，因为我们现在直接在build方法中使用ChatHistoryView
 
   Widget _buildErrorWidget(String error) {
     return Center(
@@ -219,20 +257,7 @@ class _ModernChatViewState extends ConsumerState<ModernChatView> {
     );
   }
 
-  void _onMessageTap(Message message) {
-    // Handle message tap
-    // TODO: Implement message tap handling
-  }
-
-  void _onMessageLongPress(Message message) {
-    // Show message options
-    _showMessageOptions(message);
-  }
-
-  void _onLoadMoreMessages() {
-    // Load more messages is handled by MessageListWidget
-    // TODO: Add logging framework for debug messages
-  }
+  // 移除不需要的消息处理方法，因为我们现在使用老界面的组件
 
   void _showChatOptions() {
     showModalBottomSheet(
@@ -268,45 +293,9 @@ class _ModernChatViewState extends ConsumerState<ModernChatView> {
     );
   }
 
-  void _showMessageOptions(Message message) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => _buildMessageOptionsSheet(message),
-    );
-  }
-
-  Widget _buildMessageOptionsSheet(Message message) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.copy),
-            title: const Text('Copy'),
-            onTap: () {
-              Navigator.pop(context);
-              // Copy message content
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete),
-            title: const Text('Delete'),
-            onTap: () {
-              Navigator.pop(context);
-              _deleteMessage(message);
-            },
-          ),
-        ],
-      ),
-    );
-  }
+  // 移除消息选项相关方法，因为老界面的组件已经包含了这些功能
 
   void _clearMessages() {
     ref.read(chatStateProvider.notifier).clearCurrentConversationMessages();
-  }
-
-  void _deleteMessage(Message message) {
-    ref.read(chatStateProvider.notifier).removeMessage(message.id);
   }
 }

@@ -14,7 +14,7 @@ class StreamingUpdate {
   final Map<String, dynamic>? metadata;
   final DateTime timestamp;
 
-  const StreamingUpdate({
+  StreamingUpdate({
     required this.messageId,
     this.contentDelta,
     this.fullContent,

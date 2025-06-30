@@ -1,47 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart';
 import '../../domain/entities/chat_state.dart';
-
-/// Timer池管理器 - 统一管理所有Timer，避免内存泄漏
-class _TimerPool {
-  static final _TimerPool _instance = _TimerPool._internal();
-  factory _TimerPool() => _instance;
-  _TimerPool._internal();
-
-  final Map<String, Timer> _timers = {};
-  int _nextId = 0;
-
-  /// 创建一个新的Timer
-  String createTimer(Duration duration, VoidCallback callback) {
-    final id = 'timer_${_nextId++}';
-    _timers[id] = Timer(duration, () {
-      callback();
-      _timers.remove(id);
-    });
-    return id;
-  }
-
-  /// 取消Timer
-  void cancelTimer(String id) {
-    final timer = _timers.remove(id);
-    timer?.cancel();
-  }
-
-  /// 检查Timer是否存在
-  bool hasTimer(String id) => _timers.containsKey(id);
-
-  /// 清理所有Timer
-  void clearAll() {
-    for (final timer in _timers.values) {
-      timer.cancel();
-    }
-    _timers.clear();
-  }
-
-  /// 获取活跃Timer数量
-  int get activeCount => _timers.length;
-}
 
 /// 简化的流式更新管理器
 ///

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/entities/message.dart';
 import '../../../../domain/entities/message_block.dart';
-import '../../../../domain/entities/message_block_type.dart';
-import '../../../../domain/entities/message_block_status.dart';
 import '../../../../domain/entities/message_status.dart';
 import '../bubble_system.dart';
 

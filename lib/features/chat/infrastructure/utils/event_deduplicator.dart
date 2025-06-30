@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 import '../../domain/entities/chat_state.dart';
 
 /// 事件去重器
